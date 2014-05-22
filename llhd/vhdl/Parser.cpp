@@ -21,10 +21,16 @@ struct TokenRange
 	TokenRange(TokenPosition& s, TokenPosition& e): start(s), end(e) {}
 };
 
+static std::ostream& operator<< (std::ostream& o, const TokenRange& r) {
+	o << r.start.line << "." << r.start.column << "-" << r.end.line << "." << r.end.column;
+	return o;
+}
+
 enum TokenType {
 	kTokenComment,
 	kTokenWhitespace,
 	kTokenIdentifier,
+	kTokenSymbol,
 	kTokenEOF
 };
 
@@ -33,6 +39,7 @@ inline const char* tokenTypeToString(TokenType t) {
 		case kTokenComment: return "comment";
 		case kTokenWhitespace: return "whitespace";
 		case kTokenIdentifier: return "identifier";
+		case kTokenSymbol: return "symbol";
 		case kTokenEOF: return "EOF";
 		default: return "unknown";
 	}
@@ -54,7 +61,7 @@ std::ostream& operator<< (std::ostream& o, const Token& tkn) {
 			o << *i;
 		}
 	}
-	o << "'";
+	o << "' " << tkn.range;
 	return o;
 }
 
@@ -122,13 +129,21 @@ struct Lexer
 		tkn.type = type;
 		tkn.value = buffer.substr(0, cursor);
 		tkn.range = TokenRange(start, pos);
-		std::cout << "emitting " << tkn << '\n';
+		// std::cout << "emitting " << tkn << '\n';
 		start = pos;
 		buffer.erase(buffer.begin(), buffer.begin() + cursor);
 		cursor = 0;
 	}
 
 	void next(int n = 1) {
+		for (int i = 0; i < n; i++) {
+			if (buffer[cursor+i] == '\n') {
+				pos.column = 0;
+				pos.line++;
+			} else {
+				pos.column++;
+			}
+		}
 		cursor += n;
 	}
 
@@ -144,6 +159,16 @@ struct Lexer
 		return std::equal(s.begin(), s.end(), buffer.begin() + cursor);
 	}
 
+	bool acceptOneOf(const std::string& s, int stride = 1) {
+		if (!ensure(stride))
+			return false;
+		for (std::string::const_iterator i = s.begin(); i != s.end(); i += stride) {
+			if (std::equal(i, i+stride, buffer.begin() + cursor))
+				return true;
+		}
+		return false;
+	}
+
 	bool consume(char c) {
 		if (accept(c)) {
 			next();
@@ -156,6 +181,15 @@ struct Lexer
 	bool consume(const std::string& s) {
 		if (accept(s)) {
 			next(s.length());
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	bool consumeOneOf(const std::string& s, int stride = 1) {
+		if (acceptOneOf(s, stride)) {
+			next(stride);
 			return true;
 		} else {
 			return false;
@@ -234,6 +268,20 @@ inline static bool acceptWhitespace(Lexer& l) {
 		l.accept("\u00A0");
 }
 
+inline static bool consumeSymbol(Lexer& l) {
+	return
+		l.consumeOneOf("?/=" "?<=" "?>=", 3) ||
+		l.consumeOneOf("=>" "**" ":=" "/=" ">=" "<=" "<>" "??" "?=" "?<" "?>" "<<" ">>", 2) ||
+		l.consumeOneOf("&'()*+,-./:;<=>`|[]?@");
+}
+
+inline static bool acceptSymbol(Lexer& l) {
+	return
+		l.acceptOneOf("?/=" "?<=" "?>=", 3) ||
+		l.acceptOneOf("=>" "**" ":=" "/=" ">=" "<=" "<>" "??" "?=" "?<" "?>" "<<" ">>", 2) ||
+		l.acceptOneOf("&'()*+,-./:;<=>`|[]?@");
+}
+
 static StateFn lexRoot(Lexer& l);
 static StateFn lexComment(Lexer& l);
 static StateFn lexWhitespace(Lexer& l);
@@ -260,7 +308,7 @@ static StateFn lexWhitespace(Lexer& l)
 
 static StateFn lexIdentifier(Lexer& l)
 {
-	if (l.eof() || acceptWhitespace(l)) {
+	if (l.eof() || acceptWhitespace(l) || acceptSymbol(l)) {
 		l.emit(kTokenIdentifier);
 		return lexRoot;
 	}
@@ -274,6 +322,10 @@ static StateFn lexRoot(Lexer& l)
 		return lexWhitespace;
 	if (l.consume("--"))
 		return lexComment;
+	if (consumeSymbol(l)) {
+		l.emit(kTokenSymbol);
+		return lexRoot;
+	}
 	if (l.eof())
 		return 0;
 	else
