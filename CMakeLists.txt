@@ -6,4 +6,13 @@ enable_testing()
 include_directories(.)
 add_subdirectory(llhd/vhdl)
 
-# add_executable(llhd test/dev.cpp)
+# add a documentation target if Doxygen is available
+find_package(Doxygen)
+if (DOXYGEN_FOUND)
+	configure_file(Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile @ONLY)
+	add_custom_target(
+		doc
+		${DOXYGEN_EXECUTABLE} Doxyfile 1> doxygen.log 2> doxygen.err
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
+		COMMENT "Generating API documentation with Doxygen" VERBATIM)
+endif()
