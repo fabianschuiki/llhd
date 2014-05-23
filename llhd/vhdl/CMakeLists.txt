@@ -1,4 +1,4 @@
-add_library(llhd-vhdl Parser.cpp)
+add_library(llhd-vhdl Lexer.cpp Parser.cpp Token.cpp)
 
 # Add the tests.
 add_executable(test-vhdl-parser test/parser.cpp)
