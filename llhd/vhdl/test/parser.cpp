@@ -1,5 +1,6 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #include <llhd/vhdl/Parser.hpp>
+#include <llhd/vhdl/ast/Context.hpp>
 #include <iostream>
 #include <fstream>
 
