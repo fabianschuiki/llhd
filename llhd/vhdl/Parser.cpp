@@ -2,6 +2,7 @@
 #include "Lexer.hpp"
 #include "Parser.hpp"
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 using namespace llhd::vhdl;
