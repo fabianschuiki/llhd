@@ -23,6 +23,9 @@ int main(int argc, char** argv)
 			parser.parse(fin);
 		}
 
+		llhd::vhdl::ast::Context ctx;
+		ctx.allocate(128);
+
 	} catch (std::exception& e) {
 		std::cerr << "exception: " << e.what() << '\n';
 		return 1;

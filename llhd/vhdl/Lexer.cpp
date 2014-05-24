@@ -29,7 +29,7 @@ void Lexer::next(int n) {
 }
 
 bool Lexer::eof() {
-	return cursor == buffer.length() && !input.good();
+	return cursor == (int)buffer.length() && !input.good();
 }
 
 

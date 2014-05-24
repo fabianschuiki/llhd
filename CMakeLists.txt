@@ -2,6 +2,11 @@
 cmake_minimum_required(VERSION 2.8)
 project(llhd)
 
+# enable C++11 support and enable all warnings
+if (UNIX)
+	add_definitions(-Wall -std=c++11)
+endif()
+
 enable_testing()
 include_directories(.)
 add_subdirectory(llhd/vhdl)
