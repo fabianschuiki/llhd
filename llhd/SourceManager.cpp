@@ -5,8 +5,7 @@
 using namespace llhd;
 
 
-SourceManager::~SourceManager()
-{
+SourceManager::~SourceManager() {
 	// Deallocate the buffers for which this manager has taken ownership.
 	for (auto& pairs : bufferVsrcIndex)
 		if (pairs.second->ownsBuffer)
@@ -21,7 +20,10 @@ SourceManager::~SourceManager()
 /// Note that the file is not loaded immediately. Rather, room in the virtual
 /// source space is allocated for it. The file is loaded lazily as soon as it
 /// is required.
-FileId SourceManager::createFileId(const FileEntry* fe) {
+FileId SourceManager::createFileId(
+	/// File to be loaded into the SourceManager.
+	const FileEntry* fe) {
+
 	// Lookup the entry for this file. If it is already loaded, immediately
 	// return that entry's FileId.
 	VirtualSourceEntry*& entry = fileVsrcIndex[fe];
@@ -47,7 +49,13 @@ FileId SourceManager::createFileId(const FileEntry* fe) {
 /// This function provides a mechanism of adding any chunk of memory to the
 /// SourceManager as if it was a file. If \a takeOwnership is set to true, the
 /// \a buffer will be deallocated when the manager itself is deallocated.
-FileId SourceManager::createFileId(const SourceBuffer* buffer, bool takeOwnership) {
+FileId SourceManager::createFileId(
+	/// Chunk of source code to be added to the manager.
+	const SourceBuffer* buffer,
+	/// If true, the buffer will be deallocated as soon as the manager is
+	/// destroyed itself.
+	bool takeOwnership) {
+
 	// Lookup the entry for this buffer. If it is already loaded, immediately
 	// return that buffer's FileId.
 	VirtualSourceEntry*& entry = bufferVsrcIndex[buffer];
