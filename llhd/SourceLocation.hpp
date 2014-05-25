@@ -49,7 +49,10 @@ public:
 	/// Returns true if this is a valid SourceLocation.
 	bool isValid() const { return id != 0; }
 
+	/// Returns another location which is offset by \a offset.
 	SourceLocation operator+ (int offset) const { return SourceLocation(id + offset); }
+
+	/// Offsets this location by \a offset.
 	SourceLocation& operator+= (int offset) { id += offset; return *this; }
 };
 
