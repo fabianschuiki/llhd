@@ -142,9 +142,12 @@ public:
 		return ptr;
 	}
 
-	/// Does nothing. Deallocation is not required in the memory pool, since it
-	/// is pseudo garbage collected anyway.
-	void deallocate(void* ptr, size_t size) {}
+	/// Allocates memory for \a num objects of type \c T. The allocated objects
+	/// are not constructed, hence the responsibility to do so lies with the
+	/// caller.
+	template <typename T> T* allocate(unsigned num = 1) {
+		return (T*)allocate(sizeof(T) * num, alignOf<T>::alignment);
+	}
 
 private:
 	/// Clears this pool but does not deallocate any memory. The resulting pool

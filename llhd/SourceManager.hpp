@@ -1,6 +1,7 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
 #include "llhd/MemoryPool.hpp"
+#include "llhd/SourceLocation.hpp"
 #include <map>
 
 namespace llhd {
@@ -9,32 +10,7 @@ class FileEntry;
 class SourceBuffer;
 class SourceCache;
 class SourceManager;
-
-/// An opaque identifier that refers to a source file.
-class FileId {
-	/// 0 is "invalid", everything else refers to a source file.
-	unsigned id;
-
-	/// Returns a FileId with the given ID.
-	static FileId make(unsigned id) {
-		FileId fid;
-		fid.id = id;
-		return fid;
-	}
-
-	friend class SourceManager;
-
-public:
-	FileId(): id(0) {}
-
-	bool isValid() const { return id != 0; }
-	bool operator== (const FileId& rhs) const { return id == rhs.id; }
-	bool operator!= (const FileId& rhs) const { return id != rhs.id; }
-	bool operator<  (const FileId& rhs) const { return id <  rhs.id; }
-	bool operator>  (const FileId& rhs) const { return id >  rhs.id; }
-	bool operator<= (const FileId& rhs) const { return id <= rhs.id; }
-	bool operator>= (const FileId& rhs) const { return id >= rhs.id; }
-};
+class VirtualSourceEntry;
 
 /// Loads and maintains source files, and creates a continuous location space.
 ///
@@ -48,12 +24,27 @@ public:
 /// Files cannot be unloaded and will reside in memory as long as the manager
 /// instance lives.
 class SourceManager {
-	MemoryPool<> cacheAllocator;
 	std::map<const FileEntry*, SourceCache> caches;
 
+	std::vector<VirtualSourceEntry*> vsrcTable;
+	std::map<const FileEntry*, VirtualSourceEntry*> fileVsrcIndex;
+	std::map<const SourceBuffer*, VirtualSourceEntry*> bufferVsrcIndex;
+
 public:
+	~SourceManager();
+
 	FileId createFileId(const FileEntry* fe);
+	FileId createFileId(const SourceBuffer* buffer, bool takeOwnership = true);
+
 	SourceBuffer* getBuffer(FileId fid);
+	SourceBuffer* getBufferForFile(const FileEntry* fe);
+
+	SourceLocation getStartLocation(FileId fid);
+	SourceLocation getEndLocation(FileId fid);
+
+	const char* getFilename(SourceLocation loc);
+	unsigned getLineNumber(SourceLocation loc);
+	unsigned getColumnNumber(SourceLocation loc);
 };
 
 } // namespace llhd
