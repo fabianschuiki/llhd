@@ -9,7 +9,7 @@ endif()
 
 enable_testing()
 include_directories(.)
-add_subdirectory(llhd/vhdl)
+add_subdirectory(llhd)
 
 # add a documentation target if Doxygen is available
 find_package(Doxygen)

@@ -1,7 +1,6 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
-
-// provide assertions
+#include "llhd/types.hpp"
 #include <cassert>
 
 // Expands to an expression that is true if the given 'derived' class overrides
