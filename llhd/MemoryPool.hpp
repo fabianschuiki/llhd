@@ -101,7 +101,7 @@ public:
 	/// Allocates memory of size \a size, aligned to \a alignment bytes. The
 	/// memory either comes from the current slab; or, if the size exceeds the
 	/// \c thresholdSize, from a custom-sized slab.
-	void* allocate(size_t size, size_t alignment = 0) {
+	void* allocate(size_t size, unsigned alignment = 0) {
 		// Start a new slab if there is none, and keep track of the memory
 		// allocated through this pool.
 		if (!cur)

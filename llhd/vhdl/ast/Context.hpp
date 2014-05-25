@@ -14,8 +14,8 @@ public:
 	/// Allocates memory for objects associated with this Context. All memory
 	/// allocated via this method is freed automatically when the Context is
 	/// itself destroyed.
-	void* allocate(size_t size) const {
-		return pool.allocate(size);
+	void* allocate(size_t size, unsigned alignment = 1) const {
+		return pool.allocate(size, alignment);
 	}
 };
 
