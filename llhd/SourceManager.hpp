@@ -14,15 +14,23 @@ class VirtualSourceEntry;
 
 /// Loads and maintains source files, and creates a continuous location space.
 ///
-/// The SourceManager is used to load files from disk into memory which is
-/// garbage collected as soon as the manager is destructed. All loaded files
-/// are concatenated into a continuous virtual space, which allows a single
-/// integer to specify an exact location within all open files. This location
-/// may be decoded by the SourceManager to obtain the actual file, line and
-/// column information.
+/// The basic usage of SourceManager is as follow:
+/// - Source files may be loaded by calling createFileId(), which returns a
+///   FileId to be used in subsequent calls to other functions.
+/// - The content of a source file may be accessed by calling getBuffer().
+/// - Use SourceLocation objects to point locations in a loaded file.
+/// - Call getFilename(), getLineNumber(), or getColumnNumber() to convert such
+///   a location to a human-readable form.
 ///
-/// Files cannot be unloaded and will reside in memory as long as the manager
-/// instance lives.
+/// Internally, files are loaded lazily when getBuffer() is called for the
+/// first time for the corresponding file. The buffers containing the file
+/// contents valid as long as the SourceManager exists.
+///
+/// All loaded files are concatenated into a continuous virtual space, which
+/// allows the SourceLocation class to specify an exact location within any
+/// open files through only 32 bits, making them highly efficient.
+///
+/// Some of the concepts are borrowed from llvm::SourceManager.
 class SourceManager {
 	std::map<const FileEntry*, SourceCache> caches;
 
