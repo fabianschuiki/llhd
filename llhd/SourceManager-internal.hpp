@@ -4,18 +4,24 @@
 
 namespace llhd {
 
-class FileEntry;
 class SourceBuffer;
 class SourceCache;
 class SourceManager;
 
 
+/// Base class for all source table entries maintained by SourceManager. Other
+/// classes derive from this to implement a specific kind of resource that may
+/// added to the SourceManager's table of sources. Currently supported are:
+///
+/// - FileSourceManagerEntry, which points at a file on disk; and
+/// - BufferSourceManagerEntry, which points at an arbitrary memory location.
 class SourceManagerEntry {
 	friend class SourceManager;
 
 	unsigned id;
 	unsigned offset;
 	unsigned size;
+	unsigned end;
 
 	/// Returns a SourceBuffer with the contents of this entry. Overridden by
 	/// subclasses to implement loading the resource they wrap around.
@@ -25,9 +31,15 @@ class SourceManagerEntry {
 	/// Overridden by subclasses to return a useful name for the resource they
 	/// wrap around.
 	virtual const char* getName() const = 0;
+
+	unsigned getLineNumberAtOffset(unsigned offset);
+	unsigned getColumnNumberAtOffset(unsigned offset);
 };
 
 
+/// SourceManager table entry for files on disk. Identified by their path, this
+/// class loads files lazily as soon as getBuffer() is called for the first
+/// time. The entry's name corresponds to the file's path.
 class FileSourceManagerEntry : public SourceManagerEntry {
 	friend class SourceManager;
 
@@ -49,6 +61,9 @@ class FileSourceManagerEntry : public SourceManagerEntry {
 };
 
 
+/// SourceManager table entry for arbitrary chunks of memory. This is the most
+/// lightweight of all table entries, allowing for arbitrary strings to be used
+/// as proper source files. The entry name is fixed to "buffer".
 class BufferSourceManagerEntry : public SourceManagerEntry {
 	friend class SourceManager;
 

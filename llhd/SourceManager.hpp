@@ -34,7 +34,6 @@ class SourceManagerEntry;
 ///
 /// Some of the concepts are borrowed from llvm::SourceManager.
 class SourceManager {
-public:
 	std::map<bfs::path, SourceCache> caches;
 
 	typedef std::unique_ptr<SourceManagerEntry> TableSlot;
@@ -55,9 +54,8 @@ public:
 	SourceLocation getStartLocation(FileId fid);
 	SourceLocation getEndLocation(FileId fid);
 
-	const char* getFilename(SourceLocation loc);
-	unsigned getLineNumber(SourceLocation loc);
-	unsigned getColumnNumber(SourceLocation loc);
+	FileId getFileIdForLocation(SourceLocation loc);
+	PresumedLocation getPresumedLocation(SourceLocation loc);
 };
 
 } // namespace llhd

@@ -57,4 +57,25 @@ public:
 };
 
 
+/// A decoded SourceLocation, presentable to humans. The SourceManager resolves
+/// SourceLocation objects to PresumedLocation objects, filling in the filename,
+/// offset, line, and column. See SourceManager::getPresumedLocation() for more
+/// details.
+struct PresumedLocation {
+	const char* filename;
+	unsigned offset;
+	unsigned line;
+	unsigned column;
+
+	PresumedLocation():
+		filename(NULL),
+		offset(0),
+		line(0),
+		column(0) {}
+
+	/// Returns true if this is a valid PresumedLocation.
+	bool isValid() const { return filename != NULL; }
+};
+
+
 } // namespace llhd
