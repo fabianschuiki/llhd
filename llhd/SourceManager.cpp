@@ -6,10 +6,6 @@ using namespace llhd;
 
 
 SourceManager::~SourceManager() {
-	// Deallocate the buffers for which this manager has taken ownership.
-	for (auto& pairs : bufferVsrcIndex)
-		if (pairs.second->ownsBuffer)
-			delete[] pairs.second->origBuffer;
 }
 
 /// Puts the file \a fe under management and returns a FileId for it. This id
@@ -22,24 +18,24 @@ SourceManager::~SourceManager() {
 /// is required.
 FileId SourceManager::createFileId(
 	/// File to be loaded into the SourceManager.
-	const FileEntry* fe) {
+	const bfs::path& fp) {
 
 	// Lookup the entry for this file. If it is already loaded, immediately
 	// return that entry's FileId.
-	VirtualSourceEntry*& entry = fileVsrcIndex[fe];
-	if (entry)
-		return FileId(entry->id);
+	SourceManagerEntry*& indexEntry = fileSrcIndex[fp];
+	if (indexEntry)
+		return FileId(indexEntry->id);
 
 	// Create a new entry for this file.
-	unsigned id = vsrcTable.size()+1;
-	entry = new VirtualSourceEntry();
-	entry->id = id;
-	entry->offset = id > 1 ? vsrcTable[id-2]->offset + vsrcTable[id-2]->size : 0;
-	// entry->size = fe->getSize();
-	entry->origFile = fe;
-	vsrcTable.push_back(entry);
+	std::unique_ptr<FileSourceManagerEntry> entry(new FileSourceManagerEntry());
+	bootstrapEntry(entry.get());
+	entry->size = bfs::file_size(fp);
+	entry->path = fp;
 
-	return FileId(id);
+	srcTable.push_back(std::move(entry));
+	indexEntry = entry.get();
+
+	return FileId(entry->id);
 }
 
 /// Puts the \a buffer under management and returns a FileId for it. This id
@@ -51,64 +47,60 @@ FileId SourceManager::createFileId(
 /// \a buffer will be deallocated when the manager itself is deallocated.
 FileId SourceManager::createFileId(
 	/// Chunk of source code to be added to the manager.
-	const SourceBuffer* buffer,
-	/// If true, the buffer will be deallocated as soon as the manager is
-	/// destroyed itself.
-	bool takeOwnership) {
+	const SourceBuffer* buffer) {
 
 	// Lookup the entry for this buffer. If it is already loaded, immediately
 	// return that buffer's FileId.
-	VirtualSourceEntry*& entry = bufferVsrcIndex[buffer];
-	if (entry) {
-		entry->ownsBuffer = entry->ownsBuffer || takeOwnership; // in case the caller decided to hand us buffer ownership upon the second call
-		return FileId(entry->id);
-	}
+	SourceManagerEntry*& indexEntry = bufferSrcIndex[buffer];
+	if (indexEntry)
+		return FileId(indexEntry->id);
 
 	// Create a new entry for this buffer.
-	unsigned id = vsrcTable.size()+1;
-	entry = new VirtualSourceEntry();
-	entry->id = id;
-	entry->offset = id > 1 ? vsrcTable[id-2]->offset + vsrcTable[id-2]->size : 0;
+	std::unique_ptr<BufferSourceManagerEntry> entry(new BufferSourceManagerEntry());
+	bootstrapEntry(entry.get());
+	entry->buffer = buffer;
 	entry->size = buffer->getBufferSize();
-	entry->origBuffer = buffer;
-	entry->ownsBuffer = takeOwnership;
-	vsrcTable.push_back(entry);
 
-	return FileId(id);
+	srcTable.push_back(std::move(entry));
+	indexEntry = entry.get();
+
+	return FileId(entry->id);
+}
+
+/// Fills in the entry's id and offset. The id is set to be one higher than the
+/// the previous table entries, and offset starts where the previous entry left
+/// off.
+void SourceManager::bootstrapEntry(SourceManagerEntry* entry) {
+	unsigned id = srcTable.size()+1;
+	entry->id = id;
+	entry->offset = id > 1 ? srcTable[id-2]->offset + srcTable[id-2]->size : 0;
 }
 
 
-SourceBuffer* SourceManager::getBuffer(FileId fid) {
-	assert(fid.id < vsrcTable.size() && "FileId points outside vsrc table!");
-	VirtualSourceEntry* entry = vsrcTable[fid.id];
-
-	// If the vsrc entry wraps a SourceBuffer, return that immediately.
-	if (entry->origBuffer)
-		return entry->origBuffer;
-
-	// Otherwise lookup the cache for the wrapped file.
-	return getSourceCache(entry->origFile).getBuffer(*this);
+const SourceBuffer* SourceManager::getBuffer(FileId fid) {
+	assert(fid.id < srcTable.size() && "FileId points outside vsrc table!");
+	return srcTable[fid.id]->getBuffer();
 }
 
 
 SourceLocation SourceManager::getStartLocation(FileId fid) {
-
+	return SourceLocation();
 }
 
 SourceLocation SourceManager::getEndLocation(FileId fid) {
-
+	return SourceLocation();
 }
 
 
 const char* SourceManager::getFilename(SourceLocation loc) {
-
+	return NULL;
 }
 
 unsigned SourceManager::getLineNumber(SourceLocation loc) {
-
+	return 0;
 }
 
 unsigned SourceManager::getColumnNumber(SourceLocation loc) {
-
+	return 0;
 }
 

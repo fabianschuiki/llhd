@@ -1,8 +1,10 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
+#include "llhd/filesystem.hpp"
 #include "llhd/MemoryPool.hpp"
 #include "llhd/SourceLocation.hpp"
 #include <map>
+#include <memory>
 
 namespace llhd {
 
@@ -10,7 +12,7 @@ class FileEntry;
 class SourceBuffer;
 class SourceCache;
 class SourceManager;
-class VirtualSourceEntry;
+class SourceManagerEntry;
 
 /// Loads and maintains source files, and creates a continuous location space.
 ///
@@ -32,20 +34,23 @@ class VirtualSourceEntry;
 ///
 /// Some of the concepts are borrowed from llvm::SourceManager.
 class SourceManager {
-	std::map<const FileEntry*, SourceCache> caches;
+public:
+	std::map<bfs::path, SourceCache> caches;
 
-	std::vector<VirtualSourceEntry*> vsrcTable;
-	std::map<const FileEntry*, VirtualSourceEntry*> fileVsrcIndex;
-	std::map<const SourceBuffer*, VirtualSourceEntry*> bufferVsrcIndex;
+	typedef std::unique_ptr<SourceManagerEntry> TableSlot;
+	std::vector<TableSlot> srcTable;
+	std::map<bfs::path, SourceManagerEntry*> fileSrcIndex;
+	std::map<const SourceBuffer*, SourceManagerEntry*> bufferSrcIndex;
+
+	void bootstrapEntry(SourceManagerEntry* entry);
 
 public:
 	~SourceManager();
 
-	FileId createFileId(const FileEntry* fe);
-	FileId createFileId(const SourceBuffer* buffer, bool takeOwnership = true);
+	FileId createFileId(const bfs::path& fp);
+	FileId createFileId(const SourceBuffer* buffer);
 
-	SourceBuffer* getBuffer(FileId fid);
-	SourceBuffer* getBufferForFile(const FileEntry* fe);
+	const SourceBuffer* getBuffer(FileId fid);
 
 	SourceLocation getStartLocation(FileId fid);
 	SourceLocation getEndLocation(FileId fid);
