@@ -50,10 +50,16 @@ public:
 	bool isValid() const { return id != 0; }
 
 	/// Returns another location which is offset by \a offset.
-	SourceLocation operator+ (int offset) const { return SourceLocation(id + offset); }
+	SourceLocation operator+ (int offset) const {
+		assert(offset > 0 || id > (unsigned)(-offset));
+		return SourceLocation(id + offset); }
 
 	/// Offsets this location by \a offset.
-	SourceLocation& operator+= (int offset) { id += offset; return *this; }
+	SourceLocation& operator+= (int offset) {
+		assert(offset > 0 || id > (unsigned)(-offset));
+		id += offset;
+		return *this;
+	}
 };
 
 
