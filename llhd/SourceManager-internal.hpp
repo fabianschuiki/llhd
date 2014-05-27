@@ -1,5 +1,6 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
+#include "llhd/SourceBuffer.hpp"
 #include "llhd/SourceLocation.hpp"
 
 namespace llhd {
@@ -45,14 +46,14 @@ class FileSourceManagerEntry : public SourceManagerEntry {
 
 	/// Path to the file wrapped by this entry.
 	bfs::path path;
-	/// Cached buffer
-	std::unique_ptr<SourceBuffer> buffer;
+	/// Cached buffer.
+	SourceBuffer buffer;
 
 	virtual const SourceBuffer* getBuffer() const {
-		if (!buffer) {
+		if (!buffer.getStart()) {
 			// TODO: load buffer here ...
 		}
-		return buffer.get();
+		return &buffer;
 	}
 
 	virtual const char* getName() const {
@@ -69,9 +70,9 @@ class BufferSourceManagerEntry : public SourceManagerEntry {
 
 	/// Buffer wrapped by this entry. This entry does not take any form of
 	/// ownership for this buffer.
-	const SourceBuffer* buffer;
+	SourceBuffer buffer;
 
-	virtual const SourceBuffer* getBuffer() const { return buffer; }
+	virtual const SourceBuffer* getBuffer() const { return &buffer; }
 	virtual const char* getName() const { return "buffer"; }
 };
 

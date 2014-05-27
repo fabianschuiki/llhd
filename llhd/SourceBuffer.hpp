@@ -14,6 +14,9 @@ class SourceBuffer {
 	const char* end;
 
 public:
+	/// Creates an empty buffer.
+	SourceBuffer(): start(NULL), end(NULL) {}
+
 	/// Creates a new buffer ranging from \a ptr to \a ptr + \a length.
 	SourceBuffer(char* ptr, size_t length):
 		start(ptr),
@@ -37,6 +40,8 @@ public:
 	const char* getEnd() const { return end; }
 	/// Returns the size of the buffer.
 	const size_t getSize() const { return end-start; }
+	/// Returns true if the buffer is empty.
+	bool isEmpty() const { return start == end; }
 };
 
 } // namespace llhd

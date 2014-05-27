@@ -57,7 +57,7 @@ FileId SourceManager::createFileId(
 
 	// Create a new entry for this buffer.
 	std::unique_ptr<BufferSourceManagerEntry> entry(new BufferSourceManagerEntry());
-	entry->buffer = buffer;
+	entry->buffer = *buffer;
 	entry->size = buffer->getSize();
 	bootstrapEntry(entry.get());
 
