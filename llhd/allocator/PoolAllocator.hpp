@@ -2,7 +2,7 @@
 #pragma once
 #include "llhd/compiler.hpp"
 #include "llhd/types.hpp"
-#include "llhd/MallocAllocator.hpp"
+#include "llhd/allocator/MallocAllocator.hpp"
 #include <vector>
 
 namespace llhd {
@@ -20,7 +20,7 @@ namespace llhd {
 template <typename AllocatorType = MallocAllocator,
           size_t slabSize = 4096,
           size_t thresholdSize = slabSize>
-class MemoryPool
+class PoolAllocator : public Allocator<PoolAllocator<AllocatorType, slabSize, thresholdSize>>
 {
 	/// Used internally to allocate slabs.
 	AllocatorType allocator;
@@ -41,11 +41,11 @@ class MemoryPool
 
 	// Make the copy-constructor private to prevent pools being copied, which
 	// would make no sense.
-	MemoryPool(const MemoryPool&) {}
+	PoolAllocator(const PoolAllocator&) {}
 
 public:
 	/// Creates an empty memory pool.
-	MemoryPool():
+	PoolAllocator():
 		cur(NULL),
 		end(NULL),
 		totalSlabSize(0),
@@ -54,7 +54,7 @@ public:
 	/// Moves the allocated memory from \p old to a new pool. The old pool is
 	/// is cleared in the process, thus effectively moving the responsibility
 	/// to clean up the allocated memory to the new pool.
-	MemoryPool(MemoryPool&& old):
+	PoolAllocator(PoolAllocator&& old):
 		allocator(std::move(old.allocator)),
 		cur(old.cur),
 		end(old.end),
@@ -67,14 +67,14 @@ public:
 	}
 
 	/// Also deallocates all memory that was allocated through this pool.
-	~MemoryPool() {
+	~PoolAllocator() {
 		deallocateSlabs();
 		deallocateCustomSizedSlabs();
 	}
 
 	/// Moves all allocated memory from the \p old pool to this. The old pool
 	/// is cleared in the process.
-	MemoryPool& operator= (MemoryPool&& old) {
+	PoolAllocator& operator= (PoolAllocator&& old) {
 		deallocateSlabs();
 		deallocateCustomSizedSlabs();
 

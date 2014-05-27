@@ -8,9 +8,12 @@ class SourceBuffer;
 
 namespace vhdl {
 
+class TokenContext;
+
 class LexerNovum {
-	std::vector<Token*> tokens;
+	TokenContext& ctx;
 public:
+	LexerNovum(TokenContext& ctx): ctx(ctx) {}
 	void lex(const SourceBuffer* src, SourceLocation loc);
 };
 
