@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 		}
 
 		llhd::vhdl::ast::Context ctx;
-		ctx.allocate(128);
+		ctx.alloc.allocate(128);
 
 	} catch (std::exception& e) {
 		std::cerr << "exception: " << e.what() << '\n';

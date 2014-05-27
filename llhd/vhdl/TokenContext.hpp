@@ -1,7 +1,7 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
 #include "llhd/allocator/PoolAllocator.hpp"
-#include "llhd/vhdl/Token.hpp"
+#include "llhd/vhdl/TokenBuffer.hpp"
 #include <vector>
 
 namespace llhd {
@@ -12,27 +12,25 @@ namespace vhdl {
 /// TokenContext. Multiple files may be tokenized into one TokenContext if that
 /// makes sense, e.g. when a file includes other files.
 class TokenContext {
-	/// Allocator that provides memory for the tokens.
-	PoolAllocator<> alloc;
 	/// Sequence of tokens, stored as pointers into memory provided by the
 	/// allocator.
 	std::vector<Token*> tokens;
 
 public:
-	/// Allocates \a size bytes aligned to \a alignment. The memory is provided
-	/// by the allocator, and is therefore being garbage collected as soon as
-	/// the TokenContext is destroyed.
-	void* allocate(size_t size, unsigned alignment = 0);
+	/// Allocator that provides garbage collected memory for the tokens. May
+	/// also be used for other things which ought to be deallocated when this
+	/// TokenContext is destroyed.
+	PoolAllocator<> alloc;
 
-	/// Allocates memory for a new token and constructs it with the given
-	/// arguments. The memory is provided by the allocator, thus the token is
-	/// garbage collected as soon as the TokenContext is destroyed.
-	template <typename... Args> Token* allocate(Args&&... args) {
-		// Token* tkn = alloc.one<Token>();
-		// new (tkn) Token(&args...);
-		// tokens.push_back(tkn);
-		// return tkn;
-		return 0;
+	/// Adds the Token \a tkn to this context. The whole of all calls to this
+	/// function forms a sequence of Token, which may be accessed by calling
+	/// the getBuffer() function.
+	void addToken(Token* tkn) {
+		tokens.push_back(tkn);
+	}
+
+	TokenBuffer getBuffer() {
+		return TokenBuffer(&tokens[0], tokens.size());
 	}
 };
 

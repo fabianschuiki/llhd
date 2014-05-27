@@ -1,7 +1,6 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
 #include "llhd/filesystem.hpp"
-#include "llhd/MemoryPool.hpp"
 #include "llhd/SourceLocation.hpp"
 #include <map>
 #include <memory>

@@ -20,8 +20,8 @@ namespace llhd {
 template <typename AllocatorType = MallocAllocator,
           size_t slabSize = 4096,
           size_t thresholdSize = slabSize>
-class PoolAllocator : public Allocator<PoolAllocator<AllocatorType, slabSize, thresholdSize>>
-{
+class PoolAllocator : public Allocator<PoolAllocator<AllocatorType, slabSize, thresholdSize>> {
+
 	/// Used internally to allocate slabs.
 	AllocatorType allocator;
 	/// Points to the next free byte in the current slab.
@@ -101,7 +101,7 @@ public:
 	/// Allocates memory of size \a size, aligned to \a alignment bytes. The
 	/// memory either comes from the current slab; or, if the size exceeds the
 	/// \c thresholdSize, from a custom-sized slab.
-	void* allocate(size_t size, unsigned alignment = 0) {
+	void* allocate(size_t size, unsigned alignment = 1) {
 		// Start a new slab if there is none, and keep track of the memory
 		// allocated through this pool.
 		if (!cur)
@@ -110,8 +110,7 @@ public:
 
 		// Align the cur pointer according to the caller's request. An
 		// alignment of 0 is interpreted as alignment to 1 byte.
-		if (alignment == 0)
-			alignment = 1;
+		assert(alignment > 0 && alignment <= 128 && "zero or excessive alignment");
 		char* ptr = alignPtr(cur, alignment);
 
 		// Take the memory from the current slab, if it is large enough.
@@ -174,14 +173,14 @@ private:
 	/// Deallocates all slabs.
 	void deallocateSlabs() {
 		for (int i = 0; i < slabs.size(); i++) {
-			allocator.deallocate(slabs[i], computeSlabSize(i));
+			allocator.deallocate(slabs[i]);
 		}
 	}
 
 	/// Deallocates all custom-sized slabs.
 	void deallocateCustomSizedSlabs() {
 		for (auto& i : customSizedSlabs) {
-			allocator.deallocate(i.first, i.second);
+			allocator.deallocate(i.first);
 		}
 	}
 

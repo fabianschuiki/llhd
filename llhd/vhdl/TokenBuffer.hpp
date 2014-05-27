@@ -1,8 +1,11 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
+#include "llhd/types.hpp"
 
 namespace llhd {
 namespace vhdl {
+
+class Token;
 
 /// A chunk of memory containing pointers to Tokens. Users of this class may
 /// assume that the buffer be null-terminated, i.e. the very last token is a
