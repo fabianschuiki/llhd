@@ -56,7 +56,7 @@ public:
 
 	/// Allocates \a num objects \a T and calls their array constructor.
 	template <typename T>
-	T* many(size_t num) {
+	T* many(unsigned num) {
 		T* t = (T*)derivedAllocate(sizeof(T)*num, alignOf<T>::alignment);
 		new (t) T[num];
 		return t;
@@ -65,7 +65,7 @@ public:
 	/// Allocates \a num objects \a T, calls their array constructor and calls
 	/// the function \a func with a pointer and index to every object created.
 	template <typename T>
-	T* many(size_t num, std::function<void (T*, unsigned)> func) {
+	T* many(unsigned num, std::function<void (T*, unsigned)> func) {
 		T* t = (T*)derivedAllocate(sizeof(T)*num, alignOf<T>::alignment);
 		new (t) T[num];
 		T* p = t, e = t + num;
@@ -76,7 +76,7 @@ public:
 
 	/// Allocates \a num objects \a T without calling their array constructor.
 	template <typename T>
-	T* manyRaw(size_t num) {
+	T* manyRaw(unsigned num) {
 		return (T*)derivedAllocate(sizeof(T)*num, alignOf<T>::alignment);
 	}
 
@@ -84,7 +84,7 @@ public:
 	/// but calls the function \a func with a pointer and index to every object
 	/// created.
 	template <typename T>
-	T* manyRaw(size_t num, std::function<void (T*, unsigned)> func) {
+	T* manyRaw(unsigned num, std::function<void (T*, unsigned)> func) {
 		T* t = (T*)derivedAllocate(sizeof(T)*num, alignOf<T>::alignment);
 		T* p = t, e = t + num;
 		for (unsigned i = 0; p != e; i++, p++)
