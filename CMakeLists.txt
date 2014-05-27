@@ -7,6 +7,8 @@ if (UNIX)
 	add_definitions(-Wall -std=c++11)
 endif()
 
+find_package(Boost COMPONENTS REQUIRED filesystem system)
+
 enable_testing()
 include_directories(.)
 add_subdirectory(llhd)
