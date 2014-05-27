@@ -63,6 +63,25 @@ public:
 };
 
 
+/// An opaque range that points at a portion of a source file. It consists of
+/// two SourceLocation objects, pointing to the first and just beyond the last
+/// byte in the range.
+struct SourceRange {
+	/// Location at the beginning this range.
+	SourceLocation s;
+	/// Location just after the last character in this range.
+	SourceLocation e;
+
+	/// Creates an invalid source range, consisting of two invalid locations.
+	SourceRange() {}
+	/// Creates a range from location \a s to location \a e.
+	SourceRange(SourceLocation s, SourceLocation e): s(s), e(e) {}
+
+	/// Returns true if this is a valid SourceRange.
+	bool isValid() const { return s.isValid(); }
+};
+
+
 /// A decoded SourceLocation, presentable to humans. The SourceManager resolves
 /// SourceLocation objects to PresumedLocation objects, filling in the filename,
 /// offset, line, and column. See SourceManager::getPresumedLocation() for more
