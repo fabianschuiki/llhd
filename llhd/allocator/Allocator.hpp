@@ -5,7 +5,7 @@
 
 namespace llhd {
 
-/// Base class and interface for all allocators in LLHD. Requires that
+/// Base class and interface to all allocators in LLHD. Requires that
 /// the class deriving from this (DerivedType) implements `allocate(size_t,
 /// unsigned)` and `deallocate(size_t)`. The following convenience allocation
 /// functions are provided:
