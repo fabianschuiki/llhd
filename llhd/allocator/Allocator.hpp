@@ -29,7 +29,7 @@ class Allocator {
 	/// Calls the derived class' \c allocate function with \a size and \a
 	/// alignment.
 	inline void* derivedAllocate(size_t size, unsigned alignment = 0) {
-		static_cast<DerivedType*>(this)->allocate(size, alignment);
+		return static_cast<DerivedType*>(this)->allocate(size, alignment);
 	}
 
 	/// Calls the derived class' \c deallocate function with \a ptr and \a
