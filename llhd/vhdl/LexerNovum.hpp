@@ -13,8 +13,14 @@ class TokenContext;
 class LexerNovum {
 	TokenContext& ctx;
 public:
-	LexerNovum(TokenContext& ctx): ctx(ctx) {}
-	void lex(const SourceBuffer* src, SourceLocation loc);
+	bool skipWhitespaces;
+	bool skipComments;
+
+	LexerNovum(TokenContext& ctx): ctx(ctx) {
+		skipWhitespaces = true;
+		skipComments = true;
+	}
+	void lex(const SourceBuffer& src, SourceLocation loc);
 };
 
 } // namespace vhdl

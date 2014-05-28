@@ -21,9 +21,11 @@ struct TokenRange
 };
 
 enum TokenType {
+	kTokenInvalid = 0,
 	kTokenComment,
 	kTokenWhitespace,
 	kTokenIdentifier,
+	kTokenNumber,
 	kTokenSymbol,
 	kTokenEOF
 };

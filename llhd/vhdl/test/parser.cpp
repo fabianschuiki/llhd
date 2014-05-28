@@ -1,5 +1,9 @@
 /* Copyright (c) 2014 Fabian Schuiki */
+#include <llhd/SourceBuffer.hpp>
+#include <llhd/SourceLocation.hpp>
+#include <llhd/vhdl/LexerNovum.hpp>
 #include <llhd/vhdl/Parser.hpp>
+#include <llhd/vhdl/TokenContext.hpp>
 #include <llhd/vhdl/ast/Context.hpp>
 #include <iostream>
 #include <fstream>
@@ -16,15 +20,29 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		// Create an instance of the parser and feed it each file sequentially.
-		llhd::vhdl::Parser parser;
+		// Lex all the source files.
+		llhd::vhdl::TokenContext ctx;
+		llhd::vhdl::LexerNovum lexer(ctx);
 		for (int i = 1; i < argc; i++) {
 			std::ifstream fin(argv[i]);
-			parser.parse(fin);
+			fin.seekg(0, std::ios_base::end);
+			size_t length = fin.tellg();
+			fin.seekg(0, std::ios_base::beg);
+			char data[length+1];
+			fin.read(data, length);
+			data[length] = 0;
+			lexer.lex(llhd::SourceBuffer(data, data+length+1), llhd::SourceLocation());
 		}
 
-		llhd::vhdl::ast::Context ctx;
-		ctx.alloc.allocate(128);
+		// Create an instance of the parser and feed it each file sequentially.
+		// llhd::vhdl::Parser parser;
+		// for (int i = 1; i < argc; i++) {
+		// 	std::ifstream fin(argv[i]);
+		// 	parser.parse(fin);
+		// }
+
+		// llhd::vhdl::ast::Context ctx;
+		// ctx.alloc.allocate(128);
 
 	} catch (std::exception& e) {
 		std::cerr << "exception: " << e.what() << '\n';
