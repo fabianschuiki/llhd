@@ -1,6 +1,9 @@
 An attempt at writing a low-level hardware description toolkit. First up is a
 parser and code generator for VHDL.
 
+The project is continuously built and tested: [![Build Status](https://travis-ci.org/fabianschuiki/llhd.svg?branch=master)](https://travis-ci.org/fabianschuiki/llhd)
+
+
 ## Design Guidelines
 
 - source files have suffix `.cpp`
