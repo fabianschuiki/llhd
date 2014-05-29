@@ -4,6 +4,14 @@ parser and code generator for VHDL.
 The project is continuously built and tested: [![Build Status](https://travis-ci.org/fabianschuiki/llhd.svg?branch=master)](https://travis-ci.org/fabianschuiki/llhd)
 
 
+## Standards
+
+The directory `doc/standards` is intended for standards used in this project.
+Since it is the IEEE's belief that a standard is adopted the quickest if its
+text is not available to the public, we merely include a reference to said
+standards.
+
+
 ## Design Guidelines
 
 - source files have suffix `.cpp`
