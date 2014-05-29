@@ -33,7 +33,7 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 			// 	SourceRange(loc,nloc),
 			// 	type);
 			// this->ctx.addToken(tkn);
-			std::cout << "emitting " << type << " '" << std::string(bc,c) << "'\n";
+			std::cout << "emitting " << std::hex << type << " '" << std::string(bc,c) << "'\n";
 			std::cout.flush();
 		}
 		bc = c;
@@ -41,6 +41,10 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 	};
 
 	while (*c != 0) {
+		// Characters 0x01..0x20 are treated as whitespace. This range covers
+		// tab, line feed, carraige return, space, and many control characters.
+		// This is more general than what the VHDL standard allows. The non-
+		// breakable space 0xa0 (UTF-8 0xc2a0) is included as well.
 		if (*c <= 0x20 || (*c == 0xc2 && *(c+1) == 0xa0)) {
 			c++;
 			if (*c == 0xa0) c++;
@@ -50,11 +54,57 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 			}
 			emit(skipWhitespaces ? kTokenInvalid : kTokenWhitespace);
 		}
+
+		// Comments start with a double hyphen and proceed until the end of the
+		// line.
 		else if (*c == '-' && *(c+1) == '-') {
 			c++;
 			while (*c != '\n' && *c != 0) c++;
 			emit(skipComments ? kTokenInvalid : kTokenComment);
 		}
+
+		// Delimiters in VHDL are the special characters "&'()*+,-./:;<=>|[]".
+		else if (*c == '&') { c++; emit(kTokenAmpersand); }
+		else if (*c == '\'') { c++; emit(kTokenApostrophe); }
+		else if (*c == '(') { c++; emit(kTokenLParen); }
+		else if (*c == ')') { c++; emit(kTokenRParen); }
+		else if (*c == '+') { c++; emit(kTokenPlus); }
+		else if (*c == ',') { c++; emit(kTokenComma); }
+		else if (*c == '-') { c++; emit(kTokenMinus); }
+		else if (*c == '.') { c++; emit(kTokenPeriod); }
+		else if (*c == ';') { c++; emit(kTokenSemicolon); }
+		else if (*c == '|') { c++; emit(kTokenPipe); }
+		else if (*c == '[') { c++; emit(kTokenLBrack); }
+		else if (*c == ']') { c++; emit(kTokenRBrack); }
+
+		// Compound delimiters in VHDL are "=> ** := /= >= <= <>".
+		else if (*c == '*') { c++;
+			if (*c == '*') { c++; emit(kTokenDoubleStar); }
+			else emit(kTokenStar);
+		}
+		else if (*c == '/') { c++;
+			if (*c == '=') { c++; emit(kTokenNotEqual); }
+			else emit(kTokenSlash);
+		}
+		else if (*c == ':') { c++;
+			if (*c == '=') { c++; emit(kTokenVarAssign); }
+			else emit(kTokenColon);
+		}
+		else if (*c == '<') { c++;
+			if (*c == '=') { c++; emit(kTokenLessEqual); }
+			else if (*c == '>') { c++; emit(kTokenBox); }
+			else emit(kTokenLess);
+		}
+		else if (*c == '=') { c++;
+			if (*c == '>') { c++; emit(kTokenArrow); }
+			else emit(kTokenEqual);
+		}
+		else if (*c == '>') { c++;
+			if (*c == '=') { c++; emit(kTokenGreaterEqual); }
+			else emit(kTokenGreater);
+		}
+
+
 		else if (*c >= '0' && *c <= '9') {
 			c++;
 			while (*c >= '0' && *c <= '9') c++;

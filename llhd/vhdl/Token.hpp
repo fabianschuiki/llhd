@@ -21,13 +21,42 @@ struct TokenRange
 };
 
 enum TokenType {
-	kTokenInvalid = 0,
-	kTokenComment,
+	kTokenInvalid = 0x00,
+	kTokenEOF = 0x01,
+	kTokenComment = 0x20,
 	kTokenWhitespace,
 	kTokenIdentifier,
 	kTokenNumber,
-	kTokenSymbol,
-	kTokenEOF
+
+	// Symbols
+	kTokenSymbol = 0x40,
+	kTokenSymbolMask = 0xe0,
+
+	kTokenAmpersand = 0x41,
+	kTokenApostrophe,
+	kTokenLParen,
+	kTokenRParen,
+	kTokenPlus,
+	kTokenComma,
+	kTokenMinus,
+	kTokenPeriod,
+	kTokenSemicolon,
+	kTokenPipe,
+	kTokenLBrack,
+	kTokenRBrack,
+	kTokenDoubleStar,
+	kTokenStar,
+	kTokenNotEqual,
+	kTokenSlash,
+	kTokenVarAssign,
+	kTokenColon,
+	kTokenLessEqual,
+	kTokenBox,
+	kTokenLess,
+	kTokenArrow,
+	kTokenEqual,
+	kTokenGreaterEqual,
+	kTokenGreater
 };
 
 struct Token
