@@ -12,7 +12,7 @@ VHDL  \VHDL\  \vhdl\ -- Three distinct identifiers.
 -- §13.4.1  Decimal literals
 12  0  1E6  123_456              -- Integer literals.
 12.0  0.0  0.456  3.14159_26     -- Real literals.
-1.34E–12  190  1.0E+6  6.023E+24 -- Real literals with exponents.
+1.34E-12  190  1.0E+6  6.023E+24 -- Real literals with exponents.
 
 -- §13.4.2  Based literals
 2#1111_1111#  16#FF#  016#0FF#     -- Integer literals of value 255
@@ -26,7 +26,7 @@ VHDL  \VHDL\  \vhdl\ -- Three distinct identifiers.
 "Setup time is too short" -- An error message.
 ""                        -- An empty string literal.
 " "  "A"  """"  "%"       -- String literals of length 1.
-"Characters such as $, %, and } are allowed in string literals."
+"Characters such as $, %, "", and } are allowed in string literals."
 
 -- §13.7  Bit string literals
 B"1111_1111_1111" -- Equivalent to the string literal "111111111111".
@@ -53,4 +53,4 @@ while with xnor xor
 %Setup time is too short% -- An error message.
 %%                        -- An empty string literal.
 % %  %A%  %"%  %%%%       -- String literals of length 1.
-%Characters such as $, %, and } are allowed in string literals.%
+%Characters such as $, %%, ", and } are allowed in string literals.%
