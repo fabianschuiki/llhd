@@ -47,12 +47,12 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 		// This is more general than what the VHDL standard allows. The non-
 		// breakable space 0xa0 (UTF-8 0xc2a0) is included as well.
 		// 1076-2000 §13.1
-		if (*c <= 0x20 || (*c == 0xc2 && *(c+1) == 0xa0)) {
+		if (*c <= 0x20 || (*c == (char)0xc2 && *(c+1) == (char)0xa0)) {
 			c++;
-			if (*c == 0xa0) c++;
-			while ((*c <= 0x20 || (*c == 0xc2 && *(c+1) == 0xa0)) && *c != 0) {
+			if (*c == (char)0xa0) c++;
+			while ((*c <= 0x20 || (*c == (char)0xc2 && *(c+1) == (char)0xa0)) && *c != 0) {
 				c++;
-				if (*c == 0xa0) c++;
+				if (*c == (char)0xa0) c++;
 			}
 			emit(skipWhitespaces ? kTokenInvalid : kTokenWhitespace);
 		}
