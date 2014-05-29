@@ -1,8 +1,10 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #include "llhd/SourceBuffer.hpp"
+#include "llhd/vhdl/KeywordMapper.hpp"
 #include "llhd/vhdl/LexerNovum.hpp"
 #include "llhd/vhdl/TokenContext.hpp"
 #include "llhd/vhdl/Token.hpp"
+#include <algorithm>
 #include <cstring>
 #include <iostream>
 using namespace llhd::vhdl;
@@ -21,25 +23,120 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 			return;
 		SourceLocation nloc = loc + (c-bc);
 		if (type > 0) {
-			// Map identifiers that describe keywords to a separate token type
-			// which will help parsing. Write a string table matcher for this
-			// which can take advantage of common prefixes among the strings.
-			// Maybe a handcrafted function would suffice as well.
-			if (type == kTokenIdentifier) {
-				if (std::equal(bc, c, "entity"))
-					type = 1000;
-			}
 			// Token* tkn = this->ctx.alloc.one<Token>(
 			// 	SourceBuffer(bc,c),
 			// 	SourceRange(loc,nloc),
 			// 	type);
 			// this->ctx.addToken(tkn);
-			std::cout << "emitting " << std::hex << type << " " << std::string(bc,c) << "\n";
+			std::cout << "emitting " << std::hex << type << std::dec << " " << std::string(bc,c) << "\n";
 			std::cout.flush();
 		}
 		bc = c;
 		loc = nloc;
 	};
+
+	KeywordMapper<> keywords; keywords
+		("abs", kKeywordAbs)
+		("access", kKeywordAccess)
+		("after", kKeywordAfter)
+		("alias", kKeywordAlias)
+		("all", kKeywordAll)
+		("and", kKeywordAnd)
+		("architecture", kKeywordArchitecture)
+		("array", kKeywordArray)
+		("assert", kKeywordAssert)
+		("attribute", kKeywordAttribute)
+		("begin", kKeywordBegin)
+		("block", kKeywordBlock)
+		("body", kKeywordBody)
+		("buffer", kKeywordBuffer)
+		("bus", kKeywordBus)
+		("case", kKeywordCase)
+		("component", kKeywordComponent)
+		("configuration", kKeywordConfiguration)
+		("constant", kKeywordConstant)
+		("label", kKeywordLabel)
+		("disconnect", kKeywordDisconnect)
+		("downto", kKeywordDownto)
+		("map", kKeywordMap)
+		("else", kKeywordElse)
+		("elsif", kKeywordElsif)
+		("end", kKeywordEnd)
+		("entity", kKeywordEntity)
+		("exit", kKeywordExit)
+		("file", kKeywordFile)
+		("for", kKeywordFor)
+		("function", kKeywordFunction)
+		("generate", kKeywordGenerate)
+		("generic", kKeywordGeneric)
+		("group", kKeywordGroup)
+		("guarded", kKeywordGuarded)
+		("if", kKeywordIf)
+		("impure", kKeywordImpure)
+		("in", kKeywordIn)
+		("inertial", kKeywordInertial)
+		("inout", kKeywordInout)
+		("is", kKeywordIs)
+		("library", kKeywordLibrary)
+		("linkage", kKeywordLinkage)
+		("literal", kKeywordLiteral)
+		("loop", kKeywordLoop)
+		("mod", kKeywordMod)
+		("nand", kKeywordNand)
+		("new", kKeywordNew)
+		("next", kKeywordNext)
+		("nor", kKeywordNor)
+		("not", kKeywordNot)
+		("null", kKeywordNull)
+		("of", kKeywordOf)
+		("on", kKeywordOn)
+		("open", kKeywordOpen)
+		("or", kKeywordOr)
+		("others", kKeywordOthers)
+		("out", kKeywordOut)
+		("package", kKeywordPackage)
+		("port", kKeywordPort)
+		("postponed", kKeywordPostponed)
+		("procedural", kKeywordProcedural)
+		("procedure", kKeywordProcedure)
+		("process", kKeywordProcess)
+		("protected", kKeywordProtected)
+		("pure", kKeywordPure)
+		("range", kKeywordRange)
+		("record", kKeywordRecord)
+		("reference", kKeywordReference)
+		("register", kKeywordRegister)
+		("reject", kKeywordReject)
+		("rem", kKeywordRem)
+		("report", kKeywordReport)
+		("return", kKeywordReturn)
+		("rol", kKeywordRol)
+		("ror", kKeywordRor)
+		("select", kKeywordSelect)
+		("severity", kKeywordSeverity)
+		("shared", kKeywordShared)
+		("signal", kKeywordSignal)
+		("sla", kKeywordSla)
+		("sll", kKeywordSll)
+		("sra", kKeywordSra)
+		("srl", kKeywordSrl)
+		("subtype", kKeywordSubtype)
+		("then", kKeywordThen)
+		("to", kKeywordTo)
+		("transport", kKeywordTransport)
+		("type", kKeywordType)
+		("unaffected", kKeywordUnaffected)
+		("units", kKeywordUnits)
+		("until", kKeywordUntil)
+		("use", kKeywordUse)
+		("variable", kKeywordVariable)
+		("wait", kKeywordWait)
+		("when", kKeywordWhen)
+		("while", kKeywordWhile)
+		("with", kKeywordWith)
+		("xnor", kKeywordXnor)
+		("xor", kKeywordXor)
+		.compile();
 
 	while (*c != 0) {
 		// Characters 0x01..0x20 are treated as whitespace. This range covers
@@ -258,7 +355,8 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 				c++;
 				emit(kTokenInvalid);
 			} else {
-				emit(kTokenBasicIdentifier);
+				unsigned mapped = keywords.translate(bc, c);
+				emit(mapped > 0 ? mapped : kTokenBasicIdentifier);
 			}
 		}
 	}
