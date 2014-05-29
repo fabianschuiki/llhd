@@ -11,6 +11,7 @@ using namespace llhd::vhdl;
 // 	return *c == ' ' || *c == '\t' || *c == '\n'
 // }
 
+/// Implemented according to IEEE 1076-2000.
 void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 	const char* bc = src.getStart();
 	const char* c = bc;
@@ -45,6 +46,7 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 		// tab, line feed, carraige return, space, and many control characters.
 		// This is more general than what the VHDL standard allows. The non-
 		// breakable space 0xa0 (UTF-8 0xc2a0) is included as well.
+		// 1076-2000 §13.1
 		if (*c <= 0x20 || (*c == 0xc2 && *(c+1) == 0xa0)) {
 			c++;
 			if (*c == 0xa0) c++;
@@ -57,6 +59,7 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 
 		// Comments start with a double hyphen and proceed until the end of the
 		// line.
+		// 1076-2000 §13.8
 		else if (*c == '-' && *(c+1) == '-') {
 			c++;
 			while (*c != '\n' && *c != 0) c++;
@@ -64,6 +67,7 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 		}
 
 		// Delimiters in VHDL are the special characters "&'()*+,-./:;<=>|[]".
+		// 1076-2000 §13.2
 		else if (*c == '&') { c++; emit(kTokenAmpersand); }
 		else if (*c == '\'') { c++; emit(kTokenApostrophe); }
 		else if (*c == '(') { c++; emit(kTokenLParen); }
@@ -78,6 +82,7 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 		else if (*c == ']') { c++; emit(kTokenRBrack); }
 
 		// Compound delimiters in VHDL are "=> ** := /= >= <= <>".
+		// 1076-2000 §13.2
 		else if (*c == '*') { c++;
 			if (*c == '*') { c++; emit(kTokenDoubleStar); }
 			else emit(kTokenStar);
