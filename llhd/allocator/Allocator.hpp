@@ -28,7 +28,7 @@ template <typename DerivedType>
 class Allocator {
 	/// Calls the derived class' \c allocate function with \a size and \a
 	/// alignment.
-	inline void* derivedAllocate(size_t size, unsigned alignment = 0) {
+	inline void* derivedAllocate(size_t size, unsigned alignment = 1) {
 		return static_cast<DerivedType*>(this)->allocate(size, alignment);
 	}
 
@@ -44,7 +44,7 @@ public:
 	template <typename T, typename... Args>
 	T* one(Args&&... args) {
 		T* t = (T*)derivedAllocate(sizeof(T), alignOf<T>::alignment);
-		new (t) T(&args...);
+		new (t) T(args...);
 		return t;
 	}
 

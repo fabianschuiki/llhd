@@ -1,10 +1,58 @@
 /* Copyright (c) 2014 Fabian Schuiki */
+#include "llhd/unicode.hpp"
+#include "llhd/allocator/PoolAllocator.hpp"
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 /// \file Reads the `CaseFolding.txt` file which is part of the Unicode
 /// Character database, and digests its information into an efficient mapping
 /// structure which is written to disk.
+
+struct MappingGenerator;
+struct MappingFragment;
+
+struct MappingFragment {
+	MappingFragment* frags[16];
+	std::string value;
+
+	MappingFragment& operator() (unsigned bits);
+	MappingFragment& operator= (const std::string& v);
+
+	MappingGenerator& gen;
+	MappingFragment(MappingGenerator& gen);
+};
+
+struct MappingGenerator {
+	llhd::PoolAllocator<> alloc;
+	MappingFragment root;
+
+	MappingGenerator(): root(*this) {}
+
+	MappingFragment& operator() (unsigned bits) {
+		return root(bits);
+	}
+};
+
+MappingFragment& MappingFragment::operator() (unsigned bits) {
+	assert(bits < 16);
+	auto& frag = frags[bits];
+	if (!frag)
+		// frag = new MappingFragment(gen);
+		frag = gen.alloc.one<MappingFragment>(gen); // causes a crash
+	return *frag;
+}
+
+MappingFragment& MappingFragment::operator= (const std::string& v) {
+	value = v;
+	return *this;
+}
+
+MappingFragment::MappingFragment(MappingGenerator& gen): gen(gen) {
+	for (int i = 0; i < 16; i++)
+		frags[i] = NULL;
+}
+
 
 int main(int argc, char** argv)
 {
@@ -22,6 +70,10 @@ int main(int argc, char** argv)
 	}
 
 	// Parse the input file and generate the different table versions.
+	MappingGenerator utf32Mapping;
+	MappingGenerator utf16Mapping;
+	MappingGenerator utf8Mapping;
+
 	while (fin.good()) {
 
 		// Skip empty lines.
@@ -63,6 +115,26 @@ int main(int argc, char** argv)
 		while (fin.get() != '\n' && fin.good());
 
 		std::cout << "read code point " << std::hex << code << ", status " << status << ", mapping " << mapping[0] << ':' << mapping[1] << ':' << mapping[2] << '\n';
+
+		std::stringstream utf32v;
+		utf32v << "{ " << std::hex;
+		for (i = 0; i < 16 && mapping[i] != 0; i++) {
+			if (i != 0)
+				utf32v << ", ";
+			utf32v << "0x" << mapping[i];
+		}
+		utf32v << ", 0 }";
+		std::cout << "  = " << utf32v.str() << '\n';
+
+		utf32Mapping
+			((code >> 28) & 0xf)
+			((code >> 24) & 0xf)
+			((code >> 20) & 0xf)
+			((code >> 16) & 0xf)
+			((code >> 12) & 0xf)
+			((code >>  8) & 0xf)
+			((code >>  4) & 0xf)
+			((code >>  0) & 0xf) = utf32v.str();
 	}
 
 	// Open the file for writing.

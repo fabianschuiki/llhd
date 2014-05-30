@@ -3,6 +3,7 @@
 #include "llhd/compiler.hpp"
 #include "llhd/types.hpp"
 #include "llhd/allocator/MallocAllocator.hpp"
+#include <iostream>
 #include <vector>
 
 namespace llhd {
@@ -112,6 +113,7 @@ public:
 		// alignment of 0 is interpreted as alignment to 1 byte.
 		assert(alignment > 0 && alignment <= 128 && "zero or excessive alignment");
 		char* ptr = alignPtr(cur, alignment);
+		std::cout << "aligned " << (long)cur << " to " << (long)ptr << '\n';
 
 		// Take the memory from the current slab, if it is large enough.
 		if (ptr + size <= end) {
@@ -137,15 +139,8 @@ public:
 		startNewSlab();
 		ptr = alignPtr(cur, alignment);
 		cur = ptr + size;
-		assert(cur <= end && "Unable to allocate memory!");
+		assert(cur <= end && "unable to allocate memory");
 		return ptr;
-	}
-
-	/// Allocates memory for \a num objects of type \c T. The allocated objects
-	/// are not constructed, hence the responsibility to do so lies with the
-	/// caller.
-	template <typename T> T* allocate(unsigned num = 1) {
-		return (T*)allocate(sizeof(T) * num, alignOf<T>::alignment);
 	}
 
 private:
