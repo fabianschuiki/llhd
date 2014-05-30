@@ -214,20 +214,20 @@ int main(int argc, char** argv)
 	fout << std::hex;
 
 	// UTF32 Full
-	fout << "\nconst uint32_t llhd::unicode::utf32::full::nodes[] = {\n";
+	fout << "\nconst uint32_t llhd::unicode::utf32_full_nodes[] = {\n";
 	synthesizeNodes(fout, map_utf32_full.root);
 	fout << "\t0\n};\n";
 
-	fout << "\nconst uint32_t llhd::unicode::utf32::full::leaves[] = {\n";
+	fout << "\nconst uint32_t llhd::unicode::utf32_full_leaves[] = {\n";
 	synthesizeLeaves(fout, map_utf32_full.root);
 	fout << "\t0\n};\n";
 
 	// UTF32 Simple
-	fout << "\nconst uint32_t llhd::unicode::utf32::simple::nodes[] = {\n";
+	fout << "\nconst uint32_t llhd::unicode::utf32_simple_nodes[] = {\n";
 	synthesizeNodes(fout, map_utf32_simple.root);
 	fout << "\t0\n};\n";
 
-	fout << "\nconst uint32_t llhd::unicode::utf32::simple::leaves[] = {\n";
+	fout << "\nconst uint32_t llhd::unicode::utf32_simple_leaves[] = {\n";
 	synthesizeLeaves(fout, map_utf32_simple.root);
 	fout << "\t0\n};\n";
 

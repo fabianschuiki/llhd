@@ -2,9 +2,9 @@
 #include "llhd/unicode.hpp"
 #include "llhd/unicode-internal.hpp"
 
-const char* llhd::unicode::fullCaseFold(const char* c) {
+const uint8_t* llhd::unicode::fullCaseFold(const uint8_t* c) {
 }
 
-const char* llhd::unicode::simpleCaseFold(const char* c) {
+const uint8_t* llhd::unicode::simpleCaseFold(const uint8_t* c) {
 }
 

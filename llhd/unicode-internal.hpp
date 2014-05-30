@@ -5,38 +5,20 @@
 namespace llhd {
 namespace unicode {
 
-namespace utf32 {
-	struct full {
-		static const uint32_t nodes[];
-		static const uint32_t leaves[];
-	};
-	struct simple {
-		static const uint32_t nodes[];
-		static const uint32_t leaves[];
-	};
-} // namespace utf32
+extern const uint32_t utf32_full_nodes[];
+extern const uint32_t utf32_full_leaves[];
+extern const uint32_t utf32_simple_nodes[];
+extern const uint32_t utf32_simple_leaves[];
 
-namespace utf16 {
-	struct full {
-		static const uint32_t nodes[];
-		static const uint16_t leaves[];
-	};
-	struct simple {
-		static const uint32_t nodes[];
-		static const uint16_t leaves[];
-	};
-} // namespace utf16
+extern const uint32_t utf16_full_nodes[];
+extern const uint16_t utf16_full_leaves[];
+extern const uint32_t utf16_simple_nodes[];
+extern const uint16_t utf16_simple_leaves[];
 
-namespace utf8 {
-	struct full {
-		static const uint32_t nodes[];
-		static const uint8_t leaves[];
-	};
-	struct simple {
-		static const uint32_t nodes[];
-		static const uint8_t leaves[];
-	};
-} // namespace utf8
+extern const uint32_t utf8_full_nodes[];
+extern const uint8_t  utf8_full_leaves[];
+extern const uint32_t utf8_simple_nodes[];
+extern const uint8_t  utf8_simple_leaves[];
 
 } // namespace unicode
 } // namespace llhd
