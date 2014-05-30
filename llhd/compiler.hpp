@@ -33,9 +33,10 @@ template <typename T> inline bool isPowerOf2(T value) {
 
 /// Aligns \a ptr to \a alignment bytes. The alignment always rounds up, i.e.
 /// aligned ptr >= original ptr. \a alignment must be a power of 2.
-inline char* alignPtr(char* ptr, unsigned alignment) {
+inline void* alignPtr(void* ptr, unsigned alignment) {
 	assert(isPowerOf2(alignment) && "Alignment is not a power of 2!");
-	return (char*)((size_t(ptr) + alignment - 1) & ~(alignment - 1));
+	assert(sizeof(size_t) == sizeof(ptr) && "Width of size_t does not match that void*!");
+	return (void*)((size_t(ptr) + alignment - 1) & ~(size_t(alignment) - 1));
 }
 
 /// Computes the desired alignment of type \c T. The result is stored in the

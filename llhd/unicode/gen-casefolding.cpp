@@ -37,9 +37,12 @@ struct MappingGenerator {
 MappingFragment& MappingFragment::operator() (unsigned bits) {
 	assert(bits < 16);
 	auto& frag = frags[bits];
-	if (!frag)
+	if (!frag) {
 		// frag = new MappingFragment(gen);
-		frag = gen.alloc.one<MappingFragment>(gen); // causes a crash
+		// frag = gen.alloc.one<MappingFragment>(gen); // causes a crash
+		frag = gen.alloc.oneRaw<MappingFragment>();
+		new (frag) MappingFragment(gen);
+	}
 	return *frag;
 }
 

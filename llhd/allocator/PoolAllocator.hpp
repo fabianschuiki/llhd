@@ -111,9 +111,8 @@ public:
 
 		// Align the cur pointer according to the caller's request. An
 		// alignment of 0 is interpreted as alignment to 1 byte.
-		assert(alignment > 0 && alignment <= 128 && "zero or excessive alignment");
-		char* ptr = alignPtr(cur, alignment);
-		std::cout << "aligned " << (long)cur << " to " << (long)ptr << '\n';
+		assert(alignment > 0 && alignment <= 128 && "Zero or excessive alignment!");
+		char* ptr = (char*)alignPtr(cur, alignment);
 
 		// Take the memory from the current slab, if it is large enough.
 		if (ptr + size <= end) {
@@ -130,16 +129,16 @@ public:
 			void* slab = allocator.allocate(paddedSize);
 			customSizedSlabs.push_back(std::make_pair(slab, paddedSize));
 
-			ptr = alignPtr((char*)slab, alignment);
+			ptr = (char*)alignPtr(slab, alignment);
 			assert(ptr + size < (char*)slab + paddedSize);
 			return ptr;
 		}
 
 		// Otherwise start a new slab and try again.
 		startNewSlab();
-		ptr = alignPtr(cur, alignment);
+		ptr = (char*)alignPtr(cur, alignment);
 		cur = ptr + size;
-		assert(cur <= end && "unable to allocate memory");
+		assert(cur <= end && "Unable to allocate memory!");
 		return ptr;
 	}
 

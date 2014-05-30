@@ -3,6 +3,7 @@
 #include "llhd/compiler.hpp"
 #include "llhd/allocator/Allocator.hpp"
 #include <cstdlib>
+#include <iostream>
 
 namespace llhd {
 
@@ -16,7 +17,7 @@ public:
 	/// small aligned chunks.
 	void* allocate(size_t size, unsigned alignment = 1) {
 		// Perform a sanity check on the alignment.
-		assert(alignment > 0 && alignment <= 128 && "zero or excessive alignment");
+		assert(alignment > 0 && alignment <= 128 && "Zero or excessive alignment!");
 
 		// To accomodate the alignment, we have to assume the worst case
 		// situation where the returned memory location needs to be shifted by
