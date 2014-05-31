@@ -13,4 +13,4 @@ before_script:
   - cd build
   - export CTEST_OUTPUT_ON_FAILURE=1
 script:
-  - cmake .. && make && ctest
+  - cmake .. && make && ctest --timeout 10 -j
