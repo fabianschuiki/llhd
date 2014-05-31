@@ -7,6 +7,7 @@ add_custom_command(
 	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/unicode-casefolding.cpp
 	COMMAND unicode-gen-casefolding ${CMAKE_CURRENT_SOURCE_DIR}/unicode/CaseFolding.txt ${CMAKE_CURRENT_BINARY_DIR}/unicode-casefolding.cpp
 	MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/unicode/CaseFolding.txt
+	DEPENDS unicode-gen-casefolding
 	COMMENT "Generating unicode casefolding table")
 
 
