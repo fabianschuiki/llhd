@@ -23,11 +23,14 @@ int main(int argc, char** argv)
 		// Lex all the source files.
 		llhd::vhdl::TokenContext ctx;
 		llhd::vhdl::LexerNovum lexer(ctx);
+		std::cout << "starting to lex things\n";
 		for (int i = 1; i < argc; i++) {
+			std::cout << "opening " << argv[i] << "... ";
 			std::ifstream fin(argv[i]);
 			fin.seekg(0, std::ios_base::end);
 			size_t length = fin.tellg();
 			fin.seekg(0, std::ios_base::beg);
+			std::cout << "done (" << length << " bytes)\n";
 			char data[length+1];
 			fin.read(data, length);
 			data[length] = 0;

@@ -37,6 +37,7 @@ public:
 		unsigned lowerIndex = 0;
 		unsigned upperIndex = size;
 		unsigned offset = 0;
+		return 0;
 
 		std::cout << "translating " << std::string(s, e) << '\n';
 		while (lowerIndex != upperIndex && s != e) {
