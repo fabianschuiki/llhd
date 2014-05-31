@@ -173,7 +173,7 @@ int main(int argc, char** argv)
 		mapping[i] = 0;
 		while (fin.get() != '\n' && fin.good());
 
-		std::cout << "read code point " << std::hex << code << ", status " << status << ", mapping " << mapping[0] << ':' << mapping[1] << ':' << mapping[2] << '\n';
+		// std::cout << "read code point " << std::hex << code << ", status " << status << ", mapping " << mapping[0] << ':' << mapping[1] << ':' << mapping[2] << '\n';
 
 		// Generate the UTF32 code points.
 		// std::stringstream utf32v;
@@ -199,9 +199,6 @@ int main(int argc, char** argv)
 	map_utf16_simple.enumerate();
 	map_utf8_full.enumerate();
 	map_utf8_simple.enumerate();
-
-	std::cout << "utf32_full has " << map_utf32_full.numNodes << " entries\n";
-	std::cout << "utf32_simple has " << map_utf32_simple.numLeaves << " entries\n";
 
 	// Open the file for writing.
 	std::ofstream fout(argv[2]);
