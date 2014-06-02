@@ -10,6 +10,13 @@ STRIP_FROM_INC_PATH = @PROJECT_SOURCE_DIR@
 PROJECT_NAME = LLHD
 PROJECT_BRIEF = "Low Level Hardware Description — A foundation for building hardware design tools."
 
+# make the relations between functions visible
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION = YES
+
+# make constructors and destructors appear first
+SORT_MEMBER_DOCS = YES
+
 # reuse the README as the doc's front page
 MARKDOWN_SUPPORT = YES
 USE_MDFILE_AS_MAINPAGE = @PROJECT_SOURCE_DIR@/README.md

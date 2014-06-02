@@ -1,5 +1,6 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #include "llhd/SourceBuffer.hpp"
+#include "llhd/unicode.hpp"
 #include "llhd/vhdl/KeywordMapper.hpp"
 #include "llhd/vhdl/LexerNovum.hpp"
 #include "llhd/vhdl/TokenContext.hpp"

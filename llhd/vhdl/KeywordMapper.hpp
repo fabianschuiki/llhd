@@ -1,4 +1,6 @@
 /* Copyright (c) 2014 Fabian Schuiki */
+/// \file
+/// \author Fabian Schuiki
 #pragma once
 #include <algorithm>
 #include <iostream>
@@ -33,6 +35,8 @@ public:
 		});
 	}
 
+	/// \bug The binary search seems to be buggy and tends to hang at random
+	///      points. Maybe some uninitialized memory issue?
 	unsigned translate(const char* s, const char* e) {
 		unsigned lowerIndex = 0;
 		unsigned upperIndex = size;

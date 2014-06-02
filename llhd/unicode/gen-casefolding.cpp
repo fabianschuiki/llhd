@@ -5,9 +5,10 @@
 #include <iostream>
 #include <sstream>
 
-/// \file Reads the `CaseFolding.txt` file which is part of the Unicode
-/// Character database, and digests its information into an efficient mapping
-/// structure which is written to disk.
+/// \file
+/// Reads the `CaseFolding.txt` file which is part of the unicode character
+/// database, and digests its information into an efficient mapping structure
+/// which is written to disk.
 
 struct MappingGenerator;
 struct MappingFragment;
