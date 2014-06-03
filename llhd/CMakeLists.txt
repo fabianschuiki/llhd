@@ -13,7 +13,7 @@ add_custom_command(
 
 add_library(llhd-base
 	SourceManager.cpp
-	unicode.cpp
+	unicode/casefolding.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/unicode-casefolding.cpp)
 target_link_libraries(llhd-base ${Boost_LIBRARIES})
 

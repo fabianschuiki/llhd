@@ -19,6 +19,9 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 	const char* bc = src.getStart();
 	const char* c = bc;
 
+	llhd::unicode::utf8 test;
+	std::cout << "max width of utf8 is " << test.maxWidth << '\n';
+
 	auto emit = [this,&bc,&c,&loc] (unsigned type) {
 		if (bc == c)
 			return;
