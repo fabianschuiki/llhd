@@ -271,6 +271,20 @@ struct utf16 {
 		return 0;
 	}
 
+	/// Decodes a code point from the iterator \a p, thoroughly checking it for
+	/// errors. This function is slower than decode(), but catches possible
+	/// encoding errors. If you are sure that the data to be decoded is well-
+	/// formed UTF-16, use decode() instead.
+	///
+	/// \param p Iterator from which the words to be decoded are fetched. After
+	///          the function returns, points to the word after the decoded
+	///          character.
+	/// \param e Iterator pointing to the end of the input. Used for error
+	///          checking only; the function returns ::incomplete if p == e
+	///          pre maturely.
+	/// \return  Returns the decoded code point as unichar, or ::incomplete if
+	///          the end of the input was reached prematurely (p == e), or
+	///          ::illegal if an encoding error was detected.
 	template <typename Iterator>
 	static unichar decodePedantic(Iterator& p, Iterator e) {
 		if (p == e)
@@ -297,6 +311,25 @@ struct utf16 {
 		return combineSurrogates(u1, u2);
 	}
 
+	/// Decodes a code point from the iterator \a p. This function assumes that
+	/// the input is encoded correctly and is therefore faster than
+	/// decodePedantic(). The downside is that this function is less robust to
+	/// encoding errors. While decodePedantic() returns individual ::illegal or
+	/// ::incomplete code points but keeps the rest of the input intact,
+	/// decode() is likely to only decode garbage after an encoding error was
+	/// encountered.
+	///
+	/// \warning This function will crash horribly if the Iterator \a p cannot
+	///          cope with out-of-bounds accesses, since the function is likely
+	///          to read beyond the end of the input in case of an encoding
+	///          error.
+	///
+	/// \param p Iterator from which the words to be decoded are fetched. After
+	///          the function returns, points to the word after the decoded
+	///          character.
+	/// \return  Returns the decoded code point as unichar. Depending on the
+	///          validity of the input encoding, this may very well be an
+	///          invalid code point.
 	template <typename Iterator>
 	static unichar decode(Iterator& p) {
 		utf16char u1 = *p++;
@@ -306,6 +339,13 @@ struct utf16 {
 		return combineSurrogates(u1, u2);
 	}
 
+	/// Encodes a code point to the iterator \a out. Make sure the iterator
+	/// points to a destination that has enough room to accept at least
+	/// maxWidth words, or that it is an insertion iterator that will
+	/// dynamically expand the destination to accomodate new words.
+	///
+	/// \param c   Code point to be encoded.
+	/// \param out Iterator where encoded words are written to.
 	template <typename Iterator>
 	static void encode(unichar c, Iterator& out) {
 		assert(isValid(c));
