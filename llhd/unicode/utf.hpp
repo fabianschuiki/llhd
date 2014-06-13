@@ -202,19 +202,19 @@ struct utf8 {
 	static void encode(unichar c, Iterator& out) {
 		assert(isValid(c));
 		if (c <= 0x7F) {
-			*out = utf8char(c);
+			*out++ = utf8char(c);
 		} else if (c <= 0x7FF) {
-			*out = utf8char(((c >>  6) & 0x3F) | 0xC0);
-			*out = utf8char(((c >>  0) & 0x3F) | 0x80);
+			*out++ = utf8char(((c >>  6) & 0x3F) | 0xC0);
+			*out++ = utf8char(((c >>  0) & 0x3F) | 0x80);
 		} else if (c <= 0xFFFF) {
-			*out = utf8char(((c >> 12) & 0x3F) | 0xE0);
-			*out = utf8char(((c >>  6) & 0x3F) | 0x80);
-			*out = utf8char(((c >>  0) & 0x3F) | 0x80);
+			*out++ = utf8char(((c >> 12) & 0x3F) | 0xE0);
+			*out++ = utf8char(((c >>  6) & 0x3F) | 0x80);
+			*out++ = utf8char(((c >>  0) & 0x3F) | 0x80);
 		} else {
-			*out = utf8char(((c >> 18) & 0x3F) | 0xF0);
-			*out = utf8char(((c >> 12) & 0x3F) | 0x80);
-			*out = utf8char(((c >>  6) & 0x3F) | 0x80);
-			*out = utf8char(((c >>  0) & 0x3F) | 0x80);
+			*out++ = utf8char(((c >> 18) & 0x3F) | 0xF0);
+			*out++ = utf8char(((c >> 12) & 0x3F) | 0x80);
+			*out++ = utf8char(((c >>  6) & 0x3F) | 0x80);
+			*out++ = utf8char(((c >>  0) & 0x3F) | 0x80);
 		}
 	}
 };

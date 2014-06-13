@@ -32,10 +32,10 @@ const unichar incomplete = -2; // = 0xFFFFFFFEu
 /// [1]: http://en.wikipedia.org/wiki/Universal_Character_Set_characters
 inline bool isNonCharacter(unichar c) {
 	if ((c & 0xFFFE) == 0xFFFE) // 0xFFFE, 0xFFFF, 0x1FFFE, 0x1FFFF ... 0x10FFFF
-		return false;
+		return true;
 	if (0xFDD0 <= c && c <= 0xFDEF) // continuous range of 32 non-characters in the BMP
-		return false;
-	return true;
+		return true;
+	return false;
 }
 
 /// Checks whether the code point \a c is a surrogate code point. Unicode

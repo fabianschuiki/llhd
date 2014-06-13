@@ -1,7 +1,10 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 // #include "llhd/unicode.hpp"
 #include "llhd/allocator/PoolAllocator.hpp"
+#include "llhd/unicode/unichar.hpp"
+#include "llhd/unicode/utf.hpp"
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 
@@ -14,9 +17,12 @@ struct MappingGenerator;
 struct MappingFragment;
 
 struct MappingFragment {
-	MappingFragment* frags[16];
-	unsigned value[8];
-	unsigned id;
+	static const unsigned numFrags  = 16;
+	static const unsigned maxValues = 32;
+
+	MappingFragment* frags[numFrags];
+	unsigned value[maxValues];
+	uint16_t id;
 
 	MappingFragment& operator() (unsigned bits);
 	MappingFragment& operator= (const unsigned* v);
@@ -25,17 +31,18 @@ struct MappingFragment {
 	MappingFragment(MappingGenerator& gen);
 
 	void enumerate(unsigned& i, unsigned& j) {
-		i += 16;
-		for (unsigned n = 0; n < 16; n++) {
+		i += numFrags;
+		for (unsigned n = 0; n < numFrags; n++) {
 			auto f = frags[n];
 			if (f) {
 				if (!f->value[0]) {
 					f->id = i;
-					i += 16;
+					i += numFrags;
 					f->enumerate(i,j);
 				} else {
-					f->id = 0x80000000 | (j++);
-					for (unsigned k = 0; k < 8 && f->value[k] != 0; k++)
+					assert(j < 0x8000);
+					f->id = 0x8000 | (j++);
+					for (unsigned k = 0; k < maxValues && f->value[k] != 0; k++)
 						j++;
 				}
 			}
@@ -71,29 +78,30 @@ MappingFragment& MappingFragment::operator() (unsigned bits) {
 
 MappingFragment& MappingFragment::operator= (const unsigned* v) {
 	unsigned k;
-	for (k = 0; k < 8 && v[k] != 0; k++)
+	for (k = 0; k < maxValues && v[k] != 0; k++)
 		value[k] = v[k];
-	if (k < 8)
+	if (k < maxValues)
 		value[k] = 0;
 	return *this;
 }
 
 MappingFragment::MappingFragment(MappingGenerator& gen): gen(gen) {
+	id = 0;
 	value[0] = 0;
-	for (int i = 0; i < 16; i++)
+	for (int i = 0; i < numFrags; i++)
 		frags[i] = NULL;
 }
 
 
 static void synthesizeNodes(std::ostream& out, const MappingFragment& frag) {
-	out << "\t/* " << frag.id << " */ ";
-	for (unsigned i = 0; i < 16; i++) {
+	out << "\t/* " << std::setw(4) << frag.id << " */ ";
+	for (unsigned i = 0; i < frag.numFrags; i++) {
 		auto& f = frag.frags[i];
 		if (i != 0) out << ' ';
 		out << "0x" << (f ? f->id : 0) << ',';
 	}
 	out << '\n';
-	for (unsigned i = 0; i < 16; i++) {
+	for (unsigned i = 0; i < frag.numFrags; i++) {
 		auto& f = frag.frags[i];
 		if (f && !f->value[0]) synthesizeNodes(out, *f);
 	}
@@ -101,13 +109,13 @@ static void synthesizeNodes(std::ostream& out, const MappingFragment& frag) {
 
 static void synthesizeLeaves(std::ostream& out, const MappingFragment& frag) {
 	if (!frag.value[0]) {
-		for (unsigned i = 0; i < 16; i++) {
+		for (unsigned i = 0; i < frag.numFrags; i++) {
 			auto& f = frag.frags[i];
 			if (f) synthesizeLeaves(out, *f);
 		}
 	} else {
-		out << "\t/* " << frag.id << " */ ";
-		for (unsigned i = 0; i < 8 && frag.value[i] != 0; i++)
+		out << "\t/* " << std::setw(4) << frag.id << " */ ";
+		for (unsigned i = 0; i < frag.maxValues && frag.value[i] != 0; i++)
 			out << "0x" << frag.value[i] << ", ";
 		out << "0,\n";
 	}
@@ -187,13 +195,66 @@ int main(int argc, char** argv)
 		// utf32v << ", 0 }";
 		// std::cout << "  = " << utf32v.str() << '\n';
 
-		if (status == 'C' || status == 'F')
-			map_utf32_full(code >> 16)(code >> 12)(code >> 8)(code >> 4)(code >> 0) = mapping;// = utf32v.str();
-		if (status == 'C' || status == 'S')
-			map_utf32_simple(code >> 16)(code >> 12)(code >> 8)(code >> 4)(code >> 0) = mapping;// = utf32v.str();
+		using llhd::unicode::utf8char;
+		using llhd::unicode::utf16char;
+
+		// Generate UTF8 and UTF16 sequences for the code and the mapping.
+		utf8char  u8c[8],  *p8c = u8c;
+		utf16char u16c[8], *p16c = u16c;
+		unsigned u8m[32],  *p8m = u8m;
+		unsigned u16m[32], *p16m = u16m;
+
+		llhd::unicode::utf8::encode(code, p8c);
+		llhd::unicode::utf16::encode(code, p16c);
+
+		for (unsigned* m = mapping; *m != 0; m++) {
+			llhd::unicode::utf8::encode(*m, p8m);
+			llhd::unicode::utf16::encode(*m, p16m);
+		}
+		*p8c = 0;
+		*p8m = 0;
+		*p16c = 0;
+		*p16m = 0;
+
+		// Store the mapping for UTF-8, UTF-16, and UTF-32 in the *_full tables
+		// if the status indicates a common (C) or full (F) mapping.
+		if (status == 'C' || status == 'F') {
+			MappingFragment* f;
+
+			f = &map_utf8_full.root;
+			for (utf8char* p = u8c; p < p8c; p++)
+				f = &(*f)(*p >> 4)(*p >> 0);
+			*f = u8m;
+
+			f = &map_utf16_full.root;
+			for (utf16char* p = u16c; p < p16c; p++)
+				f = &(*f)(*p >> 12)(*p >> 8)(*p >> 4)(*p >> 0);
+			*f = u16m;
+
+			map_utf32_full(code >> 16)(code >> 12)(code >> 8)(code >> 4)(code >> 0) = mapping;
+		}
+
+		// Store the mapping for UTF-8, UTF-16, and UTF-32 in the *_simple
+		// tables if the status indicates a common (C) or simple (S) mapping.
+		if (status == 'C' || status == 'S') {
+			MappingFragment* f;
+
+			f = &map_utf8_simple.root;
+			for (utf8char* p = u8c; p < p8c; p++)
+				f = &(*f)(*p >> 4)(*p >> 0);
+			*f = u8m;
+
+			f = &map_utf16_simple.root;
+			for (utf16char* p = u16c; p < p16c; p++)
+				f = &(*f)(*p >> 12)(*p >> 8)(*p >> 4)(*p >> 0);
+			*f = u16m;
+
+			map_utf32_simple(code >> 16)(code >> 12)(code >> 8)(code >> 4)(code >> 0) = mapping;
+		}
 	}
 
-	// Enumerate the mappings.
+	// Enumerate the mappings. This calculates the layout for the internal table
+	// structures.
 	map_utf32_full.enumerate();
 	map_utf32_simple.enumerate();
 	map_utf16_full.enumerate();
@@ -211,23 +272,29 @@ int main(int argc, char** argv)
 	fout << "#include \"llhd/unicode/casefolding-internal.hpp\"\n";
 	fout << std::hex;
 
-	// UTF32 Full
-	fout << "\nconst uint32_t llhd::unicode::utf32_full_nodes[] = {\n";
-	synthesizeNodes(fout, map_utf32_full.root);
-	fout << "\t0\n};\n";
+	// Synthesize C++ code for the mapping tables.
+	auto synth = [&fout](
+		const char* type,
+		const char* prefix,
+		const MappingGenerator& map) {
 
-	fout << "\nconst uint32_t llhd::unicode::utf32_full_leaves[] = {\n";
-	synthesizeLeaves(fout, map_utf32_full.root);
-	fout << "\t0\n};\n";
+		fout << "\nconst uint32_t llhd::unicode::" << prefix
+		     << "_nodes[] = {\n";
+		synthesizeNodes(fout, map.root);
+		fout << "\t0\n};\n";
 
-	// UTF32 Simple
-	fout << "\nconst uint32_t llhd::unicode::utf32_simple_nodes[] = {\n";
-	synthesizeNodes(fout, map_utf32_simple.root);
-	fout << "\t0\n};\n";
+		fout << "\nconst " << type << " llhd::unicode::" << prefix
+		     << "_leaves[] = {\n";
+		synthesizeLeaves(fout, map.root);
+		fout << "\t0\n};\n";
+	};
 
-	fout << "\nconst uint32_t llhd::unicode::utf32_simple_leaves[] = {\n";
-	synthesizeLeaves(fout, map_utf32_simple.root);
-	fout << "\t0\n};\n";
+	synth("uint32_t", "utf32_full", map_utf32_full);
+	synth("uint32_t", "utf32_simple", map_utf32_simple);
+	synth("uint16_t", "utf16_full", map_utf16_full);
+	synth("uint16_t", "utf16_simple", map_utf16_simple);
+	synth("uint8_t", "utf8_full", map_utf8_full);
+	synth("uint8_t", "utf8_simple", map_utf8_simple);
 
 	return 0;
 }
