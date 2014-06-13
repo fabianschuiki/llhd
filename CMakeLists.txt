@@ -7,7 +7,8 @@ if (UNIX)
 	add_definitions(-Wall -std=c++11)
 endif()
 
-find_package(Boost COMPONENTS REQUIRED filesystem system)
+find_package(Boost COMPONENTS REQUIRED filesystem system unit_test_framework)
+add_definitions(-DBOOST_TEST_DYN_LINK)
 
 enable_testing()
 include_directories(.)

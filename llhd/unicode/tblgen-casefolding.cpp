@@ -31,7 +31,7 @@ struct MappingFragment {
 	MappingFragment(MappingGenerator& gen);
 
 	void enumerate(unsigned& i, unsigned& j) {
-		i += numFrags;
+		// i += numFrags;
 		for (unsigned n = 0; n < numFrags; n++) {
 			auto f = frags[n];
 			if (f) {
@@ -62,7 +62,7 @@ struct MappingGenerator {
 	}
 
 	void enumerate() {
-		numNodes = 0;
+		numNodes = 16;
 		numLeaves = 0;
 		root.enumerate(numNodes, numLeaves);
 	}
@@ -88,7 +88,7 @@ MappingFragment& MappingFragment::operator= (const unsigned* v) {
 MappingFragment::MappingFragment(MappingGenerator& gen): gen(gen) {
 	id = 0;
 	value[0] = 0;
-	for (int i = 0; i < numFrags; i++)
+	for (unsigned i = 0; i < numFrags; i++)
 		frags[i] = NULL;
 }
 

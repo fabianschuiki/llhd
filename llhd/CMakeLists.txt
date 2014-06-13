@@ -20,5 +20,5 @@ add_library(llhd-base
 	${CMAKE_CURRENT_BINARY_DIR}/unicode-casefolding-table.cpp)
 target_link_libraries(llhd-base ${Boost_LIBRARIES})
 
-
+add_subdirectory(unicode)
 add_subdirectory(vhdl) # llhd-vhdl library
