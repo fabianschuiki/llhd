@@ -1,6 +1,7 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #include "llhd/SourceBuffer.hpp"
 #include "llhd/unicode.hpp"
+#include "llhd/vhdl/keywords.hpp"
 #include "llhd/vhdl/KeywordMapper.hpp"
 #include "llhd/vhdl/LexerNovum.hpp"
 #include "llhd/vhdl/TokenContext.hpp"
@@ -8,7 +9,9 @@
 #include <algorithm>
 #include <cstring>
 #include <iostream>
+
 using namespace llhd::vhdl;
+using llhd::unicode::utf8char;
 
 // inline bool isWhitespace(const char* c) {
 // 	return *c == ' ' || *c == '\t' || *c == '\n'
@@ -359,7 +362,9 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 				c++;
 				emit(kTokenInvalid);
 			} else {
-				unsigned mapped = keywords.translate(bc, c);
+				unsigned mapped = lookupKeyword(
+					unicode::casefold_iterator<utf8char>((const utf8char*)bc),
+					unicode::casefold_iterator<utf8char>((const utf8char*)c));
 				emit(mapped > 0 ? mapped : kTokenBasicIdentifier);
 			}
 		}

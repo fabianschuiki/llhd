@@ -1,11 +1,22 @@
 # Copyright (c) 2014 Fabian Schuiki
 # Configures the VHDL subcomponent of LLHD.
 
+# Generate the keyword mapping table.
+add_executable(vhdl-tblgen-keywords tblgen-keywords.cpp)
+add_custom_command(
+	TARGET vhdl-tblgen-keywords POST_BUILD
+	COMMAND vhdl-tblgen-keywords
+		${CMAKE_CURRENT_SOURCE_DIR}/keywords.hpp
+		> ${CMAKE_CURRENT_BINARY_DIR}/vhdl-tblgen-keywords.log
+	DEPENDS vhdl-tblgen-keywords
+	COMMENT "Generating VHDL keywords table")
+
 add_library(llhd-vhdl
 	Lexer.cpp
 	Parser.cpp
 	Token.cpp
 	LexerNovum.cpp)
+add_dependencies(llhd-vhdl vhdl-tblgen-keywords) # causes keyword table to be built before llhd-vhdl
 target_link_libraries(llhd-vhdl llhd-base)
 
 # Add the tests.
