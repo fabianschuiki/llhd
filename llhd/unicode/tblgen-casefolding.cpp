@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+using namespace llhd;
 
 /// \file
 /// Reads the `CaseFolding.txt` file which is part of the unicode character
@@ -193,9 +194,6 @@ int main(int argc, char** argv)
 		// }
 		// utf32v << ", 0 }";
 		// std::cout << "  = " << utf32v.str() << '\n';
-
-		using llhd::unicode::utf8char;
-		using llhd::unicode::utf16char;
 
 		// Generate UTF8 and UTF16 sequences for the code and the mapping.
 		utf8char  u8c[8],  *p8c = u8c;

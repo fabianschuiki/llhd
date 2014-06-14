@@ -5,7 +5,7 @@
 namespace llhd {
 namespace vhdl {
 
-class Token;
+struct Token;
 
 /// A chunk of memory containing pointers to Tokens. Users of this class may
 /// assume that the buffer be null-terminated, i.e. the very last token is a

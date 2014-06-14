@@ -7,6 +7,7 @@
 #include <llhd/vhdl/ast/Context.hpp>
 #include <iostream>
 #include <fstream>
+using namespace llhd;
 
 
 int main(int argc, char** argv)
@@ -31,8 +32,8 @@ int main(int argc, char** argv)
 			size_t length = fin.tellg();
 			fin.seekg(0, std::ios_base::beg);
 			std::cout << "done (" << length << " bytes)\n";
-			char data[length+1];
-			fin.read(data, length);
+			utf8char data[length+1];
+			fin.read((char*)data, length);
 			data[length] = 0;
 			lexer.lex(llhd::SourceBuffer(data, data+length+1), llhd::SourceLocation());
 		}

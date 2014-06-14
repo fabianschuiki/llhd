@@ -9,9 +9,7 @@
 #include <algorithm>
 #include <cstring>
 #include <iostream>
-
 using namespace llhd::vhdl;
-using llhd::unicode::utf8char;
 
 // inline bool isWhitespace(const char* c) {
 // 	return *c == ' ' || *c == '\t' || *c == '\n'
@@ -19,11 +17,8 @@ using llhd::unicode::utf8char;
 
 /// Implemented according to IEEE 1076-2000.
 void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
-	const char* bc = src.getStart();
-	const char* c = bc;
-
-	llhd::unicode::utf8 test;
-	std::cout << "max width of utf8 is " << test.maxWidth << '\n';
+	const utf8char* bc = src.getStart();
+	const utf8char* c = bc;
 
 	auto emit = [this,&bc,&c,&loc] (unsigned type) {
 		if (bc == c)
@@ -151,12 +146,12 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 		// This is more general than what the VHDL standard allows. The non-
 		// breakable space 0xa0 (UTF-8 0xc2a0) is included as well.
 		// 1076-2000 §13.1
-		if (*c <= 0x20 || (*c == (char)0xc2 && *(c+1) == (char)0xa0)) {
+		if (*c <= 0x20 || (*c == 0xc2 && *(c+1) == 0xa0)) {
 			c++;
-			if (*c == (char)0xa0) c++;
-			while ((*c <= 0x20 || (*c == (char)0xc2 && *(c+1) == (char)0xa0)) && *c != 0) {
+			if (*c == 0xa0) c++;
+			while ((*c <= 0x20 || (*c == 0xc2 && *(c+1) == 0xa0)) && *c != 0) {
 				c++;
-				if (*c == (char)0xa0) c++;
+				if (*c == 0xa0) c++;
 			}
 			emit(skipWhitespaces ? kTokenInvalid : kTokenWhitespace);
 			// TODO: Add pedantic mode which emits warnings if the the
@@ -312,7 +307,9 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 		// the later interpretation of the literal will generate errors where
 		// appropriate. This allows the lexer to read over obvious errors.
 		// 1076-2000 §13.7
-		else if ((*c == 'b' || *c == 'B' || *c == 'o' || *c == 'O' || *c == 'x' || *c == 'X') &&
+		else if ((*c == 'b' || *c == 'B' ||
+			      *c == 'o' || *c == 'O' ||
+			      *c == 'x' || *c == 'X') &&
 		         (*(c+1) == '"' || *(c+1) == '%')) {
 			c++; // base
 			char end = *c; // terminating character, " or %
@@ -344,12 +341,12 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 		// 1076-2000 §13.3.1
 		else if ((*c >= 'A' && *c <= 'Z') ||
 		         (*c >= 'a' && *c <= 'z') ||
-		         ((*c & 0x80) && !(*c == (char)0xc2 && *(c+1) == (char)0xa0))) {
+		         ((*c & 0x80) && !(*c == 0xc2 && *(c+1) == 0xa0))) {
 
 			while ((*c >= '0' && *c <= '9') ||
 			       (*c >= 'A' && *c <= 'Z') ||
 			       (*c >= 'a' && *c <= 'z') ||
-			       ((*c & 0x80) && !(*c == (char)0xc2 && *(c+1) == (char)0xa0)) ||
+			       ((*c & 0x80) && !(*c == 0xc2 && *(c+1) == 0xa0)) ||
 			       *c == '_') c++;
 
 			// TODO: Add pedantic mode which checks whether the characters used
@@ -363,8 +360,8 @@ void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
 				emit(kTokenInvalid);
 			} else {
 				unsigned mapped = lookupKeyword(
-					unicode::casefold_iterator<utf8char>((const utf8char*)bc),
-					unicode::casefold_iterator<utf8char>((const utf8char*)c));
+					unicode::casefold_iterator<utf8char>(bc),
+					unicode::casefold_iterator<utf8char>(c));
 				emit(mapped > 0 ? mapped : kTokenBasicIdentifier);
 			}
 		}

@@ -2,6 +2,7 @@
 #pragma once
 #include "llhd/compiler.hpp"
 #include "llhd/types.hpp"
+#include "llhd/unicode/unichar.hpp"
 
 namespace llhd {
 
@@ -10,15 +11,17 @@ namespace llhd {
 /// the memory to be null-terminated, which makes it very efficient to read the
 /// contents since no end-of-file checks need to be performed.
 class SourceBuffer {
-	const char* start;
-	const char* end;
+	typedef unicode::utf8char utf8char;
+
+	const utf8char* start;
+	const utf8char* end;
 
 public:
 	/// Creates an empty buffer.
 	SourceBuffer(): start(NULL), end(NULL) {}
 
 	/// Creates a new buffer ranging from \a ptr to \a ptr + \a length.
-	SourceBuffer(char* ptr, size_t length):
+	SourceBuffer(utf8char* ptr, size_t length):
 		start(ptr),
 		end(ptr+length) {
 
@@ -26,7 +29,7 @@ public:
 	}
 
 	/// Creates a new buffer rangin from \a start to \a end.
-	SourceBuffer(char* start, char* end):
+	SourceBuffer(utf8char* start, utf8char* end):
 		start(start),
 		end(end) {
 
@@ -34,10 +37,10 @@ public:
 	}
 
 	/// Returns a pointer to the first byte in the buffer.
-	const char* getStart() const { return start; }
+	const utf8char* getStart() const { return start; }
 	/// Returns a pointer to the location just after the last byte in the
 	//// buffer.
-	const char* getEnd() const { return end; }
+	const utf8char* getEnd() const { return end; }
 	/// Returns the size of the buffer.
 	const size_t getSize() const { return end-start; }
 	/// Returns true if the buffer is empty.

@@ -2,10 +2,7 @@
 #include "llhd/unicode/casefolding.hpp"
 #include "llhd/unicode/casefolding-internal.hpp"
 #include "llhd/unicode/utf.hpp"
-
-using llhd::unicode::utf8char;
-using llhd::unicode::utf16char;
-using llhd::unicode::utf32char;
+using namespace llhd;
 
 
 inline unsigned resolveBase(const uint32_t* nodes, unsigned base, utf8char c) {

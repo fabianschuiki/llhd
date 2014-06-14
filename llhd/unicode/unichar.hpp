@@ -68,3 +68,16 @@ const utf8char* simpleCaseFold(const utf8char* c);
 
 } // namespace unicode
 } // namespace llhd
+
+
+// Export the fundamental types into the llhd namespace for convenience.
+// Otherwise the entire source would be littered with using statements for
+// utf8char and friends.
+namespace llhd {
+
+using llhd::unicode::utf8char;
+using llhd::unicode::utf16char;
+using llhd::unicode::utf32char;
+using llhd::unicode::unichar;
+
+} // namespace llhd
