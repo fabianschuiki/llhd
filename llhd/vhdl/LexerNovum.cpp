@@ -13,9 +13,6 @@ using namespace llhd::vhdl;
 
 /// Implemented according to IEEE 1076-2000.
 void LexerNovum::lex(const SourceBuffer& src, SourceLocation loc) {
-	// const utf8char* bc = src.getStart();
-	// const utf8char* c = bc;
-
 	NullTerminatedIterator<utf8char> bc(src.getStart(), src.getEnd());
 	NullTerminatedIterator<utf8char> c = bc;
 
