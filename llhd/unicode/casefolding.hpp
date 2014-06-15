@@ -16,7 +16,7 @@ namespace unicode {
 /// \param  c  String to be casefolded. Should be an array of \ref utf8char,
 ///         \ref utf16char, or \ref utf32char.
 /// \param  shift  Set to the width of the skipped character in \a c if
-///         casefolding occurs.
+///         casefolding occurs. May be NULL.
 /// \return The same pointer as \a c if no casefolding is necessary, or a
 ///         pointer to a null-terminated casefolded replacement string.
 template<typename T, bool full = true>

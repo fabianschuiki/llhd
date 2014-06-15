@@ -1,5 +1,10 @@
 /**
 \namespace llhd::unicode
-Awesome stuff right here!
+
+A highly efficient library to deal with unicode strings. Primarily, it provides
+encoding and decoding for UTF-8, UTF-16, and UTF-32 strings; and an
+implementation of the casefolding algorithm that allows two unicode strings to
+be compared in a case-insensitive manner.
+
 \author Fabian Schuiki
 */

@@ -1,0 +1,7 @@
+/**
+\namespace llhd::vhdl
+
+A library to parse and synthesize VHDL code.
+
+\author Fabian Schuiki
+*/

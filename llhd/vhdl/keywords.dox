@@ -1,0 +1,14 @@
+/**
+\fn template<class InputIterator> unsigned llhd::vhdl::lookupKeyword(InputIterator first, InputIterator last)
+
+Checks if the UTF-8 characters [\a first, \a last) correspond to a known
+keyword. To achieve a case-insensitive behaviour, consider using a \ref
+unicode::casefold_iterator. The lookup aims to be as efficient as possible by
+performing the matching in a tree-like manner.
+
+\note This function is generated automatically by the \ref tblgen-keywords.cpp
+      program.
+
+\return 0 if the characters do not match a keyword. Otherwise the corresponding
+        \ref TokenType constant (one of \c kKeyword...) is returned.
+*/
