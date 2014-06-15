@@ -21,7 +21,7 @@ public:
 	SourceBuffer(): start(NULL), end(NULL) {}
 
 	/// Creates a new buffer ranging from \a ptr to \a ptr + \a length.
-	SourceBuffer(utf8char* ptr, size_t length):
+	SourceBuffer(const utf8char* ptr, size_t length):
 		start(ptr),
 		end(ptr+length) {
 
@@ -29,7 +29,7 @@ public:
 	}
 
 	/// Creates a new buffer rangin from \a start to \a end.
-	SourceBuffer(utf8char* start, utf8char* end):
+	SourceBuffer(const utf8char* start, const utf8char* end):
 		start(start),
 		end(end) {
 
