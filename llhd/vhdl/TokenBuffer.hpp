@@ -5,11 +5,9 @@
 namespace llhd {
 namespace vhdl {
 
-struct Token;
+class Token;
 
-/// A chunk of memory containing pointers to Tokens. Users of this class may
-/// assume that the buffer be null-terminated, i.e. the very last token is a
-/// NULL-pointer. This allows for fairly efficient parsing.
+/// A chunk of memory containing pointers to Tokens.
 class TokenBuffer {
 	Token** start;
 	Token** end;
@@ -22,19 +20,13 @@ public:
 	/// token must be NULL.
 	TokenBuffer(Token** ptr, size_t length):
 		start(ptr),
-		end(ptr+length) {
-
-		assert(*(end-1) == NULL && "TokenBuffer not null-terminated!");
-	}
+		end(ptr+length) {}
 
 	/// Creates a buffer ranging from \a start to \a end. The last token must
 	/// be NULL.
 	TokenBuffer(Token** start, Token** end):
 		start(start),
-		end(end) {
-
-		assert(*(end-1) == NULL && "TokenBuffer not null-terminated!");
-	}
+		end(end) {}
 
 	/// Returns a pointer to the first token in the buffer.
 	Token** getStart() const { return start; }
