@@ -142,6 +142,11 @@ public:
 		return ptr;
 	}
 
+	/// Returns the number of bytes that have been allocated through this.
+	size_t getAllocatedSize() const {
+		return totalAllocatedSize;
+	}
+
 private:
 	/// Clears this pool but does not deallocate any memory. The resulting pool
 	/// is empty, as if it was just allocated with the default allocator.

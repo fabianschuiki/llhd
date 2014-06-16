@@ -15,6 +15,7 @@ add_custom_command(
 
 
 add_library(llhd-base
+	DiagnosticFormatterConsole.cpp
 	SourceManager.cpp
 	unicode/casefolding.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/unicode-casefolding-table.cpp)
@@ -22,3 +23,8 @@ target_link_libraries(llhd-base ${Boost_LIBRARIES})
 
 add_subdirectory(unicode)
 add_subdirectory(vhdl) # llhd-vhdl library
+
+# add tests
+add_executable(test-diagnostics test/diagnostics.cpp)
+target_link_libraries(test-diagnostics llhd-base)
+add_test(diagnostics test-diagnostics)

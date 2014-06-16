@@ -45,7 +45,7 @@ The latter makes sense especially when referencing other parts of the code:
                   output_do : out std_logic);
           end entity arbiter;
 
-      note: both declare the same port signals, however their order differs:
+      note: both declare the same port signals, however the order differs:
         (1) declares
           - output_do
           - error_so
@@ -81,3 +81,7 @@ interspersed with source code snippets that they reference. The snippets are
 identified by an index starting at 1 for each diagnostic. If multiple messages
 point a similar source location, a larger extract of the source is printed that
 covers both. In general, source snippets are only plotted once.
+
+Every message has a main source range underlined by carets `^^^`, a list of
+highlighted ranges underlined by tildas `~~~`, and a list of relevant ranges
+which are not marked but included in the code listings.
