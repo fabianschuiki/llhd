@@ -1,17 +1,41 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
 #include "llhd/filesystem.hpp"
+#include "llhd/SourceBuffer.hpp"
 #include "llhd/SourceLocation.hpp"
-#include <map>
-#include <memory>
+#include "llhd/allocator/PoolAllocator.hpp"
+#include "llhd/unicode/unichar.hpp"
+#include <vector>
 
 namespace llhd {
 
-class FileEntry;
-class SourceBuffer;
-class SourceCache;
-class SourceManager;
-class SourceManagerEntry;
+class SourceManagerEntry {
+public:
+	unsigned id;
+	unsigned offset;
+	unsigned size;
+	unsigned end;
+
+	std::string name;
+	const utf8char* buffer;
+
+	SourceManagerEntry(
+		unsigned id,
+		unsigned offset,
+		unsigned size,
+		unsigned end):
+		id(id),
+		offset(offset),
+		size(size),
+		end(end) {}
+
+	unsigned getLineNumberAtOffset(unsigned offset) const {
+		return 1;
+	}
+	unsigned getColumnNumberAtOffset(unsigned offset) const {
+		return 1;
+	}
+};
 
 /// Loads and maintains source files, and creates a continuous location space.
 ///
@@ -33,22 +57,18 @@ class SourceManagerEntry;
 ///
 /// Some of the concepts are borrowed from llvm::SourceManager.
 class SourceManager {
-	std::map<bfs::path, SourceCache> caches;
-
-	typedef std::unique_ptr<SourceManagerEntry> TableSlot;
-	std::vector<TableSlot> srcTable;
-	std::map<bfs::path, SourceManagerEntry*> fileSrcIndex;
-	std::map<const SourceBuffer*, SourceManagerEntry*> bufferSrcIndex;
-
-	void bootstrapEntry(SourceManagerEntry* entry);
+	std::vector<SourceManagerEntry> srcTable;
+	SourceManagerEntry& makeEntry(unsigned size);
 
 public:
-	~SourceManager();
+	/// Allocator that provides garbage collected memory for objects whose
+	/// existence should be tied to the SourceManager.
+	PoolAllocator<> alloc;
 
-	FileId createFileId(const bfs::path& fp);
-	FileId createFileId(const SourceBuffer* buffer);
+	FileId addBuffer(const SourceBuffer& buffer, const std::string& name);
+	FileId addBufferCopy(const SourceBuffer& buffer, const std::string& name);
 
-	const SourceBuffer* getBuffer(FileId fid);
+	SourceBuffer getBuffer(FileId fid);
 
 	SourceLocation getStartLocation(FileId fid);
 	SourceLocation getEndLocation(FileId fid);

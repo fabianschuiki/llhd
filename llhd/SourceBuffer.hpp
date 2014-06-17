@@ -3,6 +3,7 @@
 #include "llhd/compiler.hpp"
 #include "llhd/types.hpp"
 #include "llhd/unicode/unichar.hpp"
+#include <algorithm>
 
 namespace llhd {
 
@@ -17,6 +18,11 @@ class SourceBuffer {
 public:
 	/// Creates an empty buffer.
 	SourceBuffer(): start(NULL), end(NULL) {}
+
+	/// Creates a new buffer ranging from \a ptr to the first 0 byte in \a ptr.
+	SourceBuffer(const utf8char* ptr):
+		start(ptr),
+		end(std::find(ptr, (const utf8char*)0, 0)) {}
 
 	/// Creates a new buffer ranging from \a ptr to \a ptr + \a length.
 	SourceBuffer(const utf8char* ptr, size_t length):

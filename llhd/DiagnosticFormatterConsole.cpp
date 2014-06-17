@@ -21,7 +21,8 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 			case kFixit: output << "\033[36;1mfixit:\033[0m"; break;
 			default: output << "unspecified:"; break;
 		}
-		output << " \033[1m";
+		output << " ";
+		// output << "\033[1m";
 
 		const char* p = msg->getMessage();
 		unsigned line = 0;

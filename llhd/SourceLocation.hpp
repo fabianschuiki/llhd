@@ -1,5 +1,6 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
+#include <string>
 
 namespace llhd {
 
@@ -81,19 +82,18 @@ struct SourceRange {
 /// offset, line, and column. See SourceManager::getPresumedLocation() for more
 /// details.
 struct PresumedLocation {
-	const char* filename;
+	std::string filename;
 	unsigned offset;
 	unsigned line;
 	unsigned column;
 
 	PresumedLocation():
-		filename(0),
 		offset(0),
 		line(0),
 		column(0) {}
 
 	/// Returns true if this is a valid PresumedLocation.
-	bool isValid() const { return filename != 0; }
+	bool isValid() const { return !filename.empty(); }
 };
 
 

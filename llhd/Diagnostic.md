@@ -35,7 +35,7 @@ The latter makes sense especially when referencing other parts of the code:
               port(
                   output_do : out std_logic;
                   error_so  : out std_logic);
-          end component component_name;
+          end component arbiter;
 
         (2) arbiter.vhd:6-10:
           entity arbiter is

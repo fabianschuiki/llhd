@@ -5,10 +5,6 @@
 
 namespace llhd {
 
-class SourceBuffer;
-class SourceCache;
-class SourceManager;
-
 
 /// Base class for all source table entries maintained by SourceManager. Other
 /// classes derive from this to implement a specific kind of resource that may
@@ -17,68 +13,23 @@ class SourceManager;
 /// - FileSourceManagerEntry, which points at a file on disk; and
 /// - BufferSourceManagerEntry, which points at an arbitrary memory location.
 class SourceManagerEntry {
-	friend class SourceManager;
-
+public:
 	unsigned id;
 	unsigned offset;
 	unsigned size;
 	unsigned end;
 
-	/// Returns a SourceBuffer with the contents of this entry. Overridden by
-	/// subclasses to implement loading the resource they wrap around.
-	virtual const SourceBuffer* getBuffer() const = 0;
+	std::string name;
+	const utf8char* buffer;
+	bool bufferAutodelete;
 
-	/// Returns the name of this entry that may be presented to the user.
-	/// Overridden by subclasses to return a useful name for the resource they
-	/// wrap around.
-	virtual const char* getName() const = 0;
-
-	unsigned getLineNumberAtOffset(unsigned offset);
-	unsigned getColumnNumberAtOffset(unsigned offset);
-};
-
-
-/// SourceManager table entry for files on disk. Identified by their path, this
-/// class loads files lazily as soon as getBuffer() is called for the first
-/// time. The entry's name corresponds to the file's path.
-class FileSourceManagerEntry : public SourceManagerEntry {
-	friend class SourceManager;
-
-	/// Path to the file wrapped by this entry.
-	bfs::path path;
-	/// Cached buffer.
-	SourceBuffer buffer;
-
-	virtual const SourceBuffer* getBuffer() const {
-		if (!buffer.getStart()) {
-			// TODO: load buffer here ...
-		}
-		return &buffer;
+	unsigned getLineNumberAtOffset(unsigned offset) {
+		return 1;
 	}
-
-	virtual const char* getName() const {
-		return path.c_str();
+	unsigned getColumnNumberAtOffset(unsigned offset) {
+		return 1;
 	}
 };
 
-
-/// SourceManager table entry for arbitrary chunks of memory. This is the most
-/// lightweight of all table entries, allowing for arbitrary strings to be used
-/// as proper source files. The entry name is fixed to "buffer".
-class BufferSourceManagerEntry : public SourceManagerEntry {
-	friend class SourceManager;
-
-	/// Buffer wrapped by this entry. This entry does not take any form of
-	/// ownership for this buffer.
-	SourceBuffer buffer;
-
-	virtual const SourceBuffer* getBuffer() const { return &buffer; }
-	virtual const char* getName() const { return "buffer"; }
-};
-
-
-class SourceCache {
-	friend class SourceManager;
-};
 
 } // namespace llhd
