@@ -73,7 +73,7 @@ struct SourceRange {
 	SourceRange(SourceLocation s, SourceLocation e): s(s), e(e) {}
 
 	/// Returns true if this is a valid SourceRange.
-	bool isValid() const { return s.isValid(); }
+	bool isValid() const { return s.isValid() && e.isValid(); }
 };
 
 

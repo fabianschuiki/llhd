@@ -5,6 +5,13 @@
 using namespace llhd;
 
 
+SourceManager::SourceManager() {
+	lastFileIdForLocation.offset = 0;
+	lastFileIdForLocation.end = 0;
+	lastFileIdForLocation.id = 0;
+}
+
+
 FileId SourceManager::addBuffer(
 	const SourceBuffer& buffer,
 	const std::string& name) {
@@ -73,6 +80,11 @@ SourceLocation SourceManager::getEndLocation(FileId fid) {
 FileId SourceManager::getFileIdForLocation(SourceLocation loc) {
 	assert(!srcTable.empty() && "source table is empty, nowhere SourceLocation could point!");
 
+	// Try to hit the cache.
+	if (loc.id >= lastFileIdForLocation.offset &&
+		loc.id < lastFileIdForLocation.end)
+		return FileId(lastFileIdForLocation.id);
+
 	// Make sure we're within the virtual location space.
 	if (loc.id >= srcTable.back().end)
 		return FileId(); // invalid id
@@ -81,19 +93,22 @@ FileId SourceManager::getFileIdForLocation(SourceLocation loc) {
 	unsigned lowIndex = 0;
 	unsigned highIndex = srcTable.size();
 
+	SourceManagerEntry* entry = nullptr;
 	while (lowIndex != highIndex) {
 		unsigned middleIndex = (lowIndex+highIndex)/2;
-		const SourceManagerEntry& entry = srcTable[middleIndex];
+		entry = &srcTable[middleIndex];
 
-		if (entry.offset > loc.id) {
+		if (entry->offset > loc.id) {
 			highIndex = middleIndex;
-		} else if (entry.end <= loc.id) {
+		} else if (entry->end <= loc.id) {
 			lowIndex = middleIndex;
 		} else {
-			return FileId(middleIndex+1);
+			lowIndex = middleIndex;
+			break;
 		}
 	}
 
+	lastFileIdForLocation = {entry->offset, entry->end, lowIndex+1};
 	return FileId(lowIndex+1);
 }
 

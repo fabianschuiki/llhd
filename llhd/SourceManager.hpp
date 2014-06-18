@@ -1,41 +1,13 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
-#include "llhd/filesystem.hpp"
 #include "llhd/SourceBuffer.hpp"
 #include "llhd/SourceLocation.hpp"
+#include "llhd/SourceManagerEntry.hpp"
 #include "llhd/allocator/PoolAllocator.hpp"
 #include "llhd/unicode/unichar.hpp"
 #include <vector>
 
 namespace llhd {
-
-class SourceManagerEntry {
-public:
-	unsigned id;
-	unsigned offset;
-	unsigned size;
-	unsigned end;
-
-	std::string name;
-	const utf8char* buffer;
-
-	SourceManagerEntry(
-		unsigned id,
-		unsigned offset,
-		unsigned size,
-		unsigned end):
-		id(id),
-		offset(offset),
-		size(size),
-		end(end) {}
-
-	unsigned getLineNumberAtOffset(unsigned offset) const {
-		return 1;
-	}
-	unsigned getColumnNumberAtOffset(unsigned offset) const {
-		return 1;
-	}
-};
 
 /// Loads and maintains source files, and creates a continuous location space.
 ///
@@ -60,7 +32,15 @@ class SourceManager {
 	std::vector<SourceManagerEntry> srcTable;
 	SourceManagerEntry& makeEntry(unsigned size);
 
+	/// Single-entry cache for the getFileIdForLocation() function.
+	struct {
+		unsigned offset, end;
+		unsigned id;
+	} lastFileIdForLocation;
+
 public:
+	SourceManager();
+
 	/// Allocator that provides garbage collected memory for objects whose
 	/// existence should be tied to the SourceManager.
 	PoolAllocator<> alloc;

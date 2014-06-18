@@ -2,6 +2,7 @@
 #include "llhd/Diagnostic.hpp"
 #include "llhd/DiagnosticFormatterConsole.hpp"
 #include "llhd/DiagnosticMessage.hpp"
+#include "llhd/SourceManager.hpp"
 using namespace llhd;
 
 
@@ -18,7 +19,7 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 			case kError: output << "\033[31;1merror:\033[0m"; break;
 			case kWarning: output << "\033[33;1mwarning:\033[0m"; break;
 			case kNote: output << "\033[1mnote:\033[0m"; break;
-			case kFixit: output << "\033[36;1mfixit:\033[0m"; break;
+			case kFixit: output << "\033[1mfixit:\033[0m"; break;
 			default: output << "unspecified:"; break;
 		}
 		output << " ";
@@ -31,6 +32,26 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 				if (line++ == 0)
 					output << "\033[0m";
 				output << '\n' << pad << "  ";
+			} else if (*p == '$') {
+				p++;
+				assert(*p >= '0' && *p <= '9');
+				const DiagnosticMessageArgument& arg = msg->getArgument(*p-'0');
+
+				switch (arg.type) {
+					case DiagnosticMessageArgument::kSignedInt:
+						output << arg.i; break;
+					case DiagnosticMessageArgument::kUnsignedInt:
+						output << arg.u; break;
+					case DiagnosticMessageArgument::kString:
+						output << arg.s; break;
+					case DiagnosticMessageArgument::kSourceRange: {
+						PresumedLocation loc = manager.getPresumedLocation(arg.r.s);
+						output << "(" << loc.filename << ':';
+						output << loc.line << ":" << loc.column << ")";
+					} break;
+					default:
+						output << "<unknown arg " << *p << '>'; break;
+				}
 			} else {
 				output.put(*p);
 			}
