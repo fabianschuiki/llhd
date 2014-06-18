@@ -57,13 +57,23 @@ struct DiagnosticMessageArgument {
 class DiagnosticMessage {
 	DiagnosticType type;
 	const char* message;
+
 	const static unsigned maxArgs = 16;
 	DiagnosticMessageArgument args[maxArgs];
+
+	const static unsigned maxRanges = 16;
+	unsigned numHighlighted;
+	unsigned numRelevant;
+	SourceRange mainRange;
+	SourceRange highlightedRanges[maxRanges];
+	SourceRange relevantRanges[maxRanges];
 
 public:
 	DiagnosticMessage(DiagnosticType t, const char* msg):
 		type(t),
-		message(msg) {}
+		message(msg),
+		numHighlighted(0),
+		numRelevant(0) {}
 
 	DiagnosticType getType() const {
 		return type;
@@ -82,6 +92,33 @@ public:
 	void setArgument(unsigned idx, T v) {
 		assert(idx < maxArgs);
 		args[idx] = v;
+	}
+
+	void setMainRange(SourceRange r) { mainRange = r; }
+	SourceRange getMainRange() const { return mainRange; }
+
+	void addHighlightedRange(SourceRange r) {
+		assert(numHighlighted < maxRanges);
+		highlightedRanges[numHighlighted++] = r;
+	}
+
+	const SourceRange* beginHighlightedRanges() const {
+		return highlightedRanges;
+	}
+	const SourceRange* endHighlightedRanges() const {
+		return highlightedRanges + numHighlighted;
+	}
+
+	void addRelevantRange(SourceRange r) {
+		assert(numRelevant < maxRanges);
+		relevantRanges[numHighlighted++] = r;
+	}
+
+	const SourceRange* beginRelevantRanges() const {
+		return relevantRanges;
+	}
+	const SourceRange* endRelevantRanges() const {
+		return relevantRanges + numRelevant;
 	}
 };
 

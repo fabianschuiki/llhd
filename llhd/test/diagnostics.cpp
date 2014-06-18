@@ -64,6 +64,8 @@ int main(int argc, char** argv) {
 	msg->setArgument(0, "arbiter");
 	msg->setArgument(1, component_name);
 	msg->setArgument(2, entity_name);
+	msg->setMainRange(component_name);
+	msg->addHighlightedRange(entity_name);
 	diag->addMessage(msg);
 
 	msg = ctx.alloc.one<DiagnosticMessage>(

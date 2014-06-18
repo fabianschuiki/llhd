@@ -11,9 +11,10 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 
 	for (unsigned i = 0; i < diag->getNumMessages(); i++) {
 		const DiagnosticMessage* msg = diag->getMessage(i);
-		std::string pad(i != 0 ? 2 : 0, ' ');
+		std::string pad(2, ' ');
 
-		output << pad;
+		if (i != 0)
+			output << pad;
 		switch (msg->getType()) {
 			case kFatal: output << "\033[31;1mfatal error:\033[0m"; break;
 			case kError: output << "\033[31;1merror:\033[0m"; break;
@@ -61,6 +62,28 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 		// output << msg->getMessage();
 		// if (i == 0) output << "\033[0m";
 		output << '\n';
+
+		if (msg->getMainRange().isValid()) {
+			PresumedLocation loc = manager.getPresumedLocation(msg->getMainRange().s);
+			output << pad << "  (main " << loc.filename << ':';
+			output << loc.line << ":" << loc.column << ")\n";
+		}
+
+		for (const SourceRange* r = msg->beginHighlightedRanges();
+		     r != msg->endHighlightedRanges();
+		     r++) {
+			PresumedLocation loc = manager.getPresumedLocation(r->s);
+			output << pad << "  (highlight " << loc.filename << ':';
+			output << loc.line << ":" << loc.column << ")\n";
+		}
+
+		for (const SourceRange* r = msg->beginRelevantRanges();
+		     r != msg->endRelevantRanges();
+		     r++) {
+			PresumedLocation loc = manager.getPresumedLocation(r->s);
+			output << pad << "  (relevant " << loc.filename << ':';
+			output << loc.line << ":" << loc.column << ")\n";
+		}
 
 		// output << "- message " << msg->getMessage() << '\n';
 		output << '\n';
