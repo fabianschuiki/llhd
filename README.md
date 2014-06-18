@@ -14,6 +14,7 @@ standards.
 
 ## Design Guidelines
 
+- code is written in C++11
 - source files have suffix `.cpp`
 - header files have suffix `.hpp`
 - sources and headers both live in the `llhd` directory
@@ -37,3 +38,4 @@ standards.
 - variable names are camel-cased (e.g. `allocatedObjects`)
 - accessor functions are named `set...` and `get...`
 - there are to be absolutely no underscores in type, function, or member names
+- `nullptr` instead of `0` or `NULL` for pointers that should be 0
