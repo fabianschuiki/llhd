@@ -18,6 +18,11 @@ namespace llhd {
 /// of custom size is allocated and returned.
 ///
 /// The implementation borrows heavily from llvm::BumpPtrAllocatorImpl.
+///
+/// \note No destructor is called when the memory of the pool is freed.
+///       Therefore the memory returned by this allocator is not suited to be
+///       used for objects that require destruction (most classes in the STL),
+///       unless you manually call their destructor at some point.
 template <typename AllocatorType = MallocAllocator,
           size_t slabSize = 4096,
           size_t thresholdSize = slabSize>
