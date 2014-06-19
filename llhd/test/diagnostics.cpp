@@ -49,10 +49,12 @@ int main(int argc, char** argv) {
 	SourceLocation component_name_start = system_start + 27;
 	SourceLocation component_name_end   = component_name_start + 7;
 	SourceRange component_name(component_name_start, component_name_end);
+	SourceRange component_decl(system_start+17, system_start+126);
 
 	SourceLocation entity_name_start = arbiter_start + 25;
 	SourceLocation entity_name_end   = entity_name_start + 7;
 	SourceRange entity_name(entity_name_start, entity_name_end);
+	SourceRange entity_decl(arbiter_start+18, arbiter_start+121);
 
 	// Create a diagnostic context to be filled with messages.
 	DiagnosticContext ctx;
@@ -66,6 +68,8 @@ int main(int argc, char** argv) {
 	msg->setArgument(2, entity_name);
 	msg->setMainRange(component_name);
 	msg->addHighlightedRange(entity_name);
+	msg->addRelevantRange(component_decl);
+	msg->addRelevantRange(entity_decl);
 	diag->addMessage(msg);
 
 	msg = ctx.alloc.one<DiagnosticMessage>(

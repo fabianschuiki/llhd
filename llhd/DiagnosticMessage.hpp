@@ -111,7 +111,7 @@ public:
 
 	void addRelevantRange(SourceRange r) {
 		assert(numRelevant < maxRanges);
-		relevantRanges[numHighlighted++] = r;
+		relevantRanges[numRelevant++] = r;
 	}
 
 	const SourceRange* beginRelevantRanges() const {

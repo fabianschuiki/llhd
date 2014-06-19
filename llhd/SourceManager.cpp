@@ -45,35 +45,39 @@ SourceManagerEntry& SourceManager::makeEntry(unsigned size) {
 		srcTable.size() + 1, // id
 		offset,              // offset
 		size,                // size
-		offset + size);      // end
+		offset + size + 1);  // end
 	return *i;
 }
 
-/// Returns a SourceBuffer containing the contents of the file \a fid. If the
-/// \a fid refers to a real file on disk, the file is loaded the first time
-/// this function is called.
-SourceBuffer SourceManager::getBuffer(FileId fid) {
+inline SourceManagerEntry& SourceManager::getEntry(FileId fid) {
 	assert(fid.id > 0 && "FileId is invalid");
 	assert(fid.id-1 < srcTable.size() && "FileId points outside source table!");
-	auto e = srcTable[fid.id-1];
+	return srcTable[fid.id-1];
+}
+
+
+/// Returns a SourceBuffer containing the contents of the file \a fid.
+SourceBuffer SourceManager::getBuffer(FileId fid) {
+	auto e = getEntry(fid);
 	return SourceBuffer(e.buffer, e.buffer + e.size);
+}
+
+/// Returns the name of the file \a fid.
+const std::string& SourceManager::getBufferName(FileId fid) {
+	return getEntry(fid).name;
 }
 
 
 /// Returns a location that points at the beginning of file \a fid. I.e. the
 /// very first byte in the file.
 SourceLocation SourceManager::getStartLocation(FileId fid) {
-	assert(fid.id > 0 && "FileId is invalid");
-	assert(fid.id-1 < srcTable.size() && "FileId points outside source table!");
-	return SourceLocation(srcTable[fid.id-1].offset);
+	return SourceLocation(getEntry(fid).offset);
 }
 
 /// Returns a location that points at the end of file \a fid. I.e. the position
 /// after the last byte of the file.
 SourceLocation SourceManager::getEndLocation(FileId fid) {
-	assert(fid.id > 0 && "FileId is invalid");
-	assert(fid.id-1 < srcTable.size() && "FileId points outside source table!");
-	return SourceLocation(srcTable[fid.id-1].end);
+	return SourceLocation(getEntry(fid).end-1);
 }
 
 /// Returns the FileId which the location \a loc points at.
@@ -113,7 +117,7 @@ FileId SourceManager::getFileIdForLocation(SourceLocation loc) {
 }
 
 /// Converts the location \a loc into a human-readable PresumedLocation. The
-/// result contains filename, offset, line, and column information decoded from
+/// result contains file ID, offset, line, and column information decoded from
 /// the SourceLocation passed to the function.
 PresumedLocation SourceManager::getPresumedLocation(SourceLocation loc) {
 
@@ -129,9 +133,17 @@ PresumedLocation SourceManager::getPresumedLocation(SourceLocation loc) {
 	unsigned offset = loc.id - entry.offset;
 
 	PresumedLocation r;
-	r.filename = entry.name;
+	r.fid = fid;
 	r.offset = offset;
 	r.line = entry.getLineNumberAtOffset(offset);
 	r.column = entry.getColumnNumberAtOffset(offset);
 	return r;
+}
+
+/// Converts the range \a rng into a human-readable PresumedRange. See the
+/// getPresumedLocation() function for details on what information is available.
+PresumedRange SourceManager::getPresumedRange(SourceRange rng) {
+	PresumedRange pr(getPresumedLocation(rng.s), getPresumedLocation(rng.e));
+	assert(pr.s.fid == pr.e.fid && "range cannot span multiple files");
+	return pr;
 }

@@ -59,7 +59,7 @@ unsigned SourceManagerEntry::getLineNumberAtOffset(unsigned offset) const {
 	// larger than offset. E.g. for line offset {0, 10, 20}, it returns an
 	// iterator to 10 for offsets 0-9, an iterator to 20 for offsets 10-19, and
 	// the end iterator for offsets >= 20.
-	auto i = std::lower_bound(
+	auto i = std::upper_bound(
 		lineOffsetCache.begin(),
 		lineOffsetCache.end(),
 		offset);
@@ -73,12 +73,32 @@ unsigned SourceManagerEntry::getLineNumberAtOffset(unsigned offset) const {
 /// Returns the column number of \a offset, starting at 1. I.e. the number of
 /// characters from the beginning of the line \a offset is on.
 unsigned SourceManagerEntry::getColumnNumberAtOffset(unsigned offset) const {
-	assert(offset < size);
+	assert(offset <= size);
 	const utf8char* start = buffer+offset;
 	const utf8char* p = start;
+
+	// The start of the line should never be at offset directly. This happens
+	// if the character at offset is a \n or \r:
+	//     awesome stuff\n
+	//     something\n
+	//              ^ offset
+	// In this case we don't want to return 0 as the column offset, but rather
+	// the distance to the previous line break. Therefore we may always skip the
+	// character directly at offset, as long as we don't leave the buffer.
+	if (p != buffer)
+		p--;
+
+	// Search backwards until we hit the start of the buffer or a line break.
+	// In case we hit a line break and not the start of the buffer, step the
+	// pointer forward one step such that it points to the first character of
+	// the line rather than the line break;
 	while (p != buffer && *p != '\n' && *p != '\r')
 		--p;
 	if (p != buffer)
 		++p; // step back over the \n or \r
+
+	// Calculate the distance between the offset where we started searching and
+	// the final position. Since we want the columns to start at 1 we add 1 to
+	// the result.
 	return start-p+1;
 }

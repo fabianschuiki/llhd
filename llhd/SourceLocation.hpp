@@ -1,6 +1,11 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
+#include <ostream>
 #include <string>
+
+/// @file
+/// Declares classes and tools that may be used to describe the location of
+/// something in a source file.
 
 namespace llhd {
 
@@ -27,6 +32,9 @@ public:
 	bool operator>  (const FileId& rhs) const { return id >  rhs.id; }
 	bool operator<= (const FileId& rhs) const { return id <= rhs.id; }
 	bool operator>= (const FileId& rhs) const { return id >= rhs.id; }
+
+	/// Returns an opaque ID describing this file ID.
+	unsigned getId() const { return id; }
 };
 
 
@@ -55,6 +63,9 @@ public:
 
 	/// Offsets this location by \a offset.
 	SourceLocation& operator+= (int offset) { id += offset; return *this; }
+
+	/// Returns an opaque ID describing this location.
+	unsigned getId() const { return id; }
 };
 
 
@@ -71,6 +82,8 @@ struct SourceRange {
 	SourceRange() {}
 	/// Creates a range from location \a s to location \a e.
 	SourceRange(SourceLocation s, SourceLocation e): s(s), e(e) {}
+	/// Creates a range from location \a s over the next \a l characters.
+	SourceRange(SourceLocation s, unsigned l): s(s), e(s+l) {}
 
 	/// Returns true if this is a valid SourceRange.
 	bool isValid() const { return s.isValid() && e.isValid(); }
@@ -82,7 +95,7 @@ struct SourceRange {
 /// offset, line, and column. See SourceManager::getPresumedLocation() for more
 /// details.
 struct PresumedLocation {
-	std::string filename;
+	FileId fid;
 	unsigned offset;
 	unsigned line;
 	unsigned column;
@@ -93,8 +106,35 @@ struct PresumedLocation {
 		column(0) {}
 
 	/// Returns true if this is a valid PresumedLocation.
-	bool isValid() const { return !filename.empty(); }
+	bool isValid() const { return fid.isValid(); }
 };
+
+/// A decoded SourceRange, presentable to humans. Actually consists of two
+/// PresumedLocation objects. The SourceManager resolves SourceRange objects to
+/// PresumedRange objects. See SourceManager::getPresumedRange() for more
+/// details.
+struct PresumedRange {
+	/// Location at the beinnging of this range.
+	PresumedLocation s;
+	/// Location just after the last character in this range.
+	PresumedLocation e;
+
+	/// Creates an invalid presumed range, consisting of two invalid locations.
+	PresumedRange() {}
+	/// Creates a presumed range from location \a s to \a e.
+	PresumedRange(PresumedLocation s, PresumedLocation e): s(s), e(e) {}
+
+	/// Returns true if this is a vlid PresumedLocation.
+	bool isValid() const { return s.isValid() && e.isValid(); }
+};
+
+// Formatting functions.
+std::ostream& operator<<(std::ostream& o, FileId fid);
+std::ostream& operator<<(std::ostream& o, SourceLocation loc);
+std::ostream& operator<<(std::ostream& o, SourceRange rng);
+
+std::ostream& operator<<(std::ostream& o, PresumedLocation loc);
+std::ostream& operator<<(std::ostream& o, PresumedRange rng);
 
 
 } // namespace llhd

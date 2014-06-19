@@ -16,6 +16,7 @@ add_custom_command(
 
 add_library(llhd-base
 	DiagnosticFormatterConsole.cpp
+	SourceLocation.cpp
 	SourceManager.cpp
 	SourceManagerEntry.cpp
 	unicode/casefolding.cpp
@@ -27,5 +28,8 @@ add_subdirectory(vhdl) # llhd-vhdl library
 
 # add tests
 add_executable(test-diagnostics test/diagnostics.cpp)
+add_executable(test-sourcemanager test/sourcemanager.cpp)
 target_link_libraries(test-diagnostics llhd-base)
+target_link_libraries(test-sourcemanager llhd-base)
 add_test(diagnostics test-diagnostics)
+add_test(sourcemanager test-sourcemanager)

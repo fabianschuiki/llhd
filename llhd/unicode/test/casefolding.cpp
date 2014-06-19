@@ -2,7 +2,7 @@
 /* Unit tests for unicode case folding algorithms. */
 
 #define BOOST_TEST_MODULE unicode_casefolding
-#include <llhd/unicode/casefolding.hpp>
+#include "llhd/unicode/casefolding.hpp"
 #include <boost/test/unit_test.hpp>
 using namespace llhd;
 

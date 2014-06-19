@@ -46,9 +46,9 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 					case DiagnosticMessageArgument::kString:
 						output << arg.s; break;
 					case DiagnosticMessageArgument::kSourceRange: {
-						PresumedLocation loc = manager.getPresumedLocation(arg.r.s);
-						output << "(" << loc.filename << ':';
-						output << loc.line << ":" << loc.column << ")";
+						PresumedRange rng = manager.getPresumedRange(arg.r);
+						output << "(" << manager.getBufferName(rng.s.fid)
+						       << ':' << rng << ')';
 					} break;
 					default:
 						output << "<unknown arg " << *p << '>'; break;
@@ -64,25 +64,25 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 		output << '\n';
 
 		if (msg->getMainRange().isValid()) {
-			PresumedLocation loc = manager.getPresumedLocation(msg->getMainRange().s);
-			output << pad << "  (main " << loc.filename << ':';
-			output << loc.line << ":" << loc.column << ")\n";
+			PresumedRange rng = manager.getPresumedRange(msg->getMainRange());
+			output << pad << "  (main " << manager.getBufferName(rng.s.fid)
+			       << ':' << rng << ")\n";
 		}
 
 		for (const SourceRange* r = msg->beginHighlightedRanges();
 		     r != msg->endHighlightedRanges();
 		     r++) {
-			PresumedLocation loc = manager.getPresumedLocation(r->s);
-			output << pad << "  (highlight " << loc.filename << ':';
-			output << loc.line << ":" << loc.column << ")\n";
+			PresumedRange rng = manager.getPresumedRange(*r);
+			output << pad << "  (highlight " << manager.getBufferName(rng.s.fid)
+			       << ':' << rng << ")\n";
 		}
 
 		for (const SourceRange* r = msg->beginRelevantRanges();
 		     r != msg->endRelevantRanges();
 		     r++) {
-			PresumedLocation loc = manager.getPresumedLocation(r->s);
-			output << pad << "  (relevant " << loc.filename << ':';
-			output << loc.line << ":" << loc.column << ")\n";
+			PresumedRange rng = manager.getPresumedRange(*r);
+			output << pad << "  (relevant " << manager.getBufferName(rng.s.fid)
+			       << ':' << rng << ")\n";
 		}
 
 		// output << "- message " << msg->getMessage() << '\n';

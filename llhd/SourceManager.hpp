@@ -31,6 +31,7 @@ namespace llhd {
 class SourceManager {
 	std::vector<SourceManagerEntry> srcTable;
 	SourceManagerEntry& makeEntry(unsigned size);
+	inline SourceManagerEntry& getEntry(FileId fid);
 
 	/// Single-entry cache for the getFileIdForLocation() function.
 	struct {
@@ -49,12 +50,14 @@ public:
 	FileId addBufferCopy(const SourceBuffer& buffer, const std::string& name);
 
 	SourceBuffer getBuffer(FileId fid);
+	const std::string& getBufferName(FileId fid);
 
 	SourceLocation getStartLocation(FileId fid);
 	SourceLocation getEndLocation(FileId fid);
 
 	FileId getFileIdForLocation(SourceLocation loc);
 	PresumedLocation getPresumedLocation(SourceLocation loc);
+	PresumedRange getPresumedRange(SourceRange rng);
 };
 
 } // namespace llhd
