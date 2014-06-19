@@ -3,6 +3,7 @@
 #include "llhd/DiagnosticFormatterConsole.hpp"
 #include "llhd/DiagnosticMessage.hpp"
 #include "llhd/SourceManager.hpp"
+#include "llhd/SourceRangeSet.hpp"
 using namespace llhd;
 
 
@@ -62,6 +63,9 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 		// output << msg->getMessage();
 		// if (i == 0) output << "\033[0m";
 		output << '\n';
+
+		// Calculate the set of ranges to print.
+		SourceRangeSet srs;
 
 		if (msg->getMainRange().isValid()) {
 			PresumedRange rng = manager.getPresumedRange(msg->getMainRange());

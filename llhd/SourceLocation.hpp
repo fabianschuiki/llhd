@@ -26,12 +26,12 @@ public:
 	FileId(): id(0) {}
 
 	bool isValid() const { return id != 0; }
-	bool operator== (const FileId& rhs) const { return id == rhs.id; }
-	bool operator!= (const FileId& rhs) const { return id != rhs.id; }
-	bool operator<  (const FileId& rhs) const { return id <  rhs.id; }
-	bool operator>  (const FileId& rhs) const { return id >  rhs.id; }
-	bool operator<= (const FileId& rhs) const { return id <= rhs.id; }
-	bool operator>= (const FileId& rhs) const { return id >= rhs.id; }
+	bool operator== (FileId rhs) const { return id == rhs.id; }
+	bool operator!= (FileId rhs) const { return id != rhs.id; }
+	bool operator<  (FileId rhs) const { return id <  rhs.id; }
+	bool operator>  (FileId rhs) const { return id >  rhs.id; }
+	bool operator<= (FileId rhs) const { return id <= rhs.id; }
+	bool operator>= (FileId rhs) const { return id >= rhs.id; }
 
 	/// Returns an opaque ID describing this file ID.
 	unsigned getId() const { return id; }
@@ -57,6 +57,13 @@ public:
 
 	/// Returns true if this is a valid SourceLocation.
 	bool isValid() const { return id != 0; }
+
+	bool operator== (SourceLocation rhs) const { return id == rhs.id; }
+	bool operator!= (SourceLocation rhs) const { return id != rhs.id; }
+	bool operator<  (SourceLocation rhs) const { return id <  rhs.id; }
+	bool operator>  (SourceLocation rhs) const { return id >  rhs.id; }
+	bool operator<= (SourceLocation rhs) const { return id <= rhs.id; }
+	bool operator>= (SourceLocation rhs) const { return id >= rhs.id; }
 
 	/// Returns another location which is offset by \a offset.
 	SourceLocation operator+ (int offset) const { return SourceLocation(id + offset); }
@@ -87,6 +94,9 @@ struct SourceRange {
 
 	/// Returns true if this is a valid SourceRange.
 	bool isValid() const { return s.isValid() && e.isValid(); }
+
+	bool operator== (SourceRange rhs) const { return s == rhs.s && e == rhs.e; }
+	bool operator!= (SourceRange rhs) const { return s != rhs.s || e != rhs.e; }
 };
 
 

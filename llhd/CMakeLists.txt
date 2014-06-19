@@ -29,7 +29,10 @@ add_subdirectory(vhdl) # llhd-vhdl library
 # add tests
 add_executable(test-diagnostics test/diagnostics.cpp)
 add_executable(test-sourcemanager test/sourcemanager.cpp)
+add_executable(test-sourcerangeset test/sourcerangeset.cpp)
 target_link_libraries(test-diagnostics llhd-base)
 target_link_libraries(test-sourcemanager llhd-base)
+target_link_libraries(test-sourcerangeset llhd-base)
 add_test(diagnostics test-diagnostics)
 add_test(sourcemanager test-sourcemanager)
+add_test(sourcerangeset test-sourcerangeset)
