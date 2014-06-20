@@ -1,5 +1,6 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
+#include "llhd/range.hpp"
 #include "llhd/SourceLocation.hpp"
 #include <cassert>
 
@@ -59,6 +60,7 @@ class DiagnosticMessage {
 	const char* message;
 
 	const static unsigned maxArgs = 16;
+	unsigned numArgs;
 	DiagnosticMessageArgument args[maxArgs];
 
 	const static unsigned maxRanges = 16;
@@ -72,6 +74,7 @@ public:
 	DiagnosticMessage(DiagnosticType t, const char* msg):
 		type(t),
 		message(msg),
+		numArgs(0),
 		numHighlighted(0),
 		numRelevant(0) {}
 
@@ -84,14 +87,18 @@ public:
 	}
 
 	const DiagnosticMessageArgument& getArgument(unsigned idx) const {
-		assert(idx < maxArgs);
+		assert(idx < numArgs);
 		return args[idx];
 	}
 
 	template<typename T>
-	void setArgument(unsigned idx, T v) {
-		assert(idx < maxArgs);
-		args[idx] = v;
+	void addArgument(T v) {
+		assert(numArgs < maxArgs);
+		args[numArgs++] = v;
+	}
+
+	Range<const DiagnosticMessageArgument*> getArguments() const {
+		return range(args, args+numArgs);
 	}
 
 	void setMainRange(SourceRange r) { mainRange = r; }
@@ -102,11 +109,8 @@ public:
 		highlightedRanges[numHighlighted++] = r;
 	}
 
-	const SourceRange* beginHighlightedRanges() const {
-		return highlightedRanges;
-	}
-	const SourceRange* endHighlightedRanges() const {
-		return highlightedRanges + numHighlighted;
+	Range<const SourceRange*> getHighlightedRanges() const {
+		return range(highlightedRanges, highlightedRanges+numHighlighted);
 	}
 
 	void addRelevantRange(SourceRange r) {
@@ -114,11 +118,8 @@ public:
 		relevantRanges[numRelevant++] = r;
 	}
 
-	const SourceRange* beginRelevantRanges() const {
-		return relevantRanges;
-	}
-	const SourceRange* endRelevantRanges() const {
-		return relevantRanges + numRelevant;
+	Range<const SourceRange*> getRelevantRanges() const {
+		return range(relevantRanges, relevantRanges+numRelevant);
 	}
 };
 

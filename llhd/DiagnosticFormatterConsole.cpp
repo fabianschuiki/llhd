@@ -7,15 +7,39 @@
 using namespace llhd;
 
 
+template<class InputIterator>
+InputIterator findEnclosingRange(
+	InputIterator first,
+	InputIterator last,
+	SourceRange r) {
+
+	while (first != last) {
+		if (first->s <= r.s && first->e >= r.e)
+			break;
+		++first;
+	}
+	return first;
+}
+
+
 DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 	const Diagnostic* diag) {
+
+	std::vector<SourceRange> printedRanges;
 
 	for (unsigned i = 0; i < diag->getNumMessages(); i++) {
 		const DiagnosticMessage* msg = diag->getMessage(i);
 		std::string pad(2, ' ');
 
-		if (i != 0)
+		if (i == 0) {
+			auto mr = msg->getMainRange();
+			if (mr.isValid()) {
+				PresumedRange pr = manager.getPresumedRange(mr);
+				output << manager.getBufferName(pr.s.fid) << ":" << pr << ": ";
+			}
+		} else {
 			output << pad;
+		}
 		switch (msg->getType()) {
 			case kFatal: output << "\033[31;1mfatal error:\033[0m"; break;
 			case kError: output << "\033[31;1merror:\033[0m"; break;
@@ -26,6 +50,33 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 		}
 		output << " ";
 		// output << "\033[1m";
+
+		// Calculate the source code snippets to show in the console.
+		SourceRangeSet rngs;
+		if (msg->getMainRange().isValid()) {
+			rngs.insert(msg->getMainRange());
+		}
+		rngs.insert(msg->getHighlightedRanges());
+		rngs.insert(msg->getRelevantRanges());
+
+		// Also include the source locations set as arguments of the message.
+		// If one of the ranges listed as arguments is already fully covered by
+		// one of the ranges previously printed there is no need to add it
+		// again.
+		for (auto arg : msg->getArguments()) {
+			if (arg.type == DiagnosticMessageArgument::kSourceRange) {
+				auto i = findEnclosingRange(
+					printedRanges.begin(),
+					printedRanges.end(),
+					arg.r);
+				if (i == printedRanges.end())
+					rngs.insert(arg.r);
+			}
+		}
+
+		// Add the ranges of the set to the list of printed ranges such that the
+		// message may refer to them by index.
+		printedRanges.insert(printedRanges.end(), rngs.begin(), rngs.end());
 
 		const char* p = msg->getMessage();
 		unsigned line = 0;
@@ -47,9 +98,18 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 					case DiagnosticMessageArgument::kString:
 						output << arg.s; break;
 					case DiagnosticMessageArgument::kSourceRange: {
-						PresumedRange rng = manager.getPresumedRange(arg.r);
-						output << "(" << manager.getBufferName(rng.s.fid)
-						       << ':' << rng << ')';
+						auto i = findEnclosingRange(
+							printedRanges.begin(),
+							printedRanges.end(),
+							arg.r);
+						if (i == printedRanges.end()) {
+							PresumedRange rng = manager.getPresumedRange(arg.r);
+							output << "(" << manager.getBufferName(rng.s.fid)
+							       << ':' << rng << ')';
+						} else {
+							auto id = std::distance(printedRanges.begin(), i)+1;
+							output << '(' << id << ')';
+						}
 					} break;
 					default:
 						output << "<unknown arg " << *p << '>'; break;
@@ -64,30 +124,36 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 		// if (i == 0) output << "\033[0m";
 		output << '\n';
 
-		// Calculate the set of ranges to print.
-		SourceRangeSet srs;
+		// Print the source code snippets.
+		for (SourceRangeSet::ConstIterator i = rngs.begin();
+			i != rngs.end(); ++i) {
 
-		if (msg->getMainRange().isValid()) {
-			PresumedRange rng = manager.getPresumedRange(msg->getMainRange());
-			output << pad << "  (main " << manager.getBufferName(rng.s.fid)
-			       << ':' << rng << ")\n";
+			SourceRange sr = *i;
+			PresumedRange pr = manager.getPresumedRange(sr);
+
+			output << "  (" << std::distance(rngs.begin(), i)+1 << ") ";
+			output << manager.getBufferName(pr.s.fid) << ':' << pr << ":\n";
+			output << "    ... source would go here ...\n";
 		}
 
-		for (const SourceRange* r = msg->beginHighlightedRanges();
-		     r != msg->endHighlightedRanges();
-		     r++) {
-			PresumedRange rng = manager.getPresumedRange(*r);
-			output << pad << "  (highlight " << manager.getBufferName(rng.s.fid)
-			       << ':' << rng << ")\n";
-		}
 
-		for (const SourceRange* r = msg->beginRelevantRanges();
-		     r != msg->endRelevantRanges();
-		     r++) {
-			PresumedRange rng = manager.getPresumedRange(*r);
-			output << pad << "  (relevant " << manager.getBufferName(rng.s.fid)
-			       << ':' << rng << ")\n";
-		}
+		// if (msg->getMainRange().isValid()) {
+		// 	PresumedRange rng = manager.getPresumedRange(msg->getMainRange());
+		// 	output << pad << "  (main " << manager.getBufferName(rng.s.fid)
+		// 	       << ':' << rng << ")\n";
+		// }
+
+		// for (auto r : msg->getHighlightedRanges()) {
+		// 	PresumedRange rng = manager.getPresumedRange(r);
+		// 	output << pad << "  (highlight " << manager.getBufferName(rng.s.fid)
+		// 	       << ':' << rng << ")\n";
+		// }
+
+		// for (auto r : msg->getRelevantRanges()) {
+		// 	PresumedRange rng = manager.getPresumedRange(r);
+		// 	output << pad << "  (relevant " << manager.getBufferName(rng.s.fid)
+		// 	       << ':' << rng << ")\n";
+		// }
 
 		// output << "- message " << msg->getMessage() << '\n';
 		output << '\n';

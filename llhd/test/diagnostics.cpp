@@ -63,9 +63,9 @@ int main(int argc, char** argv) {
 	DiagnosticMessage* msg = ctx.alloc.one<DiagnosticMessage>(
 		kError,
 		"component declaration '$0' $1 disagrees with the corresponding entity $2");
-	msg->setArgument(0, "arbiter");
-	msg->setArgument(1, component_name);
-	msg->setArgument(2, entity_name);
+	msg->addArgument("arbiter");
+	msg->addArgument(component_name);
+	msg->addArgument(entity_name);
 	msg->setMainRange(component_name);
 	msg->addHighlightedRange(entity_name);
 	msg->addRelevantRange(component_decl);
@@ -81,14 +81,14 @@ int main(int argc, char** argv) {
         "$1 declares\n"
         "  - error_so\n"
         "  - output_do");
-	msg->setArgument(0, component_name);
-	msg->setArgument(1, entity_name);
+	msg->addArgument(component_name);
+	msg->addArgument(entity_name);
 	diag->addMessage(msg);
 
 	msg = ctx.alloc.one<DiagnosticMessage>(
 		kFixit,
 		"assuming the entity declaration $0 is authorative:");
-	msg->setArgument(0, entity_name);
+	msg->addArgument(entity_name);
 	diag->addMessage(msg);
 
 	// Format the diagnostic to the console.
