@@ -7,6 +7,15 @@
 
 namespace llhd {
 
+/// Same as std::find, but with no terminating iterator. Useful to find the
+/// null-terminator in a sequence.
+template<class InputIterator, typename T>
+InputIterator find(InputIterator first, const T& value) {
+	while (*first != value)
+		++first;
+	return first;
+}
+
 /// A chunk of memory containing the contents of a source file. The memory is
 /// not owned by the SourceBuffer.
 class SourceBuffer {
@@ -22,7 +31,7 @@ public:
 	/// Creates a new buffer ranging from \a ptr to the first 0 byte in \a ptr.
 	SourceBuffer(const utf8char* ptr):
 		start(ptr),
-		end(std::find(ptr, (const utf8char*)0, 0)) {}
+		end(find(ptr, 0)) {}
 
 	/// Creates a new buffer ranging from \a ptr to \a ptr + \a length.
 	SourceBuffer(const utf8char* ptr, size_t length):
