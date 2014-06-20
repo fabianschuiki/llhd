@@ -1,6 +1,7 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
 #include "llhd/SourceLocation.hpp"
+#include <algorithm>
 #include <iostream>
 #include <vector>
 
