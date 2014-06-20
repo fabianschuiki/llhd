@@ -5,11 +5,10 @@
 namespace llhd {
 
 /// Iterator over a range of memory whose end reads as 0. A convenience iterator
-/// that iterators that is robust against iterating past the end of the range it
-/// iterates. When dereferenced with the \ref operator*(), returns the memory
-/// location the iterator is at, or 0 if it is at or past its end. Can be used
-/// to write code in a more compact manner since null-termination can be
-/// assumed.
+/// that is robust against iterating past the end of the range it is assigned.
+/// When dereferenced with the \ref operator*(), returns the memory location the
+/// iterator is at, or 0 if it is at or past its end. Can be used to write code
+/// in a more compact manner since null-termination can be assumed.
 template<typename T>
 class NullTerminatedIterator :
 	public std::iterator<std::input_iterator_tag, T> {

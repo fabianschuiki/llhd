@@ -11,14 +11,6 @@ namespace llhd {
 
 /// Loads and maintains source files, and creates a continuous location space.
 ///
-/// The basic usage of SourceManager is as follow:
-/// - Source files may be loaded by calling createFileId(), which returns a
-///   FileId to be used in subsequent calls to other functions.
-/// - The content of a source file may be accessed by calling getBuffer().
-/// - Use SourceLocation objects to point locations in a loaded file.
-/// - Call getFilename(), getLineNumber(), or getColumnNumber() to convert such
-///   a location to a human-readable form.
-///
 /// Internally, files are loaded lazily when getBuffer() is called for the
 /// first time for the corresponding file. The buffers containing the file
 /// contents valid as long as the SourceManager exists.
@@ -29,11 +21,13 @@ namespace llhd {
 ///
 /// Some of the concepts are borrowed from llvm::SourceManager.
 class SourceManager {
+	/// The table of maintained entries.
 	std::vector<SourceManagerEntry> srcTable;
+
 	SourceManagerEntry& makeEntry(unsigned size);
 	inline SourceManagerEntry& getEntry(FileId fid);
 
-	/// Single-entry cache for the getFileIdForLocation() function.
+	/// Cache for the getFileIdForLocation() function.
 	struct {
 		unsigned offset, end;
 		unsigned id;

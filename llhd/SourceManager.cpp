@@ -5,6 +5,7 @@
 using namespace llhd;
 
 
+/// Creates a new empty source manager.
 SourceManager::SourceManager() {
 	lastFileIdForLocation.offset = 0;
 	lastFileIdForLocation.end = 0;
@@ -12,6 +13,11 @@ SourceManager::SourceManager() {
 }
 
 
+/// Adds the given \a buffer under the given \name. Note that the manager does
+/// not assume ownership of the buffer, but mereley creates a reference to it.
+/// To save you the hassle of deleting the buffer yourself, you may use the
+/// allocator embedded in the SourceManager that provides memory which is
+/// garbage collected as soon as the manager is destroyed.
 FileId SourceManager::addBuffer(
 	const SourceBuffer& buffer,
 	const std::string& name) {
@@ -23,6 +29,11 @@ FileId SourceManager::addBuffer(
 	return FileId(entry.id);
 }
 
+/// Copies the contents of \a buffer under the given \name into the manager. The
+/// copied buffer is garbage collected as soon as the manager is destroyed. This
+/// function is handy, but has some overhead due to the copying. If you are
+/// reading a file for example, consider allocating the read buffer using the
+/// manager's allocator and use addBuffer() instead.
 FileId SourceManager::addBufferCopy(
 	const SourceBuffer& buffer,
 	const std::string& name) {
@@ -38,6 +49,9 @@ FileId SourceManager::addBufferCopy(
 }
 
 
+/// Creates a new SourceManagerEntry for the given \a size. Returns a reference
+/// to the created entry that is valid until the next call to makeEntry(). You
+/// should assign the entry's \c buffer and \c name fields afterwards.
 SourceManagerEntry& SourceManager::makeEntry(unsigned size) {
 	unsigned offset = srcTable.empty() ? 0 : srcTable.back().end;
 	auto i = srcTable.emplace(
@@ -49,6 +63,9 @@ SourceManagerEntry& SourceManager::makeEntry(unsigned size) {
 	return *i;
 }
 
+/// Returns the SourceManagerEntry with the given \a fid. Contains assertions
+/// that check the validity of \a fid in debug builds. Use this function
+/// whenever you need to lookup an entry in the srcTable.
 inline SourceManagerEntry& SourceManager::getEntry(FileId fid) {
 	assert(fid.id > 0 && "FileId is invalid");
 	assert(fid.id-1 < srcTable.size() && "FileId points outside source table!");
