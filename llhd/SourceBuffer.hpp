@@ -3,7 +3,6 @@
 #include "llhd/compiler.hpp"
 #include "llhd/types.hpp"
 #include "llhd/unicode/unichar.hpp"
-#include <algorithm>
 
 namespace llhd {
 
@@ -46,7 +45,7 @@ public:
 	/// Returns a pointer to the first byte in the buffer.
 	const utf8char* getStart() const { return start; }
 	/// Returns a pointer to the location just after the last byte in the
-	//// buffer.
+	/// buffer.
 	const utf8char* getEnd() const { return end; }
 	/// Returns the size of the buffer.
 	const size_t getSize() const { return end-start; }
