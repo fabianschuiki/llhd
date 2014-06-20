@@ -40,7 +40,8 @@ public:
 		id(id),
 		offset(offset),
 		size(size),
-		end(end) {}
+		end(end),
+		buffer(nullptr) {}
 
 	unsigned getLineNumberAtOffset(unsigned offset) const;
 	unsigned getColumnNumberAtOffset(unsigned offset) const;
