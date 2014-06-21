@@ -66,10 +66,23 @@ public:
 	bool operator>= (SourceLocation rhs) const { return id >= rhs.id; }
 
 	/// Returns another location which is offset by \a offset.
-	SourceLocation operator+ (int offset) const { return SourceLocation(id + offset); }
+	SourceLocation operator+ (int offset) const {
+		return SourceLocation(id + offset);
+	}
+	/// Returns another location which is offset by \a -offset.
+	SourceLocation operator- (int offset) const {
+		return SourceLocation(id - offset);
+	}
 
 	/// Offsets this location by \a offset.
 	SourceLocation& operator+= (int offset) { id += offset; return *this; }
+	/// Offsets this location by \a -offset.
+	SourceLocation& operator-= (int offset) { id -= offset; return *this; }
+
+	/// Returns the distance between this and \a rhs in characters.
+	int operator- (SourceLocation rhs) const {
+		return (int)id - rhs.id;
+	}
 
 	/// Returns an opaque ID describing this location.
 	unsigned getId() const { return id; }
@@ -97,6 +110,9 @@ struct SourceRange {
 
 	bool operator== (SourceRange rhs) const { return s == rhs.s && e == rhs.e; }
 	bool operator!= (SourceRange rhs) const { return s != rhs.s || e != rhs.e; }
+
+	/// Returns the length of the range in characters.
+	unsigned getLength() const { return e-s; }
 };
 
 

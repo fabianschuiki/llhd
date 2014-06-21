@@ -83,6 +83,7 @@ int main(int argc, char** argv) {
         "  - output_do");
 	msg->addArgument(component_name);
 	msg->addArgument(entity_name);
+	// msg->addRelevantRange(SourceRange(system_start, system_start+5));
 	diag->addMessage(msg);
 
 	msg = ctx.alloc.one<DiagnosticMessage>(

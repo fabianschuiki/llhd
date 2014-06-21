@@ -15,6 +15,7 @@ add_custom_command(
 
 
 add_library(llhd-base
+	console.cpp
 	DiagnosticFormatterConsole.cpp
 	SourceLocation.cpp
 	SourceManager.cpp
