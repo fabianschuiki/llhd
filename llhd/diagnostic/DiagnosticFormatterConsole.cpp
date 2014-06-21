@@ -1,10 +1,10 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #include "llhd/console.hpp"
-#include "llhd/Diagnostic.hpp"
-#include "llhd/DiagnosticFormatterConsole.hpp"
-#include "llhd/DiagnosticMessage.hpp"
 #include "llhd/SourceManager.hpp"
 #include "llhd/SourceRangeSet.hpp"
+#include "llhd/diagnostic/Diagnostic.hpp"
+#include "llhd/diagnostic/DiagnosticFormatterConsole.hpp"
+#include "llhd/diagnostic/DiagnosticMessage.hpp"
 #include <functional>
 #include <iterator>
 #include <sstream>
