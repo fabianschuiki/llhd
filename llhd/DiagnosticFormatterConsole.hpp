@@ -10,11 +10,15 @@ class SourceManager;
 class DiagnosticFormatterConsole {
 	std::ostream& output;
 	SourceManager& manager;
+	bool breakLinesToTerminalSize;
 
 public:
 	DiagnosticFormatterConsole(std::ostream& o, SourceManager& m):
 		output(o),
-		manager(m) {}
+		manager(m) {
+
+		breakLinesToTerminalSize = true;
+	}
 	DiagnosticFormatterConsole& operator<<(const Diagnostic* diag);
 };
 

@@ -250,7 +250,7 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
     // In case we are formatting into stdout, try to lookup the width of the
     // console window so we may break the lines of the output in a nice way.
     unsigned outputWidth = 0;
-    if (output == std::cout) {
+    if (breakLinesToTerminalSize) {
         outputWidth = getTerminalWidth();
     }
 
