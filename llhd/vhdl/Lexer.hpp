@@ -1,39 +1,26 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
-#include "Token.hpp"
-#include <istream>
-#include <string>
-#include <vector>
+#include "llhd/SourceLocation.hpp"
 
 namespace llhd {
+
+class SourceBuffer;
+
 namespace vhdl {
 
-struct Lexer
-{
-	std::istream& input;
-	std::string buffer;
-	int cursor;
-	TokenPosition start;
-	TokenPosition pos;
-	std::vector<Token> tokens;
+class TokenContext;
 
-	Lexer(std::istream& input);
+class Lexer {
+	TokenContext& ctx;
+public:
+	bool skipWhitespaces;
+	bool skipComments;
 
-	void emit(TokenType type);
-
-	void next(int n = 1);
-	bool eof();
-
-	bool accept(char c);
-	bool accept(const std::string& s);
-	bool acceptOneOf(const std::string& s, int stride = 1);
-
-	bool consume(char c);
-	bool consume(const std::string& s);
-	bool consumeOneOf(const std::string& s, int stride = 1);
-
-private:
-	bool ensure(int ahead);
+	Lexer(TokenContext& ctx): ctx(ctx) {
+		skipWhitespaces = true;
+		skipComments = true;
+	}
+	void lex(const SourceBuffer& src, SourceLocation loc);
 };
 
 } // namespace vhdl

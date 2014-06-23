@@ -153,7 +153,6 @@ void synthesize(
 			// current character.
 			out << "if (*i == '" << c << "') {\n";
 			out << pad << "\t++i;\n";
-			// out << pad << "\t/* inspect " << a << ".." << b << " offset " << offset+1 << " */\n";
 			synthesize(out, a, b, offset+1, indent+1);
 			out << pad << "}";
 		}

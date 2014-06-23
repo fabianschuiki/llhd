@@ -1,7 +1,7 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #include <llhd/SourceBuffer.hpp>
 #include <llhd/SourceLocation.hpp>
-#include <llhd/vhdl/LexerNovum.hpp>
+#include <llhd/vhdl/Lexer.hpp>
 #include <llhd/vhdl/Parser.hpp>
 #include <llhd/vhdl/TokenContext.hpp>
 #include <llhd/vhdl/ast/Context.hpp>
@@ -23,7 +23,7 @@ int main(int argc, char** argv)
 
 		// Lex all the source files.
 		llhd::vhdl::TokenContext ctx;
-		llhd::vhdl::LexerNovum lexer(ctx);
+		llhd::vhdl::Lexer lexer(ctx);
 		for (int i = 1; i < argc; i++) {
 			std::ifstream fin(argv[i]);
 			if (!fin.good()) {

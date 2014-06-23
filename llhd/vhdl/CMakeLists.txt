@@ -12,8 +12,7 @@ add_custom_command(
 	COMMENT "Generating VHDL keywords table")
 
 add_library(llhd-vhdl
-	Token.cpp
-	LexerNovum.cpp)
+	Lexer.cpp)
 add_dependencies(llhd-vhdl vhdl-tblgen-keywords) # causes keyword table to be built before llhd-vhdl
 target_link_libraries(llhd-vhdl llhd-base)
 
