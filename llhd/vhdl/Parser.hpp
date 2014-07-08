@@ -14,7 +14,8 @@ class Parser {
 	typedef NullTerminatedIterator<Token*> Iterator;
 
 	void parseDesignUnit(Iterator& input);
-	bool acceptContextItem(Iterator& input);
+	bool acceptLibraryClause(Iterator& input);
+	bool acceptUseClause(Iterator& input);
 	bool acceptEntityDeclaration(Iterator& input);
 	bool acceptConfigurationDeclaration(Iterator& input);
 	bool acceptPackageDeclaration(Iterator& input);

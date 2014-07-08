@@ -5,10 +5,12 @@
 #include "llhd/diagnostic/DiagnosticContext.hpp"
 #include "llhd/diagnostic/DiagnosticMessage.hpp"
 #include "llhd/vhdl/Parser.hpp"
+#include "llhd/vhdl/TokenType.hpp"
 #include <iostream>
 
 using namespace llhd::vhdl;
 
+/// IEEE 1076-2000 §11.1
 /// design_file : design_unit { design_unit }
 void Parser::parse(const TokenBuffer& input) {
 	Iterator t(input.getStart(), input.getEnd());
@@ -26,8 +28,11 @@ void Parser::parse(const TokenBuffer& input) {
 	// diactx.addDiagnostic(diag);
 }
 
+/// IEEE 1076-2000 §11.1, §11.3
 /// design_unit    : context_clause library_unit
 /// context_clause : { context_item }
+/// context_item   : library_clause
+///                | use_clause
 /// library_unit   : primary_unit
 ///                | secondary_unit
 /// primary_unit   : entity_declaration
@@ -36,7 +41,11 @@ void Parser::parse(const TokenBuffer& input) {
 /// secondary_unit : architecture_body
 ///                | package_body
 void Parser::parseDesignUnit(Iterator& input) {
-	while (!diactx.isFatal() && acceptContextItem(input));
+	while (!diactx.isFatal() && (
+		acceptLibraryClause(input) ||
+		acceptUseClause(input)));
+	if (diactx.isFatal())
+		return;
 
 	if (acceptEntityDeclaration(input) ||
 	    acceptConfigurationDeclaration(input) ||
@@ -57,7 +66,31 @@ void Parser::parseDesignUnit(Iterator& input) {
 	}
 }
 
-bool Parser::acceptContextItem(Iterator& input) {
+/// IEEE 1076-2000 §11.2
+/// library_clause    : "library" logical_name_list ";"
+/// logical_name_list : logical_name { "," logical_name }
+/// logical_name      : identifier
+bool Parser::acceptLibraryClause(Iterator& input) {
+	if ((*input)->type == kKeywordLibrary) {
+		auto libraryKeyword = *input;
+		input++;
+		if (!*input || true) {
+			auto dia = diactx.alloc.one<Diagnostic>();
+			auto msg = diactx.alloc.one<DiagnosticMessage>(kFatal,
+				"expected name after library keyword $0");
+			msg->addArgument(libraryKeyword->range);
+			msg->setMainRange(libraryKeyword->range);
+			dia->addMessage(msg);
+			diactx.addDiagnostic(dia);
+			return false;
+		}
+		// if ((*input)->type == kTokenSemicolon)
+		return true;
+	}
+	return false;
+}
+
+bool Parser::acceptUseClause(Iterator& input) {
 	return false;
 }
 

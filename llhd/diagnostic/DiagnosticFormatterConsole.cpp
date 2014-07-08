@@ -280,7 +280,6 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 
         const char* label = getLabelForType(msg->getType());
         indentation += strlen(label) + 2;
-        output << manager.getPresumedRange(msg->getMainRange()) << '\n';
         output << beginLabelForType(msg->getType())
                << label << ':'
                << endLabel() << ' ';
