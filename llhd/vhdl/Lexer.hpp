@@ -5,10 +5,9 @@
 namespace llhd {
 
 class SourceBuffer;
+class TokenContext;
 
 namespace vhdl {
-
-class TokenContext;
 
 class Lexer {
 	TokenContext& ctx;

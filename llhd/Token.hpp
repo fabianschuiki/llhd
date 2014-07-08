@@ -1,11 +1,8 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
-#include "llhd/SourceBuffer.hpp"
 #include "llhd/SourceLocation.hpp"
-#include <ostream>
 
 namespace llhd {
-namespace vhdl {
 
 class Token {
 public:
@@ -17,5 +14,4 @@ public:
 		type(t) {}
 };
 
-} // namespace vhdl
 } // namespace llhd

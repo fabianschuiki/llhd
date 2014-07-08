@@ -2,10 +2,10 @@
 #include "llhd/unicode.hpp"
 #include "llhd/NullTerminatedIterator.hpp"
 #include "llhd/SourceBuffer.hpp"
+#include "llhd/Token.hpp"
+#include "llhd/TokenContext.hpp"
 #include "llhd/vhdl/keywords.hpp"
 #include "llhd/vhdl/Lexer.hpp"
-#include "llhd/vhdl/TokenContext.hpp"
-#include "llhd/vhdl/Token.hpp"
 #include <algorithm>
 #include <cstring>
 #include <iostream>

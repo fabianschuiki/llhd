@@ -1,11 +1,10 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
+#include "llhd/TokenBuffer.hpp"
 #include "llhd/allocator/PoolAllocator.hpp"
-#include "llhd/vhdl/TokenBuffer.hpp"
 #include <vector>
 
 namespace llhd {
-namespace vhdl {
 
 /// A container for an array of related Tokens. Usually a parser will process
 /// an input file an generate tokens, which are allocated and captured by a
@@ -34,5 +33,4 @@ public:
 	}
 };
 
-} // namespace vhdl
 } // namespace llhd

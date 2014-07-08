@@ -3,7 +3,6 @@
 #include "llhd/types.hpp"
 
 namespace llhd {
-namespace vhdl {
 
 class Token;
 
@@ -39,5 +38,4 @@ public:
 	bool isEmpty() const { return start == end; }
 };
 
-} // namespace vhdl
 } // namespace llhd
