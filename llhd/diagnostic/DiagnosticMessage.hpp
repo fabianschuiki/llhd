@@ -78,6 +78,11 @@ public:
 		numHighlighted(0),
 		numRelevant(0) {}
 
+	DiagnosticMessage(SourceRange mr, DiagnosticType t, const char* msg):
+		DiagnosticMessage(t, msg) {
+		mainRange = mr;
+	}
+
 	DiagnosticType getType() const {
 		return type;
 	}

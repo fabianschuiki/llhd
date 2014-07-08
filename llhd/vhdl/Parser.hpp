@@ -1,6 +1,7 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
 #include "llhd/NullTerminatedIterator.hpp"
+#include "llhd/diagnostic/DiagnosticBuilder.hpp"
 
 namespace llhd {
 
@@ -21,6 +22,11 @@ class Parser {
 	bool acceptPackageDeclaration(Iterator& input);
 	bool acceptArchitectureBody(Iterator& input);
 	bool acceptPackageBody(Iterator& input);
+
+	template<typename... Args>
+	DiagnosticBuilder addDiagnostic(Args... args) {
+		return std::move(DiagnosticBuilder(diactx, args...));
+	}
 
 public:
 	Parser(DiagnosticContext& diactx): diactx(diactx) {}
