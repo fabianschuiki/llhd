@@ -17,16 +17,17 @@ void Lexer::lex(const SourceBuffer& src, SourceLocation loc) {
 	NullTerminatedIterator<utf8char> bc(src.getStart(), src.getEnd());
 	NullTerminatedIterator<utf8char> c = bc;
 
+	/// Function that wraps characters bc..c in a token and emits it into the
+	/// token context.
 	auto emit = [this,&bc,&c,&loc] (unsigned type) {
 		if (bc == c)
 			return;
 		SourceLocation nloc = loc + (c-bc);
 		if (type > 0) {
-			Token* tkn = this->ctx.alloc.one<Token>(
+			Token* tkn = ctx.alloc.one<Token>(
 				SourceRange(loc,nloc),
 				type);
-			this->ctx.addToken(tkn);
-			// std::cout << "emitting " << std::hex << type << std::dec << " " << std::string(bc,c) << "\n";
+			ctx.addToken(tkn);
 		}
 		bc = c;
 		loc = nloc;
