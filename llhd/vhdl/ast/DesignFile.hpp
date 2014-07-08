@@ -6,17 +6,15 @@ namespace vhdl {
 namespace ast {
 
 struct Node {
-	
-};
-
-template<typename T> struct slot
-
-struct DesignUnit : public Node {
 
 };
 
-struct DesignFile : public Node {
-	Slots<DesignUnit> designUnits;
+struct DesignUnit {
+
+};
+
+struct DesignFile {
+	DesignUnit** units;
 };
 
 } // namespace ast

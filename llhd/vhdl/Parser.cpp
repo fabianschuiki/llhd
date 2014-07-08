@@ -1,120 +1,83 @@
 /* Copyright (c) 2014 Fabian Schuiki */
-#include "Lexer.hpp"
-#include "Parser.hpp"
+#include "llhd/Token.hpp"
+#include "llhd/TokenBuffer.hpp"
+#include "llhd/diagnostic/Diagnostic.hpp"
+#include "llhd/diagnostic/DiagnosticContext.hpp"
+#include "llhd/diagnostic/DiagnosticMessage.hpp"
+#include "llhd/vhdl/Parser.hpp"
 #include <iostream>
-#include <stdexcept>
-#include <string>
-#include <vector>
+
 using namespace llhd::vhdl;
 
-struct StateFn
-{
-	typedef StateFn (*FnType)(Lexer& l);
-	FnType fn;
-
-	StateFn(): fn(0) {}
-	StateFn(FnType fn): fn(fn) {}
-	StateFn operator()(Lexer& l) const { return fn(l); }
-};
-
-Parser::Parser()
-{
-}
-
-Parser::~Parser()
-{
-}
-
-inline static bool consumeWhitespace(Lexer& l) {
-	return
-		l.consume(' ')  ||
-		l.consume('\t') ||
-		l.consume('\n') ||
-		l.consume('\r') ||
-		l.consume("\u00A0");
-}
-
-inline static bool acceptWhitespace(Lexer& l) {
-	return
-		l.accept(' ')  ||
-		l.accept('\t') ||
-		l.accept('\n') ||
-		l.accept('\r') ||
-		l.accept("\u00A0");
-}
-
-inline static bool consumeSymbol(Lexer& l) {
-	return
-		l.consumeOneOf("?/=" "?<=" "?>=", 3) ||
-		l.consumeOneOf("=>" "**" ":=" "/=" ">=" "<=" "<>" "??" "?=" "?<" "?>" "<<" ">>", 2) ||
-		l.consumeOneOf("&'()*+,-./:;<=>`|[]?@");
-}
-
-inline static bool acceptSymbol(Lexer& l) {
-	return
-		l.acceptOneOf("?/=" "?<=" "?>=", 3) ||
-		l.acceptOneOf("=>" "**" ":=" "/=" ">=" "<=" "<>" "??" "?=" "?<" "?>" "<<" ">>", 2) ||
-		l.acceptOneOf("&'()*+,-./:;<=>`|[]?@");
-}
-
-static StateFn lexRoot(Lexer& l);
-static StateFn lexComment(Lexer& l);
-static StateFn lexWhitespace(Lexer& l);
-static StateFn lexIdentifier(Lexer& l);
-
-static StateFn lexComment(Lexer& l)
-{
-	if (l.eof() || l.accept('\n')) {
-		l.emit(kTokenComment);
-		return lexRoot;
+/// design_file : design_unit { design_unit }
+void Parser::parse(const TokenBuffer& input) {
+	Iterator t(input.getStart(), input.getEnd());
+	while (*t && !diactx.isFatal()) {
+		parseDesignUnit(t);
 	}
-	l.next();
-	return lexComment;
+
+	// Diagnostic* diag = diactx.alloc.one<Diagnostic>();
+	// DiagnosticMessage* msg = diactx.alloc.one<DiagnosticMessage>(
+	// 	kFatal,
+	// 	"trying to parse $0, but nobody told me how");
+	// msg->addArgument(input.getStart()[0]->range);
+	// msg->setMainRange(input.getStart()[0]->range);
+	// diag->addMessage(msg);
+	// diactx.addDiagnostic(diag);
 }
 
-static StateFn lexWhitespace(Lexer& l)
-{
-	if (l.eof() || !consumeWhitespace(l)) {
-		l.emit(kTokenWhitespace);
-		return lexRoot;
+/// design_unit    : context_clause library_unit
+/// context_clause : { context_item }
+/// library_unit   : primary_unit
+///                | secondary_unit
+/// primary_unit   : entity_declaration
+///                | configuration_declaration
+///                | package_declaration
+/// secondary_unit : architecture_body
+///                | package_body
+void Parser::parseDesignUnit(Iterator& input) {
+	while (!diactx.isFatal() && acceptContextItem(input));
+
+	if (acceptEntityDeclaration(input) ||
+	    acceptConfigurationDeclaration(input) ||
+	    acceptPackageDeclaration(input) ||
+	    acceptArchitectureBody(input) ||
+	    acceptPackageBody(input)) {
+
+		std::cout << "read design unit\n";
+	} else {
+		auto dia = diactx.alloc.one<Diagnostic>();
+		auto msg = diactx.alloc.one<DiagnosticMessage>(kFatal,
+			"expected entity declaration, configuration declaration, package "
+			"declaration, architecture body, or package body");
+		msg->setMainRange((*input)->range);
+		dia->addMessage(msg);
+		diactx.addDiagnostic(dia);
+		input++;
 	}
-	return lexWhitespace;
 }
 
-static StateFn lexIdentifier(Lexer& l)
-{
-	if (l.eof() || acceptWhitespace(l) || acceptSymbol(l)) {
-		l.emit(kTokenIdentifier);
-		return lexRoot;
-	}
-	l.next();
-	return lexIdentifier;
+bool Parser::acceptContextItem(Iterator& input) {
+	return false;
 }
 
-static StateFn lexRoot(Lexer& l)
-{
-	if (consumeWhitespace(l))
-		return lexWhitespace;
-	if (l.consume("--"))
-		return lexComment;
-	if (consumeSymbol(l)) {
-		l.emit(kTokenSymbol);
-		return lexRoot;
-	}
-	if (l.eof())
-		return 0;
-	else
-		return lexIdentifier;
-
-	throw std::runtime_error("garbage at end of file");
+bool Parser::acceptEntityDeclaration(Iterator& input) {
+	return false;
 }
 
-/** Parses the given input stream. */
-void Parser::parse(std::istream& input)
-{
-	Lexer l(input);
-	for (StateFn state = lexRoot; state.fn != 0;) {
-		state = state(l);
-	}
-	std::cout << "parsed " << l.tokens.size() << " tokens\n";
+bool Parser::acceptConfigurationDeclaration(Iterator& input) {
+	return false;
 }
+
+bool Parser::acceptPackageDeclaration(Iterator& input) {
+	return false;
+}
+
+bool Parser::acceptArchitectureBody(Iterator& input) {
+	return false;
+}
+
+bool Parser::acceptPackageBody(Iterator& input) {
+	return false;
+}
+

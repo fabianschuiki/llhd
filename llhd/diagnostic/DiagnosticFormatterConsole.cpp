@@ -5,10 +5,11 @@
 #include "llhd/diagnostic/Diagnostic.hpp"
 #include "llhd/diagnostic/DiagnosticFormatterConsole.hpp"
 #include "llhd/diagnostic/DiagnosticMessage.hpp"
+#include <cstring>
 #include <functional>
 #include <iterator>
+#include <map>
 #include <sstream>
-#include <cstring>
 using namespace llhd;
 
 
@@ -227,7 +228,17 @@ bool highlight(
     InputIterator last,
     SourceRange rng,
     SourceRange hl,
-    char hc) {
+    char hc,
+    const std::map<SourceLocation,unsigned>& shifts) {
+
+    auto shift = [&shifts](SourceLocation l){
+        auto i = shifts.lower_bound(l);
+        if (i == shifts.end() || i->first > l)
+            i--;
+        return i->second;
+    };
+    hl.s += shift(hl.s);
+    hl.e += shift(hl.e);
 
     if (rng.s <= hl.s && rng.e > hl.s) {
         unsigned start = hl.s - rng.s;
@@ -269,6 +280,7 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 
         const char* label = getLabelForType(msg->getType());
         indentation += strlen(label) + 2;
+        output << manager.getPresumedRange(msg->getMainRange()) << '\n';
         output << beginLabelForType(msg->getType())
                << label << ':'
                << endLabel() << ' ';
@@ -379,8 +391,12 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
             // Print each source line individually, properly indenting after \n
             // and adding the annotation lines.
             SourceRange lr;
-            lr.s = sr.s;
-            lr.e = sr.s;
+            lr.s = sr.s - pr.s.column + 1;
+            lr.e = lr.s;
+            SourceLocation shl = lr.s;
+            std::map<SourceLocation,unsigned> shifts;
+            shifts[lr.s] = 0;
+            unsigned shift = 0;
             const char* lead = "   |  ";
             output << lead << "\033[37m";
             while (true) {
@@ -398,7 +414,8 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
                                 annotations.end(),
                                 lr,
                                 r,
-                                '~')) {
+                                '~',
+                                shifts)) {
                             anyAnnotations = true;
                         }
                     }
@@ -409,7 +426,8 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
                                 annotations.end(),
                                 lr,
                                 msg->getMainRange(),
-                                '^')) {
+                                '^',
+                                shifts)) {
                             anyAnnotations = true;
                         }
                     }
@@ -430,7 +448,10 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
                     // line.
                     lr.s = lr.e+1;
                     lr.e = lr.s;
+
                 } else if (*p == '\t') {
+                    shift += 3;
+                    shifts[shl] = shift;
                     output << "    ";
                     lr.e += 4;
                 } else if (*p != '\r') {
@@ -438,6 +459,7 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
                     lr.e += 1;
                 }
                 p++;
+                shl += 1;
             }
             output << '\n';
         }
