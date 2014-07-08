@@ -162,7 +162,7 @@ public:
         init();
     }
 
-    LinebreakingIterator() { init(); }
+    LinebreakingIterator(): width(0) { init(); }
 
     LinebreakingIterator& operator++() {
         if (insertBreak) {
@@ -186,7 +186,7 @@ public:
                 insertBreak = true;
                 pos = 0;
                 ++first;
-                if (*first == '\n' || *first == ' ')
+                if (first != last && (*first == '\n' || *first == ' '))
                     ++first;
             } else {
                 ++first;

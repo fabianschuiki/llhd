@@ -55,8 +55,9 @@ int main(int argc, char** argv) {
 		// given a sink up front, such that diagnostics are immediately emitted
 		// to the console.
 		DiagnosticFormatterConsole fmt(std::cout, manager);
-		for (auto d : diactx.getDiagnostics())
+		for (auto d : diactx.getDiagnostics()) {
 			fmt << d;
+		}
 
 	} catch (std::exception& e) {
 		std::cerr << "exception: " << e.what() << '\n';
