@@ -233,7 +233,7 @@ bool highlight(
 
     auto shift = [&shifts](SourceLocation l){
         auto i = shifts.lower_bound(l);
-        if (i == shifts.end() || i->first > l)
+        if (i == shifts.end() || (i != shifts.begin() && i->first > l))
             i--;
         return i->second;
     };
@@ -366,7 +366,7 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
         for (SourceRangeSet::ConstIterator i = rngs.begin();
             i != rngs.end(); ++i) {
 
-            output << '\n';
+            // output << '\n';
 
             SourceRange sr = *i;
             PresumedRange pr = manager.getPresumedRange(sr);
