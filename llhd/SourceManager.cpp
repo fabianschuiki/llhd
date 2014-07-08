@@ -52,7 +52,7 @@ FileId SourceManager::addBufferCopy(
 /// to the created entry that is valid until the next call to makeEntry(). You
 /// should assign the entry's \c buffer and \c name fields afterwards.
 SourceManagerEntry& SourceManager::makeEntry(unsigned size) {
-	unsigned offset = srcTable.empty() ? 0 : srcTable.back().end;
+	unsigned offset = srcTable.empty() ? 1 : srcTable.back().end;
 	auto i = srcTable.emplace(
 		srcTable.end(),
 		srcTable.size() + 1, // id
