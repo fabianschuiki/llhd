@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
 
 	// Format the diagnostic to the console.
 	DiagnosticFormatterConsole fmt(std::cout, manager);
-	fmt << diag;
+	fmt << *diag;
 
 	return 0;
 }

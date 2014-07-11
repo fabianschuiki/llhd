@@ -4,6 +4,7 @@
 #include "llhd/SourceBuffer.hpp"
 #include "llhd/Token.hpp"
 #include "llhd/TokenContext.hpp"
+#include "llhd/diagnostic/DiagnosticBuilder.hpp"
 #include "llhd/vhdl/keywords.hpp"
 #include "llhd/vhdl/Lexer.hpp"
 #include <algorithm>
@@ -225,7 +226,7 @@ void Lexer::lex(const SourceBuffer& src, SourceLocation loc) {
 		}
 
 		// Basic identifiers are fairly limited in the standard, allowing only
-		// a small set of characters. This lexer tries to be very forgivin when
+		// a small set of characters. This lexer tries to be very forgiving when
 		// it comes to identifiers, allowing virtually every character not
 		// covered by some other rule to be treated as an identifier. Basically
 		// 0-9, a-z, A-Z, _ and all higher unicode code points are considered
@@ -245,17 +246,22 @@ void Lexer::lex(const SourceBuffer& src, SourceLocation loc) {
 			/// in the identifier belong to the "191 graphic characters" defined
 			/// by the standard.
 
-			if (*c == *bc) {
-				/// \todo Emit error indicating that this is a garbage character
-				/// in the file.
-				c++;
-				emit(kTokenInvalid);
-			} else {
-				unsigned mapped = lookupKeyword(
-					unicode::casefold_iterator<utf8char>(bc),
-					unicode::casefold_iterator<utf8char>(c));
-				emit(mapped > 0 ? mapped : kTokenBasicIdentifier);
-			}
+			unsigned mapped = lookupKeyword(
+				unicode::casefold_iterator<utf8char>(bc),
+				unicode::casefold_iterator<utf8char>(c));
+			emit(mapped > 0 ? mapped : kTokenBasicIdentifier);
+		}
+
+		// Otherwise emit a warning that this character cannot be made any sense
+		// of, and ignore it. Maybe this should be an error?
+		else {
+			DiagnosticBuilder(diag, kWarning,
+				"character '$0' is not allowed, ignored")
+				.main(SourceRange(loc,loc+1))
+				.arg((const utf8char*)c, (const utf8char*)c + 1)
+				.end();
+			c++;
+			emit(kTokenInvalid);
 		}
 	}
 }

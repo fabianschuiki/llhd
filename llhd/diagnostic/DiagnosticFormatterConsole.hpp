@@ -5,6 +5,7 @@
 namespace llhd {
 
 class Diagnostic;
+class DiagnosticContext;
 class SourceManager;
 
 class DiagnosticFormatterConsole {
@@ -19,7 +20,9 @@ public:
 
 		breakLinesToTerminalSize = true;
 	}
-	DiagnosticFormatterConsole& operator<<(const Diagnostic* diag);
+
+	DiagnosticFormatterConsole& operator<<(const DiagnosticContext& diag);
+	DiagnosticFormatterConsole& operator<<(const Diagnostic& diag);
 };
 
 } // namespace llhd

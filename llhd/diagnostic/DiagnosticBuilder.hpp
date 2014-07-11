@@ -58,6 +58,16 @@ public:
 		return *this;
 	}
 
+	template<typename T>
+	DiagnosticBuilder& arg(const T* first, const T* last) {
+		unsigned size = (last-first)*sizeof(T);
+		char* s = (char*)ctx.alloc.allocate(size + 1);
+		std::copy(first, last, s);
+		s[size] = 0;
+		msg->addArgument(s);
+		return *this;
+	}
+
 	DiagnosticBuilder& highlight(const SourceRange& rng) {
 		assert(msg);
 		msg->addHighlightedRange(rng);

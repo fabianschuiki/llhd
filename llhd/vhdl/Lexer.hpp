@@ -4,6 +4,7 @@
 
 namespace llhd {
 
+class DiagnosticContext;
 class SourceBuffer;
 class TokenContext;
 
@@ -15,11 +16,12 @@ namespace vhdl {
 /// turned into an abstract syntax tree.
 class Lexer {
 	TokenContext& ctx;
+	DiagnosticContext& diag;
 public:
 	bool skipWhitespaces;
 	bool skipComments;
 
-	Lexer(TokenContext& ctx): ctx(ctx) {
+	Lexer(TokenContext& ctx, DiagnosticContext& diag): ctx(ctx), diag(diag) {
 		skipWhitespaces = true;
 		skipComments = true;
 	}

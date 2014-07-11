@@ -3,6 +3,7 @@
 #include "llhd/SourceManager.hpp"
 #include "llhd/SourceRangeSet.hpp"
 #include "llhd/diagnostic/Diagnostic.hpp"
+#include "llhd/diagnostic/DiagnosticContext.hpp"
 #include "llhd/diagnostic/DiagnosticFormatterConsole.hpp"
 #include "llhd/diagnostic/DiagnosticMessage.hpp"
 #include <cstring>
@@ -256,7 +257,7 @@ bool highlight(
 
 
 DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
-    const Diagnostic* diag) {
+    const Diagnostic& diag) {
 
     // In case we are formatting into stdout, try to lookup the width of the
     // console window so we may break the lines of the output in a nice way.
@@ -267,8 +268,8 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
 
     std::vector<SourceRange> printedRanges;
 
-    for (unsigned i = 0; i < diag->getNumMessages(); i++) {
-        const DiagnosticMessage* msg = diag->getMessage(i);
+    for (unsigned i = 0; i < diag.getNumMessages(); i++) {
+        const DiagnosticMessage* msg = diag.getMessage(i);
 
         // Output the label for this message, potentially colored, and calculate
         // the indentation for the message.
@@ -467,5 +468,13 @@ DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
         output << '\n';
     }
 
+    return *this;
+}
+
+DiagnosticFormatterConsole& DiagnosticFormatterConsole::operator<<(
+    const DiagnosticContext& diag) {
+    for (auto d : diag.getDiagnostics()) {
+        *this << *d;
+    }
     return *this;
 }

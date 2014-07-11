@@ -24,8 +24,10 @@ int main(int argc, char** argv) {
 
 		// Read and lex all the source files.
 		SourceManager manager;
+		DiagnosticContext diag;
+		DiagnosticFormatterConsole fmt(std::cout, manager);
 		TokenContext ctx;
-		vhdl::Lexer lexer(ctx);
+		vhdl::Lexer lexer(ctx, diag);
 		for (int i = 1; i < argc; i++) {
 			std::ifstream fin(argv[i]);
 			if (!fin.good()) {
@@ -45,19 +47,19 @@ int main(int argc, char** argv) {
 			lexer.lex(buffer, manager.getStartLocation(fid));
 		}
 
+		// Abort if the lexer failed.
+		if (diag.isFatal()) {
+			fmt << diag;
+			return 1;
+		}
+
 		// Parse the tokens.
-		DiagnosticContext diactx;
-		vhdl::Parser parser(diactx);
+		vhdl::Parser parser(diag);
 		parser.parse(ctx.getBuffer());
 
 		// Format the diagnostics to the console.
-		// \todo: This needs to change. Maybe the DiagnosticContext could be
-		// given a sink up front, such that diagnostics are immediately emitted
-		// to the console.
-		DiagnosticFormatterConsole fmt(std::cout, manager);
-		for (auto d : diactx.getDiagnostics()) {
-			fmt << d;
-		}
+		fmt << diag;
+		return diag.isFatal() ? 1 : 0;
 
 	} catch (std::exception& e) {
 		std::cerr << "exception: " << e.what() << '\n';
