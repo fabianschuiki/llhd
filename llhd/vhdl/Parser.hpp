@@ -14,6 +14,10 @@ class Parser {
 	DiagnosticContext& diactx;
 	typedef NullTerminatedIterator<Token*> Iterator;
 
+	bool accept(Iterator& input, unsigned type, Token*& token);
+	bool accept(Iterator& input, unsigned type);
+	bool acceptIdentifier(Iterator& input, Token*& token);
+
 	void parseDesignUnit(Iterator& input);
 	bool acceptLibraryClause(Iterator& input);
 	bool acceptUseClause(Iterator& input);
@@ -22,6 +26,7 @@ class Parser {
 	bool acceptPackageDeclaration(Iterator& input);
 	bool acceptArchitectureBody(Iterator& input);
 	bool acceptPackageBody(Iterator& input);
+	bool acceptSelectedName(Iterator& input);
 
 	template<typename... Args>
 	DiagnosticBuilder addDiagnostic(Args... args) {

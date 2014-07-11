@@ -18,10 +18,10 @@ BOOST_AUTO_TEST_CASE(locations_to_fileids) {
 	// Obtain source locations for the two.
 	SourceLocation ls1 = mgr.getStartLocation(f1), le1 = mgr.getEndLocation(f1);
 	SourceLocation ls2 = mgr.getStartLocation(f2), le2 = mgr.getEndLocation(f2);
-	BOOST_CHECK_EQUAL(ls1.getId(), 0);
-	BOOST_CHECK_EQUAL(le1.getId(), 6);
-	BOOST_CHECK_EQUAL(ls2.getId(), 7);
-	BOOST_CHECK_EQUAL(le2.getId(), 13);
+	BOOST_CHECK_EQUAL(ls1.getId(), 1);
+	BOOST_CHECK_EQUAL(le1.getId(), 7);
+	BOOST_CHECK_EQUAL(ls2.getId(), 8);
+	BOOST_CHECK_EQUAL(le2.getId(), 14);
 
 	// Convert to presumed locations.
 	PresumedLocation ps1 = mgr.getPresumedLocation(ls1);

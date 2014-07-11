@@ -8,6 +8,29 @@
 
 using namespace llhd::vhdl;
 
+bool Parser::accept(Iterator& input, unsigned type, Token*& token) {
+	if (*input && (*input)->type == type) {
+		token = *input;
+		input++;
+		return true;
+	}
+	return false;
+}
+
+bool Parser::accept(Iterator& input, unsigned type) {
+	Token* ignored;
+	return accept(input, type, ignored);
+}
+
+bool Parser::acceptIdentifier(Iterator& input, Token*& token) {
+	if (*input && ((*input)->type & kTokenMask) == kTokenIdentifier) {
+		token = *input;
+		input++;
+		return true;
+	}
+	return false;
+}
+
 /// IEEE 1076-2000 §11.1
 /// design_file : design_unit { design_unit }
 void Parser::parse(const TokenBuffer& input) {
@@ -126,7 +149,58 @@ bool Parser::acceptLibraryClause(Iterator& input) {
 	return false;
 }
 
+/// IEEE 1076-2000 §10.4
+/// use_clause : "use" selected_name { "," selected_name } ";"
 bool Parser::acceptUseClause(Iterator& input) {
+	Token* keyword = nullptr;
+	if (accept(input, kKeywordUse, keyword)) {
+		auto lastToken = keyword;
+		if (!*input)
+			goto premature;
+		lastToken = *input;
+
+		if (!acceptSelectedName(input)) {
+			addDiagnostic(
+				(*input)->range, kFatal,
+				"'use' keyword must be followed by one or more selected names")
+			.highlight(keyword->range);
+			return false;
+		}
+
+		while (*input && accept(input, kTokenComma)) {
+			if (!*input)
+				goto premature;
+			lastToken = *input;
+
+			if (!acceptSelectedName(input)) {
+				addDiagnostic(
+					(*input)->range, kFatal,
+					"expected a name inside 'use' clause")
+				.highlight(keyword->range);
+				return false;
+			}
+			lastToken = *input;
+		}
+
+		if (!accept(input, kTokenSemicolon)) {
+			addDiagnostic(
+				*input ? (*input)->range : lastToken->range,
+				kWarning,
+				"semicolon missing at the end of 'use' clause")
+			.highlight(keyword->range)
+			.message(kFixit, "insert a semicolon");
+			/// \todo: Improve fixit hint.
+			return true;
+		}
+
+		return true;
+
+	premature:
+		addDiagnostic(lastToken->range, kFatal,
+			"incomplete 'use' clause")
+		.message(kNote, "must be of the form 'use' <name>[, <name>];");
+		return false;
+	}
 	return false;
 }
 
@@ -150,3 +224,15 @@ bool Parser::acceptPackageBody(Iterator& input) {
 	return false;
 }
 
+/// IEEE 1076-2000 §6.2, §6.3
+/// selected_name : prefix "." suffix
+/// suffix        : simple_name
+///               | character_literal
+///               | operator_symbol
+///               | all
+/// simple_name   : identifier
+bool Parser::acceptSelectedName(Iterator& input) {
+	Token* ignored;
+	return acceptIdentifier(input, ignored);
+	return false;
+}
