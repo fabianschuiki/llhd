@@ -1,7 +1,8 @@
+[![Build Status](https://travis-ci.org/fabianschuiki/llhd.svg?branch=master)](https://travis-ci.org/fabianschuiki/llhd)
+[![Documentation Status](https://readthedocs.org/projects/llhd/badge/?version=latest)](https://readthedocs.org/projects/llhd/?badge=latest)
+
 An attempt at writing a low-level hardware description toolkit. First up is a
 parser and code generator for VHDL.
-
-The project is continuously built and tested: [![Build Status](https://travis-ci.org/fabianschuiki/llhd.svg?branch=master)](https://travis-ci.org/fabianschuiki/llhd)
 
 
 ## Standards
