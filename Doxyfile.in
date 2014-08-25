@@ -30,5 +30,6 @@ SOURCE_BROWSER = YES
 # omit all test directories
 EXCLUDE_PATTERNS = */test/*
 
-# Generate XML output that may be used by Sphinx/Breathe to generate docs.
-GENERATE_XML = YES
+# Setup the output formats.
+GENERATE_HTML = YES
+GENERATE_LATEX = NO
