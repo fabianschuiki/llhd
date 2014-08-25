@@ -27,6 +27,7 @@ VHDL  \VHDL\  \vhdl\ -- Three distinct identifiers.
 ""                        -- An empty string literal.
 " "  "A"  """"  "%"       -- String literals of length 1.
 "Characters such as $, %, "", and } are allowed in string literals."
+"Backslash \\"  "Escaped \" and \so \on"
 
 -- §13.7  Bit string literals
 B"1111_1111_1111" -- Equivalent to the string literal "111111111111".
@@ -64,3 +65,11 @@ WHILE WITH XNOR XOR
 %%                        -- An empty string literal.
 % %  %A%  %"%  %%%%       -- String literals of length 1.
 %Characters such as $, %%, ", and } are allowed in string literals.%
+
+-- §13.2  Delimiters
+& () + , - . ; | ! [] > < / * -- Regular Delimiters
+=> ** := /= >= <= <>          -- Compound Delimiters
+
+-- Bit string literal with escape sequence. Not standard-compliant.
+B"1111\"_1111"
+B%1111\%1111%
