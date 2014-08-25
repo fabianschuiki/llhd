@@ -135,7 +135,7 @@ public:
 			customSizedSlabs.push_back(std::make_pair(slab, paddedSize));
 
 			ptr = (char*)alignPtr(slab, alignment);
-			assert(ptr + size < (char*)slab + paddedSize);
+			assert(ptr + size <= (char*)slab + paddedSize);
 			return ptr;
 		}
 
