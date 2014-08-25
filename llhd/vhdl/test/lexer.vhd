@@ -70,6 +70,44 @@ WHILE WITH XNOR XOR
 & () + , - . ; | ! [] > < / * -- Regular Delimiters
 => ** := /= >= <= <>          -- Compound Delimiters
 
+-- Partial Reserved Words.
+a b c d e f g i l m n o p r s t u v w x
+
+ab ac af al an ar as at be bl bo bu ca co di do el en ex fi fo fu ge gr gu if im
+in is la li lo ma mo na ne no nu of on op or ot ou pa po pr pu ra re ro se sh si
+sl sr su th to tr ty un us va wa wh wi xn xo
+
+acc aft ali arc arr ass att beg blo bod buf cas com con dis dow els ent exi fil
+fun gen gro gua imp ine ino lab lib lin lit loo nan nex nul ope oth pac por pos
+pro pur ran rec ref reg rej rep ret sel sev sha sig sub the tra typ una uni unt
+var wai whe whi wit xno
+
+acce afte alia arch arra asse attr begi bloc buff comp conf cons labe disc down
+elsi enti func gene grou guar impu iner inou libr link lite othe pack post proc
+prot rang reco refe regi reje repo retu sele seve shar sign subt tran unaf unit
+unti vari whil
+
+acces archi asser attri buffe compo confi const disco downt entit funct gener
+gener guard impur inert libra linka liter other packa postp proce proce prote
+recor refer regis rejec repor retur selec sever share signa subty trans unaff
+varia
+
+archit attrib compon config consta discon functi genera generi guarde inerti
+librar linkag litera packag postpo proced proced proces protec refere regist
+severi subtyp transp unaffe variab
+
+archite attribu compone configu constan disconn functio generat inertia postpon
+procedu procedu protect referen registe severit transpo unaffec variabl
+
+architec attribut componen configur disconne postpone procedur procedur protecte
+referenc transpor unaffect
+
+architect configura disconnec procedura unaffecte
+
+architectu configurat
+
+architectur configurati
+
 -- Bit string literal with escape sequence. Not standard-compliant.
 B"1111\"_1111"
 B%1111\%1111%
