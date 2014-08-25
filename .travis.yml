@@ -8,9 +8,9 @@ before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq boost1.55
   - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8; export CXX="g++-4.8" CC="gcc-4.8"; fi
-before_script:
-  - mkdir build
-  - cd build
-  - export CTEST_OUTPUT_ON_FAILURE=1
+  - sudo pip install cpp-coveralls
 script:
-  - cmake .. && make && ctest --timeout 10 -j
+  - export CTEST_OUTPUT_ON_FAILURE=1
+  - cmake -DCMAKE_BUILD_TYPE=gcov . && make && make test
+after_success:
+  - coveralls -e CMakeFiles --gcov-options '\-lp'
