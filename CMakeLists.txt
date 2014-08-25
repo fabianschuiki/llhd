@@ -8,7 +8,8 @@ endif()
 
 # Add the build type "gcov" that produces a debug build with gcov output
 # enabled. Useful for coverage analysis.
-set(GCC_COVERAGE_COMPILER_FLAGS "-O0 -fprofile-arcs -ftest-coverage -lgcov")
+set(GCC_COVERAGE_COMPILER_FLAGS "-O0 -fprofile-arcs -ftest-coverage")
+set(GCC_COVERAGE_LINKERR_FLAGS "-lgcov")
 
 set(CMAKE_C_FLAGS_GCOV
 	"${CMAKE_C_FLAGS_DEBUG} ${GCC_COVERAGE_COMPILER_FLAGS}"
@@ -16,10 +17,18 @@ set(CMAKE_C_FLAGS_GCOV
 set(CMAKE_CXX_FLAGS_GCOV
 	"${CMAKE_CXX_FLAGS_DEBUG} ${GCC_COVERAGE_COMPILER_FLAGS}"
 	CACHE STRING "Flags used by the compiler during gcov-enabled debug builds")
+set(CMAKE_C_LINKER_FLAGS_GCOV
+	"${CMAKE_C_LINKER_FLAGS_DEBUG} ${GCC_COVERAGE_LINKER_FLAGS}"
+	CACHE STRING "Flags used by the linker during gcov-enabled debug builds")
+set(CMAKE_CXX_LINKER_FLAGS_GCOV
+	"${CMAKE_CXX_LINKER_FLAGS_DEBUG} ${GCC_COVERAGE_LINKER_FLAGS}"
+	CACHE STRING "Flags used by the linker during gcov-enabled debug builds")
 
 mark_as_advanced(
 	CMAKE_C_FLAGS_GCOV
-	CMAKE_CXX_FLAGS_GCOV)
+	CMAKE_CXX_FLAGS_GCOV
+	CMAKE_C_LINKER_FLAGS_GCOV
+	CMAKE_CXX_LINKER_FLAGS_GCOV)
 
 # Enable C++11 support and enable all warnings.
 if (UNIX)
