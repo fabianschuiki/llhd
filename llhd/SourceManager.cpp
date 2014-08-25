@@ -12,7 +12,7 @@ SourceManager::SourceManager() {
 }
 
 
-/// Adds the given \a buffer under the given \name. Note that the manager does
+/// Adds the given \a buffer under the given \a name. Note that the manager does
 /// not assume ownership of the buffer, but mereley creates a reference to it.
 /// To save you the hassle of deleting the buffer yourself, you may use the
 /// allocator embedded in the SourceManager that provides memory which is
@@ -28,9 +28,9 @@ FileId SourceManager::addBuffer(
 	return FileId(entry.id);
 }
 
-/// Copies the contents of \a buffer under the given \name into the manager. The
-/// copied buffer is garbage collected as soon as the manager is destroyed. This
-/// function is handy, but has some overhead due to the copying. If you are
+/// Copies the contents of \a buffer under the given \a name into the manager.
+/// The copied buffer is garbage collected as soon as the manager is destroyed.
+/// This function is handy, but has some overhead due to the copying. If you are
 /// reading a file for example, consider allocating the read buffer using the
 /// manager's allocator and use addBuffer() instead.
 FileId SourceManager::addBufferCopy(

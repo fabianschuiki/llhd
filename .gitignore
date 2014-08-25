@@ -6,3 +6,5 @@ _build
 *~
 ~*
 /doc/standards/vhdl*
+/doc/doxygen/*
+!/doc/doxygen/Doxyfile

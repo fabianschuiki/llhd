@@ -18,7 +18,14 @@ import os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
+# sys.path.insert(0, os.path.abspath('.'))
+
+# hack for readthedocs to cause it to run doxygen first
+# https://github.com/rtfd/readthedocs.org/issues/388
+read_the_docs_build = True #os.environ.get('READTHEDOCS', None) == 'True'
+if read_the_docs_build:
+  from subprocess import call
+  call('cd ../doxygen; doxygen', shell=True)
 
 # -- General configuration ------------------------------------------------
 
@@ -28,7 +35,14 @@ import os
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = []
+extensions = [
+  'breathe',
+  'sphinx.ext.todo',
+]
+
+# Breathe extension variables
+breathe_projects = {"LLHD-Breathe": "../doxygen/xml"}
+breathe_default_project = "LLHD-Breathe";
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['templates']

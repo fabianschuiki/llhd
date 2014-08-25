@@ -11,7 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-
+.. doxygenindex::
 
 Indices and tables
 ==================

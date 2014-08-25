@@ -1,11 +1,12 @@
 # Copyright (c) 2014 Fabian Schuiki
-INPUT = @PROJECT_SOURCE_DIR@/llhd/ @PROJECT_SOURCE_DIR@/README.md
+# Make sure you run Doxygen inside the doc/doxygen directory.
+INPUT = ../../llhd/ ../../README.md
 RECURSIVE = YES           # since the source tree has multiple layers
 EXCLUDE_SYMLINKS = YES    # no need to follow symlinks
 
 FULL_PATH_NAMES = YES
-STRIP_FROM_PATH = @PROJECT_SOURCE_DIR@
-STRIP_FROM_INC_PATH = @PROJECT_SOURCE_DIR@
+STRIP_FROM_PATH = ../../
+STRIP_FROM_INC_PATH = ../../
 
 PROJECT_NAME = LLHD
 PROJECT_BRIEF = "Low Level Hardware Description — A foundation for building hardware design tools."
@@ -19,7 +20,7 @@ SORT_MEMBER_DOCS = YES
 
 # reuse the README as the doc's front page
 MARKDOWN_SUPPORT = YES
-USE_MDFILE_AS_MAINPAGE = @PROJECT_SOURCE_DIR@/README.md
+USE_MDFILE_AS_MAINPAGE = ../../README.md
 
 # automatically use the first sentence as brief description
 JAVADOC_AUTOBRIEF = YES
