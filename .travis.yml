@@ -13,4 +13,4 @@ script:
   - export CTEST_OUTPUT_ON_FAILURE=1
   - cmake -DCMAKE_BUILD_TYPE=gcov . && make && make test
 after_success:
-  - coveralls -e CMakeFiles -E "*/test/*" --gcov-options '\-lp'
+  - coveralls -e CMakeFiles -E ".*/test/.*" --gcov-options '\-lp'
