@@ -49,4 +49,4 @@ begin
 		end if;
 	end process assignment_ps;
 
-end architecture;
+end architecture; [(])]

@@ -154,7 +154,12 @@ enum TokenType {
 	kTokenStringLiteral,
 	kTokenBitStringLiteral,
 
-	kTokenMask = 0x300
+	// First Stage Groups
+	kTokenParenGroup = 0x400,
+	kTokenBrackGroup,
+	kTokenBraceGroup,
+
+	kTokenMask = 0x700
 };
 
 } // namespace vhdl

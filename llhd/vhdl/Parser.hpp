@@ -10,6 +10,8 @@ class DiagnosticContext;
 
 namespace vhdl {
 
+class TokenGroup;
+
 // Forward declaration of the ast::Context class.
 namespace ast {
 	class Context;
@@ -46,6 +48,13 @@ public:
 	Parser(ast::Context& ctx, DiagnosticContext& diag): ctx(ctx), diag(diag) {}
 
 	void parse(const TokenBuffer& input);
+
+private:
+	bool parseFirstStageGroups(
+		Token**& start,
+		Token** end,
+		TokenGroup& into,
+		unsigned terminator = 0);
 };
 
 } // namespace vhdl
