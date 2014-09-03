@@ -47,6 +47,8 @@ void Parser::parse(const TokenBuffer& input) {
 	parseFirstStageGroups(start, end, first);
 }
 
+/// Performs the first parsing stage. Groups the tokens according to braces,
+/// brackets, and paranthesis to simplify further parsing.
 bool Parser::parseFirstStageGroups(
 	Token**& start,
 	Token** end,
