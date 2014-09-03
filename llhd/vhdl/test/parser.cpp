@@ -7,6 +7,7 @@
 #include "llhd/diagnostic/DiagnosticFormatterConsole.hpp"
 #include "llhd/vhdl/Lexer.hpp"
 #include "llhd/vhdl/Parser.hpp"
+#include "llhd/vhdl/ast/Context.hpp"
 #include <iostream>
 #include <fstream>
 
@@ -54,7 +55,8 @@ int main(int argc, char** argv) {
 		}
 
 		// Parse the tokens.
-		vhdl::Parser parser(diag);
+		vhdl::ast::Context astctx;
+		vhdl::Parser parser(astctx, diag);
 		parser.parse(ctx.getBuffer());
 
 		// Format the diagnostics to the console.

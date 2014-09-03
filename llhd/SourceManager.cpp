@@ -21,7 +21,7 @@ FileId SourceManager::addBuffer(
 	const SourceBuffer& buffer,
 	const std::string& name) {
 
-	SourceManagerEntry& entry = makeEntry(buffer.getSize());
+	SourceManagerEntry& entry = makeEntry(buffer.getLength());
 	entry.name = name;
 	entry.buffer = buffer.getStart();
 
@@ -37,10 +37,10 @@ FileId SourceManager::addBufferCopy(
 	const SourceBuffer& buffer,
 	const std::string& name) {
 
-	utf8char* copy = (utf8char*)alloc.allocate(buffer.getSize());
+	utf8char* copy = (utf8char*)alloc.allocate(buffer.getLength());
 	std::copy(buffer.getStart(), buffer.getEnd(), copy);
 
-	SourceManagerEntry& entry = makeEntry(buffer.getSize());
+	SourceManagerEntry& entry = makeEntry(buffer.getLength());
 	entry.name = name;
 	entry.buffer = copy;
 

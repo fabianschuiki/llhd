@@ -1,7 +1,6 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #include "llhd/unicode.hpp"
 #include "llhd/NullTerminatedIterator.hpp"
-#include "llhd/SourceBuffer.hpp"
 #include "llhd/Token.hpp"
 #include "llhd/TokenContext.hpp"
 #include "llhd/diagnostic/DiagnosticBuilder.hpp"

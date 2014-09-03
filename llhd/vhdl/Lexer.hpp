@@ -1,11 +1,11 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
+#include "llhd/SourceBuffer.hpp"
 #include "llhd/SourceLocation.hpp"
 
 namespace llhd {
 
 class DiagnosticContext;
-class SourceBuffer;
 class TokenContext;
 
 namespace vhdl {

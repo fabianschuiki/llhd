@@ -1,17 +1,26 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #pragma once
 #include "llhd/NullTerminatedIterator.hpp"
+#include "llhd/TokenBuffer.hpp"
 #include "llhd/diagnostic/DiagnosticBuilder.hpp"
 
 namespace llhd {
 
 class DiagnosticContext;
-class TokenBuffer;
 
 namespace vhdl {
 
+// Forward declaration of the ast::Context class.
+namespace ast {
+	class Context;
+} // namespace ast
+
+/// Parses a sequence of tokens into a valid VHDL abstract syntax tree. See the
+/// llhd::vhdl::ast namespace for an overview of the relevant classes. The AST
+/// is emitted into an ast::Context.
 class Parser {
-	DiagnosticContext& diactx;
+	ast::Context& ctx;
+	DiagnosticContext& diag;
 	typedef NullTerminatedIterator<Token*> Iterator;
 
 	bool accept(Iterator& input, unsigned type, Token*& token);
@@ -30,11 +39,11 @@ class Parser {
 
 	template<typename... Args>
 	DiagnosticBuilder addDiagnostic(Args... args) {
-		return std::move(DiagnosticBuilder(diactx, args...));
+		return std::move(DiagnosticBuilder(diag, args...));
 	}
 
 public:
-	Parser(DiagnosticContext& diactx): diactx(diactx) {}
+	Parser(ast::Context& ctx, DiagnosticContext& diag): ctx(ctx), diag(diag) {}
 
 	void parse(const TokenBuffer& input);
 };

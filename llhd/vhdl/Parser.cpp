@@ -1,8 +1,8 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #include "llhd/Token.hpp"
-#include "llhd/TokenBuffer.hpp"
 #include "llhd/diagnostic/DiagnosticBuilder.hpp"
 #include "llhd/vhdl/Parser.hpp"
+#include "llhd/vhdl/TokenGroup.hpp"
 #include "llhd/vhdl/TokenType.hpp"
 #include <iostream>
 
@@ -31,14 +31,14 @@ bool Parser::acceptIdentifier(Iterator& input, Token*& token) {
 	return false;
 }
 
+/// Parses the \a input tokens into a VHDL abstract syntax tree.
+void Parser::parse(const TokenBuffer& input) {
+	/// \todo Run the first parser stage here.
+}
+
 /// IEEE 1076-2000 §11.1
 /// design_file : design_unit { design_unit }
-void Parser::parse(const TokenBuffer& input) {
-	Iterator t(input.getStart(), input.getEnd());
-	while (*t && !diactx.isFatal()) {
-		parseDesignUnit(t);
-	}
-}
+/// \todo implement this!
 
 /// IEEE 1076-2000 §11.1, §11.3
 /// design_unit    : context_clause library_unit
@@ -53,10 +53,10 @@ void Parser::parse(const TokenBuffer& input) {
 /// secondary_unit : architecture_body
 ///                | package_body
 void Parser::parseDesignUnit(Iterator& input) {
-	while (!diactx.isFatal() && (
+	while (!diag.isFatal() && (
 		acceptLibraryClause(input) ||
 		acceptUseClause(input)));
-	if (!*input || diactx.isFatal())
+	if (!*input || diag.isFatal())
 		return;
 
 	if (acceptEntityDeclaration(input) ||
