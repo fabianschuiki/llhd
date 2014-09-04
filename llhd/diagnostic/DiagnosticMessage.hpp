@@ -1,4 +1,5 @@
 /* Copyright (c) 2014 Fabian Schuiki */
+/// \file
 #pragma once
 #include "llhd/range.hpp"
 #include "llhd/SourceLocation.hpp"
@@ -6,11 +7,27 @@
 
 namespace llhd {
 
+/// Types of diagnostic messages. Sorted according to severity.
 enum DiagnosticType {
+	/// Processing needs to abort as soon as possible. Useful if an error is so
+	/// severe that it doesn't make sense to even finish the current processing
+	/// step. E.g. if a file cannot be found.
 	kFatal,
+	/// Processing needs to abort after the current stage. Useful if the issue
+	/// prevents further processing stages from working properly, but can be
+	/// overlooked in the current stage in order to finish processing the input.
+	/// E.g. a syntax error like missing paranthesis.
 	kError,
+	/// Processing may continue, but the user is advised to review the issue.
+	/// Useful for syntax errors that can be compensated, e.g. an unknown input
+	/// character which can be ignored.
 	kWarning,
+	/// A note further detailing one of the above issues. May also be used as a
+	/// standalone annotation for parts of the input.
 	kNote,
+	/// Contains a hint on how to automatically fix the issue at hand. Use this
+	/// only when there is a clear, apparent solution to an issue, e.g. a
+	/// semicolon missing in an obvious place.
 	kFixit
 };
 
