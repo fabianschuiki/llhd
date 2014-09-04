@@ -50,11 +50,15 @@ public:
 	void parse(const TokenBuffer& input);
 
 private:
-	bool parseFirstStageGroups(
+	bool parseFirstStage(
 		Token**& start,
 		Token** end,
 		TokenGroup& into,
 		unsigned terminator = 0);
+	bool parseSecondStage(
+		Token**& start,
+		Token** end,
+		TokenGroup& into);
 };
 
 } // namespace vhdl

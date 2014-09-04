@@ -33,69 +33,25 @@ bool Parser::acceptIdentifier(Iterator& input, Token*& token) {
 
 /// Parses the \a input tokens into a VHDL abstract syntax tree.
 void Parser::parse(const TokenBuffer& input) {
-	// PoolAllocator<> alloc;
-	// TokenGroup
-	// TokenGroup first;
-	// parseFirstStageGroups(input, root);
-	/// \todo Run the first parser stage here.
-	TokenGroup first(kTokenInvalid);
+
+	// Run the first parse stage.
 	Token** start = input.getStart();
 	Token** end = input.getEnd();
 	if (start == end)
 		return;
+	TokenGroup first(kTokenInvalid);
 	first.range.s = (*start)->range.s;
-	parseFirstStageGroups(start, end, first);
-}
+	parseFirstStage(start, end, first);
 
-/// Performs the first parsing stage. Groups the tokens according to braces,
-/// brackets, and paranthesis to simplify further parsing.
-bool Parser::parseFirstStageGroups(
-	Token**& start,
-	Token** end,
-	TokenGroup& into,
-	unsigned terminator) {
-
-	while (start != end) {
-		auto before = start;
-
-		if ((*start)->type == terminator) {
-			into.range.e = (*start)->range.e;
-			start++;
-			return true;
-		} else if ((*start)->type == kTokenRParen) {
-			addDiagnostic((*start)->range, kError, "missing opening '('").end();
-			start++;
-		} else if ((*start)->type == kTokenRBrack) {
-			addDiagnostic((*start)->range, kError, "missing opening '['").end();
-			start++;
-		} else if ((*start)->type == kTokenLParen) {
-			auto opentkn = *start;
-			auto grp = into.makeGroup(kTokenParenGroup);
-			grp->range.s = (*start)->range.s;
-			into.addToken(grp);
-			start++;
-			if (!parseFirstStageGroups(start, end, *grp, kTokenRParen)) {
-				addDiagnostic(opentkn->range, kError,
-					"missing closing ')'").end();
-			}
-		} else if ((*start)->type == kTokenLBrack) {
-			auto opentkn = *start;
-			auto grp = into.makeGroup(kTokenBrackGroup);
-			grp->range.s = (*start)->range.s;
-			into.addToken(grp);
-			start++;
-			if (!parseFirstStageGroups(start, end, *grp, kTokenRBrack)) {
-				addDiagnostic(opentkn->range, kError,
-					"missing closing ']'").end();
-			}
-		} else {
-			into.addToken(*start);
-			start++;
-		}
-
-		assert(start > before && "parse loop did not progress");
-	}
-	return false;
+	// Run the second parse stage.
+	TokenBuffer tb = first.getBuffer();
+	start = tb.getStart();
+	end = tb.getEnd();
+	if (start == end)
+		return;
+	TokenGroup second(kTokenInvalid);
+	second.range.s = (*start)->range.s;
+	parseSecondStage(start, end, second);
 }
 
 /// IEEE 1076-2000 §11.1
