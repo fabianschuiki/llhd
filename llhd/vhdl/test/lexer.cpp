@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
 		fmt << diag;
 
 		std::cout << "lexed " << ctx.getBuffer().getLength() << " tokens\n";
-		return diag.isFatal() ? 1 : 0;
+		return diag.isErrorSeverity() ? 1 : 0;
 
 	} catch (std::exception& e) {
 		std::cerr << "exception: " << e.what() << '\n';

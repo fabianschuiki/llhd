@@ -17,12 +17,22 @@ add_library(llhd-vhdl
 add_dependencies(llhd-vhdl vhdl-tblgen-keywords) # causes keyword table to be built before llhd-vhdl
 target_link_libraries(llhd-vhdl llhd-base)
 
-# Add the tests.
+# Add the test executables.
 add_executable(test-vhdl-lexer test/lexer.cpp)
 add_executable(test-vhdl-parser test/parser.cpp)
 target_link_libraries(test-vhdl-lexer llhd-vhdl)
 target_link_libraries(test-vhdl-parser llhd-vhdl)
-add_test(vhdl-lexer-1 test-vhdl-lexer ${CMAKE_CURRENT_SOURCE_DIR}/test/arbiter.vhd)
-add_test(vhdl-lexer-2 test-vhdl-lexer ${CMAKE_CURRENT_SOURCE_DIR}/test/lexer.vhd)
-add_test(vhdl-lexer-3 test-vhdl-lexer ${CMAKE_CURRENT_SOURCE_DIR}/test/lexer-broken1.vhd)
-# add_test(vhdl-parser-1 test-vhdl-parser ${CMAKE_CURRENT_SOURCE_DIR}/test/arbiter.vhd)
+
+# Collect the test files.
+file(GLOB_RECURSE lexer_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} test/lexer/*.vhd)
+file(GLOB_RECURSE parser_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} test/parser/*.vhd)
+
+foreach(f ${lexer_files})
+	get_filename_component(n ${f} NAME)
+	add_test(lexer-${n} ${CMAKE_CURRENT_BINARY_DIR}/test-vhdl-lexer ${CMAKE_CURRENT_SOURCE_DIR}/${f})
+endforeach()
+foreach(f ${parser_files})
+	get_filename_component(n ${f} NAME)
+	add_test(lexer-${n} ${CMAKE_CURRENT_BINARY_DIR}/test-vhdl-lexer ${CMAKE_CURRENT_SOURCE_DIR}/${f})
+	add_test(parser-${n} ${CMAKE_CURRENT_BINARY_DIR}/test-vhdl-parser ${CMAKE_CURRENT_SOURCE_DIR}/${f})
+endforeach()

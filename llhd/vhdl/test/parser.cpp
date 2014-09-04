@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 		}
 
 		// Abort if the lexer failed.
-		if (diag.isFatal()) {
+		if (diag.isErrorSeverity()) {
 			fmt << diag;
 			return 1;
 		}
@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
 
 		// Format the diagnostics to the console.
 		fmt << diag;
-		return diag.isFatal() ? 1 : 0;
+		return diag.isErrorSeverity() ? 1 : 0;
 
 	} catch (std::exception& e) {
 		std::cerr << "exception: " << e.what() << '\n';
