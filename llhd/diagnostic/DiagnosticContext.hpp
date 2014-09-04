@@ -14,8 +14,11 @@ class DiagnosticContext {
 	/// allocator.
 	std::vector<const Diagnostic*> diagnostics;
 
-	/// Set to true as soon as a fatal diagnostic is added.
-	bool fatal;
+	unsigned numFatal;
+	unsigned numError;
+	unsigned numWarning;
+	unsigned numNote;
+	unsigned numFixit;
 
 public:
 	/// Allocator that provides garbage collected memory for Diagnostic objects.
@@ -23,14 +26,20 @@ public:
 	/// DiagnosticContext is destroyed.
 	PoolAllocator<> alloc;
 
-	DiagnosticContext() {
-		fatal = false;
-	}
+	DiagnosticContext():
+		numFatal(0),
+		numError(0),
+		numWarning(0),
+		numNote(0),
+		numFixit(0) {}
 
 	void addDiagnostic(const Diagnostic* diag) {
 		diagnostics.push_back(diag);
-		if (diag->isFatal())
-			fatal = true;
+		numFatal += diag->getNumFatal();
+		numError += diag->getNumError();
+		numWarning += diag->getNumWarning();
+		numNote += diag->getNumNote();
+		numFixit += diag->getNumFixit();
 	}
 
 	/// Returns the range of diagnostics attached to this context.
@@ -43,8 +52,22 @@ public:
 		return diagnostics.size();
 	}
 
-	/// Returns true if this context contains a fatal error diagnostic.
-	bool isFatal() const { return fatal; }
+	/// Returns true if the context contains a fatal error.
+	bool isFatalSeverity() const {
+		return numFatal > 0; }
+	/// Returns true if the context contains an error or a fatal error.
+	bool isErrorSeverity() const {
+		return isFatalSeverity() || numError > 0; }
+	/// Returns true if the context contains a warning, an error, or a fatal
+	/// error.
+	bool isWarningSeverity() const {
+		return isErrorSeverity() || numWarning > 0; }
+
+	unsigned getNumFatal() const { return numFatal; }
+	unsigned getNumError() const { return numError; }
+	unsigned getNumWarning() const { return numWarning; }
+	unsigned getNumNote() const { return numNote; }
+	unsigned getNumFixit() const { return numFixit; }
 };
 
 } // namespace llhd

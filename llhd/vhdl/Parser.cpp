@@ -115,10 +115,10 @@ bool Parser::parseFirstStageGroups(
 /// secondary_unit : architecture_body
 ///                | package_body
 void Parser::parseDesignUnit(Iterator& input) {
-	while (!diag.isFatal() && (
+	while (!diag.isFatalSeverity() && (
 		acceptLibraryClause(input) ||
 		acceptUseClause(input)));
-	if (!*input || diag.isFatal())
+	if (!*input || diag.isFatalSeverity())
 		return;
 
 	if (acceptEntityDeclaration(input) ||
