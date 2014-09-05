@@ -71,28 +71,28 @@ void Parser::parse(const TokenBuffer& input) {
 /// secondary_unit : architecture_body
 ///                | package_body
 void Parser::parseDesignUnit(Iterator& input) {
-	while (!diag.isFatalSeverity() && (
-		acceptLibraryClause(input) ||
-		acceptUseClause(input)));
-	if (!*input || diag.isFatalSeverity())
-		return;
+	// while (!diag.isFatalSeverity() && (
+	// 	acceptLibraryClause(input) ||
+	// 	acceptUseClause(input)));
+	// if (!*input || diag.isFatalSeverity())
+	// 	return;
 
-	if (acceptEntityDeclaration(input) ||
-	    acceptConfigurationDeclaration(input) ||
-	    acceptPackageDeclaration(input) ||
-	    acceptArchitectureBody(input) ||
-	    acceptPackageBody(input)) {
+	// if (acceptEntityDeclaration(input) ||
+	//     acceptConfigurationDeclaration(input) ||
+	//     acceptPackageDeclaration(input) ||
+	//     acceptArchitectureBody(input) ||
+	//     acceptPackageBody(input)) {
 
-		std::cout << "read design unit\n";
-	} else {
-		addDiagnostic(
-			(*input)->range,
-			kFatal,
-			"expected entity declaration, configuration declaration, package "
-			"declaration, architecture body, or package body").end();
+	// 	std::cout << "read design unit\n";
+	// } else {
+	// 	addDiagnostic(
+	// 		(*input)->range,
+	// 		kFatal,
+	// 		"expected entity declaration, configuration declaration, package "
+	// 		"declaration, architecture body, or package body").end();
 
-		input++;
-	}
+	// 	input++;
+	// }
 }
 
 /// IEEE 1076-2000 §11.2
@@ -169,58 +169,58 @@ bool Parser::acceptLibraryClause(Iterator& input) {
 
 /// IEEE 1076-2000 §10.4
 /// use_clause : "use" selected_name { "," selected_name } ";"
-bool Parser::acceptUseClause(Iterator& input) {
-	Token* keyword = nullptr;
-	if (accept(input, kKeywordUse, keyword)) {
-		auto lastToken = keyword;
-		if (!*input)
-			goto premature;
-		lastToken = *input;
+// bool Parser::acceptUseClause(Iterator& input) {
+// 	Token* keyword = nullptr;
+// 	if (accept(input, kKeywordUse, keyword)) {
+// 		auto lastToken = keyword;
+// 		if (!*input)
+// 			goto premature;
+// 		lastToken = *input;
 
-		if (!acceptSelectedName(input)) {
-			addDiagnostic(
-				(*input)->range, kFatal,
-				"'use' keyword must be followed by one or more selected names")
-			.highlight(keyword->range);
-			return false;
-		}
+// 		if (!acceptSelectedName(input)) {
+// 			addDiagnostic(
+// 				(*input)->range, kFatal,
+// 				"'use' keyword must be followed by one or more selected names")
+// 			.highlight(keyword->range);
+// 			return false;
+// 		}
 
-		while (*input && accept(input, kTokenComma)) {
-			if (!*input)
-				goto premature;
-			lastToken = *input;
+// 		while (*input && accept(input, kTokenComma)) {
+// 			if (!*input)
+// 				goto premature;
+// 			lastToken = *input;
 
-			if (!acceptSelectedName(input)) {
-				addDiagnostic(
-					(*input)->range, kFatal,
-					"expected a name inside 'use' clause")
-				.highlight(keyword->range);
-				return false;
-			}
-			lastToken = *input;
-		}
+// 			if (!acceptSelectedName(input)) {
+// 				addDiagnostic(
+// 					(*input)->range, kFatal,
+// 					"expected a name inside 'use' clause")
+// 				.highlight(keyword->range);
+// 				return false;
+// 			}
+// 			lastToken = *input;
+// 		}
 
-		if (!accept(input, kTokenSemicolon)) {
-			addDiagnostic(
-				*input ? (*input)->range : lastToken->range,
-				kWarning,
-				"semicolon missing at the end of 'use' clause")
-			.highlight(keyword->range)
-			.message(kFixit, "insert a semicolon");
-			/// \todo: Improve fixit hint.
-			return true;
-		}
+// 		if (!accept(input, kTokenSemicolon)) {
+// 			addDiagnostic(
+// 				*input ? (*input)->range : lastToken->range,
+// 				kWarning,
+// 				"semicolon missing at the end of 'use' clause")
+// 			.highlight(keyword->range)
+// 			.message(kFixit, "insert a semicolon");
+// 			/// \todo: Improve fixit hint.
+// 			return true;
+// 		}
 
-		return true;
+// 		return true;
 
-	premature:
-		addDiagnostic(lastToken->range, kFatal,
-			"incomplete 'use' clause")
-		.message(kNote, "must be of the form 'use' <name>[, <name>];");
-		return false;
-	}
-	return false;
-}
+// 	premature:
+// 		addDiagnostic(lastToken->range, kFatal,
+// 			"incomplete 'use' clause")
+// 		.message(kNote, "must be of the form 'use' <name>[, <name>];");
+// 		return false;
+// 	}
+// 	return false;
+// }
 
 bool Parser::acceptEntityDeclaration(Iterator& input) {
 	return false;

@@ -7,6 +7,7 @@
 namespace llhd {
 
 class DiagnosticContext;
+class TokenScanner;
 
 namespace vhdl {
 
@@ -31,7 +32,6 @@ class Parser {
 
 	void parseDesignUnit(Iterator& input);
 	bool acceptLibraryClause(Iterator& input);
-	bool acceptUseClause(Iterator& input);
 	bool acceptEntityDeclaration(Iterator& input);
 	bool acceptConfigurationDeclaration(Iterator& input);
 	bool acceptPackageDeclaration(Iterator& input);
@@ -59,6 +59,25 @@ private:
 		Token**& start,
 		Token** end,
 		TokenGroup& into);
+
+	bool requireDesignUnit(TokenScanner& input);
+	bool requireLibraryUnit(TokenScanner& input);
+	bool acceptLibraryClause(TokenScanner& input);
+	bool requireContextClause(TokenScanner& input);
+	bool acceptContextItem(TokenScanner& input);
+	bool acceptUseClause(TokenScanner& input);
+
+	// Subprograms and Packages (§2)
+	bool parseOperatorSymbol(TokenScanner& input, bool require);
+
+	// Names (§6)
+	bool parseName(TokenScanner& input, bool require);
+	bool parsePrefix(TokenScanner& input, bool require);
+	bool parseSimpleName(TokenScanner& input, bool require);
+	bool parseSelectedName(TokenScanner& input, bool require);
+	bool parseIndexedName(TokenScanner& input, bool require);
+	bool parseSliceName(TokenScanner& input, bool require);
+	bool parseAttributeName(TokenScanner& input, bool require);
 };
 
 } // namespace vhdl

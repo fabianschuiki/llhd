@@ -1,27 +1,100 @@
 /* Copyright (c) 2014 Fabian Schuiki */
-#include "llhd/vhdl/Parser.hpp"
-#include "llhd/vhdl/TokenGroup.hpp"
-#include "llhd/vhdl/TokenType.hpp"
+#include "llhd/vhdl/Parser-private.hpp"
 
-using namespace llhd::vhdl;
-
+/// IEEE 1076-2000 §11.1
+/// design_file : design_unit {design_unit}
 bool Parser::parseSecondStage(
 	Token**& start,
 	Token** end,
 	TokenGroup& into) {
 
-	while (start != end) {
-		auto before = start;
+	TokenScanner scn(start, end);
 
-		switch ((*start)->type) {
-		}
-		start++;
-
-		// Sentinel that prevents infinite loops.
-		assert(start > before && "parse loop did not progress");
+	auto before = scn.getCurrent();
+	while (requireDesignUnit(scn)) {
+		assert(scn.getCurrent() > before && "parse loop did not progress");
+		before = scn.getCurrent();
 	}
+
+	assert(scn.isAtEnd() && "did not consume all input tokens");
+
+	// while (start != end) {
+	// 	auto before = start;
+
+	// 	switch ((*start)->type) {
+	// 	}
+	// 	start++;
+
+	// 	// Sentinel that prevents infinite loops.
+	// 	assert(start > before && "parse loop did not progress");
+	// }
+	// return false;
+
+	return true;
+}
+
+/// IEEE 1076-2000 §11.1
+/// design_unit : context_clause library_unit
+bool Parser::requireDesignUnit(TokenScanner& input) {
+	if (!requireContextClause(input)) return false;
+	if (!requireLibraryUnit(input)) return false;
+	return true;
+}
+
+/// IEEE 1076-2000 §11.1
+/// library_unit : primary_unit | secondary_unit
+bool Parser::requireLibraryUnit(TokenScanner& input) {
 	return false;
 }
+
+/// IEEE 1076-2000 §11.2
+/// library_clause : "library" logical_name_list ";"
+bool Parser::acceptLibraryClause(TokenScanner& input) {
+	auto scn = input.branch();
+	if (!scn.accept(kKeywordLibrary))
+		return false;
+	while (!scn.find(kTokenSemicolon));
+	auto namescn = scn.slice(1,1);
+	// requireLogicalNameList(namescn);
+	std::cout << "parsed library clause " << namescn.getRange() << "\n";
+
+	scn.commit();
+	return true;
+}
+
+/// IEEE 1076-2000 §11.3
+/// context_clause : {context_item}
+bool Parser::requireContextClause(TokenScanner& input) {
+	while (acceptContextItem(input));
+	return true;
+}
+
+/// IEEE 1076-2000 §11.3
+/// context_item : library_clause | use_clause
+bool Parser::acceptContextItem(TokenScanner& input) {
+	return acceptLibraryClause(input) || acceptUseClause(input);
+}
+
+/// IEEE 1076-2000 §10.4
+/// use_clause : "use" selected_name {"," selected_name} ";"
+bool Parser::acceptUseClause(TokenScanner& input) {
+	auto scn = input.branch();
+	if (!scn.accept(kKeywordUse))
+		return false;
+
+	// Find the terminating semicolon.
+	while (!scn.find(kTokenSemicolon));
+	auto namescn = scn.slice(1,1);
+
+	// Parse the names.
+	parseSelectedName(namescn, true);
+	while (namescn.accept(kTokenComma))
+		parseSelectedName(namescn, true);
+
+	scn.commit();
+	return true;
+}
+
 
 // IEEE 1076-2000 §11.1
 // design_file    : design_unit {design_unit}
