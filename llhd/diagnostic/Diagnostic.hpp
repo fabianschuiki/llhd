@@ -28,7 +28,8 @@ public:
 		numError(0),
 		numWarning(0),
 		numNote(0),
-		numFixit(0) {}
+		numFixit(0),
+		numMessages(0) {}
 
 	/// Adds the message \a msg to this diagnostic.
 	void addMessage(const DiagnosticMessage* msg) {

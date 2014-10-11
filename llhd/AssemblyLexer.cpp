@@ -49,8 +49,11 @@ AssemblyLexer& AssemblyLexer::next() {
 		return *this;
 	};
 
-	auto match = [&](const char *str){
-		return strncmp(start, str, ptr-start) == 0;
+	auto match = [&](const char *str) {
+		for (const char* p = start; p != ptr; ++p)
+			if (*str++ != *p)
+				return false;
+		return *str == 0;
 	};
 
 	while (ptr != end) {

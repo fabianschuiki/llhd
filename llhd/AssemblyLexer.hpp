@@ -32,7 +32,6 @@ public:
 		kSymbolEqual,
 	};
 
-
 	AssemblyLexer(
 		SourceLocation loc,
 		const Buffer<const char>& buffer,
