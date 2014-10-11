@@ -41,6 +41,7 @@ add_definitions(-DBOOST_TEST_DYN_LINK)
 enable_testing()
 include_directories(.)
 add_subdirectory(llhd)
+add_subdirectory(test)
 
 # Add a documentation target if Doxygen is available.
 find_package(Doxygen)
