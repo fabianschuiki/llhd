@@ -50,15 +50,25 @@ AssemblyParser::AssemblyParser(
 	}
 }
 
+bool AssemblyParser::error(const char* msg) {
+	if (diag) {
+		DiagnosticBuilder(*diag, kError, msg)
+		.main(lex.getRange());
+	}
+	return false;
+}
+
+bool AssemblyParser::error(SourceRange range, const char* msg) {
+	if (diag) {
+		DiagnosticBuilder(*diag, kError, msg)
+		.main(range);
+	}
+	return false;
+}
+
 bool AssemblyParser::parseTopLevel() {
 	switch (lex.getToken()) {
-	default:
-		if (diag) {
-			DiagnosticBuilder(*diag, kError, "expected top-level entity")
-			.main(lex.getRange());
-		}
-		return false;
-
+	default: return error("expected top-level entity");
 	case AssemblyLexer::kInvalid: return false;
 	case AssemblyLexer::kKeywordDefine: return parseDefine();
 	}
@@ -74,26 +84,13 @@ bool AssemblyParser::parseDefine() {
 	switch (lex.getToken()) {
 	case AssemblyLexer::kIdentifierGlobal: global = true; break;
 	case AssemblyLexer::kIdentifierLocal: global = false; break;
-	default:
-		if (diag) {
-			DiagnosticBuilder(*diag, kError,
-			"expected global or local module name")
-			.main(lex.getRange());
-		}
-		return false;
+	default: return error("expected global or local name");
 	}
 	ModuleContext ctx { *M.get(), lex.getRange(), lex.getText() };
 
 	// module body
-	if (lex.next().getToken() != AssemblyLexer::kSymbolLBrace) {
-		if (diag) {
-			DiagnosticBuilder(*diag, kError,
-			"expected opening braces '{' after module name")
-			.main(lex.getRange())
-			.highlight(ctx.range);
-		}
-		return false;
-	}
+	if (lex.next().getToken() != AssemblyLexer::kSymbolLBrace)
+		return error("expected opening braces '{' after module name");
 	if (!parseModuleBody(ctx))
 		return false;
 
@@ -101,12 +98,7 @@ bool AssemblyParser::parseDefine() {
 	if (global) {
 		auto& slot = into.modules[M->name];
 		if (slot) {
-			if (diag) {
-				DiagnosticBuilder(*diag, kError,
-				"symbol name already used")
-				.main(ctx.range);
-			}
-			return false;
+			return error(ctx.range, "symbol name already used");
 		}
 		slot = std::move(M);
 	}
@@ -122,12 +114,7 @@ bool AssemblyParser::parseModuleBody(ModuleContext& ctx) {
 	}
 
 	if (lex.getToken() != AssemblyLexer::kSymbolRBrace) {
-		if (diag) {
-			DiagnosticBuilder(*diag, kError,
-			"expected closing braces '}' at end of module")
-			.main(lex.getRange());
-		}
-		return false;
+		return error("expected closing braces '}' at end of module");
 	}
 	return true;
 }
@@ -150,23 +137,14 @@ bool AssemblyParser::parseModuleInstruction(ModuleContext& ctx) {
 
 			auto& slot = ctx.module.slots[S->name];
 			if (slot) {
-				if (diag) {
-					DiagnosticBuilder(*diag, kError,
-					"symbol name already used")
-					.main(sctx.namerange);
-				}
-				return false;
+				return error(sctx.namerange, "symbol name already used");
 			}
 			slot = std::move(S);
 			return true;
 		}
 	}
 
-	if (diag) {
-		DiagnosticBuilder(*diag, kError, "expected module instruction")
-		.main(lex.getRange());
-	}
-	return false;
+	return error("expected module instruction");
 }
 
 bool AssemblyParser::parseModuleSlot(SlotContext& ctx) {
@@ -174,11 +152,7 @@ bool AssemblyParser::parseModuleSlot(SlotContext& ctx) {
 
 	// type
 	if (lex.getToken() != AssemblyLexer::kIdentifierReserved) {
-		if (diag) {
-			DiagnosticBuilder(*diag, kError, "expected type name")
-			.main(lex.getRange());
-		}
-		return false;
+		return error("expected type name");
 	}
 	ctx.slot.type = lex.getText();
 	lex.next();
@@ -188,19 +162,9 @@ bool AssemblyParser::parseModuleSlot(SlotContext& ctx) {
 	case AssemblyLexer::kIdentifierLocal: break;
 	case AssemblyLexer::kIdentifierGlobal:
 	case AssemblyLexer::kIdentifierReserved:
-		if (diag) {
-			DiagnosticBuilder(*diag, kError,
-			"name must be local (start with %)")
-			.main(lex.getRange());
-		}
-		return false;
+		return error("name must be local (start with %)");
 	default:
-		if (diag) {
-			DiagnosticBuilder(*diag, kError,
-			"expected name")
-			.main(lex.getRange());
-		}
-		return false;
+		return error("expected name");
 	}
 	ctx.namerange = lex.getRange();
 	ctx.slot.name = lex.getText();

@@ -14,7 +14,7 @@ const char* src = "\
 define @marx_tb {\n\
 	in l1 %clk_ci\n\
 	in l1 %rst_rbi\n\
-}";
+";
 
 BOOST_AUTO_TEST_CASE(asm_parser_case) {
 

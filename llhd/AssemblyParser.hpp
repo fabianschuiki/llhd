@@ -16,6 +16,9 @@ class AssemblyParser {
 	struct ModuleContext;
 	struct SlotContext;
 
+	bool error(const char* msg);
+	bool error(SourceRange range, const char* msg);
+
 	bool parseTopLevel();
 	bool parseDefine();
 	bool parseModuleBody(ModuleContext& ctx);
