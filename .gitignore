@@ -5,6 +5,6 @@ build
 _build
 *~
 ~*
-/doc/standards/vhdl*
+/doc/standards/*.pdf
 /doc/doxygen/*
 !/doc/doxygen/Doxyfile
