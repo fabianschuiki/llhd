@@ -14,12 +14,13 @@ class AssemblyParser {
 	bool valid;
 
 	struct ModuleContext;
+	struct SlotContext;
 
 	bool parseTopLevel();
 	bool parseDefine();
 	bool parseModuleBody(ModuleContext& ctx);
 	bool parseModuleInstruction(ModuleContext& ctx);
-	bool parseModuleStructureInstruction(ModuleContext& ctx);
+	bool parseModuleSlot(SlotContext& ctx);
 
 public:
 	AssemblyParser(Assembly& into, AssemblyLexer& lex, DiagnosticContext* diag);

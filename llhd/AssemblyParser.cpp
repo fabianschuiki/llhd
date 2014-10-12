@@ -14,6 +14,12 @@ struct AssemblyParser::ModuleContext {
 	const std::string& name;
 };
 
+struct AssemblyParser::SlotContext {
+	ModuleContext& modctx;
+	AssemblySlot& slot;
+	SourceRange namerange;
+};
+
 
 template<typename T, typename U>
 bool oneof(const T& lhs, const U& rhs) {
@@ -92,10 +98,18 @@ bool AssemblyParser::parseDefine() {
 		return false;
 
 	// add the module to the appropriate symbol table
-	// if (global)
-	// 	into.addSymbol(ctx.name, std::move(M));
-	// else
-	// 	local.add(ctx.name, std::move(M));
+	if (global) {
+		auto& slot = into.modules[M->name];
+		if (slot) {
+			if (diag) {
+				DiagnosticBuilder(*diag, kError,
+				"symbol name already used")
+				.main(ctx.range);
+			}
+			return false;
+		}
+		slot = std::move(M);
+	}
 	return true;
 }
 
@@ -121,8 +135,31 @@ bool AssemblyParser::parseModuleBody(ModuleContext& ctx) {
 bool AssemblyParser::parseModuleInstruction(ModuleContext& ctx) {
 
 	if (lex.getToken() == AssemblyLexer::kIdentifierReserved) {
-		if (oneof(lex.getText(), "in", "out", "reg", "wir"))
-			return parseModuleStructureInstruction(ctx);
+		auto ins = lex.getText();
+
+		if (oneof(ins, "in", "out", "sig", "reg")) {
+			std::shared_ptr<AssemblySlot> S(new AssemblySlot);
+			if (ins == "in") S->dir = AssemblySlot::kPortIn;
+			if (ins == "out") S->dir = AssemblySlot::kPortOut;
+			if (ins == "sig") S->dir = AssemblySlot::kSignal;
+			if (ins == "reg") S->dir = AssemblySlot::kRegister;
+
+			SlotContext sctx { ctx, *S };
+			if (!parseModuleSlot(sctx))
+				return false;
+
+			auto& slot = ctx.module.slots[S->name];
+			if (slot) {
+				if (diag) {
+					DiagnosticBuilder(*diag, kError,
+					"symbol name already used")
+					.main(sctx.namerange);
+				}
+				return false;
+			}
+			slot = std::move(S);
+			return true;
+		}
 	}
 
 	if (diag) {
@@ -132,9 +169,7 @@ bool AssemblyParser::parseModuleInstruction(ModuleContext& ctx) {
 	return false;
 }
 
-bool AssemblyParser::parseModuleStructureInstruction(ModuleContext& ctx) {
-	assert(lex.getToken() == AssemblyLexer::kIdentifierReserved);
-	auto insrng = lex.getRange();
+bool AssemblyParser::parseModuleSlot(SlotContext& ctx) {
 	lex.next();
 
 	// type
@@ -145,33 +180,30 @@ bool AssemblyParser::parseModuleStructureInstruction(ModuleContext& ctx) {
 		}
 		return false;
 	}
-	auto type = lex.getText();
+	ctx.slot.type = lex.getText();
 	lex.next();
 
 	// name
 	switch (lex.getToken()) {
-	case AssemblyLexer::kIdentifierLocal:
-		std::cout << "structure " << lex.getText() << '\n';
-		if (diag) {
-			DiagnosticBuilder(*diag, kWarning,
-			"ignoring instruction, ports not implemented")
-			.main(insrng);
-		}
-		return true;
+	case AssemblyLexer::kIdentifierLocal: break;
 	case AssemblyLexer::kIdentifierGlobal:
 	case AssemblyLexer::kIdentifierReserved:
 		if (diag) {
 			DiagnosticBuilder(*diag, kError,
-			"type name must be a local, i.e begin with '%'")
+			"name must be local (start with %)")
 			.main(lex.getRange());
 		}
 		return false;
 	default:
 		if (diag) {
 			DiagnosticBuilder(*diag, kError,
-			"expected structure name")
+			"expected name")
 			.main(lex.getRange());
 		}
 		return false;
 	}
+	ctx.namerange = lex.getRange();
+	ctx.slot.name = lex.getText();
+
+	return true;
 }
