@@ -27,6 +27,18 @@ target_link_libraries(llhd-base ${Boost_LIBRARIES})
 add_subdirectory(unicode)
 add_subdirectory(vhdl) # llhd-vhdl library
 
+# sample simulator
+add_executable(llhd-sim
+	AssemblyLexer.cpp
+	AssemblyParser.cpp
+	console.cpp
+	diagnostic/DiagnosticFormatterConsole.cpp
+	sim.cpp
+	SourceLocation.cpp
+	SourceManager.cpp
+	SourceManagerEntry.cpp
+)
+
 # add tests
 add_executable(test-diagnostics test/diagnostics.cpp)
 add_executable(test-sourcemanager test/sourcemanager.cpp)

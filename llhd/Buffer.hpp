@@ -13,22 +13,28 @@ class Buffer {
 
 public:
 	/// Creates an empty buffer.
-	Buffer(): start(NULL), end(NULL) {}
+	explicit Buffer(): start(NULL), end(NULL) {}
 
 	/// Creates a buffer ranging from \a ptr to \a ptr + \a length.
-	Buffer(T* ptr, size_t length):
+	explicit Buffer(T* ptr, size_t length):
 		start(ptr),
 		end(ptr+length) {}
 
 	/// Creates a buffer ranging from \a start to \a end.
-	Buffer(T* start, T* end):
+	explicit Buffer(T* start, T* end):
 		start(start),
 		end(end) {}
 
 	/// Creates a buffer ranging from \a ptr to the terminating 0 value.
-	Buffer(T* ptr):
+	explicit Buffer(T* ptr):
 		start(ptr),
 		end(find(ptr, 0)) {}
+
+	/// Creates a buffer from a buffer of different type.
+	template<typename U>
+	Buffer(const Buffer<U>& buf):
+		start((T*)buf.getStart()),
+		end((T*)buf.getEnd()) {}
 
 	/// Returns a pointer to the first element in the buffer.
 	T* getStart() const { return start; }
