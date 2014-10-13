@@ -1,5 +1,5 @@
 # Copyright (c) 2014 Fabian Schuiki
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.6)
 project(llhd)
 
 if (CMAKE_BUILD_TYPE)
