@@ -12,7 +12,7 @@ using namespace llhd;
 /// \file
 /// A simple simulator for hardware described in LLHD assembly. Absolutely
 /// suboptimal in performance and feature set, as this tool is intended to be a
-/// proof of concept and LLHD usage template.
+/// proof of concept rather than a fully-fledged simulator.
 
 int main(int argc, char** argv) {
 	--argc;

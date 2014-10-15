@@ -1,0 +1,59 @@
+{
+	"name": "LLHD",
+	"scopeName": "source.llhd",
+	"fileTypes": ["llhd"],
+	"patterns": [
+		{ "include": "#comments" },
+		{ "include": "#keywords" },
+		{ "include": "#instructions" },
+		{ "include": "#types" },
+
+		{
+			"name": "variable.global.llhd",
+			"match": "(@[a-zA-Z0-9\\_.]+)\\b"
+		},{
+			"name": "variable.local.llhd",
+			"match": "(%[a-zA-Z0-9\\_.]+)\\b"
+		}
+	],
+
+	"repository": {
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.llhd",
+				"match": "\\b(define|process|storage)\\b"
+			},{
+				"name": "storage.llhd",
+				"match": "\\b(in|out|reg|wire|var)\\b"
+			}]
+		},
+
+		"instructions": {
+			"patterns": [{
+				"name": "support.function.llhd",
+				"match": "\\b(and|or|xor|not|add|sub|mul|div)\\b"
+			}]
+		},
+
+		"types": {
+			"patterns": [{
+				"name": "storage.type.llhd",
+				"match": "\\b(l)[0-9]+\\b"
+			}]
+		},
+
+		"comments": {
+			"patterns": [{	"begin": "[#;]",
+				"beginCaptures": {
+					"0": {
+						"name": "punctuation.definition.comment.llhd"
+					}
+				},
+				"end": "$\\n?",
+				"name": "comment.line.llhd"
+			}]
+		}
+	},
+
+	"uuid": "2189438b-8dab-4549-be42-dd6a0b982c1e"
+}

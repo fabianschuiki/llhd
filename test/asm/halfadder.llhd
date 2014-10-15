@@ -1,0 +1,10 @@
+# A simple half adder.
+define @halfadder {
+	in l1 %a
+	in l1 %b
+	out l1 %c
+	out l1 %s
+
+	%s = xor l1 %a %b
+	%c = and l1 %a %b
+}

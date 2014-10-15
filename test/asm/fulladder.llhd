@@ -1,0 +1,15 @@
+# A simple full adder.
+define @fulladder {
+	in l1 a
+	in l1 b
+	in l1 cin
+	out l1 s
+	out l1 cout
+
+	%0 = xor l1 %a %b
+	%s = xor l1 %0 %cin
+
+	%1 = and l1 %a %b
+	%2 = and l1 %b %cin
+	%cout = or l1 %1 %2
+}
