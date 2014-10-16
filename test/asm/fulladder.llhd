@@ -1,10 +1,10 @@
 # A simple full adder.
 define @fulladder {
-	in l1 a
-	in l1 b
-	in l1 cin
-	out l1 s
-	out l1 cout
+	in l1 %a
+	in l1 %b
+	in l1 %cin
+	out l1 %s
+	out l1 %cout
 
 	%0 = xor l1 %a %b
 	%s = xor l1 %0 %cin
