@@ -16,7 +16,7 @@ struct AssemblyParser::ModuleContext {
 
 struct AssemblyParser::SlotContext {
 	ModuleContext& modctx;
-	AssemblySlot& slot;
+	AssemblySignal& slot;
 	SourceRange namerange;
 };
 
@@ -125,17 +125,17 @@ bool AssemblyParser::parseModuleInstruction(ModuleContext& ctx) {
 		auto ins = lex.getText();
 
 		if (oneof(ins, "in", "out", "sig", "reg")) {
-			std::shared_ptr<AssemblySlot> S(new AssemblySlot);
-			if (ins == "in") S->dir = AssemblySlot::kPortIn;
-			if (ins == "out") S->dir = AssemblySlot::kPortOut;
-			if (ins == "sig") S->dir = AssemblySlot::kSignal;
-			if (ins == "reg") S->dir = AssemblySlot::kRegister;
+			std::shared_ptr<AssemblySignal> S(new AssemblySignal);
+			if (ins == "in") S->dir = AssemblySignal::kPortIn;
+			if (ins == "out") S->dir = AssemblySignal::kPortOut;
+			if (ins == "sig") S->dir = AssemblySignal::kSignal;
+			if (ins == "reg") S->dir = AssemblySignal::kRegister;
 
 			SlotContext sctx { ctx, *S };
 			if (!parseModuleSlot(sctx))
 				return false;
 
-			auto& slot = ctx.module.slots[S->name];
+			auto& slot = ctx.module.signals[S->name];
 			if (slot) {
 				return error(sctx.namerange, "symbol name already used");
 			}
@@ -154,7 +154,7 @@ bool AssemblyParser::parseModuleSlot(SlotContext& ctx) {
 	if (lex.getToken() != AssemblyLexer::kIdentifierReserved) {
 		return error("expected type name");
 	}
-	ctx.slot.type = lex.getText();
+	// ctx.slot.type = lex.getText();
 	lex.next();
 
 	// name

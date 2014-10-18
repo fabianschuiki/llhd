@@ -7,7 +7,20 @@
 
 namespace llhd {
 
-class AssemblySlot {
+class AssemblyType {
+public:
+	virtual ~AssemblyType() {}
+};
+
+class AssemblyTypeLogic : public AssemblyType {};
+
+class AssemblyTypeWord : public AssemblyType {
+public:
+	unsigned width;
+	std::shared_ptr<AssemblyType> type;
+};
+
+class AssemblySignal {
 public:
 	enum Direction {
 		kSignal,
@@ -18,14 +31,14 @@ public:
 
 	Direction dir;
 	std::string name;
-	std::string type;
+	std::shared_ptr<AssemblyType> type;
 	// AssemblyExpr* assignment;
 };
 
 class AssemblyModule {
 public:
 	std::string name;
-	std::map<std::string, std::shared_ptr<const AssemblySlot>> slots;
+	std::map<std::string, std::shared_ptr<const AssemblySignal>> signals;
 };
 
 class Assembly {

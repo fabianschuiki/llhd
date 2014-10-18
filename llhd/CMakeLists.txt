@@ -39,6 +39,12 @@ add_executable(llhd-sim
 	SourceManagerEntry.cpp
 )
 
+# sample simulator
+add_executable(llhd-sim2
+	sim2.cpp
+	sim/Simulation.cpp
+)
+
 # add tests
 add_executable(test-diagnostics test/diagnostics.cpp)
 add_executable(test-sourcemanager test/sourcemanager.cpp)
