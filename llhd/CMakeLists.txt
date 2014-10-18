@@ -41,8 +41,9 @@ add_executable(llhd-sim
 
 # sample simulator
 add_executable(llhd-sim2
-	sim2.cpp
+	AssemblyWriter.cpp
 	sim/Simulation.cpp
+	sim2.cpp
 )
 
 # add tests
