@@ -12,6 +12,12 @@ public:
 	virtual ~AssemblyType() {}
 };
 
+class AssemblyExpr {
+public:
+	virtual ~AssemblyExpr() {}
+};
+
+
 class AssemblyTypeLogic : public AssemblyType {};
 
 class AssemblyTypeWord : public AssemblyType {
@@ -32,7 +38,18 @@ public:
 	Direction dir;
 	std::string name;
 	std::shared_ptr<AssemblyType> type;
-	// AssemblyExpr* assignment;
+	std::shared_ptr<AssemblyExpr> assignment;
+};
+
+class AssemblyExprIdentity : public AssemblyExpr {
+public:
+	const AssemblySignal* op;
+};
+
+class AssemblyExprDelayed : public AssemblyExpr {
+public:
+	const AssemblySignal* op;
+	uint64_t d;
 };
 
 class AssemblyModule {

@@ -3,20 +3,44 @@
 #include "llhd/AssemblyWriter.hpp"
 #include "llhd/sim/Simulation.hpp"
 #include <fstream>
+#include <iostream>
 using namespace llhd;
 
 int main(int argc, char** argv) {
 
-	Assembly as;
-	std::shared_ptr<AssemblyModule> mod(new AssemblyModule);
-	std::shared_ptr<AssemblySignal> siga(new AssemblySignal);
 
-	mod->name = "@main";
+	std::shared_ptr<AssemblySignal> siga(new AssemblySignal);
 	siga->dir = AssemblySignal::kSignal;
 	siga->name = "%clk";
 	siga->type.reset(new AssemblyTypeLogic);
-	as.modules[mod->name] = mod;
+
+	std::shared_ptr<AssemblySignal> sigb(new AssemblySignal);
+	sigb->dir = AssemblySignal::kSignal;
+	sigb->name = "%clk2";
+	sigb->type.reset(new AssemblyTypeLogic);
+
+	std::shared_ptr<AssemblySignal> sigc(new AssemblySignal);
+	sigc->dir = AssemblySignal::kSignal;
+	sigc->name = "%inv";
+	sigc->type.reset(new AssemblyTypeLogic);
+
+	std::shared_ptr<AssemblyExprIdentity> expra(new AssemblyExprIdentity);
+	expra->op = siga.get();
+	sigb->assignment = expra;
+
+	std::shared_ptr<AssemblyExprDelayed> exprb(new AssemblyExprDelayed);
+	exprb->op = sigb.get();
+	exprb->d = 2000;
+	sigc->assignment = exprb;
+
+	std::shared_ptr<AssemblyModule> mod(new AssemblyModule);
+	mod->name = "@main";
 	mod->signals[siga->name] = siga;
+	mod->signals[sigb->name] = sigb;
+	mod->signals[sigc->name] = sigc;
+
+	Assembly as;
+	as.modules[mod->name] = mod;
 
 	std::ofstream fout("sim2.llhd");
 	AssemblyWriter(fout).write(as);
@@ -44,6 +68,7 @@ int main(int argc, char** argv) {
 			unsigned v = (namebase / dv) % 94;
 			name += 33+v;
 		}
+		++namebase;
 		fvcd << "$var wire " << value.width << " " << name << " " << sig->name
 			<< " $end\n";
 		names[sig] = name;

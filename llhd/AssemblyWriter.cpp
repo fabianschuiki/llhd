@@ -15,24 +15,42 @@ AssemblyWriter& AssemblyWriter::write(const Assembly& in) {
 
 AssemblyWriter& AssemblyWriter::write(const AssemblyModule& in) {
 	out << "define " << in.name << " {\n";
+	bool written = false;
 
 	// Input and output.
 	for (auto& is : in.signals) {
 		auto& s = *is.second;
 		if (s.dir == AssemblySignal::kPortIn ||
 			s.dir == AssemblySignal::kPortOut) {
-			out << "\t";
+			out << '\t';
 			write(s);
+			written = true;
 		}
 	}
+	if (written) out << '\n';
+	written = false;
 
 	// Other signals.
 	for (auto& is : in.signals) {
 		auto& s = *is.second;
 		if (s.dir == AssemblySignal::kSignal ||
 			s.dir == AssemblySignal::kRegister) {
-			out << "\t";
+			out << '\t';
 			write(s);
+			written = true;
+		}
+	}
+	if (written) out << '\n';
+	written = false;
+
+	// Assignments.
+	for (auto& is : in.signals) {
+		auto& s = *is.second;
+		if (s.assignment) {
+			out << '\t' << s.name << " = ";
+			write(*s.assignment);
+			out << '\n';
+			written = true;
 		}
 	}
 
@@ -67,5 +85,17 @@ void AssemblyWriter::write(const AssemblyType& in) {
 	}
 	else {
 		throw std::runtime_error("unknown type");
+	}
+}
+
+void AssemblyWriter::write(const AssemblyExpr& in) {
+	if (auto e = dynamic_cast<const AssemblyExprIdentity*>(&in)) {
+		out << e->op->name;
+	}
+	else if (auto e = dynamic_cast<const AssemblyExprDelayed*>(&in)) {
+		out << "delay " << e->d << "ps " << e->op->name;
+	}
+	else {
+		throw std::runtime_error("unknown expression");
 	}
 }

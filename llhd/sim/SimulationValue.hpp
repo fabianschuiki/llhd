@@ -53,6 +53,12 @@ public:
 	SimulationLogicValue& operator[] (unsigned idx) {
 		return bits[idx];
 	}
+
+	bool operator==(const SimulationValue& v) const {
+		if (width != v.width) return false;
+		return std::equal(bits, bits+width, v.bits);
+	}
+	bool operator!=(const SimulationValue& v) const { return !(*this == v); }
 };
 
 } // namespace llhd

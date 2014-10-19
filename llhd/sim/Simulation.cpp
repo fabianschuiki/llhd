@@ -63,9 +63,41 @@ void Simulation::step(ObserverFunc fn) {
 	if (eventQueue.isAtEnd())
 		return;
 	T = eventQueue.nextTime();
+	std::set<const AssemblySignal*> changed;
 	eventQueue.nextEvents([&](const SimulationEvent& ev){
+		if (ev.signal->value == ev.value)
+			return;
 		ev.signal->value = ev.value;
 		fn(ev.signal->as, ev.value);
+		changed.insert(ev.signal->as);
 	});
 	eventQueue.pop();
+
+	SimulationTime Tn = T;
+	Tn.delta++;
+
+	// Re-evaluate everything that depends on the changed signals.
+	for (auto& is : wrappers) {
+		auto s = is.second.get();
+		if (s->as->assignment) {
+			auto ab = s->as->assignment.get();
+			if (auto a = dynamic_cast<const AssemblyExprIdentity*>(ab)) {
+				if (changed.count(a->op)) {
+					eventQueue.addEvent(SimulationEvent(
+						Tn, s, wrappers[a->op]->value));
+				}
+			}
+			if (auto a = dynamic_cast<const AssemblyExprDelayed*>(ab)) {
+				if (changed.count(a->op)) {
+					SimulationTime Td = Tn;
+					if (a->d > 0) {
+						Td.ps += a->d;
+						Td.delta = 0;
+					}
+					eventQueue.addEvent(SimulationEvent(
+						Td, s, wrappers[a->op]->value));
+				}
+			}
+		}
+	}
 }
