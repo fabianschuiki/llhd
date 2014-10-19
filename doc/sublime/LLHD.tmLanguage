@@ -28,6 +28,12 @@
 		</dict>
 		<dict>
 			<key>match</key>
+			<string>(%[0-9][a-zA-Z0-9\_.]*)\b</string>
+			<key>name</key>
+			<string>constant.numeric.temp.llhd</string>
+		</dict>
+		<dict>
+			<key>match</key>
 			<string>(@[a-zA-Z0-9\_.]+)\b</string>
 			<key>name</key>
 			<string>variable.global.llhd</string>
@@ -69,7 +75,7 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>\b(and|or|xor|not|add|sub|mul|div)\b</string>
+					<string>\b(and|or|xor|not|add|sub|mul|div|delay|st)\b</string>
 					<key>name</key>
 					<string>support.function.llhd</string>
 				</dict>

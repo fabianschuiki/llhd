@@ -9,6 +9,9 @@
 		{ "include": "#types" },
 
 		{
+			"name": "constant.numeric.temp.llhd",
+			"match": "(%[0-9][a-zA-Z0-9\\_.]*)\\b"
+		},{
 			"name": "variable.global.llhd",
 			"match": "(@[a-zA-Z0-9\\_.]+)\\b"
 		},{
@@ -31,7 +34,7 @@
 		"instructions": {
 			"patterns": [{
 				"name": "support.function.llhd",
-				"match": "\\b(and|or|xor|not|add|sub|mul|div)\\b"
+				"match": "\\b(and|or|xor|not|add|sub|mul|div|delay|st)\\b"
 			}]
 		},
 
