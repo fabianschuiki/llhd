@@ -8,8 +8,12 @@ class AssemblySignal;
 
 class SimulationSignal {
 public:
-	AssemblySignal *as;
+	const AssemblySignal * const as;
 	SimulationValue value;
+
+	SimulationSignal(const AssemblySignal *as, SimulationValue v):
+		as(as),
+		value(v) {}
 };
 
 } // namespace llhd

@@ -20,6 +20,8 @@ public:
 	unsigned width;
 	SimulationLogicValue* bits;
 
+	SimulationValue(): width(0), bits(nullptr) {}
+
 	SimulationValue(unsigned w, SimulationLogicValue v) {
 		width = w;
 		bits = new SimulationLogicValue[w];

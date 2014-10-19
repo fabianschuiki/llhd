@@ -1,5 +1,6 @@
 /* Copyright (c) 2014 Fabian Schuiki */
 #include "llhd/AssemblyWriter.hpp"
+#include <stdexcept>
 using namespace llhd;
 
 AssemblyWriter& AssemblyWriter::write(const Assembly& in) {
