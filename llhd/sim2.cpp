@@ -24,6 +24,11 @@ int main(int argc, char** argv) {
 	sigc->name = "%inv";
 	sigc->type.reset(new AssemblyTypeLogic);
 
+	std::shared_ptr<AssemblySignal> sigd(new AssemblySignal);
+	sigd->dir = AssemblySignal::kSignal;
+	sigd->name = "%xord";
+	sigd->type.reset(new AssemblyTypeLogic);
+
 	std::shared_ptr<AssemblyExprIdentity> expra(new AssemblyExprIdentity);
 	expra->op = siga.get();
 	sigb->assignment = expra;
@@ -33,11 +38,18 @@ int main(int argc, char** argv) {
 	exprb->d = 2000;
 	sigc->assignment = exprb;
 
+	std::shared_ptr<AssemblyExprBoolean> exprc(new AssemblyExprBoolean);
+	exprc->type = AssemblyExprBoolean::kXOR;
+	exprc->op0 = siga.get();
+	exprc->op1 = sigc.get();
+	sigd->assignment = exprc;
+
 	std::shared_ptr<AssemblyModule> mod(new AssemblyModule);
 	mod->name = "@main";
 	mod->signals[siga->name] = siga;
 	mod->signals[sigb->name] = sigb;
 	mod->signals[sigc->name] = sigc;
+	mod->signals[sigd->name] = sigd;
 
 	Assembly as;
 	as.modules[mod->name] = mod;

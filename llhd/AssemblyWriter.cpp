@@ -95,6 +95,16 @@ void AssemblyWriter::write(const AssemblyExpr& in) {
 	else if (auto e = dynamic_cast<const AssemblyExprDelayed*>(&in)) {
 		out << "delay " << e->d << "ps " << e->op->name;
 	}
+	else if (auto e = dynamic_cast<const AssemblyExprBoolean*>(&in)) {
+		switch (e->type) {
+			case AssemblyExprBoolean::kAND:  out << "and ";  break;
+			case AssemblyExprBoolean::kOR:   out << "or ";   break;
+			case AssemblyExprBoolean::kNAND: out << "nand "; break;
+			case AssemblyExprBoolean::kNOR:  out << "nor ";  break;
+			case AssemblyExprBoolean::kXOR:  out << "xor ";  break;
+		}
+		out << e->op0->name << ' ' << e->op1->name;
+	}
 	else {
 		throw std::runtime_error("unknown expression");
 	}

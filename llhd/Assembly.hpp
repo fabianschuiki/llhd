@@ -52,6 +52,21 @@ public:
 	uint64_t d;
 };
 
+
+class AssemblyExprBoolean : public AssemblyExpr {
+public:
+	enum Type {
+		kAND,
+		kOR,
+		kNAND,
+		kNOR,
+		kXOR
+	};
+	Type type;
+	const AssemblySignal* op0;
+	const AssemblySignal* op1;
+};
+
 class AssemblyModule {
 public:
 	std::string name;

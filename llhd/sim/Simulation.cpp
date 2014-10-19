@@ -87,7 +87,7 @@ void Simulation::step(ObserverFunc fn) {
 						Tn, s, wrappers[a->op]->value));
 				}
 			}
-			if (auto a = dynamic_cast<const AssemblyExprDelayed*>(ab)) {
+			else if (auto a = dynamic_cast<const AssemblyExprDelayed*>(ab)) {
 				if (changed.count(a->op)) {
 					SimulationTime Td = Tn;
 					if (a->d > 0) {
@@ -97,6 +97,54 @@ void Simulation::step(ObserverFunc fn) {
 					eventQueue.addEvent(SimulationEvent(
 						Td, s, wrappers[a->op]->value));
 				}
+			}
+			else if (auto a = dynamic_cast<const AssemblyExprBoolean*>(ab)) {
+				if (changed.count(a->op0) || changed.count(a->op1)) {
+					auto v0 = wrappers[a->op0]->value;
+					auto v1 = wrappers[a->op1]->value;
+					if (v0.width != v1.width)
+						throw std::runtime_error(
+							"boolean operator widths don't match");
+					SimulationValue r(v0.width, kLogicU);
+					SimulationLogicValue *b0 = v0.bits, *be = v0.bits+v0.width,
+						*b1 = v1.bits, *br = r.bits;
+					for (; b0 != be; b0++, b1++, br++) {
+						if ((*b0 == kLogic0 || *b0 == kLogic1) &&
+							(*b1 == kLogic0 || *b1 == kLogic1)) {
+							switch (a->type) {
+								case AssemblyExprBoolean::kAND:
+									*br = kLogic0;
+									if (*b0 == kLogic1 && *b1 == kLogic1)
+										*br = kLogic1;
+									break;
+								case AssemblyExprBoolean::kNAND:
+									*br = kLogic1;
+									if (*b0 == kLogic1 && *b1 == kLogic1)
+										*br = kLogic0;
+									break;
+								case AssemblyExprBoolean::kOR:
+									*br = kLogic0;
+									if (*b0 == kLogic1 || *b1 == kLogic1)
+										*br = kLogic1;
+									break;
+								case AssemblyExprBoolean::kNOR:
+									*br = kLogic1;
+									if (*b0 == kLogic1 || *b1 == kLogic1)
+										*br = kLogic0;
+									break;
+								case AssemblyExprBoolean::kXOR:
+									*br = kLogic0;
+									if (*b0 != *b1)
+										*br = kLogic1;
+									break;
+							}
+						}
+					}
+					eventQueue.addEvent(SimulationEvent(Tn, s, r));
+				}
+			}
+			else {
+				throw std::runtime_error("unknown expression");
 			}
 		}
 	}
