@@ -28,9 +28,15 @@
 		</dict>
 		<dict>
 			<key>match</key>
+			<string>\b([0-9\.]*[muµnpf]?s)\b</string>
+			<key>name</key>
+			<string>constant.numeric.time.llhd</string>
+		</dict>
+		<dict>
+			<key>match</key>
 			<string>(%[0-9][a-zA-Z0-9\_.]*)\b</string>
 			<key>name</key>
-			<string>constant.numeric.temp.llhd</string>
+			<string>variable.local.temp.llhd</string>
 		</dict>
 		<dict>
 			<key>match</key>
@@ -75,9 +81,9 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>\b(and|or|xor|not|add|sub|mul|div|delay|st)\b</string>
+					<string>\b(and|or|xor|nand|nor|not|add|sub|mul|div|delay|st)\b</string>
 					<key>name</key>
-					<string>support.function.llhd</string>
+					<string>keyword.instruction.llhd</string>
 				</dict>
 			</array>
 		</dict>

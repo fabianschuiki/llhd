@@ -9,7 +9,12 @@
 		{ "include": "#types" },
 
 		{
-			"name": "constant.numeric.temp.llhd",
+			"name": "constant.numeric.time.llhd",
+			"match": "\\b([0-9\\.]*[muµnpf]?s)\\b"
+		},
+
+		{
+			"name": "variable.local.temp.llhd",
 			"match": "(%[0-9][a-zA-Z0-9\\_.]*)\\b"
 		},{
 			"name": "variable.global.llhd",
@@ -33,8 +38,8 @@
 
 		"instructions": {
 			"patterns": [{
-				"name": "support.function.llhd",
-				"match": "\\b(and|or|xor|not|add|sub|mul|div|delay|st)\\b"
+				"name": "keyword.instruction.llhd",
+				"match": "\\b(and|or|xor|nand|nor|not|add|sub|mul|div|delay|st)\\b"
 			}]
 		},
 

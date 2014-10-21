@@ -35,11 +35,11 @@ int main(int argc, char** argv) {
 
 	std::shared_ptr<AssemblyExprDelayed> exprb(new AssemblyExprDelayed);
 	exprb->op = sigb.get();
-	exprb->d = 2;
+	exprb->d = 3;
 	sigc->assignment = exprb;
 
 	std::shared_ptr<AssemblyExprBoolean> exprc(new AssemblyExprBoolean);
-	exprc->type = AssemblyExprBoolean::kAND;
+	exprc->type = AssemblyExprBoolean::kXOR;
 	exprc->op0 = siga.get();
 	exprc->op1 = sigc.get();
 	sigd->assignment = exprc;
