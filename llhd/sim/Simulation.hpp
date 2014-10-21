@@ -13,24 +13,32 @@ class AssemblyModule;
 class AssemblySignal;
 class AssemblyType;
 
+class SimulationDependency;
+
+/// A simple implementation of an LLHD assembly simulator. Wraps a single
+/// AssemblyModule into a simulation structure that may then be examined
+/// step-by-step. A proof of concept.
 class Simulation {
 public:
-	typedef std::function<
-		void(const AssemblySignal*, const SimulationValue& v)> ObserverFunc;
+	typedef std::function<void(
+		SimulationTime T,
+		const AssemblySignal*,
+		const SimulationValue&)> ObserverFunc;
 
 private:
 	const AssemblyModule& as;
 	SimulationTime T;
 	SimulationEventQueue eventQueue;
 	std::map<const AssemblySignal*, std::unique_ptr<SimulationSignal>> wrappers;
-	std::set<SimulationSignal*> observedSignals;
+	std::set<std::unique_ptr<SimulationDependency>> dependencies;
 
-	static SimulationValue getInitialValue(const AssemblyType* type);
+	void wrap(const AssemblySignal *signal);
+	SimulationValue wrap(const AssemblyType *type);
+	void wrap(SimulationSignal *signal, const AssemblyExpr *expr);
 
 public:
 	Simulation(const AssemblyModule& as);
-	bool observe(const AssemblySignal* signal);
-	void dump(ObserverFunc fn);
+	void eachSignal(ObserverFunc fn);
 	void addEvent(
 		SimulationTime T,
 		const AssemblySignal* signal,

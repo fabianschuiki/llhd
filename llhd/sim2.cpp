@@ -35,11 +35,11 @@ int main(int argc, char** argv) {
 
 	std::shared_ptr<AssemblyExprDelayed> exprb(new AssemblyExprDelayed);
 	exprb->op = sigb.get();
-	exprb->d = 2000;
+	exprb->d = 2;
 	sigc->assignment = exprb;
 
 	std::shared_ptr<AssemblyExprBoolean> exprc(new AssemblyExprBoolean);
-	exprc->type = AssemblyExprBoolean::kXOR;
+	exprc->type = AssemblyExprBoolean::kAND;
 	exprc->op0 = siga.get();
 	exprc->op1 = sigc.get();
 	sigd->assignment = exprc;
@@ -58,11 +58,9 @@ int main(int argc, char** argv) {
 	AssemblyWriter(fout).write(as);
 
 	Simulation sim(*mod);
-	sim.observe(siga.get());
-
 	for (unsigned i = 1; i < 20; i++) {
-		sim.addEvent((i*10+0) * 1000, siga.get(), SimulationValue(1, kLogic1));
-		sim.addEvent((i*10+5) * 1000, siga.get(), SimulationValue(1, kLogic0));
+		sim.addEvent(i*10+0, siga.get(), SimulationValue(1, kLogic1));
+		sim.addEvent(i*10+5, siga.get(), SimulationValue(1, kLogic0));
 	}
 
 	unsigned namebase = 0;
@@ -72,7 +70,11 @@ int main(int argc, char** argv) {
 	fvcd << "$version llhd-sim2 0.1.0 $end\n";
 	fvcd << "$timescale 1ns $end\n";
 	fvcd << "$scope module logic $end\n";
-	sim.dump([&](const AssemblySignal* sig, const SimulationValue& value){
+	sim.eachSignal([&](
+		SimulationTime T,
+		const AssemblySignal* sig,
+		const SimulationValue& value){
+
 		std::string name;
 		unsigned max;
 		for (max = 94; namebase >= max; max *= 94);
@@ -89,6 +91,7 @@ int main(int argc, char** argv) {
 	fvcd << "$enddefinitions $end\n\n";
 
 	auto valueDump = [&](
+		SimulationTime T,
 		const AssemblySignal* sig,
 		const SimulationValue& value){
 
@@ -110,21 +113,24 @@ int main(int argc, char** argv) {
 	};
 
 	fvcd << "$dumpvars\n";
-	sim.dump(valueDump);
+	sim.eachSignal(valueDump);
 	fvcd << "$end\n\n";
 
 	uint64_t lastT = -1;
 	while (!sim.isAtEnd()) {
-		sim.step([&](const AssemblySignal* sig, const SimulationValue& value) {
-			auto T = sim.getTime();
-			if (T.ps != lastT) {
-				fvcd << "#" << T.ps/1000 << '\n';
-				lastT = T.ps;
+		sim.step([&](
+			SimulationTime T,
+			const AssemblySignal* sig,
+			const SimulationValue& value) {
+
+			if (T.value != lastT) {
+				fvcd << "#" << T.value << '\n';
+				lastT = T.value;
 			}
-			valueDump(sig,value);
+			valueDump(T,sig,value);
 		});
 	}
-	fvcd << "#" << sim.getTime().ps/1000 << '\n';
+	fvcd << "#" << sim.getTime().value << '\n';
 
 	return 0;
 }

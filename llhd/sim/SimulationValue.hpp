@@ -3,6 +3,7 @@
 
 namespace llhd {
 
+/// Logic values supported by the simulator. Correspond to VHDL's logic model.
 enum SimulationLogicValue {
 	kLogicU,  // uninitialized
 	kLogicX,  // strong drive, unknown logic value
@@ -15,6 +16,7 @@ enum SimulationLogicValue {
 	kLogicDC, // don't care
 };
 
+/// A simulated signal value. At the moment only supports simple logic words.
 class SimulationValue {
 public:
 	unsigned width;
