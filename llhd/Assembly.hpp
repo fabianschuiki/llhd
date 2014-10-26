@@ -67,6 +67,11 @@ public:
 	const AssemblySignal* op1;
 };
 
+class AssemblyStorage {
+public:
+	const AssemblySignal* trigger;
+};
+
 class AssemblyModule {
 public:
 	std::string name;

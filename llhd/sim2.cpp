@@ -29,6 +29,14 @@ int main(int argc, char** argv) {
 	sigd->name = "%xord";
 	sigd->type.reset(new AssemblyTypeLogic);
 
+	std::shared_ptr<AssemblyTypeWord> typea(new AssemblyTypeWord);
+	typea->width = 4;
+	typea->type.reset(new AssemblyTypeLogic);
+	std::shared_ptr<AssemblySignal> rega(new AssemblySignal);
+	rega->dir = AssemblySignal::kRegister;
+	rega->name = "%cnt_dp";
+	rega->type = typea;
+
 	std::shared_ptr<AssemblyExprIdentity> expra(new AssemblyExprIdentity);
 	expra->op = siga.get();
 	sigb->assignment = expra;
@@ -50,6 +58,7 @@ int main(int argc, char** argv) {
 	mod->signals[sigb->name] = sigb;
 	mod->signals[sigc->name] = sigc;
 	mod->signals[sigd->name] = sigd;
+	mod->signals[rega->name] = rega;
 
 	Assembly as;
 	as.modules[mod->name] = mod;

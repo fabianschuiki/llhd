@@ -30,11 +30,22 @@ AssemblyWriter& AssemblyWriter::write(const AssemblyModule& in) {
 	if (written) out << '\n';
 	written = false;
 
-	// Other signals.
+	// Signals.
 	for (auto& is : in.signals) {
 		auto& s = *is.second;
-		if (s.dir == AssemblySignal::kSignal ||
-			s.dir == AssemblySignal::kRegister) {
+		if (s.dir == AssemblySignal::kSignal) {
+			out << '\t';
+			write(s);
+			written = true;
+		}
+	}
+	if (written) out << '\n';
+	written = false;
+
+	// Registers.
+	for (auto& is : in.signals) {
+		auto& s = *is.second;
+		if (s.dir == AssemblySignal::kRegister) {
 			out << '\t';
 			write(s);
 			written = true;
