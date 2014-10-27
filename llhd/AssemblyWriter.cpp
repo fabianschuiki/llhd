@@ -99,24 +99,72 @@ void AssemblyWriter::write(const AssemblyType& in) {
 	}
 }
 
-void AssemblyWriter::write(const AssemblyExpr& in) {
-	if (auto e = dynamic_cast<const AssemblyExprIdentity*>(&in)) {
-		out << e->op->name;
+void AssemblyWriter::write(const AssemblyIns& in) {
+	switch (in.getOpcode() & AssemblyIns::kOpMask) {
+
+		// unary operations
+		case AssemblyIns::kUnaryOps: {
+			auto& uins = *(const AssemblyUnaryIns*)&in;
+			switch (in.getOpcode()) {
+
+				// move
+				case AssemblyIns::kMove: {
+					if (uins.getDelay() == 0) {
+						out << uins.getArg()->name;
+					} else {
+						out << "delay ";
+						write(uins.getDelay());
+						out << " " << uins.getArg()->name;
+					}
+				} break;
+
+				default:
+					throw std::runtime_error("unknown unary opcode");
+			}
+		} break;
+
+		// binary operations
+		case AssemblyIns::kBinaryOps: {
+			auto& bins = *(const AssemblyBinaryIns*)&in;
+			switch (in.getOpcode()) {
+				case AssemblyIns::kBoolAND:  out << "and ";  break;
+				case AssemblyIns::kBoolOR:   out << "or ";   break;
+				case AssemblyIns::kBoolNAND: out << "nand "; break;
+				case AssemblyIns::kBoolNOR:  out << "nor ";  break;
+				case AssemblyIns::kBoolXOR:  out << "xor ";  break;
+				default:
+					throw std::runtime_error("unknown binary opcode");
+			}
+			out << bins.getArg0()->name << ' ' << bins.getArg1()->name;
+		} break;
+
+		// catch unknown operation types
+		default:
+			throw std::runtime_error("unknown opcode type");
 	}
-	else if (auto e = dynamic_cast<const AssemblyExprDelayed*>(&in)) {
-		out << "delay " << e->d << "ps " << e->op->name;
-	}
-	else if (auto e = dynamic_cast<const AssemblyExprBoolean*>(&in)) {
-		switch (e->type) {
-			case AssemblyExprBoolean::kAND:  out << "and ";  break;
-			case AssemblyExprBoolean::kOR:   out << "or ";   break;
-			case AssemblyExprBoolean::kNAND: out << "nand "; break;
-			case AssemblyExprBoolean::kNOR:  out << "nor ";  break;
-			case AssemblyExprBoolean::kXOR:  out << "xor ";  break;
-		}
-		out << e->op0->name << ' ' << e->op1->name;
-	}
-	else {
-		throw std::runtime_error("unknown expression");
-	}
+	// if (auto e = dynamic_cast<const AssemblyInsIdentity*>(&in)) {
+	// 	out << e->op->name;
+	// }
+	// else if (auto e = dynamic_cast<const AssemblyInsDelayed*>(&in)) {
+	// 	out << "delay " << e->d << "ps " << e->op->name;
+	// }
+	// else if (auto e = dynamic_cast<const AssemblyInsBoolean*>(&in)) {
+	// 	switch (e->getOpcode()) {
+	// 		case AssemblyIns::kBoolAND:  out << "and ";  break;
+	// 		case AssemblyIns::kBoolOR:   out << "or ";   break;
+	// 		case AssemblyIns::kBoolNAND: out << "nand "; break;
+	// 		case AssemblyIns::kBoolNOR:  out << "nor ";  break;
+	// 		case AssemblyIns::kBoolXOR:  out << "xor ";  break;
+	// 		default:
+	// 			throw std::runtime_error("unknown boolean opcode");
+	// 	}
+	// 	out << e->op0->name << ' ' << e->op1->name;
+	// }
+	// else {
+	// 	throw std::runtime_error("unknown expression");
+	// }
+}
+
+void AssemblyWriter::write(const AssemblyDuration& in) {
+	out << in << "ns";
 }

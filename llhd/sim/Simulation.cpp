@@ -14,6 +14,14 @@ Simulation::Simulation(const AssemblyModule& as):
 	for (auto& is : as.signals) {
 		wrap(is.second.get());
 	}
+
+	// Initialize the signal assignments.
+	for (auto& wr : wrappers) {
+		auto sig = wr.second.get();
+		if (sig->getAssemblySignal()->assignment) {
+			wrap(sig, sig->getAssemblySignal()->assignment.get());
+		}
+	}
 }
 
 /// Wraps the given signal in a structure suitable for simulation. Called
@@ -26,9 +34,9 @@ void Simulation::wrap(const AssemblySignal *signal) {
 		wrap(signal->type.get())));
 
 	// If the signal has an associated assignment, wrap that accordingly.
-	if (signal->assignment) {
-		wrap(w.get(), signal->assignment.get());
-	}
+	// if (signal->assignment) {
+	// 	wrap(w.get(), signal->assignment.get());
+	// }
 
 	// Add the signal to the list of wrappers.
 	wrappers[signal] = std::move(w);
@@ -51,60 +59,69 @@ SimulationValue Simulation::wrap(const AssemblyType *type) {
 /// operation and keeps track of the input and output signals.
 void Simulation::wrap(
 	SimulationSignal *signal,
-	const AssemblyExpr *expr) {
+	const AssemblyIns *expr) {
 
 	SimulationDependency *w = nullptr;
 
-	// identity
-	if (auto a = dynamic_cast<const AssemblyExprIdentity*>(expr)) {
-		auto arg0 = wrappers[a->op].get();
-		assert(arg0);
-		auto it = dependencies.emplace(new SimulationIdentityExpr(
-			signal, arg0));
-		w = it.first->get();
-		arg0->addDependency(w);
-	}
+	switch (expr->getOpcode() & AssemblyIns::kOpMask) {
 
-	// delayed
-	else if (auto a = dynamic_cast<const AssemblyExprDelayed*>(expr)) {
-		auto arg0 = wrappers[a->op].get();
-		assert(arg0);
-		auto it = dependencies.emplace(new SimulationDelayExpr(
-			signal, arg0, a->d));
-		w = it.first->get();
-		arg0->addDependency(w);
-	}
+		// unary operations
+		case AssemblyIns::kUnaryOps: {
+			auto uins = (const AssemblyUnaryIns*)expr;
+			auto arg0 = wrappers[uins->getArg()].get();
+			assert(arg0);
 
-	// boolean
-	else if (auto a = dynamic_cast<const AssemblyExprBoolean*>(expr)) {
-		auto arg0 = wrappers[a->op0].get();
-		auto arg1 = wrappers[a->op1].get();
-		assert(arg0 && arg1);
+			switch (expr->getOpcode()) {
+				case AssemblyIns::kMove: {
+					if (uins->getDelay() == 0) {
+						auto it = dependencies.emplace(
+							new SimulationIdentityExpr(signal, arg0));
+						w = it.first->get();
+						arg0->addDependency(w);
+					} else {
+						auto it = dependencies.emplace(new SimulationDelayExpr(
+							signal, arg0, uins->getDelay()));
+						w = it.first->get();
+						arg0->addDependency(w);
+					}
+				} break;
+				default:
+					throw std::runtime_error("unknown unary opcode");
+			}
+		} break;
 
-		SimulationBooleanExpr::FuncType fn;
-		switch (a->type) {
-			case AssemblyExprBoolean::kAND:
-				fn = SimulationBooleanExpr::fAND; break;
-			case AssemblyExprBoolean::kNAND:
-				fn = SimulationBooleanExpr::fNAND; break;
-			case AssemblyExprBoolean::kOR:
-				fn = SimulationBooleanExpr::fOR; break;
-			case AssemblyExprBoolean::kNOR:
-				fn = SimulationBooleanExpr::fNOR; break;
-			case AssemblyExprBoolean::kXOR:
-				fn = SimulationBooleanExpr::fXOR; break;
-		}
+		// binary operations
+		case AssemblyIns::kBinaryOps: {
+			auto bins = (const AssemblyBinaryIns*)expr;
+			auto arg0 = wrappers[bins->getArg0()].get();
+			auto arg1 = wrappers[bins->getArg1()].get();
+			assert(arg0 && arg1);
 
-		auto it = dependencies.emplace(new SimulationBooleanExpr(
-			signal, arg0, arg1, fn));
-		w = it.first->get();
-		arg0->addDependency(w);
-		arg1->addDependency(w);
-	}
+			SimulationBooleanExpr::FuncType fn;
+			switch (bins->getOpcode()) {
+				case AssemblyIns::kBoolAND:
+					fn = SimulationBooleanExpr::fAND; break;
+				case AssemblyIns::kBoolNAND:
+					fn = SimulationBooleanExpr::fNAND; break;
+				case AssemblyIns::kBoolOR:
+					fn = SimulationBooleanExpr::fOR; break;
+				case AssemblyIns::kBoolNOR:
+					fn = SimulationBooleanExpr::fNOR; break;
+				case AssemblyIns::kBoolXOR:
+					fn = SimulationBooleanExpr::fXOR; break;
+				default:
+					throw std::runtime_error("unknown boolean opcode");
+			}
 
-	// unknown
-	else {
-		throw std::runtime_error("unknown expression");
+			auto it = dependencies.emplace(new SimulationBooleanExpr(
+				signal, arg0, arg1, fn));
+			w = it.first->get();
+			arg0->addDependency(w);
+			arg1->addDependency(w);
+		} break;
+
+		default:
+			throw std::runtime_error("unknown opcode");
 	}
 }
 

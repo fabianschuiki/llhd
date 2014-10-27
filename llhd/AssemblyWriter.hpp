@@ -11,7 +11,8 @@ class AssemblyWriter {
 
 	void write(const AssemblySignal& in);
 	void write(const AssemblyType& in);
-	void write(const AssemblyExpr& in);
+	void write(const AssemblyIns& in);
+	void write(const AssemblyDuration& in);
 
 public:
 	AssemblyWriter(std::ostream& out): out(out) {}

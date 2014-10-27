@@ -14,6 +14,11 @@ int main(int argc, char** argv) {
 	siga->name = "%clk";
 	siga->type.reset(new AssemblyTypeLogic);
 
+	std::shared_ptr<AssemblySignal> sigrst(new AssemblySignal);
+	sigrst->dir = AssemblySignal::kSignal;
+	sigrst->name = "%rst";
+	sigrst->type.reset(new AssemblyTypeLogic);
+
 	std::shared_ptr<AssemblySignal> sigb(new AssemblySignal);
 	sigb->dir = AssemblySignal::kSignal;
 	sigb->name = "%clk2";
@@ -29,35 +34,45 @@ int main(int argc, char** argv) {
 	sigd->name = "%xord";
 	sigd->type.reset(new AssemblyTypeLogic);
 
-	std::shared_ptr<AssemblyTypeWord> typea(new AssemblyTypeWord);
-	typea->width = 4;
-	typea->type.reset(new AssemblyTypeLogic);
+	std::shared_ptr<AssemblySignal> sige(new AssemblySignal);
+	sige->dir = AssemblySignal::kSignal;
+	sige->name = "%cnt_dn";
+	sige->type.reset(new AssemblyTypeLogic);
+
 	std::shared_ptr<AssemblySignal> rega(new AssemblySignal);
 	rega->dir = AssemblySignal::kRegister;
 	rega->name = "%cnt_dp";
-	rega->type = typea;
+	rega->type.reset(new AssemblyTypeLogic);
 
-	std::shared_ptr<AssemblyExprIdentity> expra(new AssemblyExprIdentity);
-	expra->op = siga.get();
+	auto expra = std::make_shared<AssemblyUnaryIns>(AssemblyIns::kMove, 0, siga.get(), sigb.get());
+	// expra->op = siga.get();
 	sigb->assignment = expra;
 
-	std::shared_ptr<AssemblyExprDelayed> exprb(new AssemblyExprDelayed);
-	exprb->op = sigb.get();
-	exprb->d = 3;
+	auto exprb = std::make_shared<AssemblyUnaryIns>(AssemblyIns::kMove, 3, sigb.get(), sigc.get());
+	// exprb->op = sigb.get();
+	// exprb->d = 3;
 	sigc->assignment = exprb;
 
-	std::shared_ptr<AssemblyExprBoolean> exprc(new AssemblyExprBoolean);
-	exprc->type = AssemblyExprBoolean::kXOR;
-	exprc->op0 = siga.get();
-	exprc->op1 = sigc.get();
+	auto exprc = std::make_shared<AssemblyBinaryIns>(AssemblyIns::kBoolXOR, siga.get(), sigc.get(), sigd.get());
+	// exprc->type = AssemblyBinaryIns::kXOR;
+	// exprc->op0 = siga.get();
+	// exprc->op1 = sigc.get();
 	sigd->assignment = exprc;
+
+	auto exprd = std::make_shared<AssemblyBinaryIns>(AssemblyIns::kBoolNOR, rega.get(), rega.get(), sige.get());
+	// exprd->type = AssemblyBinaryIns::kNOR;
+	// exprd->op0 = rega.get();
+	// exprd->op1 = rega.get();
+	sige->assignment = exprd;
 
 	std::shared_ptr<AssemblyModule> mod(new AssemblyModule);
 	mod->name = "@main";
 	mod->signals[siga->name] = siga;
+	mod->signals[sigrst->name] = sigrst;
 	mod->signals[sigb->name] = sigb;
 	mod->signals[sigc->name] = sigc;
 	mod->signals[sigd->name] = sigd;
+	mod->signals[sige->name] = sige;
 	mod->signals[rega->name] = rega;
 
 	Assembly as;
@@ -67,6 +82,9 @@ int main(int argc, char** argv) {
 	AssemblyWriter(fout).write(as);
 
 	Simulation sim(*mod);
+	sim.addEvent(0, sigrst.get(), SimulationValue(1, kLogic1));
+	sim.addEvent(3, sigrst.get(), SimulationValue(1, kLogic0));
+	sim.addEvent(13, sigrst.get(), SimulationValue(1, kLogic1));
 	for (unsigned i = 1; i < 20; i++) {
 		sim.addEvent(i*10+0, siga.get(), SimulationValue(1, kLogic1));
 		sim.addEvent(i*10+5, siga.get(), SimulationValue(1, kLogic0));
