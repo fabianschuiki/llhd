@@ -35,7 +35,7 @@ if (UNIX)
 	add_definitions(-Wall -std=c++11)
 endif()
 
-find_package(Boost COMPONENTS REQUIRED filesystem system unit_test_framework)
+find_package(Boost COMPONENTS REQUIRED system unit_test_framework)
 add_definitions(-DBOOST_TEST_DYN_LINK)
 include_directories(${Boost_INCLUDE_DIRS})
 

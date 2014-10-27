@@ -176,7 +176,7 @@ private:
 
 	/// Deallocates all slabs.
 	void deallocateSlabs() {
-		for (int i = 0; i < slabs.size(); i++) {
+		for (unsigned i = 0; i < slabs.size(); i++) {
 			allocator.deallocate(slabs[i]);
 		}
 	}
