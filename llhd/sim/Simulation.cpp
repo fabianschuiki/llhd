@@ -19,7 +19,7 @@ Simulation::Simulation(const AssemblyModule& as):
 	for (auto& wr : wrappers) {
 		auto sig = wr.second.get();
 		if (sig->getAssemblySignal()->assignment) {
-			wrap(sig, sig->getAssemblySignal()->assignment.get());
+			wrap(sig->getAssemblySignal()->assignment.get());
 		}
 	}
 }
@@ -32,11 +32,6 @@ void Simulation::wrap(const AssemblySignal *signal) {
 	std::unique_ptr<SimulationSignal> w(new SimulationSignal(
 		signal,
 		wrap(signal->type.get())));
-
-	// If the signal has an associated assignment, wrap that accordingly.
-	// if (signal->assignment) {
-	// 	wrap(w.get(), signal->assignment.get());
-	// }
 
 	// Add the signal to the list of wrappers.
 	wrappers[signal] = std::move(w);
@@ -57,9 +52,7 @@ SimulationValue Simulation::wrap(const AssemblyType *type) {
 
 /// Wraps the given expression in a structure that implements the corresponding
 /// operation and keeps track of the input and output signals.
-void Simulation::wrap(
-	SimulationSignal *signal,
-	const AssemblyIns *expr) {
+void Simulation::wrap(const AssemblyIns *expr) {
 
 	SimulationDependency *w = nullptr;
 
@@ -68,6 +61,7 @@ void Simulation::wrap(
 		// unary operations
 		case AssemblyIns::kUnaryOps: {
 			auto uins = (const AssemblyUnaryIns*)expr;
+			auto result = wrappers[uins->getResult()].get();
 			auto arg0 = wrappers[uins->getArg()].get();
 			assert(arg0);
 
@@ -75,12 +69,12 @@ void Simulation::wrap(
 				case AssemblyIns::kMove: {
 					if (uins->getDelay() == 0) {
 						auto it = dependencies.emplace(
-							new SimulationIdentityExpr(signal, arg0));
+							new SimulationIdentityExpr(result, arg0));
 						w = it.first->get();
 						arg0->addDependency(w);
 					} else {
 						auto it = dependencies.emplace(new SimulationDelayExpr(
-							signal, arg0, uins->getDelay()));
+							result, arg0, uins->getDelay()));
 						w = it.first->get();
 						arg0->addDependency(w);
 					}
@@ -93,6 +87,7 @@ void Simulation::wrap(
 		// binary operations
 		case AssemblyIns::kBinaryOps: {
 			auto bins = (const AssemblyBinaryIns*)expr;
+			auto result = wrappers[bins->getResult()].get();
 			auto arg0 = wrappers[bins->getArg0()].get();
 			auto arg1 = wrappers[bins->getArg1()].get();
 			assert(arg0 && arg1);
@@ -114,7 +109,7 @@ void Simulation::wrap(
 			}
 
 			auto it = dependencies.emplace(new SimulationBooleanExpr(
-				signal, arg0, arg1, fn));
+				result, arg0, arg1, fn));
 			w = it.first->get();
 			arg0->addDependency(w);
 			arg1->addDependency(w);

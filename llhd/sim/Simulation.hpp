@@ -34,7 +34,7 @@ private:
 
 	void wrap(const AssemblySignal *signal);
 	SimulationValue wrap(const AssemblyType *type);
-	void wrap(SimulationSignal *signal, const AssemblyIns *expr);
+	void wrap(const AssemblyIns *expr);
 
 public:
 	Simulation(const AssemblyModule& as);
