@@ -77,7 +77,7 @@ bool AssemblyParser::parseTopLevel() {
 bool AssemblyParser::parseDefine() {
 	assert(lex.getToken() == AssemblyLexer::kKeywordDefine);
 	lex.next();
-	std::shared_ptr<AssemblyModule> M(new AssemblyModule);
+	auto M = std::make_shared<AssemblyModule>();
 
 	// module name
 	bool global;
@@ -86,6 +86,7 @@ bool AssemblyParser::parseDefine() {
 	case AssemblyLexer::kIdentifierLocal: global = false; break;
 	default: return error("expected global or local name");
 	}
+	M->setName(lex.getText());
 	ModuleContext ctx { *M.get(), lex.getRange(), lex.getText() };
 
 	// module body
@@ -96,7 +97,7 @@ bool AssemblyParser::parseDefine() {
 
 	// add the module to the appropriate symbol table
 	if (global) {
-		auto& slot = into.modules[M->name];
+		auto& slot = into.modules[M->getName()];
 		if (slot) {
 			return error(ctx.range, "symbol name already used");
 		}
@@ -126,20 +127,21 @@ bool AssemblyParser::parseModuleInstruction(ModuleContext& ctx) {
 
 		if (oneof(ins, "in", "out", "sig", "reg")) {
 			std::shared_ptr<AssemblySignal> S(new AssemblySignal);
-			if (ins == "in") S->dir = AssemblySignal::kPortIn;
-			if (ins == "out") S->dir = AssemblySignal::kPortOut;
-			if (ins == "sig") S->dir = AssemblySignal::kSignal;
-			if (ins == "reg") S->dir = AssemblySignal::kRegister;
+			if (ins == "in") S->setDirection(AssemblySignal::kPortIn);
+			if (ins == "out") S->setDirection(AssemblySignal::kPortOut);
+			if (ins == "sig") S->setDirection(AssemblySignal::kSignal);
+			if (ins == "reg") S->setDirection(AssemblySignal::kRegister);
 
 			SlotContext sctx { ctx, *S };
 			if (!parseModuleSlot(sctx))
 				return false;
 
-			auto& slot = ctx.module.signals[S->name];
-			if (slot) {
-				return error(sctx.namerange, "symbol name already used");
-			}
-			slot = std::move(S);
+			// auto& slot = ctx.module.signals[S->name];
+			// if (slot) {
+			// 	return error(sctx.namerange, "symbol name already used");
+			// }
+			// slot = std::move(S);
+			ctx.module.addSignal(std::move(S));
 			return true;
 		}
 	}
@@ -167,7 +169,7 @@ bool AssemblyParser::parseModuleSlot(SlotContext& ctx) {
 		return error("expected name");
 	}
 	ctx.namerange = lex.getRange();
-	ctx.slot.name = lex.getText();
+	ctx.slot.setName(lex.getText());
 
 	return true;
 }

@@ -32,9 +32,9 @@ private:
 	std::map<const AssemblySignal*, std::unique_ptr<SimulationSignal>> wrappers;
 	std::set<std::unique_ptr<SimulationDependency>> dependencies;
 
-	void wrap(const AssemblySignal *signal);
+	void wrap(const AssemblySignal& signal);
 	SimulationValue wrap(const AssemblyType *type);
-	void wrap(const AssemblyIns *expr);
+	void wrap(const AssemblyIns& ins);
 
 public:
 	Simulation(const AssemblyModule& as);

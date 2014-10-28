@@ -13,6 +13,8 @@ class AssemblyWriter {
 	void write(const AssemblyType& in);
 	void write(const AssemblyIns& in);
 	void write(const AssemblyDuration& in);
+	void write(const char* name, const AssemblyUnaryIns& in);
+	void write(const char* name, const AssemblyBinaryIns& in);
 
 public:
 	AssemblyWriter(std::ostream& out): out(out) {}

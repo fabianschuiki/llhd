@@ -14,63 +14,59 @@ AssemblyWriter& AssemblyWriter::write(const Assembly& in) {
 }
 
 AssemblyWriter& AssemblyWriter::write(const AssemblyModule& in) {
-	out << "define " << in.name << " {\n";
+	out << "define " << in.getName() << " {\n";
 	bool written = false;
 
 	// Input and output.
-	for (auto& is : in.signals) {
-		auto& s = *is.second;
-		if (s.dir == AssemblySignal::kPortIn ||
-			s.dir == AssemblySignal::kPortOut) {
+	in.eachSignal([&](const AssemblySignal& s){
+		if (s.getDirection() == AssemblySignal::kPortIn ||
+			s.getDirection() == AssemblySignal::kPortOut) {
 			out << '\t';
 			write(s);
 			written = true;
 		}
-	}
+	});
 	if (written) out << '\n';
 	written = false;
 
 	// Signals.
-	for (auto& is : in.signals) {
-		auto& s = *is.second;
-		if (s.dir == AssemblySignal::kSignal) {
+	in.eachSignal([&](const AssemblySignal& s){
+		if (s.getDirection() == AssemblySignal::kSignal) {
 			out << '\t';
 			write(s);
 			written = true;
 		}
-	}
+	});
 	if (written) out << '\n';
 	written = false;
 
 	// Registers.
-	for (auto& is : in.signals) {
-		auto& s = *is.second;
-		if (s.dir == AssemblySignal::kRegister) {
+	in.eachSignal([&](const AssemblySignal& s){
+		if (s.getDirection() == AssemblySignal::kRegister) {
 			out << '\t';
 			write(s);
 			written = true;
 		}
-	}
+	});
 	if (written) out << '\n';
 	written = false;
 
 	// Assignments.
-	for (auto& is : in.signals) {
-		auto& s = *is.second;
-		if (s.assignment) {
-			out << '\t' << s.name << " = ";
-			write(*s.assignment);
-			out << '\n';
-			written = true;
+	in.eachInstruction([&](const AssemblyIns& ins){
+		if (auto res = ins.getResult()) {
+			out << '\t' << res->getName() << " = ";
 		}
-	}
+		write(ins);
+		out << '\n';
+		written = true;
+	});
 
 	out << "}\n";
 	return *this;
 }
 
 void AssemblyWriter::write(const AssemblySignal& in) {
-	switch (in.dir) {
+	switch (in.getDirection()) {
 		case AssemblySignal::kPortIn:   out << "in ";   break;
 		case AssemblySignal::kPortOut:  out << "out ";  break;
 		case AssemblySignal::kSignal:   out << "wire "; break;
@@ -78,8 +74,8 @@ void AssemblyWriter::write(const AssemblySignal& in) {
 		default: return;
 	}
 
-	write(*in.type);
-	out << ' ' << in.name << '\n';
+	write(*in.getType());
+	out << ' ' << in.getName() << '\n';
 }
 
 void AssemblyWriter::write(const AssemblyType& in) {
@@ -110,13 +106,18 @@ void AssemblyWriter::write(const AssemblyIns& in) {
 				// move
 				case AssemblyIns::kMove: {
 					if (uins.getDelay() == 0) {
-						out << uins.getArg()->name;
+						out << uins.getArg()->getName();
 					} else {
 						out << "delay ";
 						write(uins.getDelay());
-						out << " " << uins.getArg()->name;
+						out << " " << uins.getArg()->getName();
 					}
 				} break;
+
+				case AssemblyIns::kEdge: write("edge", uins); break;
+				case AssemblyIns::kRisingEdge: write("rise", uins); break;
+				case AssemblyIns::kFallingEdge: write("fall", uins); break;
+				case AssemblyIns::kBoolNOT: write("not", uins); break;
 
 				default:
 					throw std::runtime_error("unknown unary opcode");
@@ -127,44 +128,45 @@ void AssemblyWriter::write(const AssemblyIns& in) {
 		case AssemblyIns::kBinaryOps: {
 			auto& bins = *(const AssemblyBinaryIns*)&in;
 			switch (in.getOpcode()) {
-				case AssemblyIns::kBoolAND:  out << "and ";  break;
-				case AssemblyIns::kBoolOR:   out << "or ";   break;
-				case AssemblyIns::kBoolNAND: out << "nand "; break;
-				case AssemblyIns::kBoolNOR:  out << "nor ";  break;
-				case AssemblyIns::kBoolXOR:  out << "xor ";  break;
+				case AssemblyIns::kBoolAND:  write("and", bins); break;
+				case AssemblyIns::kBoolOR:   write("or", bins); break;
+				case AssemblyIns::kBoolNAND: write("nand", bins); break;
+				case AssemblyIns::kBoolNOR:  write("nor", bins); break;
+				case AssemblyIns::kBoolXOR:  write("xor", bins); break;
+				case AssemblyIns::kStore:    write("st", bins); break;
 				default:
 					throw std::runtime_error("unknown binary opcode");
 			}
-			out << bins.getArg0()->name << ' ' << bins.getArg1()->name;
+		} break;
+
+		// mux operations
+		case AssemblyIns::kMuxOps: {
+			switch (in.getOpcode()) {
+				case AssemblyIns::kBimux: {
+					auto& ins = *(const AssemblyBimuxIns*)&in;
+					out << "bimux " << ins.getSelect()->getName() << ' ' <<
+						ins.getCase0()->getName() << ' ' <<
+						ins.getCase1()->getName();
+				} break;
+				default:
+					throw std::runtime_error("unknown mux opcode");
+			}
 		} break;
 
 		// catch unknown operation types
 		default:
 			throw std::runtime_error("unknown opcode type");
 	}
-	// if (auto e = dynamic_cast<const AssemblyInsIdentity*>(&in)) {
-	// 	out << e->op->name;
-	// }
-	// else if (auto e = dynamic_cast<const AssemblyInsDelayed*>(&in)) {
-	// 	out << "delay " << e->d << "ps " << e->op->name;
-	// }
-	// else if (auto e = dynamic_cast<const AssemblyInsBoolean*>(&in)) {
-	// 	switch (e->getOpcode()) {
-	// 		case AssemblyIns::kBoolAND:  out << "and ";  break;
-	// 		case AssemblyIns::kBoolOR:   out << "or ";   break;
-	// 		case AssemblyIns::kBoolNAND: out << "nand "; break;
-	// 		case AssemblyIns::kBoolNOR:  out << "nor ";  break;
-	// 		case AssemblyIns::kBoolXOR:  out << "xor ";  break;
-	// 		default:
-	// 			throw std::runtime_error("unknown boolean opcode");
-	// 	}
-	// 	out << e->op0->name << ' ' << e->op1->name;
-	// }
-	// else {
-	// 	throw std::runtime_error("unknown expression");
-	// }
 }
 
 void AssemblyWriter::write(const AssemblyDuration& in) {
 	out << in << "ns";
+}
+
+void AssemblyWriter::write(const char* name, const AssemblyUnaryIns& in) {
+	out << name << ' ' << in.getArg()->getName();
+}
+
+void AssemblyWriter::write(const char* name, const AssemblyBinaryIns& in) {
+	out << name << ' ' << in.getArg0()->getName() << ' ' << in.getArg1()->getName();
 }

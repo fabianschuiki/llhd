@@ -8,86 +8,70 @@ using namespace llhd;
 
 int main(int argc, char** argv) {
 
+	auto mod = std::make_shared<AssemblyModule>("@main");
 
-	std::shared_ptr<AssemblySignal> siga(new AssemblySignal);
-	siga->dir = AssemblySignal::kSignal;
-	siga->name = "%clk";
-	siga->type.reset(new AssemblyTypeLogic);
+	auto sig_clk = mod->newSignal(AssemblySignal::kSignal, "%clk",
+		std::make_shared<AssemblyTypeLogic>());
+	// sig_clk->type.reset(new AssemblyTypeLogic);
 
-	std::shared_ptr<AssemblySignal> sigrst(new AssemblySignal);
-	sigrst->dir = AssemblySignal::kSignal;
-	sigrst->name = "%rst";
-	sigrst->type.reset(new AssemblyTypeLogic);
+	auto sig_rst = mod->newSignal(AssemblySignal::kSignal, "%rst",
+		std::make_shared<AssemblyTypeLogic>());
 
-	std::shared_ptr<AssemblySignal> sigb(new AssemblySignal);
-	sigb->dir = AssemblySignal::kSignal;
-	sigb->name = "%clk2";
-	sigb->type.reset(new AssemblyTypeLogic);
+	auto sigb = mod->newSignal(AssemblySignal::kSignal, "%clk2",
+		std::make_shared<AssemblyTypeLogic>());
 
-	std::shared_ptr<AssemblySignal> sigc(new AssemblySignal);
-	sigc->dir = AssemblySignal::kSignal;
-	sigc->name = "%inv";
-	sigc->type.reset(new AssemblyTypeLogic);
+	auto sigc = mod->newSignal(AssemblySignal::kSignal, "%inv",
+		std::make_shared<AssemblyTypeLogic>());
 
-	std::shared_ptr<AssemblySignal> sigd(new AssemblySignal);
-	sigd->dir = AssemblySignal::kSignal;
-	sigd->name = "%xord";
-	sigd->type.reset(new AssemblyTypeLogic);
+	auto sigd = mod->newSignal(AssemblySignal::kSignal, "%xord",
+		std::make_shared<AssemblyTypeLogic>());
 
-	std::shared_ptr<AssemblySignal> sige(new AssemblySignal);
-	sige->dir = AssemblySignal::kSignal;
-	sige->name = "%cnt_dn";
-	sige->type.reset(new AssemblyTypeLogic);
+	auto sige = mod->newSignal(AssemblySignal::kSignal, "%cnt_dpb",
+		std::make_shared<AssemblyTypeLogic>());
 
-	std::shared_ptr<AssemblySignal> rega(new AssemblySignal);
-	rega->dir = AssemblySignal::kRegister;
-	rega->name = "%cnt_dp";
-	rega->type.reset(new AssemblyTypeLogic);
+	auto sigf = mod->newSignal(AssemblySignal::kSignal, "%const0",
+		std::make_shared<AssemblyTypeLogic>());
 
-	auto expra = std::make_shared<AssemblyUnaryIns>(AssemblyIns::kMove, 0, siga.get(), sigb.get());
-	// expra->op = siga.get();
-	sigb->assignment = expra;
+	auto sigg = mod->newSignal(AssemblySignal::kSignal, "%const1",
+		std::make_shared<AssemblyTypeLogic>());
 
-	auto exprb = std::make_shared<AssemblyUnaryIns>(AssemblyIns::kMove, 3, sigb.get(), sigc.get());
-	// exprb->op = sigb.get();
-	// exprb->d = 3;
-	sigc->assignment = exprb;
+	auto sig_cnt_dn = mod->newSignal(AssemblySignal::kSignal, "%cnt_dn",
+		std::make_shared<AssemblyTypeLogic>());
 
-	auto exprc = std::make_shared<AssemblyBinaryIns>(AssemblyIns::kBoolXOR, siga.get(), sigc.get(), sigd.get());
-	// exprc->type = AssemblyBinaryIns::kXOR;
-	// exprc->op0 = siga.get();
-	// exprc->op1 = sigc.get();
-	sigd->assignment = exprc;
+	auto sig_cnt_dp = mod->newSignal(AssemblySignal::kRegister, "%cnt_dp",
+		std::make_shared<AssemblyTypeLogic>());
 
-	auto exprd = std::make_shared<AssemblyBinaryIns>(AssemblyIns::kBoolNOR, rega.get(), rega.get(), sige.get());
-	// exprd->type = AssemblyBinaryIns::kNOR;
-	// exprd->op0 = rega.get();
-	// exprd->op1 = rega.get();
-	sige->assignment = exprd;
+	auto sig_rise = mod->newSignal(AssemblySignal::kSignal, "%clk_rise",
+		std::make_shared<AssemblyTypeLogic>());
 
-	std::shared_ptr<AssemblyModule> mod(new AssemblyModule);
-	mod->name = "@main";
-	mod->signals[siga->name] = siga;
-	mod->signals[sigrst->name] = sigrst;
-	mod->signals[sigb->name] = sigb;
-	mod->signals[sigc->name] = sigc;
-	mod->signals[sigd->name] = sigd;
-	mod->signals[sige->name] = sige;
-	mod->signals[rega->name] = rega;
+	auto sig_rise_rst = mod->newSignal(AssemblySignal::kSignal, "%clk_rise_rst",
+		std::make_shared<AssemblyTypeLogic>());
+
+	mod->newInstruction<AssemblyUnaryIns>(AssemblyIns::kMove, sigb, 0, sig_clk);
+	mod->newInstruction<AssemblyUnaryIns>(AssemblyIns::kMove, sigc, 3, sigb);
+	mod->newInstruction<AssemblyBinaryIns>(AssemblyIns::kBoolXOR, sigd, sig_clk, sigc);
+	mod->newInstruction<AssemblyBimuxIns>(AssemblyIns::kBimux, sig_rise_rst, sig_rst, sigg, sig_rise);
+	mod->newInstruction<AssemblyUnaryIns>(AssemblyIns::kBoolNOT, sige, 0, sig_cnt_dp);
+	mod->newInstruction<AssemblyUnaryIns>(AssemblyIns::kRisingEdge, sig_rise, 0, sig_clk);
+	mod->newInstruction<AssemblyBimuxIns>(AssemblyIns::kBimux, sig_cnt_dn, sig_rst, sigf, sige);
+	mod->newInstruction<AssemblyBinaryIns>(AssemblyIns::kStore, sig_cnt_dp, sig_rise_rst, sig_cnt_dn);
 
 	Assembly as;
-	as.modules[mod->name] = mod;
+	as.modules[mod->getName()] = mod;
 
 	std::ofstream fout("sim2.llhd");
 	AssemblyWriter(fout).write(as);
+	fout.close();
 
 	Simulation sim(*mod);
-	sim.addEvent(0, sigrst.get(), SimulationValue(1, kLogic1));
-	sim.addEvent(3, sigrst.get(), SimulationValue(1, kLogic0));
-	sim.addEvent(13, sigrst.get(), SimulationValue(1, kLogic1));
+	sim.addEvent(0, sigf, SimulationValue(1, kLogic0));
+	sim.addEvent(0, sigg, SimulationValue(1, kLogic1));
+	sim.addEvent(0, sig_rst, SimulationValue(1, kLogic1));
+	sim.addEvent(3, sig_rst, SimulationValue(1, kLogic0));
+	sim.addEvent(13, sig_rst, SimulationValue(1, kLogic1));
 	for (unsigned i = 1; i < 20; i++) {
-		sim.addEvent(i*10+0, siga.get(), SimulationValue(1, kLogic1));
-		sim.addEvent(i*10+5, siga.get(), SimulationValue(1, kLogic0));
+		sim.addEvent(i*10+0, sig_clk, SimulationValue(1, kLogic1));
+		sim.addEvent(i*10+5, sig_clk, SimulationValue(1, kLogic0));
 	}
 
 	unsigned namebase = 0;
@@ -110,7 +94,7 @@ int main(int argc, char** argv) {
 			name += 33+v;
 		}
 		++namebase;
-		fvcd << "$var wire " << value.width << " " << name << " " << sig->name
+		fvcd << "$var wire " << value.width << " " << name << " " << sig->getName()
 			<< " $end\n";
 		names[sig] = name;
 	});

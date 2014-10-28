@@ -11,30 +11,30 @@ Simulation::Simulation(const AssemblyModule& as):
 	as(as) {
 
 	// Initialize the signal wrappers.
-	for (auto& is : as.signals) {
-		wrap(is.second.get());
-	}
+	// for (auto& is : as.signals) {
+	// 	wrap(is.second.get());
+	// }
+	as.eachSignal([&](const AssemblySignal& sig){
+		wrap(sig);
+	});
 
-	// Initialize the signal assignments.
-	for (auto& wr : wrappers) {
-		auto sig = wr.second.get();
-		if (sig->getAssemblySignal()->assignment) {
-			wrap(sig->getAssemblySignal()->assignment.get());
-		}
-	}
+	// Initialize the instructions.
+	as.eachInstruction([&](const AssemblyIns& ins){
+		wrap(ins);
+	});
 }
 
 /// Wraps the given signal in a structure suitable for simulation. Called
 /// internally when the module to be simulated is prepared.
-void Simulation::wrap(const AssemblySignal *signal) {
+void Simulation::wrap(const AssemblySignal& sig) {
 
 	// Wrap the signal in a simulation-specific structure.
 	std::unique_ptr<SimulationSignal> w(new SimulationSignal(
-		signal,
-		wrap(signal->type.get())));
+		&sig,
+		wrap(sig.getType().get())));
 
 	// Add the signal to the list of wrappers.
-	wrappers[signal] = std::move(w);
+	wrappers[&sig] = std::move(w);
 }
 
 /// Wraps the given type in a structure suitable for simulation.
@@ -52,33 +52,53 @@ SimulationValue Simulation::wrap(const AssemblyType *type) {
 
 /// Wraps the given expression in a structure that implements the corresponding
 /// operation and keeps track of the input and output signals.
-void Simulation::wrap(const AssemblyIns *expr) {
+void Simulation::wrap(const AssemblyIns& ins) {
 
 	SimulationDependency *w = nullptr;
 
-	switch (expr->getOpcode() & AssemblyIns::kOpMask) {
+	switch (ins.getOpcode() & AssemblyIns::kOpMask) {
 
 		// unary operations
 		case AssemblyIns::kUnaryOps: {
-			auto uins = (const AssemblyUnaryIns*)expr;
-			auto result = wrappers[uins->getResult()].get();
-			auto arg0 = wrappers[uins->getArg()].get();
+			auto uins = *(const AssemblyUnaryIns*)&ins;
+			auto result = wrappers[uins.getResult()].get();
+			auto arg0 = wrappers[uins.getArg()].get();
 			assert(arg0);
 
-			switch (expr->getOpcode()) {
+			switch (ins.getOpcode()) {
 				case AssemblyIns::kMove: {
-					if (uins->getDelay() == 0) {
+					if (uins.getDelay() == 0) {
 						auto it = dependencies.emplace(
 							new SimulationIdentityExpr(result, arg0));
 						w = it.first->get();
 						arg0->addDependency(w);
 					} else {
 						auto it = dependencies.emplace(new SimulationDelayExpr(
-							result, arg0, uins->getDelay()));
+							result, arg0, uins.getDelay()));
 						w = it.first->get();
 						arg0->addDependency(w);
 					}
 				} break;
+
+				case AssemblyIns::kBoolNOT: {
+					auto it = dependencies.emplace(
+						new SimulationBooleanUnaryIns(result, arg0,
+							SimulationBooleanUnaryIns::fNOT));
+					w = it.first->get();
+					arg0->addDependency(w);
+				} break;
+
+				case AssemblyIns::kEdge:
+				case AssemblyIns::kRisingEdge:
+				case AssemblyIns::kFallingEdge: {
+					auto it = dependencies.emplace(new SimulationEdgeIns(
+						result, arg0,
+						ins.getOpcode() != AssemblyIns::kFallingEdge,
+						ins.getOpcode() != AssemblyIns::kRisingEdge));
+					w = it.first->get();
+					arg0->addDependency(w);
+				} break;
+
 				default:
 					throw std::runtime_error("unknown unary opcode");
 			}
@@ -86,33 +106,76 @@ void Simulation::wrap(const AssemblyIns *expr) {
 
 		// binary operations
 		case AssemblyIns::kBinaryOps: {
-			auto bins = (const AssemblyBinaryIns*)expr;
-			auto result = wrappers[bins->getResult()].get();
-			auto arg0 = wrappers[bins->getArg0()].get();
-			auto arg1 = wrappers[bins->getArg1()].get();
+			auto bins = *(const AssemblyBinaryIns*)&ins;
+			auto result = wrappers[bins.getResult()].get();
+			auto arg0 = wrappers[bins.getArg0()].get();
+			auto arg1 = wrappers[bins.getArg1()].get();
 			assert(arg0 && arg1);
 
-			SimulationBooleanExpr::FuncType fn;
-			switch (bins->getOpcode()) {
+			switch (bins.getOpcode()) {
 				case AssemblyIns::kBoolAND:
-					fn = SimulationBooleanExpr::fAND; break;
 				case AssemblyIns::kBoolNAND:
-					fn = SimulationBooleanExpr::fNAND; break;
 				case AssemblyIns::kBoolOR:
-					fn = SimulationBooleanExpr::fOR; break;
 				case AssemblyIns::kBoolNOR:
-					fn = SimulationBooleanExpr::fNOR; break;
 				case AssemblyIns::kBoolXOR:
-					fn = SimulationBooleanExpr::fXOR; break;
-				default:
-					throw std::runtime_error("unknown boolean opcode");
-			}
+				case AssemblyIns::kBoolEQV: {
+					SimulationBooleanBinaryIns::FuncType fn;
+					switch (bins.getOpcode()) {
+						case AssemblyIns::kBoolAND:
+							fn = SimulationBooleanBinaryIns::fAND; break;
+						case AssemblyIns::kBoolNAND:
+							fn = SimulationBooleanBinaryIns::fNAND; break;
+						case AssemblyIns::kBoolOR:
+							fn = SimulationBooleanBinaryIns::fOR; break;
+						case AssemblyIns::kBoolNOR:
+							fn = SimulationBooleanBinaryIns::fNOR; break;
+						case AssemblyIns::kBoolXOR:
+							fn = SimulationBooleanBinaryIns::fXOR; break;
+						default:
+							throw std::runtime_error("unknown boolean opcode");
+					}
 
-			auto it = dependencies.emplace(new SimulationBooleanExpr(
-				result, arg0, arg1, fn));
-			w = it.first->get();
-			arg0->addDependency(w);
-			arg1->addDependency(w);
+					auto it = dependencies.emplace(
+						new SimulationBooleanBinaryIns(result, arg0, arg1, fn));
+					w = it.first->get();
+					arg0->addDependency(w);
+					arg1->addDependency(w);
+				} break;
+
+				case AssemblyIns::kStore: {
+					auto it = dependencies.emplace(new SimulationStoreIns(
+						result, arg0, arg1));
+					w = it.first->get();
+					arg0->addDependency(w);
+					arg1->addDependency(w);
+				} break;
+
+				default:
+					throw std::runtime_error("unknown binary opcode");
+			}
+		} break;
+
+		// mux operations
+		case AssemblyIns::kMuxOps: {
+			switch (ins.getOpcode()) {
+				case AssemblyIns::kBimux: {
+					auto mins = *(const AssemblyBimuxIns*)&ins;
+					auto result = wrappers[mins.getResult()].get();
+					auto select = wrappers[mins.getSelect()].get();
+					auto case0 = wrappers[mins.getCase0()].get();
+					auto case1 = wrappers[mins.getCase1()].get();
+					assert(select && case0 && case1);
+
+					auto it = dependencies.emplace(new SimulationBimuxIns(
+						result, select, case0, case1));
+					w = it.first->get();
+					select->addDependency(w);
+					case0->addDependency(w);
+					case1->addDependency(w);
+				} break;
+				default:
+					throw std::runtime_error("unknown mux opcode");
+			}
 		} break;
 
 		default:
