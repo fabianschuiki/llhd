@@ -8,3 +8,18 @@ define @halfadder {
 	%s = xor l1 %a %b
 	%c = and l1 %a %b
 }
+
+# Possible alternative using processes instead of module instructions.
+define @halfadder {
+	in l1 %a
+	in l1 %b
+	out l1 %c
+	out l1 %c
+
+	map (%a %b) (%s %c) {
+		%0 = xor l1 %a %b # %0 created on-the-fly (intermediate variables)
+		%1 = and l1 %a %b # %1 created on-the-fly (intermediate variables)
+		as l1 %s %0 # assigns %0 to %s in the next simulation cycle
+		as l1 %c %1 # assigns %1 to %c in the next simulation cycle
+	}
+}

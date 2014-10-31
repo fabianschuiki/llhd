@@ -1,0 +1,39 @@
+# A simple autonomous counter running at 1 GHz.
+define @counter {
+	wire l1 %clk
+	wire l1 %rst
+	reg l4 %cnt_dp
+	wire l4 %cnt_dn
+
+	# Calculates the next value of the counter.
+	map (%cnt_dp) (%cnt_dn) {
+		%0 = add u4 %cnt_dp $4b1 # add 1 as 4-bit binary
+		as %cnt_dn %0
+	}
+
+	# Implements a counter register with asynchronous reset in %cnt_dp.
+	storage (rise %clk, %rst) (%cnt_dn) (%cnt_dp) {
+		%0 = eq %rst $1b0
+		%1 = eq %clk $1b1
+		if %0 {
+			st l1 %cnt_dp $4b0
+		}
+		elif %1 {
+			st l1 %cnt_dp %cnt_dn
+		}
+	}
+
+	# Generate stimuli for the simulation.
+	process {
+		as l1 %clk $1b0
+		as l1 %rst $1b0
+		wait 1ns
+		as l1 200ps %rst $1b0
+
+		loop $10 {
+			as l1 %clk $1b1
+			as l1 500ps %clk $1b0
+			wait 1ns
+		}
+	}
+}

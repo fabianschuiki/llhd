@@ -28,9 +28,15 @@
 		</dict>
 		<dict>
 			<key>match</key>
-			<string>\b([0-9\.]*[muµnpf]?s)\b</string>
+			<string>\b([0-9\.]+[muµnpf]?s)\b</string>
 			<key>name</key>
 			<string>constant.numeric.time.llhd</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>(\$[0-9]+[blhdo][0-9]+)\b</string>
+			<key>name</key>
+			<string>constant.numeric.llhd</string>
 		</dict>
 		<dict>
 			<key>match</key>
@@ -81,7 +87,7 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>\b(and|or|xor|nand|nor|not|add|sub|mul|div|delay|st)\b</string>
+					<string>\b(and|or|nand|nor|xor|eqv|not|add|sub|mul|div|eq|neq|lt|gt|leq|geq|delay|st|as|wait)\b</string>
 					<key>name</key>
 					<string>keyword.instruction.llhd</string>
 				</dict>
@@ -93,7 +99,7 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>\b(define|process|storage)\b</string>
+					<string>\b(define|process|storage|map)\b</string>
 					<key>name</key>
 					<string>keyword.llhd</string>
 				</dict>
@@ -102,6 +108,12 @@
 					<string>\b(in|out|reg|wire|var)\b</string>
 					<key>name</key>
 					<string>storage.llhd</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>\b(rise|fall|edge)\b</string>
+					<key>name</key>
+					<string>storage.modifier.llhd</string>
 				</dict>
 			</array>
 		</dict>

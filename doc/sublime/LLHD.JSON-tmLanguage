@@ -10,7 +10,11 @@
 
 		{
 			"name": "constant.numeric.time.llhd",
-			"match": "\\b([0-9\\.]*[muµnpf]?s)\\b"
+			"match": "\\b([0-9\\.]+[muµnpf]?s)\\b"
+		},
+		{
+			"name": "constant.numeric.llhd",
+			"match": "(\\$[0-9]+[blhdo][0-9]+)\\b"
 		},
 
 		{
@@ -29,17 +33,20 @@
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.llhd",
-				"match": "\\b(define|process|storage)\\b"
+				"match": "\\b(define|process|storage|map)\\b"
 			},{
 				"name": "storage.llhd",
 				"match": "\\b(in|out|reg|wire|var)\\b"
+			},{
+				"name": "storage.modifier.llhd",
+				"match": "\\b(rise|fall|edge)\\b"
 			}]
 		},
 
 		"instructions": {
 			"patterns": [{
 				"name": "keyword.instruction.llhd",
-				"match": "\\b(and|or|xor|nand|nor|not|add|sub|mul|div|delay|st)\\b"
+				"match": "\\b(and|or|nand|nor|xor|eqv|not|add|sub|mul|div|eq|neq|lt|gt|leq|geq|delay|st|as|wait)\\b"
 			}]
 		},
 

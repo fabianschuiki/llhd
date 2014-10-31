@@ -13,3 +13,23 @@ define @fulladder {
 	%2 = and l1 %b %cin
 	%cout = or l1 %1 %2
 }
+
+# A full adder using processes instead of module instructions.
+define @fulladder {
+	in l1 %a
+	in l1 %b
+	in l1 %cin
+	out l1 %s
+	out l1 %cout
+
+	map (%a %b %cin) (%s %cout) {
+		%0 = xor l1 %a %b
+		%1 = xor l1 %0 %cin
+		as l1 %s %1
+
+		%2 = and l1 %a %b
+		%3 = and l1 %b %cin
+		%4 = or l1 %2 %3
+		as l1 %cout %4
+	}
+}
