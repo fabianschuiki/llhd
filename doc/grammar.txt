@@ -1,0 +1,96 @@
+# Copyright (c) 2014 Fabian Schuiki
+# The LLHd assembly grammar.
+
+main : root_stmt*
+
+name        : name_tmp | name_local | name_global
+name_tmp    : "%" natural
+name_local  : "%" identifier
+name_global : "@" identifier
+
+root_stmt : module_def
+
+module_def  : "define" module_name "{" module_body "}"
+module_name : name_local | name_global
+module_body : module_stmt*
+module_stmt : signal_stmt
+            | instance_stmt
+            | process_stmt
+            | storage_stmt
+            | mapping_stmt
+
+signal_stmt : signal_dir type signal_name
+signal_name : local_name
+signal_dir  : "in" | "out" | "wire" | "reg"
+
+instance_stmt : name_local "=" inst" instance_name
+
+process_stmt : "process" "{" process_body "}"
+process_body : process_stmt*
+process_stmt : ins | tmp_stmt | label_def
+
+storage_stmt : "storage"
+	"(" storage_triggers ")"
+	"(" input_list ")"
+	"(" output_list ")"
+	"{" storage_body "}"
+storage_triggers : storage_trigger ("," storage_trigger)*
+storage_body : storage_stmt*
+storage_stmt : ins | tmp_stmt | label_def
+
+mapping_stmt : "map"
+	"(" input_list ")"
+	"(" output_list ")"
+	"{" mapping_body "}"
+mapping_body : mapping_stmt*
+mapping_stmt : ins | tmp_stmt | label_def
+
+input_list  : name ("," name)*
+output_list : name ("," name)*
+
+label_def : identifier ":"
+
+type : type_scalar natural
+     | identifier
+type_scalar : "l" | "u" | "i"
+
+
+# INSTRUCTIONS
+ins : void_ins | valued_ins
+tmp_stmt : name_tmp "=" valued_ins
+
+void_ins   : assign_ins
+           | store_ins
+           | wait_ins
+           | branch_ins
+           | jump_ins
+valued_ins : unary_ins
+           | binary_ins
+
+value   : name | literal
+
+assign_ins  : "as" type delay? signal_name value
+store_ins   : "st" type delay? signal_name value
+wait_ins    : "wait" delay
+branch_ins  : "br" branch_cond ("," branch_cond)*
+branch_cond : name local_name
+jump_ins    : "jmp" local_name
+
+unary_ins       : unary_ins_name type value
+unary_ins_name  : "not"
+                | "neg"
+
+binary_ins      : binary_ins_name type value value
+binary_ins_name : "add" | "sub" | "mul" | "div"
+                | "and" | "nand" | "or" | "nor" | "xor"
+                | "neq" | eq" | "lt" | "gt" | "leq" | "geq"
+
+
+# BASICS
+literal : /\$\d+l[01hHlLzZxXuU]+/  # logic literal
+        | /\$\d+b[0-1]+/           # binary literal
+        | /\$\d+o[0-7]+/           # octal literal
+        | /\$\d+d[0-9]+/           # decimal literal
+        | /\$\d+h[0-9a-fA-F]+/     # hexadecimal literal
+delay   : /\d+[munpf]s/
+natural : /\d+/
