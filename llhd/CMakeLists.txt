@@ -1,6 +1,11 @@
 # Copyright (c) 2014 Fabian Schuiki
 # Configures the various subcomponents of the LLHD codebase.
 
+# Create the configuration header.
+configure_file(config.hpp.in config.hpp)
+include_directories(${PROJECT_BINARY_DIR})
+
+
 # Generate the Unicode files.
 add_executable(unicode-tblgen-casefolding unicode/tblgen-casefolding.cpp)
 add_custom_command(

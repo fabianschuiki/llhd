@@ -1,10 +1,23 @@
-# Copyright (c) 2014 Fabian Schuiki
+# Copyright (c) 2014-2015 Fabian Schuiki
 cmake_minimum_required(VERSION 2.6)
 project(llhd)
 
 if (CMAKE_BUILD_TYPE)
 	message("## ${CMAKE_BUILD_TYPE} build")
 endif()
+
+# Project version.
+set(VERSION_MAJOR 0)
+set(VERSION_MINOR 1)
+set(VERSION_PATCH 0)
+
+
+# Enable C++11 support and enable all warnings.
+if (UNIX)
+	add_definitions(-Wall)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+endif()
+
 
 # Add the build type "gcov" that produces a debug build with gcov output
 # enabled. Useful for coverage analysis.
@@ -30,10 +43,11 @@ mark_as_advanced(
 	CMAKE_C_LINKER_FLAGS_GCOV
 	CMAKE_CXX_LINKER_FLAGS_GCOV)
 
-# Enable C++11 support and enable all warnings.
-if (UNIX)
-	add_definitions(-Wall -std=c++11)
-endif()
+# Add a target to clear all gcov output files.
+add_custom_target(clean-gcov
+	find . -name '*.gcov' -or -name '*.gcda' | xargs rm
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
 
 find_package(Boost COMPONENTS REQUIRED system unit_test_framework)
 add_definitions(-DBOOST_TEST_DYN_LINK)
