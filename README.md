@@ -1,5 +1,9 @@
-[![Build Status](https://travis-ci.org/fabianschuiki/llhd.svg?branch=master)](https://travis-ci.org/fabianschuiki/llhd)
-[![Coverage Status](https://coveralls.io/repos/fabianschuiki/llhd/badge.png)](https://coveralls.io/r/fabianschuiki/llhd)
+# The Low Level Hardware Description Language
+
+[![Build Status](https://img.shields.io/travis/fabianschuiki/llhd.svg)](https://travis-ci.org/fabianschuiki/llhd)
+[![Coverage Status](https://img.shields.io/coveralls/fabianschuiki/llhd.svg)](https://coveralls.io/github/fabianschuiki/llhd)
+[![License](https://img.shields.io/github/license/fabianschuiki/llhd.svg)](https://github.com/fabianschuiki/llhd/blob/master/LICENSE)
+
 
 An attempt at writing a low-level hardware description toolkit. First up is a
 parser and code generator for VHDL.
