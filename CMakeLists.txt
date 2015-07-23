@@ -57,6 +57,7 @@ enable_testing()
 include_directories(.)
 add_subdirectory(llhd)
 add_subdirectory(test)
+add_subdirectory(exp)
 
 # Add a documentation target if Doxygen is available.
 find_package(Doxygen)
