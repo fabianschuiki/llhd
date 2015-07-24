@@ -2,6 +2,7 @@
 #include "llhd/Assembly.hpp"
 #include "llhd/sim/Simulation.hpp"
 #include "llhd/sim/SimulationExpr.hpp"
+#include "llhd/memory.hpp"
 #include <cassert>
 #include <iostream>
 #include <stdexcept>
@@ -68,21 +69,22 @@ void Simulation::wrap(const AssemblyIns& ins) {
 			switch (ins.getOpcode()) {
 				case AssemblyIns::kMove: {
 					if (uins.getDelay() == 0) {
-						auto it = dependencies.emplace(
-							new SimulationIdentityExpr(result, arg0));
+						auto it = dependencies.insert(
+							make_unique<SimulationIdentityExpr>(result, arg0));
 						w = it.first->get();
 						arg0->addDependency(w);
 					} else {
-						auto it = dependencies.emplace(new SimulationDelayExpr(
-							result, arg0, uins.getDelay()));
+						auto it = dependencies.insert(
+							make_unique<SimulationDelayExpr>(
+								result, arg0, uins.getDelay()));
 						w = it.first->get();
 						arg0->addDependency(w);
 					}
 				} break;
 
 				case AssemblyIns::kBoolNOT: {
-					auto it = dependencies.emplace(
-						new SimulationBooleanUnaryIns(result, arg0,
+					auto it = dependencies.insert(
+						make_unique<SimulationBooleanUnaryIns>(result, arg0,
 							SimulationBooleanUnaryIns::fNOT));
 					w = it.first->get();
 					arg0->addDependency(w);
@@ -91,10 +93,11 @@ void Simulation::wrap(const AssemblyIns& ins) {
 				case AssemblyIns::kEdge:
 				case AssemblyIns::kRisingEdge:
 				case AssemblyIns::kFallingEdge: {
-					auto it = dependencies.emplace(new SimulationEdgeIns(
-						result, arg0,
-						ins.getOpcode() != AssemblyIns::kFallingEdge,
-						ins.getOpcode() != AssemblyIns::kRisingEdge));
+					auto it = dependencies.insert(
+						make_unique<SimulationEdgeIns>(
+							result, arg0,
+							ins.getOpcode() != AssemblyIns::kFallingEdge,
+							ins.getOpcode() != AssemblyIns::kRisingEdge));
 					w = it.first->get();
 					arg0->addDependency(w);
 				} break;
@@ -135,16 +138,17 @@ void Simulation::wrap(const AssemblyIns& ins) {
 							throw std::runtime_error("unknown boolean opcode");
 					}
 
-					auto it = dependencies.emplace(
-						new SimulationBooleanBinaryIns(result, arg0, arg1, fn));
+					auto it = dependencies.insert(
+						make_unique<SimulationBooleanBinaryIns>(
+							result, arg0, arg1, fn));
 					w = it.first->get();
 					arg0->addDependency(w);
 					arg1->addDependency(w);
 				} break;
 
 				case AssemblyIns::kStore: {
-					auto it = dependencies.emplace(new SimulationStoreIns(
-						result, arg0, arg1));
+					auto it = dependencies.insert(
+						make_unique<SimulationStoreIns>(result, arg0, arg1));
 					w = it.first->get();
 					arg0->addDependency(w);
 					arg1->addDependency(w);
@@ -166,8 +170,9 @@ void Simulation::wrap(const AssemblyIns& ins) {
 					auto case1 = wrappers[mins.getCase1()].get();
 					assert(select && case0 && case1);
 
-					auto it = dependencies.emplace(new SimulationBimuxIns(
-						result, select, case0, case1));
+					auto it = dependencies.insert(
+						make_unique<SimulationBimuxIns>(
+							result, select, case0, case1));
 					w = it.first->get();
 					select->addDependency(w);
 					case0->addDependency(w);
