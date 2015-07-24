@@ -1,16 +1,31 @@
 language: cpp
+
 compiler:
   - gcc
   - clang
+
 before_install:
   - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   - sudo add-apt-repository ppa:boost-latest/ppa -y
   - sudo apt-get update -qq
+
+install:
   - sudo apt-get install -qq boost1.55
-  - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8; export CXX="g++-4.8" CC="gcc-4.8"; fi
+  - if [ "$CXX" = "g++" ]; then
+      sudo apt-get install -qq g++-4.8;
+      sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 90;
+      sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 90;
+      sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-4.8 90;
+    fi
   - sudo pip install cpp-coveralls
+  - $CXX --version
+  - gcov --version
+
 script:
   - export CTEST_OUTPUT_ON_FAILURE=1
-  - cmake -DCMAKE_BUILD_TYPE=gcov . && make && make test
+  - cmake -DCMAKE_BUILD_TYPE=gcov .
+  - make
+  - make test
+
 after_success:
-  - coveralls -e CMakeFiles -E ".*/test/.*" --gcov-options '\-lp'
+  - coveralls --gcov-options '\-lp' -e CMakeFiles -E ".*/test/.*"
