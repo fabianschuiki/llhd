@@ -14,6 +14,12 @@ class BasicInstruction;
 class Process;
 
 
+template<typename T>
+inline T mask_bits_below(T upper) {
+	return (1 << upper) - 1;
+}
+
+
 // Supported values:
 // - signed int of arbitrary width
 // - unsigned int of arbitrary width
@@ -35,7 +41,7 @@ class UnsignedValue : public Value {
 	};
 
 	inline unsigned num_chunks() const {
-		return width / 64;
+		return (width + 63) / 64;
 	}
 
 	inline bool is_compact() const {
@@ -86,12 +92,41 @@ class LogicValue : public Value {
 	inline bool is_compact() const {
 		return width <= 8;
 	}
+	inline void init(unsigned width) {
+		this->width = width;
+		if (!is_compact())
+			chunks = new uint8_t[width];
+	}
+
+	inline void reinit(unsigned width) {
+		dealloc_if_needed();
+		init(width);
+	}
+
+	inline void dealloc_if_needed() {
+		if (!is_compact() && chunks) {
+			delete[] chunks;
+			width = 0;
+			chunks = nullptr;
+		}
+	}
 
 public:
 	LogicValue(unsigned width) {
-		this->width = width;
-		if (!is_compact()) {
-			chunks = new uint8_t[width];
+		init(width);
+		if (is_compact()) {
+			std::fill(value, value+width, 'U');
+		} else {
+			std::fill(chunks, chunks+width, 'U');
+		}
+	}
+
+	LogicValue(unsigned width, uint8_t *data) {
+		init(width);
+		if (is_compact()) {
+			std::copy(data, data+width, value);
+		} else {
+			std::copy(data, data+width, chunks);
 		}
 	}
 
@@ -111,10 +146,7 @@ public:
 	}
 
 	~LogicValue() {
-		if (is_compact() && chunks) {
-			delete[] chunks;
-			chunks = nullptr;
-		}
+		dealloc_if_needed();
 	}
 
 	virtual unsigned get_width() const { return width; }
@@ -133,24 +165,387 @@ class Bitmask {
 	}
 
 	inline unsigned num_chunks() const {
-		return width / 64;
+		return (width + 63) / 64;
+	}
+
+	inline void init(unsigned width) {
+		this->width = width;
+		if (!is_compact())
+			chunks = new uint64_t[num_chunks()];
+	}
+
+	inline void reinit(unsigned width) {
+		dealloc_if_needed();
+		init(width);
+	}
+
+	inline void dealloc_if_needed() {
+		if (!is_compact() && chunks) {
+			delete[] chunks;
+			width = 0;
+			chunks = nullptr;
+		}
+	}
+
+	struct op_inv { inline uint64_t operator()(uint64_t v) const { return ~v; } };
+	struct op_and { inline uint64_t operator()(uint64_t a, uint64_t b) const { return a & b; } };
+	struct op_or  { inline uint64_t operator()(uint64_t a, uint64_t b) const { return a | b; } };
+	struct op_xor { inline uint64_t operator()(uint64_t a, uint64_t b) const { return a ^ b; } };
+
+	/// Applies a unary operation to each chunk.
+	template<class Operation>
+	void each_unary(Operation op) {
+		if (is_compact()) {
+			value = op(value);
+		} else {
+			for (uint64_t *i = chunks, *e = chunks+num_chunks(); i != e; ++i)
+				*i = op(*i);
+		}
+	}
+
+	/// Applies a binary operation to each pair of chunks.
+	template<class Operation>
+	void each_binary(const Bitmask &other, Operation op) {
+		assert(width == other.width);
+		if (is_compact()) {
+			value = op(value, other.value);
+		} else {
+			uint64_t *ia = chunks,
+			         *ea = chunks+num_chunks(),
+			         *ib = other.chunks;
+			for (; ia != ea; ++ia, ++ib)
+				*ia = op(*ia, *ib);
+		}
 	}
 
 public:
-	Bitmask operator~() const {
+	Bitmask() {
+		width = 0;
+		chunks = nullptr;
+	}
+
+	Bitmask(unsigned width) {
+		init(width);
+		clear();
+	}
+
+	Bitmask(const Bitmask &other) {
+		init(other.width);
+		if (is_compact()) {
+			value = other.value;
+		} else {
+			std::copy(other.chunks, other.chunks+num_chunks(), chunks);
+		}
+	}
+
+	Bitmask(Bitmask &&other) {
+		width = other.width;
+		chunks = other.chunks;
+		other.chunks = nullptr;
+	}
+
+	~Bitmask() {
+		dealloc_if_needed();
+	}
+
+	Bitmask& operator=(const Bitmask &other) {
+		if (width != other.width)
+			reinit(other.width);
+		if (is_compact()) {
+			value = other.value;
+		} else {
+			std::copy(other.chunks, other.chunks+num_chunks(), chunks);
+		}
 		return *this;
 	}
 
+	Bitmask& operator=(Bitmask &&other) {
+		dealloc_if_needed();
+		width = other.width;
+		chunks = other.chunks;
+		other.chunks = nullptr;
+		return *this;
+	}
+
+	Bitmask operator~() const {
+		Bitmask r(*this);
+		r.each_unary(op_inv());
+		return r;
+	}
+
+	Bitmask operator&(const Bitmask &other) {
+		Bitmask r(*this);
+		r &= other;
+		return r;
+	}
+
+	Bitmask operator|(const Bitmask &other) {
+		Bitmask r(*this);
+		r |= other;
+		return r;
+	}
+
+	Bitmask operator^(const Bitmask &other) {
+		Bitmask r(*this);
+		r ^= other;
+		return r;
+	}
+
 	Bitmask& operator&=(const Bitmask &other) {
+		each_binary(other, op_and());
 		return *this;
 	}
 
 	Bitmask& operator|=(const Bitmask &other) {
+		each_binary(other, op_or());
+		return *this;
+	}
+
+	Bitmask& operator^=(const Bitmask &other) {
+		each_binary(other, op_xor());
 		return *this;
 	}
 
 	bool is_all_zero() const {
+		if (is_compact()) {
+			return (value & mask_bits_below((uint64_t)width)) == 0;
+		} else {
+			for (unsigned i = 0; i < num_chunks()-1; ++i)
+				if (chunks[i] != 0)
+					return false;
+			auto upper = chunks[num_chunks()-1];
+			auto idx = width % 64;
+			return (upper & mask_bits_below((uint64_t)idx)) == 0;
+		}
 		return false;
+	}
+
+	void set() {
+		if (is_compact()) {
+			value = ~(uint64_t)0;
+		} else {
+			std::fill(chunks, chunks+num_chunks(), ~(uint64_t)0);
+		}
+	}
+
+	void clear() {
+		if (is_compact()) {
+			value = 0;
+		} else {
+			std::fill(chunks, chunks+num_chunks(), 0);
+		}
+	}
+
+	bool get(unsigned idx) const {
+		assert(idx < width);
+		const uint64_t *chunk;
+		if (is_compact()) {
+			chunk = &value;
+		} else {
+			chunk = chunks + idx/64;
+		}
+		return (*chunk & (1 << (idx%64))) ? 1 : 0;
+	}
+
+	void set(unsigned idx, bool v) {
+		assert(idx < width);
+		uint64_t *chunk;
+		if (is_compact()) {
+			chunk = &value;
+		} else {
+			chunk = chunks + idx/64;
+		}
+		*chunk &= ~(1 << (idx % 64));
+		*chunk |= (1 << (idx % 64));
+	}
+
+	class Reference {
+		friend class Bitmask;
+		Bitmask& bm;
+		unsigned idx;
+		Reference(Bitmask& bm, unsigned idx): bm(bm), idx(idx) {}
+	public:
+		operator bool() const { return bm.get(idx); }
+		Reference& operator=(bool v) { bm.set(idx,v); return *this; }
+	};
+
+	bool operator[](unsigned idx) const {
+		return get(idx);
+	}
+
+	Reference operator[](unsigned idx) {
+		return Reference(*this,idx);
+	}
+
+
+	class ConstIteratorBase {
+		friend class Bitmask;
+
+	protected:
+		const uint64_t *chunk;
+		unsigned idx;
+
+	public:
+		bool operator*() const {
+			return get();
+		}
+
+		bool get() const {
+			return *chunk & (1 << idx) ? 1 : 0;
+		}
+
+		bool operator==(const ConstIteratorBase &other) const {
+			return chunk == other.chunk && idx == other.idx;
+		}
+
+		bool operator!=(const ConstIteratorBase &other) const {
+			return chunk != other.chunk || idx != other.idx;
+		}
+	};
+
+	class IteratorBase : public ConstIteratorBase {
+	public:
+		class Reference {
+			friend class IteratorBase;
+			const IteratorBase& it;
+			Reference(const IteratorBase& it): it(it) {}
+		public:
+			operator bool() const { return it.get(); }
+			Reference& operator=(bool v) { it.set(v); return *this; }
+		};
+
+		Reference operator*() const {
+			return Reference(*this);
+		}
+
+		void set(bool v) const {
+			*(uint64_t*)chunk &= ~(1 << idx);
+			if (v) *(uint64_t*)chunk |= (1 << idx);
+		}
+	};
+
+	template<class Base>
+	class Iterator : public Base {
+		using Base::idx;
+		using Base::chunk;
+	public:
+		Iterator& operator++() {
+			if (++idx == 64) {
+				idx = 0;
+				++chunk;
+			}
+			return *this;
+		}
+
+		Iterator& operator--() {
+			if (idx == 0) {
+				idx = 64;
+				--chunk;
+			}
+			--idx;
+			return *this;
+		}
+	};
+
+	template<class Base>
+	class ReverseIterator : public Base {
+		using Base::idx;
+		using Base::chunk;
+	public:
+		ReverseIterator& operator--() {
+			if (++idx == 64) {
+				idx = 0;
+				++chunk;
+			}
+			return *this;
+		}
+
+		ReverseIterator& operator++() {
+			if (idx == 0) {
+				idx = 64;
+				--chunk;
+			}
+			--idx;
+			return *this;
+		}
+	};
+
+	Iterator<IteratorBase> begin() {
+		Iterator<IteratorBase> i;
+		i.idx = 0;
+		if (is_compact()) {
+			i.chunk = &value;
+		} else {
+			i.chunk = chunks;
+		}
+		return i;
+	}
+
+	Iterator<IteratorBase> end() {
+		Iterator<IteratorBase> i;
+		i.idx = width % 64;
+		if (is_compact()) {
+			i.chunk = &value;
+		} else {
+			i.chunk = chunks+(width/64);
+		}
+		return i;
+	}
+
+	Iterator<ConstIteratorBase> begin() const {
+		Iterator<ConstIteratorBase> i;
+		i.idx = 0;
+		if (is_compact()) {
+			i.chunk = &value;
+		} else {
+			i.chunk = chunks;
+		}
+		return i;
+	}
+
+	Iterator<ConstIteratorBase> end() const {
+		Iterator<ConstIteratorBase> i;
+		i.idx = width % 64;
+		if (is_compact()) {
+			i.chunk = &value+(width/64);
+		} else {
+			i.chunk = chunks+(width/64);
+		}
+		return i;
+	}
+
+	friend std::ostream& operator<<(std::ostream& os, const Bitmask &bm) {
+		os << bm.width << '{';
+		// for (auto i = bm.begin(), e = bm.end(); i != e; ++i) {
+		// 	os << "iteration";
+		// }
+
+		for (unsigned i = bm.width; i > 0; --i) {
+			os << bm[i-1];
+			if (i % 32 == 1) {
+				os << " [" << i-1 << "]";
+				if (i-1 != 0) os << ", ";
+			} else if (i % 8 == 1) {
+				os << ' ';
+			}
+		}
+
+		os << '}';
+
+		// for (auto b : bm) {
+		// 	os << (b ? '1' : '0');
+		// }
+		// if (bm.is_compact()) {
+		// 	auto flags = os.flags();
+		// 	os << std::hex;
+		// 	os.width(4);
+		// 	os.fill(0);
+		// 	os << ((bm.value >> 32) & 0xffffffff);
+		// 	os << '\'';
+		// 	os << (bm.value & 0xffffffff);
+		// 	os.flags(flags);
+		// }
+		return os;
 	}
 };
 
@@ -176,8 +571,6 @@ class EventQueue {
 
 public:
 	void add(Event &&event) {
-		/// \todo Iterate over added_events and mask earlier events where
-		/// appropriate.
 		for (auto &ae : added_events) {
 			if (ae.target == event.target && ae.time >= event.time)
 				ae.mask &= ~event.mask;
@@ -186,6 +579,8 @@ public:
 	}
 
 	void commit() {
+		if (added_events.empty())
+			return;
 		std::sort(added_events.begin(), added_events.end(), compare_events);
 
 		std::map<unsigned,Bitmask> seen;
@@ -217,6 +612,42 @@ public:
 		std::sort(events.begin(), events.end(), compare_events);
 		while (!events.empty() && events.back().mask.is_all_zero())
 			events.pop_back();
+	}
+
+	std::vector<Event> pop_events() {
+		auto ib = events.begin();
+		auto ie = events.end();
+		for (auto i = ib; i != ie; ++i) {
+			if (i->time != ib->time) {
+				ie = i;
+				break;
+			}
+		}
+
+		std::vector<Event> result(
+			std::make_move_iterator(ib),
+			std::make_move_iterator(ie)
+		);
+		events.erase(ib,ie);
+		return result;
+	}
+
+	bool is_empty() const {
+		return events.empty();
+	}
+
+	void debug_dump() const {
+		for (auto& e : events)
+			debug_dump(e);
+		std::cout << "  pending:\n";
+		for (auto& e : added_events)
+			debug_dump(e);
+	}
+
+	void debug_dump(const Event &e) const {
+		std::cout << "  [T=" << e.time.value << ", d=" << e.time.delta <<
+			"] target=" << e.target << " value=<unknown> mask=" << e.mask <<
+			"\n";
 	}
 };
 
@@ -422,7 +853,10 @@ struct LogicNEG {
 
 class BasicInstruction {
 public:
-	virtual void execute(Process*) const = 0;
+	virtual void execute(Process *p, EventQueue&, llhd::SimulationTime) const {
+		execute(p);
+	}
+	virtual void execute(Process*) const {}
 	virtual std::string describe() const = 0;
 
 	std::tuple<uint8_t*,size_t> resolve_rval(Process *proc, uint16_t regid) const;
@@ -483,6 +917,11 @@ public:
 		}
 	}
 
+	template<typename T>
+	void add_constant(const T &v) {
+		add_constant((void*)&v, sizeof(v));
+	}
+
 	class InstructionBuilder {
 		friend class Program;
 		Instruction& ins;
@@ -522,10 +961,11 @@ public:
 };
 
 enum ProcessState {
-	PROCESS_READY = 0,
-	PROCESS_RUNNING = 1,
-	PROCESS_SUSPENDED = 2,
-	PROCESS_STOPPED = 3
+	PROCESS_READY,
+	PROCESS_RUNNING,
+	PROCESS_SUSPENDED,
+	PROCESS_WAIT_TIME,
+	PROCESS_STOPPED
 };
 
 class Process {
@@ -539,6 +979,9 @@ public:
 	std::set<void*> sensitivity;
 	std::vector<void*> inputs;
 	std::vector<void*> outputs;
+	EventQueue *event_queue = nullptr;
+
+	llhd::SimulationTime wait_time;
 
 	Process() {}
 	explicit Process(const Program *program):
@@ -558,10 +1001,20 @@ public:
 		}
 	}
 
-	void run() {
-		if (state == PROCESS_STOPPED)
-			return;
-		state = PROCESS_RUNNING;
+	void run(EventQueue &eq, llhd::SimulationTime time) {
+		switch (state) {
+			case PROCESS_READY:
+			case PROCESS_SUSPENDED:
+				state = PROCESS_RUNNING;
+				break;
+			case PROCESS_WAIT_TIME:
+				if (time >= wait_time)
+					state = PROCESS_RUNNING;
+				break;
+			case PROCESS_RUNNING:
+			case PROCESS_STOPPED:
+				break;
+		}
 		while (state == PROCESS_RUNNING) {
 			if (pc == program->instructions2.size()) {
 				state = PROCESS_READY;
@@ -575,7 +1028,7 @@ public:
 			std::cout << "  #" << pc;
 			auto& ins = program->instructions2[pc++];
 			std::cout << ": " << ins->describe() << '\n';
-			ins->execute(this);
+			ins->execute(this, eq, time);
 		}
 	}
 
@@ -901,20 +1354,33 @@ class OutputInstruction : public BasicInstruction {
 public:
 	uint16_t output;
 	uint16_t ra;
+	uint64_t delay;
 
-	OutputInstruction(uint16_t output, uint16_t ra):
-		output(output), ra(ra) {}
+	OutputInstruction(uint16_t output, uint16_t ra, uint64_t delay = 0):
+		output(output), ra(ra), delay(delay) {}
 
-	void execute(Process *proc) const {
+	void execute(
+		Process *proc,
+		EventQueue &eq,
+		llhd::SimulationTime time
+	) const {
 		assert(proc);
-		assert(output < proc->outputs.size());
+		// assert(output < proc->outputs.size());
 
 		uint8_t *pa;
 		size_t lena;
 		std::tie(pa,lena) = resolve_rval(proc,ra);
 
-		assert(lena == proc->program->outputs[output].length);
-		std::copy(pa, pa+lena, (uint8_t*)proc->outputs[output]);
+		// assert(lena == proc->program->outputs[output].length);
+		// std::copy(pa, pa+lena, (uint8_t*)proc->outputs[output]);
+
+		Event e;
+		e.time = (delay == 0 ? time.advDelta() : time.advTime(delay));
+		e.target = output;
+		e.value.reset(new LogicValue(lena, pa));
+		e.mask = Bitmask(lena);
+		e.mask.set();
+		eq.add(std::move(e));
 	}
 
 	std::string describe() const {
@@ -936,7 +1402,7 @@ public:
 		uint8_t *pd, *pa;
 		size_t lend, lena;
 		std::tie(pd,lend) = resolve_lval(proc,rd);
-		std::tie(pa,lena) = resolve_lval(proc,ra);
+		std::tie(pa,lena) = resolve_rval(proc,ra);
 		assert(lend == lena);
 
 		std::copy(pa, pa+lena, pd);
@@ -944,6 +1410,29 @@ public:
 
 	std::string describe() const {
 		return "mov r" + std::to_string(rd) + " r" + std::to_string(ra);
+	}
+};
+
+class WaitTimeInstruction : public BasicInstruction {
+public:
+	uint16_t ra;
+
+	WaitTimeInstruction(uint16_t ra): ra(ra) {}
+
+	void execute(Process *proc, EventQueue&, llhd::SimulationTime time) const {
+		assert(proc);
+
+		uint8_t *pa;
+		size_t lena;
+		std::tie(pa,lena) = resolve_rval(proc,ra);
+		assert(lena == 8);
+
+		proc->wait_time = time.advTime(*(uint64_t*)pa);
+		proc->state = PROCESS_WAIT_TIME;
+	}
+
+	std::string describe() const {
+		return "wait.t r" + std::to_string(ra);
 	}
 };
 
@@ -1174,11 +1663,12 @@ public:
 
 int main(int argc, char** argv) {
 
-	uint64_t T = 12563;
+	llhd::SimulationTime T;
 	char allone[] = "10101010";
 	char one[] = "00000001";
 	char three[] = "00000011";
 	char addr[] = "00000000";
+	char clk[] = "U";
 
 	Program program;
 	program.inputs.emplace_back(PROG_ARG_TIME, sizeof(T));
@@ -1198,7 +1688,22 @@ int main(int argc, char** argv) {
 	// program.instructions2.emplace_back(new BinaryLogicInstruction<LogicXOR>(8,1,1,0x8000));
 	program.instructions2.emplace_back(new BinaryArithmeticLogicInstruction<ArithmeticAdd>(8,0,2,0x8000|1));
 	program.instructions2.emplace_back(new BinaryArithmeticLogicInstruction<ArithmeticMultiply>(8,1,2,0x8000|2));
-	program.instructions2.emplace_back(new OutputInstruction(0,0));
+	// program.instructions2.emplace_back(new OutputInstruction(2,0));
+
+	Program prog_clkgen;
+	prog_clkgen.outputs.emplace_back(PROG_ARG_LOGIC, 1);
+	char const_clkgen_one[]  = "1";
+	char const_clkgen_zero[] = "0";
+	prog_clkgen.registers.push_back(1);
+	prog_clkgen.add_constant(const_clkgen_one,1);
+	prog_clkgen.add_constant(const_clkgen_zero,1);
+	prog_clkgen.add_constant<uint64_t>(2000);
+
+	prog_clkgen.instructions2.emplace_back(new OutputInstruction(1,0x8000|0,   0));
+	prog_clkgen.instructions2.emplace_back(new OutputInstruction(1,0x8000|1, 500));
+	prog_clkgen.instructions2.emplace_back(new OutputInstruction(1,0x8000|0,1000));
+	prog_clkgen.instructions2.emplace_back(new OutputInstruction(1,0x8000|1,1500));
+	prog_clkgen.instructions2.emplace_back(new WaitTimeInstruction(0x8000|2));
 
 	// auto mT = program.alloc_memory(sizeof(&T));
 	// auto rstuff = program.alloc_memory(8);
@@ -1217,7 +1722,10 @@ int main(int argc, char** argv) {
 	// program.ins(INS_OP_DBG, INS_TYPE_U8).ra(rloop);
 	// program.ins(INS_OP_DBG, INS_TYPE_U8).ra(rexit);
 
+	EventQueue eq;
+
 	Process process(&program);
+	process.event_queue = &eq;
 	// process.program = &program;
 	// process.inputs.resize(program.inputs.size());
 	// process.outputs.resize(program.outputs.size());
@@ -1227,20 +1735,50 @@ int main(int argc, char** argv) {
 	// process.memory.resize(program.memory_size);
 	// *(uint64_t**)&process.memory[mT] = &T;
 
-	std::cout << "Process:\n";
-	std::cout << "  registers: " << process.registers.size() << '\n';
-	std::cout << "  registers memory: " << process.registers_memory.size() << " Bytes\n";
+	Process proc_clkgen(&prog_clkgen);
+	proc_clkgen.outputs[0] = clk;
+	proc_clkgen.event_queue = &eq;
 
-	std::vector<Process*> processes = {&process};
-	for (T = 0; T <= 10; ++T) {
-		std::cout << "[SIM " << T << "]\n";
+	std::vector<Process*> processes = {&process, &proc_clkgen};
+
+	unsigned wdt = 10;
+	bool keep_running = true;
+	while (keep_running && --wdt != 0) {
+		auto events = eq.pop_events();
+		if (!events.empty()) {
+			T = events.front().time;
+			// TODO: actually process the events
+		}
+
+		std::cout << "[SIM T=" << T.value << ", d=" << T.delta << "]\n";
+		bool proc_any_wait = false;
+		llhd::SimulationTime proc_earliest_wait = T;
+
 		for (auto p : processes) {
-			p->run();
-			std::cout << "  r0 = " << std::string((const char*)process.registers[0], 8) << '\n';
-			std::cout << "  r1 = " << std::string((const char*)process.registers[1], 8) << '\n';
-			std::cout << "  r2 = " << std::string((const char*)process.registers[2], 8) << '\n';
+			p->run(eq,T);
+			if (p->state == PROCESS_WAIT_TIME) {
+				proc_any_wait = true;
+				proc_earliest_wait = std::max(proc_earliest_wait, p->wait_time);
+			}
+		}
+		// std::cout << "  r0 = " << std::string((const char*)process.registers[0], 8) << '\n';
+		// std::cout << "  r1 = " << std::string((const char*)process.registers[1], 8) << '\n';
+		// std::cout << "  r2 = " << std::string((const char*)process.registers[2], 8) << '\n';
+
+		eq.debug_dump();
+		eq.commit();
+
+		if (eq.is_empty()) {
+			if (proc_any_wait) {
+				T = proc_earliest_wait;
+			} else {
+				keep_running = false;
+			}
 		}
 	}
+
+	// for (T = 0; T <= 10; ++T) {
+	// }
 
 	return 0;
 }
