@@ -1,5 +1,6 @@
 /* Copyright (c) 2015 Fabian Schuiki */
 #include "llhd/sim/SimulationTime.hpp"
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <map>
@@ -854,7 +855,7 @@ public:
 
 std::tuple<uint8_t*,size_t> BasicInstruction::resolve_rval(Process *proc, uint16_t regid) const {
 	if (regid & 0x8000) {
-		auto i = regid & ~0x8000;
+		uint16_t i = regid & ~0x8000;
 		assert(i < proc->program->constants.size());
 		return std::make_tuple(
 			(uint8_t*)proc->program->constants[i].data,
