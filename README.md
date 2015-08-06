@@ -1,7 +1,7 @@
 # The Low Level Hardware Description Language
 
-[![Build Status](https://img.shields.io/travis/fabianschuiki/llhd.svg)](https://travis-ci.org/fabianschuiki/llhd)
-[![Coverage Status](https://img.shields.io/coveralls/fabianschuiki/llhd.svg)](https://coveralls.io/github/fabianschuiki/llhd)
+[![Build Status](https://img.shields.io/travis/fabianschuiki/llhd/master.svg)](https://travis-ci.org/fabianschuiki/llhd)
+[![Coverage Status](https://img.shields.io/coveralls/fabianschuiki/llhd/master.svg)](https://coveralls.io/github/fabianschuiki/llhd)
 [![License](https://img.shields.io/github/license/fabianschuiki/llhd.svg)](https://github.com/fabianschuiki/llhd/blob/master/LICENSE)
 
 
