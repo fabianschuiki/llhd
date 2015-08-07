@@ -9,6 +9,7 @@
 #include <stack>
 #include <string>
 #include <vector>
+#include <fstream>
 
 class BasicInstruction;
 class Process;
@@ -30,6 +31,12 @@ inline T mask_bits_below(T upper) {
 class Value {
 public:
 	virtual unsigned get_width() const = 0;
+	virtual void describe(std::ostream& os) const {}
+
+	friend std::ostream& operator<<(std::ostream& os, const Value &v) {
+		v.describe(os);
+		return os;
+	}
 };
 
 
@@ -121,7 +128,7 @@ public:
 		}
 	}
 
-	LogicValue(unsigned width, uint8_t *data) {
+	LogicValue(unsigned width, const uint8_t *data) {
 		init(width);
 		if (is_compact()) {
 			std::copy(data, data+width, value);
@@ -131,7 +138,7 @@ public:
 	}
 
 	LogicValue(const LogicValue &other) {
-		LogicValue(other.width);
+		init(width);
 		if (is_compact()) {
 			std::copy(other.value, other.value+width, value);
 		} else {
@@ -149,7 +156,64 @@ public:
 		dealloc_if_needed();
 	}
 
+	LogicValue& operator=(const LogicValue &other) {
+		if (width != other.width)
+			reinit(other.width);
+		if (is_compact()) {
+			std::copy(other.value, other.value+width, value);
+		} else {
+			std::copy(other.chunks, other.chunks+width, value);
+		}
+		return *this;
+	}
+
+	LogicValue& operator=(LogicValue &&other) {
+		dealloc_if_needed();
+		width = other.width;
+		chunks = other.chunks;
+		other.chunks = nullptr;
+		return *this;
+	}
+
 	virtual unsigned get_width() const { return width; }
+
+	typedef uint8_t* Iterator;
+	typedef const uint8_t* ConstIterator;
+
+	Iterator begin() { return is_compact() ? value : chunks; }
+	Iterator end() { return (is_compact() ? value : chunks) + width; }
+	ConstIterator begin() const {
+		return is_compact() ? value : chunks;
+	}
+	ConstIterator end() const {
+		return (is_compact() ? value : chunks) + width;
+	}
+
+	uint8_t operator[](unsigned idx) const {
+		assert(idx < width);
+		return (is_compact() ? value : chunks)[idx];
+	}
+
+	uint8_t& operator[](unsigned idx) {
+		assert(idx < width);
+		return (is_compact() ? value : chunks)[idx];
+	}
+
+
+	/// Print human-readable version of the logic value.
+	void describe(std::ostream& os) const {
+		os << width << '{';
+		for (unsigned i = width; i > 0; --i) {
+			os << (*this)[i-1];
+			if (i % 32 == 1) {
+				os << " [" << i-1 << "]";
+				if (i-1 != 0) os << ", ";
+			} else if (i % 8 == 1) {
+				os << ' ';
+			}
+		}
+		os << '}';
+	}
 };
 
 
@@ -317,7 +381,21 @@ public:
 			auto idx = width % 64;
 			return (upper & mask_bits_below((uint64_t)idx)) == 0;
 		}
-		return false;
+	}
+
+	bool is_all_one() const {
+		if (is_compact()) {
+			auto mask = mask_bits_below((uint64_t)width);
+			return (value & mask) == mask;
+		} else {
+			for (unsigned i = 0; i < num_chunks()-1; ++i)
+				if (chunks[i] != ~(uint64_t)0)
+					return false;
+			auto upper = chunks[num_chunks()-1];
+			auto idx = width % 64;
+			auto mask = mask_bits_below((uint64_t)idx);
+			return (upper & mask) == mask;
+		}
 	}
 
 	void set() {
@@ -552,7 +630,7 @@ public:
 
 class Event {
 public:
-	unsigned target;
+	Value *target;
 	llhd::SimulationTime time;
 	std::unique_ptr<Value> value;
 	Bitmask mask;
@@ -583,7 +661,7 @@ public:
 			return;
 		std::sort(added_events.begin(), added_events.end(), compare_events);
 
-		std::map<unsigned,Bitmask> seen;
+		std::map<Value*,Bitmask> seen;
 		auto ai = added_events.begin();
 		auto ae = added_events.end();
 
@@ -646,7 +724,7 @@ public:
 
 	void debug_dump(const Event &e) const {
 		std::cout << "  [T=" << e.time.value << ", d=" << e.time.delta <<
-			"] target=" << e.target << " value=<unknown> mask=" << e.mask <<
+			"] target=" << e.target << " value=" << *e.value << " mask=" << e.mask <<
 			"\n";
 	}
 };
@@ -965,6 +1043,7 @@ enum ProcessState {
 	PROCESS_RUNNING,
 	PROCESS_SUSPENDED,
 	PROCESS_WAIT_TIME,
+	PROCESS_WAIT_INPUTS,
 	PROCESS_STOPPED
 };
 
@@ -1012,6 +1091,7 @@ public:
 					state = PROCESS_RUNNING;
 				break;
 			case PROCESS_RUNNING:
+			case PROCESS_WAIT_INPUTS:
 			case PROCESS_STOPPED:
 				break;
 		}
@@ -1025,9 +1105,9 @@ public:
 
 			// Instruction& ins = program->instructions[pc++];
 			// run_ins(ins);
-			std::cout << "  #" << pc;
+			// std::cout << "  #" << pc;
 			auto& ins = program->instructions2[pc++];
-			std::cout << ": " << ins->describe() << '\n';
+			// std::cout << ": " << ins->describe() << '\n';
 			ins->execute(this, eq, time);
 		}
 	}
@@ -1340,9 +1420,11 @@ public:
 
 		auto len = proc->program->registers[rd];
 		assert(len == proc->program->inputs[input].length);
-		uint8_t *src = (uint8_t*)proc->inputs[input];
+		auto src = dynamic_cast<LogicValue*>((Value*)proc->inputs[input]);
+		assert(src);
 		uint8_t *dst = (uint8_t*)proc->registers[rd];
-		std::copy(src, src+len, dst);
+		// std::copy(src, src+len, dst);
+		std::copy(src->begin(), src->end(), dst);
 	}
 
 	std::string describe() const {
@@ -1365,18 +1447,18 @@ public:
 		llhd::SimulationTime time
 	) const {
 		assert(proc);
-		// assert(output < proc->outputs.size());
+		assert(output < proc->outputs.size());
 
 		uint8_t *pa;
 		size_t lena;
 		std::tie(pa,lena) = resolve_rval(proc,ra);
 
-		// assert(lena == proc->program->outputs[output].length);
+		assert(lena == proc->program->outputs[output].length);
 		// std::copy(pa, pa+lena, (uint8_t*)proc->outputs[output]);
 
 		Event e;
 		e.time = (delay == 0 ? time.advDelta() : time.advTime(delay));
-		e.target = output;
+		e.target = (Value*)proc->outputs[output];
 		e.value.reset(new LogicValue(lena, pa));
 		e.mask = Bitmask(lena);
 		e.mask.set();
@@ -1432,7 +1514,21 @@ public:
 	}
 
 	std::string describe() const {
-		return "wait.t r" + std::to_string(ra);
+		return "waitt r" + std::to_string(ra);
+	}
+};
+
+class WaitInputsInstruction : public BasicInstruction {
+public:
+	WaitInputsInstruction() {}
+
+	void execute(Process *proc) const {
+		assert(proc);
+		proc->state = PROCESS_WAIT_INPUTS;
+	}
+
+	std::string describe() const {
+		return "waiti";
 	}
 };
 
@@ -1661,17 +1757,41 @@ public:
 	}
 };
 
+
+static bool apply(Event& event) {
+	bool anything_changed = false;
+
+	if (auto target = dynamic_cast<LogicValue*>(event.target)) {
+		auto value = dynamic_cast<LogicValue*>(event.value.get());
+		assert(value);
+		assert(target->get_width() == value->get_width());
+
+		auto it = target->begin(), et = target->end();
+		auto iv = value->begin(), ev = value->end();
+		auto im = event.mask.begin(), em = event.mask.end();
+		for (; it != et && iv != ev && im != em; ++it, ++iv, ++im) {
+			if (*im && *it != *iv) {
+				anything_changed = true;
+				*it = *iv;
+			}
+		}
+	}
+
+	return anything_changed;
+}
+
+
 int main(int argc, char** argv) {
 
 	llhd::SimulationTime T;
 	char allone[] = "10101010";
 	char one[] = "00000001";
 	char three[] = "00000011";
-	char addr[] = "00000000";
-	char clk[] = "U";
+	// char addr[] = "00000000";
+	// char clk[] = "U";
 
 	Program program;
-	program.inputs.emplace_back(PROG_ARG_TIME, sizeof(T));
+	program.inputs.emplace_back(PROG_ARG_LOGIC, 1);
 	program.inputs.emplace_back(PROG_ARG_LOGIC, 8);
 	program.outputs.emplace_back(PROG_ARG_LOGIC, 8);
 	program.registers.push_back(8);
@@ -1681,6 +1801,7 @@ int main(int argc, char** argv) {
 	program.add_constant(one,8);
 	program.add_constant(three,8);
 
+	program.instructions2.emplace_back(new WaitInputsInstruction());
 	program.instructions2.emplace_back(new InputInstruction(0,1));
 	program.instructions2.emplace_back(new MoveInstruction(1,0));
 	program.instructions2.emplace_back(new MoveInstruction(2,0));
@@ -1688,7 +1809,7 @@ int main(int argc, char** argv) {
 	// program.instructions2.emplace_back(new BinaryLogicInstruction<LogicXOR>(8,1,1,0x8000));
 	program.instructions2.emplace_back(new BinaryArithmeticLogicInstruction<ArithmeticAdd>(8,0,2,0x8000|1));
 	program.instructions2.emplace_back(new BinaryArithmeticLogicInstruction<ArithmeticMultiply>(8,1,2,0x8000|2));
-	// program.instructions2.emplace_back(new OutputInstruction(2,0));
+	program.instructions2.emplace_back(new OutputInstruction(0,0,100));
 
 	Program prog_clkgen;
 	prog_clkgen.outputs.emplace_back(PROG_ARG_LOGIC, 1);
@@ -1697,12 +1818,16 @@ int main(int argc, char** argv) {
 	prog_clkgen.registers.push_back(1);
 	prog_clkgen.add_constant(const_clkgen_one,1);
 	prog_clkgen.add_constant(const_clkgen_zero,1);
-	prog_clkgen.add_constant<uint64_t>(2000);
+	prog_clkgen.add_constant<uint64_t>(4000);
 
-	prog_clkgen.instructions2.emplace_back(new OutputInstruction(1,0x8000|0,   0));
-	prog_clkgen.instructions2.emplace_back(new OutputInstruction(1,0x8000|1, 500));
-	prog_clkgen.instructions2.emplace_back(new OutputInstruction(1,0x8000|0,1000));
-	prog_clkgen.instructions2.emplace_back(new OutputInstruction(1,0x8000|1,1500));
+	prog_clkgen.instructions2.emplace_back(new OutputInstruction(0,0x8000|0,   0));
+	prog_clkgen.instructions2.emplace_back(new OutputInstruction(0,0x8000|1, 500));
+	prog_clkgen.instructions2.emplace_back(new OutputInstruction(0,0x8000|0,1000));
+	prog_clkgen.instructions2.emplace_back(new OutputInstruction(0,0x8000|1,1500));
+	prog_clkgen.instructions2.emplace_back(new OutputInstruction(0,0x8000|0,2000));
+	prog_clkgen.instructions2.emplace_back(new OutputInstruction(0,0x8000|1,2500));
+	prog_clkgen.instructions2.emplace_back(new OutputInstruction(0,0x8000|0,3000));
+	prog_clkgen.instructions2.emplace_back(new OutputInstruction(0,0x8000|1,3500));
 	prog_clkgen.instructions2.emplace_back(new WaitTimeInstruction(0x8000|2));
 
 	// auto mT = program.alloc_memory(sizeof(&T));
@@ -1722,6 +1847,9 @@ int main(int argc, char** argv) {
 	// program.ins(INS_OP_DBG, INS_TYPE_U8).ra(rloop);
 	// program.ins(INS_OP_DBG, INS_TYPE_U8).ra(rexit);
 
+	LogicValue clk(1);
+	LogicValue addr2(8, (const uint8_t*)"00000000");
+
 	EventQueue eq;
 
 	Process process(&program);
@@ -1729,33 +1857,100 @@ int main(int argc, char** argv) {
 	// process.program = &program;
 	// process.inputs.resize(program.inputs.size());
 	// process.outputs.resize(program.outputs.size());
-	process.inputs[0] = &T;
-	process.inputs[1] = addr;
-	process.outputs[0] = addr;
+	process.inputs[0] = &clk;
+	process.inputs[1] = &addr2;
+	process.outputs[0] = &addr2;
 	// process.memory.resize(program.memory_size);
 	// *(uint64_t**)&process.memory[mT] = &T;
 
 	Process proc_clkgen(&prog_clkgen);
-	proc_clkgen.outputs[0] = clk;
+	proc_clkgen.outputs[0] = &clk;
 	proc_clkgen.event_queue = &eq;
 
 	std::vector<Process*> processes = {&process, &proc_clkgen};
+	std::map<std::string, Value*> observed_values;
+	observed_values["clk"] = &clk;
+	observed_values["addr"] = &addr2;
 
-	unsigned wdt = 10;
+	std::ofstream fvcd("output.vcd");
+	std::map<Value*, std::string> vcd_names;
+	fvcd << "$version exp-vm 0.1.0 $end\n";
+	fvcd << "$timescale 1ps $end\n";
+	fvcd << "$scope module logic $end\n";
+	unsigned namebase;
+	for (auto& p : observed_values) {
+		std::string name;
+		unsigned max;
+		for (max = 94; namebase >= max; max *= 94);
+		for (unsigned dv = max / 94; dv > 0; dv /= 94) {
+			unsigned v = (namebase / dv) % 94;
+			name += 33+v;
+		}
+		++namebase;
+		fvcd << "$var wire " << p.second->get_width() << " " << name << " " <<
+			p.first << " $end\n";
+		vcd_names[p.second] = name;
+	}
+	fvcd << "$upscope $end\n";
+	fvcd << "$enddefinitions $end\n\n";
+
+	auto valueDump = [&](Value *value){
+		if (auto v = dynamic_cast<LogicValue*>(value)) {
+			fvcd << 'b';
+			for (auto b : *v) {
+				fvcd << b;
+			}
+		} else {
+			return;
+		}
+		fvcd << ' ' << vcd_names[value] << '\n';
+	};
+
+	fvcd << "$dumpvars\n";
+	for (auto& p : observed_values) {
+		valueDump(p.second);
+	}
+	fvcd << "$end\n\n";
+
+	unsigned wdt = 100;
 	bool keep_running = true;
 	while (keep_running && --wdt != 0) {
+
+		std::set<Value*> changed_values;
 		auto events = eq.pop_events();
 		if (!events.empty()) {
 			T = events.front().time;
+			fvcd << "#" << T.value << '\n';
+
 			// TODO: actually process the events
+			for (auto& e : events) {
+				if (apply(e)) {
+					std::cout << "  " << e.target << " <= " << *e.target << '\n';
+					valueDump(e.target);
+					changed_values.insert(e.target);
+				}
+			}
 		}
+
+		// TODO: resolve drive conflicts here
+		// TODO: output simulated signals to waveform here
 
 		std::cout << "[SIM T=" << T.value << ", d=" << T.delta << "]\n";
 		bool proc_any_wait = false;
 		llhd::SimulationTime proc_earliest_wait = T;
 
 		for (auto p : processes) {
+			if (p->state == PROCESS_WAIT_INPUTS) {
+				for (auto i : p->inputs) {
+					if (changed_values.count((Value*)i)) {
+						p->state = PROCESS_READY;
+						break;
+					}
+				}
+			}
+
 			p->run(eq,T);
+
 			if (p->state == PROCESS_WAIT_TIME) {
 				proc_any_wait = true;
 				proc_earliest_wait = std::max(proc_earliest_wait, p->wait_time);
@@ -1776,6 +1971,9 @@ int main(int argc, char** argv) {
 			}
 		}
 	}
+
+	fvcd << "#" << T.value << '\n';
+	fvcd.close();
 
 	// for (T = 0; T <= 10; ++T) {
 	// }
