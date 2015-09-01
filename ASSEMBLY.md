@@ -1,4 +1,306 @@
 # LLHD Assembly
+This document describes the structure and syntax of the LLHD assembly language.
+
+## Top Level
+
+### `mod` Command
+A module represents a subcircuit that assigns values to its outputs based on changes to the inputs. It consists of instructions that are not executed in sequence, but rather declare relationships between signals and other modules, processes, and functions. Only pure instructions are allowed within a module. The syntax looks as follows:
+
+    mod <name> (<input signals>) (<output signals>) {
+        <pure instructions>
+    }
+
+The instructions within the module are re-evaluated whenever their inputs change. The module is expected to use the `drv` instruciton to drive its output signals to a specific value, as follows:
+
+    mod @not_gate (l1 %a) (l1 %b) {
+        drv %b %a
+    }
+
+Modules are used by instantiating them within other modules by using the `inst` instruction as follows:
+
+    mod @buffer_gate (l1 %a) (l1 %b) {
+        %0 = sig l1
+        inst @not_gate (%a) (%0)
+        inst @not_gate (%0) (%b)
+    }
+
+The grammar for the `mod` command is as follows:
+
+    # module grammar
+    module_def  := "mod" name
+                   "(" input'module_args? ")"
+                   "(" output'module_args? ")"
+                   "{" module_body "}"
+
+    module_args := module_arg ("," module_arg)*
+    module_arg  := type local_name
+
+    module_body := module_ins*
+    module_ins  := pure_ins | stateful_ins
+
+
+### `proc` Command
+A process represents a generalized subcircuit that assigns values to its outputs based on changes to the inputs. In contrast to a module, the instructions in a process are executed in sequence and may contain branches and conditional jumps. As such, a process shall be Turing-complete and thus allows any input-to-output relation to be described. All instructions are allowed within a process. The syntax looks as follows:
+
+    proc <name> (<input signals>) (<output signals>) {
+        <instructions>
+    }
+
+Whenever one of the processes input signals changes, its instructions are executed until either a `wait` instruction suspends or stops execution, or all instructions are executed. Thus a process can be in one of three states: *ready*, *suspended*, or *stopped*. Processes that are ready start execution at the first instruction. Processes that are suspended resume execution at the resume location indicated by the `wait` instruction, and stopped processes do not execute at all.
+
+Process are expected to use the `drv` instruction to drive their output signals to a specific value, as follows:
+
+    proc @latch (l1 %d, l1 %clk) (l1 %q) {
+        %0 = cmp %clk l1'1
+        br %0 if0, endif0
+    if0:
+        drv %q %d
+    endif0:
+    }
+
+Processes are instantiated using the `inst` instruction as follows:
+
+    mod @ff (l1 %d, l1 %clk) (l1 %q) {
+        %p = sig l1
+        %nclk = not %clk
+        inst @latch (%d, %clk) (%p)
+        inst @latch (%p, %nclk) (%q)
+    }
+
+The grammar for the `proc` command is as follows:
+
+    # process grammar
+    process_def  := "proc" name
+                    "(" input'process_args? ")"
+                    "(" output'process_args? ")"
+                    "{" process_body "}"
+
+    process_args := process_arg ("," process_arg)*
+    process_arg  := type local_name
+
+    process_body := process_ins*
+    process_ins  := all_ins
+
+
+### `func` Command
+A function represents a sequence of instructions that map a set of input values to output values. In contrast to modules and processes, a function does not tie into the event queue and operates on values rather than signals. The output values are returned to the caller rather than driven onto a set of signals. All instructions are allowed within a function. The syntax is as follows:
+
+    func <name> (<input arguments>) (<output arguments>) {
+        <instructions>
+    }
+
+Instructions in a function are executed in sequence whenever the function is called. Stateful instructions are disallowed. A function must store a value in each of its output variables using the `st` instruction under all circumstances and paths of execution. For example:
+
+    func @and_or (l1 %a, l1 %b) (l1 %x, l1 %y) {
+        %0 = and %a %b
+        %1 = or %a %b
+        st %x %0
+        st %y %1
+    }
+
+
+A function is used through the `call` instruction, which executes the instructions in the function body and returns the output arguments as a result. For example:
+
+    mod @and_or_gate (l1 %a, l1 %b) (l1 %x, l1 %y) {
+        %0, %1 = call @and_or (%a, %b)
+        drv %x %0
+        drv %y %1
+    }
+
+The grammar for the `func` command is as follows:
+
+    # function grammar
+    function_def := "func" name
+                    "(" input'func_args? ")"
+                    "(" output'func_args? ")"
+                    "{" func_body "}"
+
+    function_args := function_arg ("," function_arg)*
+    function_arg  := type local_name
+
+    function_body := function_ins*
+    function_ins  := stateless_ins
+
+
+
+## Instructions
+
+### Types of Instructions
+
+#### Pure vs. Impure Instructions
+Pure functions influence the execution of other functions only by the value they return as a result. An instruction is considered impure if it also influences other instructions through side effects such as conditional execution or changing a memory location. The following instructions are considered *impure*:
+
+-   memory load and store
+-   branches and loops
+
+#### Stateful Instructions
+Instructions that maintain state are called *stateful*. For example, instantiating a module or process creates an state that is carried between multiple executions of the instruction. The following instructions are considered *stateful*:
+
+-   instantiation of modules and processes
+-   declaration of signals
+
+Note that declaration of variables is considered *stateless*, since the lifetime of the memory allocated for the variable is tied to the lifetime of the enclosing module, process, or function.
+
+
+### `st` Store to Memory [proc,func]
+
+    st <addr> <value>
+
+Stores the value *<value>* at the memory location pointed to by *<addr>*.
+
+
+### `ld` Load from Memory [proc,func]
+
+    <result> = ld <ty> <addr>
+
+Loads a value of type *<ty>* from the memory location pointed to by *<addr>* and stores it in *<result>*.
+
+
+### `wait` [proc]
+
+    wait                ; (1) unconditional wait
+    wait <time>         ; (2) relative timed wait
+    wait abs <time>     ; (3) absolute timed wait
+    wait <cond> <dest>  ; (4) conditional wait
+
+The `wait` instruction is used to temporarily suspend the execution of a process. It comes in four variants differing in when and how execution of the process is resumed:
+
+1.  The unconditional wait suspends execution of the process until it is resumed due to a change to its inputs.
+
+2.  The relative timed wait suspends execution of the process until an amount of time has passed.
+
+3.  The absolute timed wait suspends execution of the process until an absolute point in time has been reached.
+
+4.  The conditional wait suspends execution of the process if a condition evaluates to 0. As soon as one of the inputs changes, execution of the process resumes at a different location.
+
+Note that during a timed wait the process is insensitive to its inputs.
+
+#### Examples
+
+    wait 10ns        ; wait for 10ns
+    wait abs 4580ns  ; wait until the sim reaches 4580ns
+
+A process can be made to wait for a certain condition among its inputs to become true as follows:
+
+    proc @foo (l1 %a) () {
+    retest:
+        %cond = cmp eq %a 0
+        wait %cond %retest
+        ; execution resumes here as soon as $a = 0
+    }
+
+
+### `br` Branch [proc,func]
+
+    br <dest>                       ; (1) unconditional branch
+    br <cond>, <iftrue>, <iffalse>  ; (2) conditional branch
+
+The `br` instruction transfers control flow to a different basic block. Two variants exist:
+
+1.  The unconditional branch transfers control flow to another basic block.
+
+2.  The conditional branch accepts an `i8` condition value and transfers control flow to one of two basic blocks based on whether that condition evaluates to 0 or 1.
+
+#### Examples
+
+        %cond = cmp eq %a 0
+        br %cond, %ifTrue, %ifFalse
+    ifTrue:
+        ; control flow jumps here if %a = 0
+    ifFalse:
+        ; control flow jumps here if %a != 0
+
+
+### `drv` Drive Signal [mod,proc]
+
+    drv <signal> <value>               ; (1) delta-step drive
+    drv <signal> <value> <time>        ; (2) time-step drive
+    drv <signal> clear <value>         ; (3) delta-step clearing drive
+    drv <signal> clear <value> <time>  ; (4) time-step clearing drive
+
+The `drv` instruction drives a signal to a specified value. It has two orthogonal options that result in four variations:
+
+1.  The delta-step drive schedules a change in value for the driven signal at the next delta time step.
+
+2.  The time-step drive schedules a change in value for the driven signal after an amount of time has passed.
+
+3.  The delta-step clearing drive behaves the same as the delta-step drive, but clears all pending events on the driven signal before scheduling the change.
+
+4.  The time-step clearing drive behaves the same as the time-step drive, but clears all pending events on the driven signal before scheduling the change.
+
+The `clear` option allows for both an *inertia delay model* as well as a *transport delay model* to be expressed: In an inertia model, an input value has to be applied long enough for its effect to become visible at the output. If the change in input occurs for less than the delay time, it does not have enough inertia to change the output. In a transport model, the effects of a change to a gate's inputs becomes visible after a delay. Short pulses are preserved and appear at the output after the delay.
+
+For example, the following inertial delay model causes a pulse of 5ns to be supressed since the "inertia" a pulse must have to have an effect is at least 10ns:
+
+    ; 5ns pulse, causes %a = [0 @0ns]
+    %a = sig l1
+    drv %a l1'0
+    drv %a l1'1 10ns
+    wait 5ns
+    drv %a clear l1'0 10ns
+
+    ; 15ns pulse, causes %b = [0 @0ns, 1 @10ns, 0 @25ns]
+    %b = sig l1
+    drv %b l1'0
+    drv %b l1'1 10ns
+    wait 15ns
+    drv %b clear l1'0 10ns
+
+In contrast, the following transport delay model causes a pulse of 5ns to be propagated to the output, even though the gate is modelled as having a delay of 10ns:
+
+    ; 5ns pulse, causes %c = [0 @0ns, 1 @10ns, 0 @15ns]
+    %c = sig l1
+    drv %c l1'0
+    drv %c l1'1 10ns
+    wait 5ns
+    drv %c l1'0 10ns
+
+
+### `sig` Signal Declaration [mod,proc]
+
+    <result> = sig <ty>            ; (1) uninitialized declaration
+    <result> = sig <ty> <initial>  ; (2) initialized declaration
+
+The `sig` instruction declares a new signal that is integrated into the event loop and may be driven using the `drv` instruction. Two variants of the instruction exist:
+
+1.  The uninitialized declaration declares a new signal that is initially set to the undefined value of its type, or an arbitrary value if the type provides no representation of an undefined value.
+
+2.  The initialized declaration declares a new signal that is set to an initial value.
+
+Note that logic values provide a representation of an undefined value ("U"), whereas integer type do not. For types that do not provide an explicit representation of an undefined value, the initial value depends on the previous contents of the memory location used on the simulation machine. However, assembly that relies on an uninitialized signal assuming a specific value, or values with a specific random distribution, is not well-formed.
+
+#### Examples
+
+    %a = sig l1    ; %a = U
+    %b = sig i1    ; %b = random{0,1}
+    %c = sig l1 1  ; %c = 1
+    %d = sig i1 1  ; %d = 1
+
+
+### `alloc` Allocate Memory [proc,func]
+
+    <result> = alloc <ty>            ; (1) uninitialized allocation
+    <result> = alloc <ty> <initial>  ; (2) initialized allocation
+
+The `alloc` instruction allocates memory to hold a value of a specific type and returns the address to that memory. Two variants of the instruction exist:
+
+1.  The uninitialized allocation allocates memory that is initially set to the undefined value of its type, or an arbitrary value if the type provides no representation of an undefined value.
+
+2.  The initialized allocation allocates memory that is set to an initial value.
+
+The same rules apply as with the `sig` instruction.
+
+
+### `cmp`
+### `and`
+### `or`
+### `xor`
+### `add`
+### `sub`
+### `mul`
+### `div`
+
+
 
 ## Structure
 
@@ -192,11 +494,11 @@ An optimization step can be performed that collapses structurally identical modu
         z <= transport a nor b after 1ns;
     end tdm;
 
-**LLHD:** The distinction between intertial and transport delay modle shall be made in the `drv` instruction. By appending the `clear` keyword, all pending events on `%z` are cleared. If `%0` assumes a transient value that lasts less than 1ns, the first change schedules an event to the new value after 1ns, and the second change schedules an event to the old value. If the `clear` keyword is set, the event scheduled by the first change shall be cancelled, thus effectively supressing the value change.
+**LLHD:** The distinction between intertial and transport delay model shall be made in the `drv` instruction. By prepending the value with the `clear` keyword, all pending events on `%z` are cleared. If `%0` assumes a transient value that lasts less than 1ns, the first change schedules an event to the new value after 1ns, and the second change schedules an event to the old value. If the `clear` keyword is set, the event scheduled by the first change shall be cancelled, thus effectively supressing the value change.
 
     module @nor_gate_idm (u1 %a, u1 %b) (u1 %z) {
         %0 = nor %a %b
-        drv %z %0 1ns clear ; clears any pending events
+        drv %z clear %0 1ns ; clears any pending events
     }
 
     module @nor_gate_tdm (u1 %a, u1 %b) (u1 %z) {
