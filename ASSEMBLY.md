@@ -380,19 +380,33 @@ The `mul` instruction arithmetically multiplies two operands of the same type. T
 ### `div` Instruction [mod,proc,func]
 *Division*
 
-    <result> = div <sign> <valueA> <valueB>  ; (1) division
-    <result> = div mod <valueA> <valueB>     ; (2) modulo
-    <result> = div rem <valueA> <valueB>     ; (3) remainder
+    <result> = div <sign> <valueA> <valueB>      ; (1) division
+    <result> = div <sign> mod <valueA> <valueB>  ; (2) modulo
+    <result> = div <sign> rem <valueA> <valueB>  ; (3) remainder
 
 The `div` instruction performs operations related to arithmetic division. Both operands and the result have the same type. It comes in three different flavors:
 
-1.  The division instruction divides the first operand by the second, discarding any fractional part. The `<sign>` argument determines the way the instruction handles signedness:
-    - `signed` causes the instruction to treat the operands as signed values such that opoosing signs yield a negative result.
-    - `unsigned` causes the instruction to simply divide the first operand by the latter.
+1.  The division instruction divides the first operand by the second discarding any fractional part, thereby truncating towards zero.
 
-2.  The modulo instruction calculates `valueA mod valueB`. The result is a value in the range [0,valueB-1].
+2.  The modulo instruction calculates `A mod B` such that `A = floor(A/B)*B + (A mod B)`. The result has the sign of `B`.
 
-3.  The remainder instruction calculates `valueA rem valueB`. The result is a value in the range [-valueB+1,valueB-1].
+3.  The remainder instruction calculates `A rem B` such that `A = intpart(A/B)*B + (A rem B)`. The result has the sign of `A`.
+
+The `<sign>` argument determines the way the instruction handles signedness:
+
+-   `signed` causes the instruction to treat the operands as signed values such that oposing signs yield a negative result.
+-   `unsigned` causes the instruction to simply divide the first operand by the latter.
+
+Note that the *modulo* and *remainder* instructions are equivalent if used on *unsigned* values. They differ for signed values according to the following example:
+
+      9  mod   5  =  4
+      9  rem   5  =  4
+      9  mod (-5) = -1
+      9  rem (-5) =  4
+    (-9) mod   5  =  1
+    (-9) rem   5  = -4
+    (-9) mod (-5) = -4
+    (-9) rem (-5) = -4
 
 If the second operand is 0, the result is undefined. This has different implications depending on the type of the operation. If the operands are integers, this is a fatal error that aborts execution. If the operands are logic values, the result is a logic value with every bit set to `X`.
 
