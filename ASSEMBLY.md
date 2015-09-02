@@ -501,6 +501,33 @@ If the value is already of type `<ty>`, the function simply returns the value.
     %1 = lmap l4 ls4'UX01       ; %1 = l4'UX01
 
 
+### `inst` Instruction [mod]
+*Instantiation*
+
+    inst <name> (<input0>, ...) (<output0>, ...)
+
+The `inst` instruction instantiates a module or process that was previously defined or declared.
+
+#### Examples
+
+    inst @and_gate (%a, %b) (%z)
+    inst @debug_output (%c) ()
+    inst @clk_gen () (%clk)
+
+
+### `call` Instruction [mod,proc,func]
+*Function Call*
+
+    <output0>, ... = call <name> (<input0>, ...)
+
+The `call` instruction calls a function with a set of arguments and returns the function's result. Multiple return values are possible, in which case the names assigned to the results shall be comma-separated.
+
+#### Examples
+
+    %0 = call @log2 (%a)
+    %1,%2 = call @div_and_rem (%b, %c)
+
+
 
 ## Types
 
