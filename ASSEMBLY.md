@@ -142,21 +142,23 @@ Instructions that maintain state are called *stateful*. For example, instantiati
 Note that declaration of variables is considered *stateless*, since the lifetime of the memory allocated for the variable is tied to the lifetime of the enclosing module, process, or function.
 
 
-### `st` Store to Memory [proc,func]
+### `st` Instruction [proc,func]
+*Store to Memory*
 
     st <addr> <value>
 
 Stores the value *<value>* at the memory location pointed to by *<addr>*.
 
 
-### `ld` Load from Memory [proc,func]
+### `ld` Instruction [proc,func]
+*Load from Memory*
 
     <result> = ld <ty> <addr>
 
 Loads a value of type *<ty>* from the memory location pointed to by *<addr>* and stores it in *<result>*.
 
 
-### `wait` [proc]
+### `wait` Instruction [proc]
 
     wait                ; (1) unconditional wait
     wait <time>         ; (2) relative timed wait
@@ -190,7 +192,8 @@ A process can be made to wait for a certain condition among its inputs to become
     }
 
 
-### `br` Branch [proc,func]
+### `br` Instruction [proc,func]
+*Branch*
 
     br <dest>                       ; (1) unconditional branch
     br <cond>, <iftrue>, <iffalse>  ; (2) conditional branch
@@ -199,7 +202,7 @@ The `br` instruction transfers control flow to a different basic block. Two vari
 
 1.  The unconditional branch transfers control flow to another basic block.
 
-2.  The conditional branch accepts an `i8` condition value and transfers control flow to one of two basic blocks based on whether that condition evaluates to 0 or 1.
+2.  The conditional branch accepts an `i1` condition value and transfers control flow to one of two basic blocks based on whether that condition evaluates to 0 or 1.
 
 #### Examples
 
@@ -211,7 +214,8 @@ The `br` instruction transfers control flow to a different basic block. Two vari
         ; control flow jumps here if %a != 0
 
 
-### `drv` Drive Signal [mod,proc]
+### `drv` Instruction [mod,proc]
+*Drive Signal*
 
     drv <signal> <value>               ; (1) delta-step drive
     drv <signal> <value> <time>        ; (2) time-step drive
@@ -256,7 +260,8 @@ In contrast, the following transport delay model causes a pulse of 5ns to be pro
     drv %c l1'0 10ns
 
 
-### `sig` Signal Declaration [mod,proc]
+### `sig` Instruction [mod,proc]
+*Signal Declaration*
 
     <result> = sig <ty>            ; (1) uninitialized declaration
     <result> = sig <ty> <initial>  ; (2) initialized declaration
@@ -277,7 +282,8 @@ Note that logic values provide a representation of an undefined value ("U"), whe
     %d = sig i1 1  ; %d = 1
 
 
-### `alloc` Allocate Memory [proc,func]
+### `alloc` Instruction [proc,func]
+*Allocate Memory*
 
     <result> = alloc <ty>            ; (1) uninitialized allocation
     <result> = alloc <ty> <initial>  ; (2) initialized allocation
@@ -291,14 +297,184 @@ The `alloc` instruction allocates memory to hold a value of a specific type and 
 The same rules apply as with the `sig` instruction.
 
 
-### `cmp`
-### `and`
-### `or`
-### `xor`
-### `add`
-### `sub`
-### `mul`
-### `div`
+### `cmp` Instruction [mod,proc,func]
+*Compare*
+
+    <result> = icmp <op> <valueA> <valueB>
+
+The `cmp` instruction compares two values of the same type and returns the result as an `i1` value indicating that the comparison yielded *true* or *false* as a result. The comparison performed depends on the value of the `<op>` field and can be one of the following:
+
+-   `eq` equal
+-   `ne` not equal
+-   `sgt` signed greater than
+-   `slt` signed less than
+-   `sge` signed greater than or equal to
+-   `sle` signed less than or equal to
+-   `ugt` unsigned greater than
+-   `ult` unsigned less than
+-   `uge` unsigned greater than or equal to
+-   `ule` unsigned less than or equal to
+
+If the values have a logic type, additional rules have to be observed. If any bit is `U` (uninitialized), `X` (strong unknown), `Z` (high impedance), or `W` (weak unknown), the comparison returns false. If a bit is `-` (don't care) in one of the values, that bit is skipped in the comparison.
+
+
+### `and` Instruction [mod,proc,func]
+*Bitwise Logical AND*
+
+    <result> = and <valueA> <valueB>
+
+The `and` instruction performs a bitwise logical AND operation on two values of identical type. If the operands are of `iN` type, the result is of `iN` type as well. If the operands are of `lN ` or `lsN` type, the result is of `lsN` type.
+
+
+### `or` Instruction [mod,proc,func]
+*Bitwise Logical OR*
+
+    <result> = or <valueA> <valueB>
+
+The `or` instruction performs a bitwise logical OR operation on two values of identical type. If the operands are of `iN` type, the result is of `iN` type as well. If the operands are of `lN` or `lsN` type, the result is of `lsN` type.
+
+
+### `xor` Instruction [mod,proc,func]
+*Bitwise Logical XOR*
+
+    <result> = xor <valueA> <valueB>
+
+The `xor` instruction performs a bitwise logical XOR operation on two values of identical type. If the operands are of `iN` type, the result is of `iN` type as well. If the operands are of `lN` or `lsN` type, the result is of `lsN` type.
+
+
+### `not` Instruction [mod,proc,func]
+*Bitwise Logical NOT*
+
+    <result> = not <value>
+
+The `not` instruction performs a bitwise logical NOT operation on a value. If the operand is of `iN` type, the result is of `iN` type as well. If the operand is of `lN` or `lsN` type, the result is of `lsN` type.
+
+
+### `add` Instruction []
+### `sub` Instruction []
+### `mul` Instruction []
+### `div` Instruction []
+### `bsel` Instruction []
+### `bcat` Instruction []
+
+
+### `lmap` Instruction [mod,proc,func]
+*Logic Map*
+
+    <result> = lmap <ty> <value>
+
+The `lmap` operation maps a general logic value to a strong logic value, and vice versa. The function comes in two variants, as dictated by the requested output type `<ty>`:
+
+-   `l<N>` maps the value to a general logic value if it is of type `ls<N>`.
+-   `ls<N>` maps the value to a strong logic value if it is of type `l<N>`.
+
+If the value is already of type `<ty>`, the function simply returns the value.
+
+#### Examples
+
+    %0 = lmap ls9 l9'UX01ZWLH-  ; %0 = ls9'UX01XX01X
+    %1 = lmap l4 ls4'UX01       ; %1 = l4'UX01
+
+
+
+## Types
+
+### Integer Types
+The integer types represent a generic integer of an arbitrary bit length. The integer is interpreted as signed or unsigned depending on the instructions used.
+
+    iN  ; N integer bits
+
+
+### Logic Types
+The logic types are modeled after the IEEE 1164-1993 standard which represents a logic value that results from a digital circuit as one of nine possible values:
+
+-   `U` uninitialized
+-   `X` forcing unknown value
+-   `0` forcing 0
+-   `1` forcing 1
+-   `Z` high impedance
+-   `W` weak unknown value
+-   `L` weak 0
+-   `H` weak 1
+-   `-` don't care
+
+The LLHD assembly language defines two logic types:
+
+    lN   ; (1) N logic bits with values in [UX01ZWLH-]
+    lsN  ; (2) N logic bits with values in [UX01]
+
+The first type **(1)** is the general logic type which may assume any of the nine values represented by the IEEE standard. The second type **(2)** is the strong logic type which may assume any of the four strong values. The distinction between the two types is made to allow for better optimizations in simulation since the `lsN` type may be represented as 2 bits. A logic gate will always produce an `lsN` as a result, since its output transistors cause a strong drive. If logic gates are chained together in sequence, intermediate results will not assume the full range of logic values anymore, but only one of the four the previous gate may produce.
+
+#### Mappings between `lN` and `lsN`
+The mapping from a `l1` value to a `ls1` value is defined as follows:
+
+    U X 0 1 Z W L H -
+    -----------------
+    U X 0 1 X X 0 1 X
+
+The mapping from a `ls1` value to a `l1` value is defined as follows:
+
+    U X 0 1
+    -------
+    U X 0 1
+
+#### AND Truth Table
+The logic and operation on two `l1` values is defined as described in the table below. The operation is defined in a reduced form when applied to two `ls1` values.
+
+      | U X 0 1 Z W L H -
+    --+------------------
+    U | U U 0 U U U 0 U U
+    X | U X 0 X X X 0 X X
+    0 | 0 0 0 0 0 0 0 0 0
+    1 | U X 0 1 X X 0 1 X
+    Z | U X 0 X X X 0 X X
+    W | U X 0 X X X 0 X X
+    L | 0 0 0 0 0 0 0 0 0
+    H | U X 0 1 X X 0 1 X
+    - | U X 0 X X X 0 X X
+
+#### OR Truth Table
+The logic or operation on two `l1` values is defined as described in the table below. The operation is defined in a reduced form when applied to two `ls1` values.
+
+      | U X 0 1 Z W L H -
+    --+------------------
+    U | U U U 1 U U U 1 U
+    X | U X X 1 X X X 1 X
+    0 | U X 0 1 X X X 1 X
+    1 | 1 1 1 1 1 1 1 1 1
+    Z | U X X 1 X X X 1 X
+    W | U X X 1 X X X 1 X
+    L | 1 X X 1 X X 0 1 X
+    H | 1 1 1 1 1 1 1 1 1
+    - | U X X 1 X X X 1 X
+
+#### XOR Truth Table
+The logic xor operation on two `l1` values is defined as described in the table below. The operation is defined in a reduced form when applied to two `ls1` values.
+
+      | U X 0 1 Z W L H -
+    --+------------------
+    U | U U U U U U U U U
+    X | U X X X X X X X X
+    0 | U X 0 1 X X 0 1 X
+    1 | U X 1 0 X X 1 0 X
+    Z | U X X X X X X X X
+    W | U X X X X X X X X
+    L | U X 0 1 X X 0 1 X
+    H | U X 1 0 X X 1 0 X
+    - | U X X X X X X X X
+
+#### NOT Truth Table
+The logic not operation on a `l1` value is defined as described in the table below. The operation is defined in a reduced form when applied to a `ls1` value.
+
+    U X 0 1 Z W L H -
+    -----------------
+    U X 1 0 X X 1 0 X
+
+
+### Future Extensions
+
+    <N x T>          ; vector of N values of type T
+    { T1, T2, ... }  ; struct of values of type T1, T2, ...
 
 
 
