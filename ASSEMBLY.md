@@ -350,12 +350,66 @@ The `xor` instruction performs a bitwise logical XOR operation on two values of 
 The `not` instruction performs a bitwise logical NOT operation on a value. If the operand is of `iN` type, the result is of `iN` type as well. If the operand is of `lN` or `lsN` type, the result is of `lsN` type.
 
 
-### `add` Instruction []
-### `sub` Instruction []
-### `mul` Instruction []
-### `div` Instruction []
+### `add` Instruction [mod,proc,func]
+*Addition*
+
+    <result> = add <valueA> <valueB>
+
+The `add` instruction arithmetically adds two operands of the same type. The result has the same type as the operands. This is a modulo addition, meaning that the result is truncated to fit into the same type as the operands, thus causing over- and underflow.
+
+
+### `sub` Instruction [mod,proc,func]
+*Subtraction*
+
+    <result> = add <valueA> <valueB>
+
+the `sub` instruction arithmetically subtracts one operand from another operand of the same type. The result has the same type as the operands. This is a modulo subtraction, meaning that the result is truncated to fit into the same type as the operands, thus causing over- and underflow.
+
+
+### `mul` Instruction [mod,proc,func]
+*Multiplication*
+
+    <result> = mul <sign> <valueA> <valueB>
+
+The `mul` instruction arithmetically multiplies two operands of the same type. The result has the same type as the operands. This is a modulo multiplication, meaning that the result is truncated to fit into the same type as the operands, thus causing over- and underflow. The `<sign>` argument determines the way the instruction handles signedness:
+
+-   `signed` causes the instruction to treat the operands as signed values such that opposing signs yield a negative result.
+-   `unsigned` causes the instruction to simply multiply the operands.
+
+
+### `div` Instruction [mod,proc,func]
+*Division*
+
+    <result> = div <sign> <valueA> <valueB>  ; (1) division
+    <result> = div mod <valueA> <valueB>     ; (2) modulo
+    <result> = div rem <valueA> <valueB>     ; (3) remainder
+
+The `div` instruction performs operations related to arithmetic division. Both operands and the result have the same type. It comes in three different flavors:
+
+1.  The division instruction divides the first operand by the second, discarding any fractional part. The `<sign>` argument determines the way the instruction handles signedness:
+    - `signed` causes the instruction to treat the operands as signed values such that opoosing signs yield a negative result.
+    - `unsigned` causes the instruction to simply divide the first operand by the latter.
+
+2.  The modulo instruction calculates `valueA mod valueB`. The result is a value in the range [0,valueB-1].
+
+3.  The remainder instruction calculates `valueA rem valueB`. The result is a value in the range [-valueB+1,valueB-1].
+
+If the second operand is 0, the result is undefined. This has different implications depending on the type of the operation. If the operands are integers, this is a fatal error that aborts execution. If the operands are logic values, the result is a logic value with every bit set to `X`.
+
+#### Examples
+
+    %0 = div unsigned 7 2  ; %0 = 3
+    %1 = div signed 7 -2   ; %1 = -3
+    %2 = div mod -21 4     ; %2 = 3
+    %3 = div mod  21 4     ; %3 = 3
+    %4 = div rem -21 4     ; %4 = -1
+    %5 = div rem  21 4     ; %5 = 3
+
+
 ### `bsel` Instruction []
 ### `bcat` Instruction []
+### `trunc` Instruction []
+### `ext` Instruction []
 
 
 ### `lmap` Instruction [mod,proc,func]
@@ -471,10 +525,35 @@ The logic not operation on a `l1` value is defined as described in the table bel
     U X 1 0 X X 1 0 X
 
 
+### Pointer Type
+The pointer type represents the address of a value in memory that is of a known type. It is formed by suffixing any type with an asterisk, as follows:
+
+    T *  ; address of a value of type T
+
+Pointer types are primarily used for loading and storing values. They do not have any correspondence in actual hardware.
+
+
 ### Future Extensions
 
     <N x T>          ; vector of N values of type T
     { T1, T2, ... }  ; struct of values of type T1, T2, ...
+
+
+### Grammar
+The grammar of the LLHD assembly types is as follows:
+
+    type := integer_type
+          | logic_type
+          | strong_logic_type
+          | pointer_type
+
+    pointer_type      := type "*"
+    vector_type       := "<" /[0-9]+/ "x" type ">"
+    struct_type       := "{" type ("," type)* "}"
+
+    integer_type      := /i[1-9][0-9]*/
+    logic_type        := /l[1-9][0-9]*/
+    strong_logic_type := /ls[1-9][0-9]*/
 
 
 
