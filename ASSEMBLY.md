@@ -406,10 +406,67 @@ If the second operand is 0, the result is undefined. This has different implicat
     %5 = div rem  21 4     ; %5 = 3
 
 
-### `bsel` Instruction []
-### `bcat` Instruction []
-### `trunc` Instruction []
-### `ext` Instruction []
+### `sel` Instruction [mod,proc,func]
+*Selection*
+
+    <result> = sel <value> <range0>, ...
+
+The `sel` instruction selects a subset of its argument's bits or elements and returns a new value that contains only those. The elements are selected by individual ranges which may either be single indices `/[0-9]+/`, or ranges of indices `/[0-9]+-[0-9]+/`. The same element may be selected multiple times, in which case it also appears multiple times in the result. Depending on the type of `<value>`, the instruction behaves differently:
+
+-   If it is an integer or logic type, the instruction selects individual bits from the input value and returns a result of integer or logic type with enough bits to accomodate all the selected bits.
+-   If it is a vector type, the instruction selects vector elements from the input value and returns a vector of the same element type but with a different width, enough to accomodate all the selected elements.
+
+#### Examples
+
+    %0 = sel i4 i4'b0101, 0, 0, 3-0, 0-3  ; %0 = i10'b1101011010
+    %1 = sel <4 x i8> %foo, 0, 3          ; %1.type = <2 x i8>
+
+
+### `cat` Instruction [mod,proc,func]
+*Concatenation*
+
+    <result> = cat <value0>, ...
+
+The `cat` instruction concatenates multiple input values into one value. The types of the arguments can have a different width, but must be of the same base type. This means that they must either all be integers, all be logics, all be strong logics, or all be vectors with the same element type. The result of the instruction is a value that has the same base type and a width that equals the sum of all the widths of the arguments. Depending on the base type the operation behaves differently:
+
+-   If it is an integer or logic type, the output is of a larger integer or logic type and that contains a concatenation of all bits of the input arguments.
+-   If it is a vector type, the output is a larger vector type that contains all elements of the input argument vectors.
+
+#### Examples
+
+    %0 = cat i2 %a, i2 %b              ; %0.type = i4
+    %1 = cat <2 x i8> %c, <3 x i8> %d  ; %1.type = <5 x i8>
+
+
+### `trunc` Instruction [mod,proc,func]
+*Truncation*
+
+    <result> = trunc <ty> <value>
+
+The `trunc` instruction truncates a value to a smaller bit width, discarding the most significant bits in the process. The base type of the input `<value>` and the desired output type `<ty>` must be the same, and the output width must be smaller or equal to the input width.
+
+#### Examples
+
+    %0 = trunc i2 i4'b0110  ; %0 = i2'b10
+
+
+### `ext` Instruction [mod,proc,func]
+*Extension*
+
+    <result> = ext signed <ty> <value>      ; (1) sign extension
+    <result> = ext <ty> <value> <padvalue>  ; (2) value padding
+
+The `ext` instruction performs sign extension of a value to a greater bit width. The base type of the input `<value>` and the desired output type `<ty>` must be the same, and the output width must be greater or equal to the input width. The type of the `<padvalue>` must be the same as `<ty>`, but with a width of 1. The instruction comes in two variants:
+
+1.  The sign extension variant fills the bits that are added with the most significant bit of the input value. This preserves signedness if the value is in two's complement form.
+
+2.  The value padding variant fills the bits that are added with the provided `<padvalue>`.
+
+#### Examples
+
+    %0 = ext signed i8 i4'1100  ; %0 = i8'11111100
+    %1 = ext i8 i4'1100 i1'0    ; %1 = i8'00001100
+    %2 = ext i8 i4'1100 i1'1    ; %2 = i8'11111100
 
 
 ### `lmap` Instruction [mod,proc,func]
@@ -554,6 +611,45 @@ The grammar of the LLHD assembly types is as follows:
     integer_type      := /i[1-9][0-9]*/
     logic_type        := /l[1-9][0-9]*/
     strong_logic_type := /ls[1-9][0-9]*/
+
+
+
+## Names
+Names are frequently assigned in LLHD assembly, be it the result of an instruction, a module, process, or function, or a label. The language distinguishes between two types of names:
+
+    %foo  ; local name
+    @bar  ; global name
+
+Local names are only visible within the current assembly and are not exported. Global names are visible in the assembly's symbol table and may be used by other assemblies, for example to instantiate a module or process, or to call a function.
+
+Names may contain the characters 0-9, a-z, A-Z, "_" and ".". In addition to that, the escape sequence "\uXX" may be used to represent an arbitrary byte in the name, thus allowing for every possible character to be contained in a name.
+
+
+### Grammar
+The grammar for the LLHD assembly names is as follows:
+
+    name        := local_name | global_name
+    local_name  := /%([0-9a-zA-Z_.]|\u[0-9a-fA-F])+/
+    global_name := /@([0-9a-zA-Z_.]|\u[0-9a-fA-F])+/
+
+
+
+## Numeric Constants
+Numeric constants are written as a combination of type and value:
+
+    i8'01100110
+    i8'h66
+    i8'd102
+
+The sequence in front of the apostrophe declares the type of the constant. Following the apostrophe may be an indicator as to what base is used in the number. If omitted, binary (i.e. base 2) is assumed.
+
+### Grammar
+The grammar for the LLHD assembly numeric constants is as follows:
+
+    numeric_const      := integer_const | logic_const | strong_logic_const
+    integer_const      := /i[1-9][0-9]*'[hd][0-9]+/
+    logic_const        := /l[1-9][0-9]*'[hd][UX0-9A-FZLHW-]+/
+    strong_logic_const := /ls[1-9][0-9]*'[hd][UX0-9A-F]+/
 
 
 
