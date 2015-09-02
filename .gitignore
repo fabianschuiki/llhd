@@ -1,10 +1,7 @@
 .*
-!.gitignore
+!.giti*
 !.travis.yml
+_*
 build
-_build
 *~
 ~*
-/doc/standards/*.pdf
-/doc/doxygen/*
-!/doc/doxygen/Doxyfile
