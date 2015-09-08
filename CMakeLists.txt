@@ -1,10 +1,43 @@
-# Copyright (c) 2014 Fabian Schuiki
-cmake_minimum_required(VERSION 2.6)
+# Copyright (c) 2014-2015 Fabian Schuiki
+cmake_minimum_required(VERSION 2.8)
 project(llhd)
 
 if (CMAKE_BUILD_TYPE)
 	message("## ${CMAKE_BUILD_TYPE} build")
 endif()
+
+
+# Generate the configuration header. Retrieve the current git commit and branch
+# for nightly builds.
+set(LLHD_VERSION_MAJOR 0)
+set(LLHD_VERSION_MINOR 1)
+set(LLHD_VERSION_PATCH 0)
+set(LLHD_VERSION_SUFFIX "")
+set(LLHD_VERSION "${LLHD_VERSION_MAJOR}.${LLHD_VERSION_MINOR}.${LLHD_VERSION_PATCH}${LLHD_VERSION_SUFFIX}")
+
+execute_process(
+	COMMAND git log -1 --format=%h
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	OUTPUT_VARIABLE LLHD_GIT_COMMIT
+	OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+execute_process(
+	COMMAND git rev-parse --abbrev-ref HEAD
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	OUTPUT_VARIABLE LLHD_GIT_BRANCH
+	OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+option(LLHD_NIGHTLY "Make a cutting edge nightly build" OFF)
+if (LLHD_NIGHTLY)
+	execute_process(
+		COMMAND date +%Y.%m.%d
+		OUTPUT_VARIABLE DATE
+		OUTPUT_STRIP_TRAILING_WHITESPACE)
+	set(LLHD_VERSION "${LLHD_VERSION}-nightly.${DATE}+${GIT_COMMIT}")
+endif()
+
+message("## version ${LLHD_VERSION}")
+
 
 # Add the build type "gcov" that produces a debug build with gcov output
 # enabled. Useful for coverage analysis.
