@@ -62,22 +62,36 @@ mark_as_advanced(
 	CMAKE_CXX_LINKER_FLAGS_GCOV)
 
 
-find_package(Boost COMPONENTS REQUIRED system unit_test_framework)
-add_definitions(-DBOOST_TEST_DYN_LINK)
-include_directories(${Boost_INCLUDE_DIRS})
+# Compile the legacy code that is factored into the improved code base step by
+# step.
+option(LLHD_BUILD_LEGACY "Build the legacy code base" OFF)
+if (LLHD_BUILD_LEGACY)
+	find_package(Boost COMPONENTS REQUIRED system unit_test_framework)
+	add_definitions(-DBOOST_TEST_DYN_LINK)
+	include_directories(${Boost_INCLUDE_DIRS})
 
-enable_testing()
-include_directories(.)
-add_subdirectory(llhd)
-add_subdirectory(test)
+	include_directories(.)
+	add_subdirectory(llhd)
+endif()
 
-# Add a documentation target if Doxygen is available.
-find_package(Doxygen)
-if (DOXYGEN_FOUND)
-	configure_file(Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile @ONLY)
-	add_custom_target(
-		doc
-		${DOXYGEN_EXECUTABLE} Doxyfile 1> doxygen.log 2> doxygen.err
-		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
-		COMMENT "Generating API documentation with Doxygen" VERBATIM)
+
+# Build the tests if so requested.
+option(LLHD_BUILD_TESTS "Build the unit tests" ON)
+if (LLHD_BUILD_TESTS)
+	enable_testing()
+	add_subdirectory(test)
+endif()
+
+
+# Add a documentation target if requested and Doxygen is available.
+option(LLHD_BUILD_DOC "Build the documentation" ON)
+if (LLHD_BUILD_DOC)
+	find_package(Doxygen)
+	if (DOXYGEN_FOUND)
+		configure_file(Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile @ONLY)
+		add_custom_target(doc
+			${DOXYGEN_EXECUTABLE} Doxyfile 1> doxygen.log 2> doxygen.err
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
+			COMMENT "Generating API documentation with Doxygen" VERBATIM)
+	endif()
 endif()
