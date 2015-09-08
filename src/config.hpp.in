@@ -1,0 +1,12 @@
+/* Copyright (c) 2015 Fabian Schuiki */
+#pragma once
+
+// Version of the project.
+#define LLHD_VERSION_MAJOR @LLHD_VERSION_MAJOR@
+#define LLHD_VERSION_MINOR @LLHD_VERSION_MINOR@
+#define LLHD_VERSION_PATCH @LLHD_VERSION_PATCH@
+#define LLHD_VERSION "@LLHD_VERSION@"
+
+// Version control information.
+#define LLHD_GIT_COMMIT "@LLHD_GIT_COMMIT@"
+#define LLHD_GIT_BRANCH "@LLHD_GIT_BRANCH@"

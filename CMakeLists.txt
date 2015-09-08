@@ -7,6 +7,19 @@ if (CMAKE_BUILD_TYPE)
 endif()
 
 
+set(LLHD_INCLUDE_DIR ${PROJECT_BINARY_DIR}/include)
+set(LLHD_CONFIG_DIR ${PROJECT_BINARY_DIR}/config)
+include_directories(${LLHD_INCLUDE_DIR} ${LLHD_CONFIG_DIR})
+
+
+# Alias "src/" as "llhd/" in the include directories using a symlink.
+add_custom_command(
+	OUTPUT ${LLHD_INCLUDE_DIR}/llhd
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${LLHD_INCLUDE_DIR}
+	COMMAND ${CMAKE_COMMAND} -E create_symlink ${PROJECT_SOURCE_DIR}/src ${LLHD_INCLUDE_DIR}/llhd
+	COMMENT "Create symlink to source in include path")
+
+
 # Generate the configuration header. Retrieve the current git commit and branch
 # for nightly builds.
 set(LLHD_VERSION_MAJOR 0)
@@ -37,6 +50,7 @@ if (LLHD_NIGHTLY)
 endif()
 
 message("## version ${LLHD_VERSION}")
+configure_file(src/config.hpp.in ${LLHD_CONFIG_DIR}/llhd/config.hpp)
 
 
 # Compiler Flags
