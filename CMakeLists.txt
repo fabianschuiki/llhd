@@ -89,6 +89,11 @@ if (LLHD_BUILD_LEGACY)
 endif()
 
 
+# Build the libraries.
+file(GLOB_RECURSE LLHD_COMMON_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/assembly/*.cpp src/utils/*.cpp)
+add_library(llhd-common ${LLHD_COMMON_SOURCES} ${LLHD_INCLUDE_DIR}/llhd)
+
+
 # Build the tests if so requested.
 option(LLHD_BUILD_TESTS "Build the unit tests" ON)
 if (LLHD_BUILD_TESTS)
@@ -110,3 +115,10 @@ if (LLHD_BUILD_DOC)
 			SOURCES ${LLHD_INCLUDE_DIR}/llhd)
 	endif()
 endif()
+
+
+# Installation
+# install(TARGETS llhd-vhdl RUNTIME DESTINATION bin)
+install(TARGETS llhd-common ARCHIVE DESTINATION lib)
+install(DIRECTORY src/ DESTINATION include/llhd FILES_MATCHING PATTERN "*.hpp")
+install(FILES ${LLHD_CONFIG_DIR}/llhd/config.hpp DESTINATION include/llhd)
