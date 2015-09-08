@@ -1,0 +1,5 @@
+/**
+\defgroup assembly Assembly
+
+Library to create, analyze, read, and write LLHD assembly.
+*/
