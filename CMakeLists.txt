@@ -106,6 +106,7 @@ if (LLHD_BUILD_DOC)
 		add_custom_target(doc
 			${DOXYGEN_EXECUTABLE} Doxyfile 1> doxygen.log 2> doxygen.err
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
-			COMMENT "Generating API documentation with Doxygen" VERBATIM)
+			COMMENT "Generating API documentation with Doxygen" VERBATIM
+			SOURCES ${LLHD_INCLUDE_DIR}/llhd)
 	endif()
 endif()

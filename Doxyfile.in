@@ -1,7 +1,8 @@
 # Copyright (c) 2014 Fabian Schuiki
-INPUT = @PROJECT_SOURCE_DIR@/llhd/ @PROJECT_SOURCE_DIR@/README.md
+INPUT = @PROJECT_SOURCE_DIR@/src/ @PROJECT_SOURCE_DIR@/README.md
 RECURSIVE = YES           # since the source tree has multiple layers
 EXCLUDE_SYMLINKS = YES    # no need to follow symlinks
+EXCLUDE_PATTERNS = */test/*
 
 FULL_PATH_NAMES = YES
 STRIP_FROM_PATH = @PROJECT_SOURCE_DIR@
@@ -25,11 +26,23 @@ USE_MDFILE_AS_MAINPAGE = @PROJECT_SOURCE_DIR@/README.md
 JAVADOC_AUTOBRIEF = YES
 QT_AUTOBRIEF = YES
 
+# Repeat the brief description at the beginning of the detailed one.
+REPEAT_BRIEF = YES
+
 SOURCE_BROWSER = YES
 
-# omit all test directories
-EXCLUDE_PATTERNS = */test/*
+# Show a class' inherited members.
+INLINE_INHERITED_MEMB = YES
 
 # Setup the output formats.
 GENERATE_HTML = YES
 GENERATE_LATEX = NO
+
+# Configure what we want to extract.
+EXTRACT_PRIVATE = YES  # include private members
+EXTRACT_STATIC = YES   # include static members
+
+# Specify a few additional commands.
+ALIASES += needsdoc="\todo Needs documentation\n"
+ALIASES += needsdoc{1}="\todo Needs documentation (\1)\n"
+ALIASES += debug="\todo Contains debug code"
