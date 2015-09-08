@@ -39,23 +39,21 @@ endif()
 message("## version ${LLHD_VERSION}")
 
 
+# Compiler Flags
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 -Wall")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DLLHD_DEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -DLLHD_RELEASE")
+
+
 # Add the build type "gcov" that produces a debug build with gcov output
 # enabled. Useful for coverage analysis.
 set(GCC_COVERAGE_COMPILER_FLAGS "-O0 -fprofile-arcs -ftest-coverage")
 set(GCC_COVERAGE_LINKERR_FLAGS "-lgcov")
 
-set(CMAKE_C_FLAGS_GCOV
-	"${CMAKE_C_FLAGS_DEBUG} ${GCC_COVERAGE_COMPILER_FLAGS}"
-	CACHE STRING "Flags used by the compiler during gcov-enabled debug builds")
-set(CMAKE_CXX_FLAGS_GCOV
-	"${CMAKE_CXX_FLAGS_DEBUG} ${GCC_COVERAGE_COMPILER_FLAGS}"
-	CACHE STRING "Flags used by the compiler during gcov-enabled debug builds")
-set(CMAKE_C_LINKER_FLAGS_GCOV
-	"${CMAKE_C_LINKER_FLAGS_DEBUG} ${GCC_COVERAGE_LINKER_FLAGS}"
-	CACHE STRING "Flags used by the linker during gcov-enabled debug builds")
-set(CMAKE_CXX_LINKER_FLAGS_GCOV
-	"${CMAKE_CXX_LINKER_FLAGS_DEBUG} ${GCC_COVERAGE_LINKER_FLAGS}"
-	CACHE STRING "Flags used by the linker during gcov-enabled debug builds")
+set(CMAKE_C_FLAGS_GCOV          "${CMAKE_C_FLAGS_DEBUG} ${GCC_COVERAGE_COMPILER_FLAGS}"        CACHE STRING "Flags used by the compiler during gcov-enabled debug builds")
+set(CMAKE_CXX_FLAGS_GCOV        "${CMAKE_CXX_FLAGS_DEBUG} ${GCC_COVERAGE_COMPILER_FLAGS}"      CACHE STRING "Flags used by the compiler during gcov-enabled debug builds")
+set(CMAKE_C_LINKER_FLAGS_GCOV   "${CMAKE_C_LINKER_FLAGS_DEBUG} ${GCC_COVERAGE_LINKER_FLAGS}"   CACHE STRING "Flags used by the linker during gcov-enabled debug builds")
+set(CMAKE_CXX_LINKER_FLAGS_GCOV "${CMAKE_CXX_LINKER_FLAGS_DEBUG} ${GCC_COVERAGE_LINKER_FLAGS}" CACHE STRING "Flags used by the linker during gcov-enabled debug builds")
 
 mark_as_advanced(
 	CMAKE_C_FLAGS_GCOV
@@ -63,10 +61,6 @@ mark_as_advanced(
 	CMAKE_C_LINKER_FLAGS_GCOV
 	CMAKE_CXX_LINKER_FLAGS_GCOV)
 
-# Enable C++11 support and enable all warnings.
-if (UNIX)
-	add_definitions(-Wall -std=c++11)
-endif()
 
 find_package(Boost COMPONENTS REQUIRED system unit_test_framework)
 add_definitions(-DBOOST_TEST_DYN_LINK)
