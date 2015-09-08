@@ -86,7 +86,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "coverage")
 		COMMAND sed -e 's:${LLHD_INCLUDE_DIR}/llhd:${CMAKE_SOURCE_DIR}/src:'
 		            -e 's:${LLHD_CONFIG_DIR}/llhd:${CMAKE_SOURCE_DIR}/src:'
 		            <${COVERAGE_INFO_PATH}.raw >${COVERAGE_INFO_PATH}.replaced
-		COMMAND ${LCOV_PATH} --remove ${COVERAGE_INFO_PATH}.replaced 'test/*' --output-file ${COVERAGE_INFO_PATH}
+		COMMAND ${LCOV_PATH} --remove ${COVERAGE_INFO_PATH}.replaced 'test/*' 'deps/*' --output-file ${COVERAGE_INFO_PATH}
 	)
 
 	if (GENHTML_PATH)
@@ -109,6 +109,7 @@ endif()
 
 
 # Build the libraries.
+include_directories(${PROJECT_SOURCE_DIR}/deps/catch)
 file(GLOB_RECURSE LLHD_COMMON_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/assembly/*.cpp src/utils/*.cpp)
 add_library(llhd-common ${LLHD_COMMON_SOURCES} ${LLHD_INCLUDE_DIR}/llhd)
 
