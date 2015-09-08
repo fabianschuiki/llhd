@@ -4,25 +4,27 @@ RECURSIVE = YES           # since the source tree has multiple layers
 EXCLUDE_SYMLINKS = YES    # no need to follow symlinks
 EXCLUDE_PATTERNS = */test/*
 
+# Make sure the paths are presented relative to the project directory.
 FULL_PATH_NAMES = YES
 STRIP_FROM_PATH = @PROJECT_SOURCE_DIR@
 STRIP_FROM_INC_PATH = @PROJECT_SOURCE_DIR@
 
+# Setup the project details.
 PROJECT_NAME = LLHD
 PROJECT_BRIEF = "Low Level Hardware Description — A foundation for building hardware design tools."
 
-# make the relations between functions visible
+# Make the relations between functions visible.
 REFERENCED_BY_RELATION = YES
 REFERENCES_RELATION = YES
 
-# make constructors and destructors appear first
+# Make constructors and destructors appear first.
 SORT_MEMBER_DOCS = YES
 
-# reuse the README as the doc's front page
+# Reuse the README as the doc's front page.
 MARKDOWN_SUPPORT = YES
 USE_MDFILE_AS_MAINPAGE = @PROJECT_SOURCE_DIR@/README.md
 
-# automatically use the first sentence as brief description
+# Automatically use the first sentence as brief description.
 JAVADOC_AUTOBRIEF = YES
 QT_AUTOBRIEF = YES
 
