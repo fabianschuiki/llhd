@@ -29,4 +29,13 @@ Range<Iterator> make_range(Iterator first, Iterator last) {
 	return Range<Iterator>(first, last);
 }
 
+/// Returns a Range object that covers the given null-terminated string.
+template<typename String>
+Range<String*> make_range(String *str) {
+	String *end = str;
+	while (*end)
+		++end;
+	return Range<String*>(str, end);
+}
+
 } // namespace llhd
