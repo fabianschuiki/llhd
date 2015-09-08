@@ -1,31 +1,58 @@
 language: cpp
+sudo: false
 
 compiler:
   - gcc
   - clang
 
+env:
+  global:
+    - CTEST_OUTPUT_ON_FAILURE=1
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - cmake
+      - g++-4.8
+
 before_install:
-  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-  - sudo add-apt-repository ppa:boost-latest/ppa -y
-  - sudo apt-get update -qq
+  - mkdir -p $TRAVIS_BUILD_DIR-deps/usr/bin
+  - pushd $TRAVIS_BUILD_DIR-deps/usr/bin
+  - ln -s /usr/bin/g++-4.8 g++
+  - ln -s /usr/bin/gcc-4.8 gcc
+  - ln -s /usr/bin/gcov-4.8 gcov
+  - popd
+  - export PATH="$TRAVIS_BUILD_DIR-deps/usr/bin:$PATH"
 
 install:
-  - sudo apt-get install -qq boost1.55
-  - if [ "$CXX" = "g++" ]; then
-      sudo apt-get install -qq g++-4.8;
-      sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 90;
-      sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 90;
-      sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-4.8 90;
-    fi
-  - sudo pip install cpp-coveralls
-  - $CXX --version
+  - gem install lcoveralls
+  - pushd $TRAVIS_BUILD_DIR-deps
+  - wget http://ftp.de.debian.org/debian/pool/main/l/lcov/lcov_1.11.orig.tar.gz
+  - tar xf lcov_1.11.orig.tar.gz
+  - make PREFIX=$TRAVIS_BUILD_DIR-deps -C lcov-1.11/ install
+  - popd
+
+before_script:
   - gcov --version
+  - lcov --version
+  - lcoveralls --version
+  - $CXX --version
+  - mkdir -p $TRAVIS_BUILD_DIR-build
 
 script:
-  - export CTEST_OUTPUT_ON_FAILURE=1
-  - cmake -DCMAKE_BUILD_TYPE=gcov .
+  - pushd $TRAVIS_BUILD_DIR-build
+  - cmake -DCMAKE_BUILD_TYPE=coverage -DLLHD_BUILD_DOC=OFF $TRAVIS_BUILD_DIR
   - make
+  - if [ "$CXX" = "g++" ]; then make coverage-init; fi
   - make test
+  - if [ "$CXX" = "g++" ]; then make coverage; fi
+  - popd
 
 after_success:
-  - coveralls --gcov-options '\-lp' -e CMakeFiles -E ".*/test/.*"
+  - >
+    if [ "$CXX" = "g++" ]; then
+      lcoveralls --retry-count 5 $TRAVIS_BUILD_DIR-build/coverage.info
+      bash <(curl -s https://codecov.io/bash) -f $TRAVIS_BUILD_DIR-build/coverage.info
+    fi

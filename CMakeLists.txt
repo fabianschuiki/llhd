@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 project(llhd)
 
 if (CMAKE_BUILD_TYPE)
-	message("## ${CMAKE_BUILD_TYPE} build")
+	message("## llhd ${CMAKE_BUILD_TYPE} build")
 endif()
 
 
@@ -49,31 +49,50 @@ if (LLHD_NIGHTLY)
 	set(LLHD_VERSION "${LLHD_VERSION}-nightly.${DATE}+${GIT_COMMIT}")
 endif()
 
-message("## version ${LLHD_VERSION}")
+message("## llhd version ${LLHD_VERSION}")
 configure_file(src/config.hpp.in ${LLHD_CONFIG_DIR}/llhd/config.hpp)
 
 
 # Compiler Flags
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 -Wall")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DLLHD_DEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -DLLHD_RELEASE")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra" CACHE STRING "C++ compiler flags" FORCE)
+set(CMAKE_CXX_FLAGS_COVERAGE "-O0 -g --coverage")
+mark_as_advanced(CMAKE_CXX_FLAGS_COVERAGE)
 
 
-# Add the build type "gcov" that produces a debug build with gcov output
-# enabled. Useful for coverage analysis.
-set(GCC_COVERAGE_COMPILER_FLAGS "-O0 -fprofile-arcs -ftest-coverage")
-set(GCC_COVERAGE_LINKERR_FLAGS "-lgcov")
+# Specify additional targets in case coverage analysis is requested.
+# - coverage-init establishes a baseline coverage
+# - coverage captures coverage information after tests have run
+# - coverage-report generates an HTML report
+if (CMAKE_BUILD_TYPE STREQUAL "coverage")
+	find_program(GCOV_PATH gcov REQUIRED)
+	find_program(LCOV_PATH lcov REQUIRED)
+	find_program(GENHTML_PATH genhtml)
 
-set(CMAKE_C_FLAGS_GCOV          "${CMAKE_C_FLAGS_DEBUG} ${GCC_COVERAGE_COMPILER_FLAGS}"        CACHE STRING "Flags used by the compiler during gcov-enabled debug builds")
-set(CMAKE_CXX_FLAGS_GCOV        "${CMAKE_CXX_FLAGS_DEBUG} ${GCC_COVERAGE_COMPILER_FLAGS}"      CACHE STRING "Flags used by the compiler during gcov-enabled debug builds")
-set(CMAKE_C_LINKER_FLAGS_GCOV   "${CMAKE_C_LINKER_FLAGS_DEBUG} ${GCC_COVERAGE_LINKER_FLAGS}"   CACHE STRING "Flags used by the linker during gcov-enabled debug builds")
-set(CMAKE_CXX_LINKER_FLAGS_GCOV "${CMAKE_CXX_LINKER_FLAGS_DEBUG} ${GCC_COVERAGE_LINKER_FLAGS}" CACHE STRING "Flags used by the linker during gcov-enabled debug builds")
+	mark_as_advanced(GCOV_PATH LCOV_PATH GENHTML_PATH)
 
-mark_as_advanced(
-	CMAKE_C_FLAGS_GCOV
-	CMAKE_CXX_FLAGS_GCOV
-	CMAKE_C_LINKER_FLAGS_GCOV
-	CMAKE_CXX_LINKER_FLAGS_GCOV)
+	if (NOT DEFINED COVERAGE_INFO_PATH)
+		set(COVERAGE_INFO_PATH ${CMAKE_BINARY_DIR}/coverage.info)
+	endif()
+
+	if (NOT DEFINED COVERAGE_HTML_PATH)
+		set(COVERAGE_HTML_PATH ${CMAKE_BINARY_DIR}/coverage)
+	endif()
+
+	set(LCOV_COMMAND ${LCOV_PATH} --gcov-tool ${GCOV_PATH} --base-directory ${CMAKE_SOURCE_DIR} --directory ${CMAKE_BINARY_DIR} --no-external --output-file ${COVERAGE_INFO_PATH}.raw)
+
+	add_custom_target(coverage-init COMMAND ${LCOV_COMMAND} --capture --initial)
+	add_custom_target(coverage
+		COMMAND ${LCOV_COMMAND} --capture
+		COMMAND sed -e 's:${LLHD_INCLUDE_DIR}/llhd:${CMAKE_SOURCE_DIR}/src:'
+		            -e 's:${LLHD_CONFIG_DIR}/llhd:${CMAKE_SOURCE_DIR}/src:'
+		            <${COVERAGE_INFO_PATH}.raw >${COVERAGE_INFO_PATH}.replaced
+		COMMAND ${LCOV_PATH} --remove ${COVERAGE_INFO_PATH}.replaced 'test/*' --output-file ${COVERAGE_INFO_PATH}
+	)
+
+	if (GENHTML_PATH)
+		add_custom_target(coverage-report COMMAND ${GENHTML_PATH} -o ${COVERAGE_HTML_PATH} ${COVERAGE_INFO_PATH})
+	endif()
+endif()
 
 
 # Compile the legacy code that is factored into the improved code base step by
