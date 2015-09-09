@@ -260,5 +260,11 @@ Range<const char*> AssemblyLexer::current_text() const {
 	return make_range(m_base, m_ptr);
 }
 
+/// Returns the current token as string.
+std::string AssemblyLexer::current_string() const {
+	auto r = current_text();
+	return std::string(r.begin(), r.end());
+}
+
 
 } // namespace llhd

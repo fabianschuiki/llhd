@@ -59,6 +59,7 @@ public:
 	AssemblyLexerToken current_token() const;
 	SourceRange current_range() const;
 	Range<const char*> current_text() const;
+	std::string current_string() const;
 
 private:
 	bool read_name();
