@@ -28,7 +28,7 @@ function(add_unit_test basepath)
 	string(REPLACE "/" "-" test_name ${basepath})
 	set(target_name test-${test_name})
 
-	add_executable(${target_name} ${basepath}.cpp)
+	add_executable(${target_name} ${basepath}.cpp main.cpp)
 	set_target_properties(${target_name} PROPERTIES OUTPUT_NAME ${test_name})
 	target_link_libraries(${target_name} llhd-common)
 
