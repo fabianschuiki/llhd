@@ -90,7 +90,7 @@ AssemblyLexer& AssemblyLexer::next() {
 		return *this;
 	m_token = TOKEN_INVALID;
 
-	auto end = [&](){ return m_ptr != m_input.end(); };
+	auto end = [&](){ return m_ptr == m_input.end(); };
 	auto match = [&](const char *s){
 		auto p = m_base;
 		for (; p != m_ptr && *s; ++p, ++s) {

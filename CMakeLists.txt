@@ -9,7 +9,7 @@ endif()
 
 set(LLHD_INCLUDE_DIR ${PROJECT_BINARY_DIR}/include)
 set(LLHD_CONFIG_DIR ${PROJECT_BINARY_DIR}/config)
-include_directories(${LLHD_INCLUDE_DIR} ${LLHD_CONFIG_DIR})
+include_directories(${LLHD_INCLUDE_DIR} ${LLHD_CONFIG_DIR} ${PROJECT_SOURCE_DIR})
 
 
 # Alias "src/" as "llhd/" in the include directories using a symlink.
@@ -103,7 +103,6 @@ if (LLHD_BUILD_LEGACY)
 	add_definitions(-DBOOST_TEST_DYN_LINK)
 	include_directories(${Boost_INCLUDE_DIRS})
 
-	include_directories(.)
 	add_subdirectory(llhd)
 endif()
 

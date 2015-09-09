@@ -34,3 +34,5 @@ function(add_unit_test basepath)
 
 	add_test(${basepath} ${test_name} ${ARGN})
 endfunction(add_unit_test)
+
+add_unit_test(assembly/lexer)
