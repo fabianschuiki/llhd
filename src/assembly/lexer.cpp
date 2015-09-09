@@ -41,7 +41,7 @@ static bool is_name_char(char c) {
 static bool is_number_literal_char(char c) {
 	return (c >= '0' && c <= '9') ||
 	       (c >= 'A' && c <= 'Z') ||
-	       (c == '-');
+	       (c == '-' || c == 'd' || c == 'h');
 }
 
 
@@ -147,7 +147,7 @@ AssemblyLexer& AssemblyLexer::next() {
 		// token.
 		if (!end() && m_token == TOKEN_TYPE && *m_ptr == '\'') {
 			++m_ptr;
-			if (end()) {
+			if (end() || !is_number_literal_char(*m_ptr)) {
 				/// \todo Emit a diagnostic message.
 				std::cerr << "expected character in number literal\n";
 				m_token = TOKEN_INVALID;
