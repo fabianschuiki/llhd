@@ -78,19 +78,27 @@ if (CMAKE_BUILD_TYPE STREQUAL "coverage")
 		set(COVERAGE_HTML_PATH ${CMAKE_BINARY_DIR}/coverage)
 	endif()
 
-	set(LCOV_COMMAND ${LCOV_PATH} --gcov-tool ${GCOV_PATH} --base-directory ${CMAKE_SOURCE_DIR} --directory ${CMAKE_BINARY_DIR} --no-external --output-file ${COVERAGE_INFO_PATH}.raw)
+	if (NOT DEFINED LCOV_LOG)
+		set(LCOV_LOG ${CMAKE_BINARY_DIR}/coverage.log)
+	endif()
 
-	add_custom_target(coverage-init COMMAND ${LCOV_COMMAND} --capture --initial)
+	if (NOT DEFINED LCOV_COMMAND)
+		set(LCOV_COMMAND ${LCOV_PATH} --gcov-tool ${GCOV_PATH} --base-directory ${CMAKE_SOURCE_DIR} --directory ${CMAKE_BINARY_DIR} --no-external --output-file ${COVERAGE_INFO_PATH}.raw)
+	endif()
+
+	add_custom_target(coverage-init
+		COMMAND ${LCOV_COMMAND} --zerocounters >${LCOV_LOG}
+	)
 	add_custom_target(coverage
-		COMMAND ${LCOV_COMMAND} --capture
+		COMMAND ${LCOV_COMMAND} --capture >>${LCOV_LOG}
 		COMMAND sed -e 's:${LLHD_INCLUDE_DIR}/llhd:${CMAKE_SOURCE_DIR}/src:'
 		            -e 's:${LLHD_CONFIG_DIR}/llhd:${CMAKE_SOURCE_DIR}/src:'
 		            <${COVERAGE_INFO_PATH}.raw >${COVERAGE_INFO_PATH}.replaced
-		COMMAND ${LCOV_PATH} --remove ${COVERAGE_INFO_PATH}.replaced 'test/*' 'deps/*' --output-file ${COVERAGE_INFO_PATH}
+		COMMAND ${LCOV_PATH} --remove ${COVERAGE_INFO_PATH}.replaced 'test/*' 'deps/*' --output-file ${COVERAGE_INFO_PATH} >>${LCOV_LOG}
 	)
 
 	if (GENHTML_PATH)
-		add_custom_target(coverage-report COMMAND ${GENHTML_PATH} -o ${COVERAGE_HTML_PATH} ${COVERAGE_INFO_PATH})
+		add_custom_target(coverage-report COMMAND ${GENHTML_PATH} -o ${COVERAGE_HTML_PATH} ${COVERAGE_INFO_PATH} >>${LCOV_LOG})
 	endif()
 endif()
 
