@@ -1,0 +1,5 @@
+/**
+\defgroup diagnostic Diagnostic
+
+Facilities for emitting diagnostic messages.
+*/

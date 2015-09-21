@@ -1,6 +1,6 @@
 /* Copyright (c) 2015 Fabian Schuiki */
 #pragma once
-#include "llhd/range.hpp"
+#include "llhd/utils/range.hpp"
 #include "llhd/location.hpp"
 
 namespace llhd {

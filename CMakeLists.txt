@@ -117,7 +117,7 @@ endif()
 
 # Build the libraries.
 include_directories(${PROJECT_SOURCE_DIR}/deps/catch)
-file(GLOB_RECURSE LLHD_COMMON_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/assembly/*.cpp src/utils/*.cpp)
+file(GLOB_RECURSE LLHD_COMMON_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/assembly/*.cpp src/diagnostic/*.cpp src/utils/*.cpp)
 add_library(llhd-common ${LLHD_COMMON_SOURCES} ${LLHD_INCLUDE_DIR}/llhd)
 
 
