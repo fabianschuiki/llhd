@@ -3,7 +3,7 @@ sudo: false
 
 compiler:
   - gcc
-  # - clang  # broken on Travis since clang 3.4 is not compatible with libstdc++ 4.9
+  - clang
 
 env:
   global:
@@ -15,16 +15,16 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - cmake
-      - g++-4.9
+      - g++-4.7
 
 before_install:
   - mkdir -p $TRAVIS_BUILD_DIR-deps/usr/bin
   - pushd $TRAVIS_BUILD_DIR-deps/usr/bin
   - >
     if [ "$CXX" = "g++" ]; then
-      ln -s /usr/bin/g++-4.9 g++
-      ln -s /usr/bin/gcc-4.9 gcc
-      ln -s /usr/bin/gcov-4.9 gcov
+      ln -s /usr/bin/g++-4.7 g++
+      ln -s /usr/bin/gcc-4.7 gcc
+      ln -s /usr/bin/gcov-4.7 gcov
     fi
   - popd
   - export PATH="$TRAVIS_BUILD_DIR-deps/usr/bin:$PATH"

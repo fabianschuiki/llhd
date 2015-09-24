@@ -34,33 +34,33 @@ public:
 	static const unsigned uninvert    = 27;
 	static const unsigned unhide      = 28;
 
-	template<unsigned B>
-	struct Colors {
-		const unsigned def          = B+9;
-
-		const unsigned black        = B+0;
-		const unsigned red          = B+1;
-		const unsigned green        = B+2;
-		const unsigned yellow       = B+3;
-		const unsigned blue         = B+4;
-		const unsigned magenta      = B+5;
-		const unsigned cyan         = B+6;
-		const unsigned lightgray    = B+7;
-
-		const unsigned darkgray     = B+60;
-		const unsigned lightred     = B+61;
-		const unsigned lightgreen   = B+62;
-		const unsigned lightyellow  = B+63;
-		const unsigned lightblue    = B+64;
-		const unsigned lightmagenta = B+65;
-		const unsigned lightcyan    = B+66;
-		const unsigned white        = B+67;
-	};
+	#define COLORS_STRUCT(B) \
+	struct { \
+		const unsigned def          = B+9; \
+		const unsigned black        = B+0; \
+		const unsigned red          = B+1; \
+		const unsigned green        = B+2; \
+		const unsigned yellow       = B+3; \
+		const unsigned blue         = B+4; \
+		const unsigned magenta      = B+5; \
+		const unsigned cyan         = B+6; \
+		const unsigned lightgray    = B+7; \
+		const unsigned darkgray     = B+60; \
+		const unsigned lightred     = B+61; \
+		const unsigned lightgreen   = B+62; \
+		const unsigned lightyellow  = B+63; \
+		const unsigned lightblue    = B+64; \
+		const unsigned lightmagenta = B+65; \
+		const unsigned lightcyan    = B+66; \
+		const unsigned white        = B+67; \
+	}
 
 	/// Foreground color modifiers.
-	static const Colors<30> fg;
+	static const COLORS_STRUCT(30) fg;
 	/// Background color modifiers.
-	static const Colors<40> bg;
+	static const COLORS_STRUCT(40) bg;
+
+	#undef COLORS_STRUCT
 
 private:
 	template<typename... Args>
