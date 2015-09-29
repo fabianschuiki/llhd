@@ -35,7 +35,7 @@ The grammar for the `mod` command is as follows:
     module_args := module_arg ("," module_arg)*
     module_arg  := type local_name
 
-    module_body := module_ins*
+    module_body := module_ins+
     module_ins  := pure_ins | stateful_ins
 
 
@@ -147,7 +147,7 @@ Note that declaration of variables is considered *stateless*, since the lifetime
 
     st <addr> <value>
 
-Stores the value *<value>* at the memory location pointed to by *<addr>*.
+Stores the value `<value>` at the memory location pointed to by `<addr>`.
 
 
 ### `ld` Instruction [proc,func]
@@ -155,7 +155,7 @@ Stores the value *<value>* at the memory location pointed to by *<addr>*.
 
     <result> = ld <ty> <addr>
 
-Loads a value of type *<ty>* from the memory location pointed to by *<addr>* and stores it in *<result>*.
+Loads a value of type `<ty>` from the memory location pointed to by `<addr>` and stores it in `<result>`.
 
 
 ### `wait` Instruction [proc]
@@ -263,8 +263,8 @@ In contrast, the following transport delay model causes a pulse of 5ns to be pro
 ### `sig` Instruction [mod,proc]
 *Signal Declaration*
 
-    <result> = sig <ty>            ; (1) uninitialized declaration
-    <result> = sig <ty> <initial>  ; (2) initialized declaration
+    <result> = sig <ty>             ; (1) uninitialized declaration
+    <result> = sig <ty>, <initial>  ; (2) initialized declaration
 
 The `sig` instruction declares a new signal that is integrated into the event loop and may be driven using the `drv` instruction. Two variants of the instruction exist:
 
@@ -276,10 +276,10 @@ Note that logic values provide a representation of an undefined value ("U"), whe
 
 #### Examples
 
-    %a = sig l1    ; %a = U
-    %b = sig i1    ; %b = random{0,1}
-    %c = sig l1 1  ; %c = 1
-    %d = sig i1 1  ; %d = 1
+    %a = sig l1        ; %a = l1'U
+    %b = sig i1        ; %b = random{i1'0,i1'1}
+    %c = sig l1, l1'1  ; %c = l1'1
+    %d = sig i1, i1'1  ; %d = i1'1
 
 
 ### `alloc` Instruction [proc,func]
@@ -361,7 +361,7 @@ The `add` instruction arithmetically adds two operands of the same type. The res
 ### `sub` Instruction [mod,proc,func]
 *Subtraction*
 
-    <result> = add <valueA> <valueB>
+    <result> = sub <valueA> <valueB>
 
 the `sub` instruction arithmetically subtracts one operand from another operand of the same type. The result has the same type as the operands. This is a modulo subtraction, meaning that the result is truncated to fit into the same type as the operands, thus causing over- and underflow.
 
@@ -526,6 +526,22 @@ The `call` instruction calls a function with a set of arguments and returns the 
 
     %0 = call @log2 (%a)
     %1,%2 = call @div_and_rem (%b, %c)
+
+
+### `ret` Instruction [func]
+*Return from Function*
+
+    ret
+
+The `ret` function returns from a function call. Note that it does not take any arguments. Any results should be assigned to the corresponding variables beforehand.
+
+#### Examples
+
+    func @inc (i32 %a) (i32 %b) {
+        %0 = add i32 %a i32'd1
+        st %b %0
+        ret
+    }
 
 
 
