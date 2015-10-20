@@ -3,6 +3,8 @@
 ## Programs
 The user of LLHD shall interact with the system through the use of several distinct programs, much like GCC and Clang. The programs expose the functionality of the LLHD libraries. The programs are as follows:
 
+-   **llhd-tool** exposes some of the functionality of the LLHD libraries on the command line. This includes syntax checking for LLHD source files, converting between assembly and bitcode, applying various transformations, and extracting information on the assembly at hand.
+
 -   **llhd-vhdlc** acts as the VHDL compiler whose main task it is to convert VHDL source code to LLHD. May also be used to syntax check, parse, and rewrite VHDL code. Allows LLHD code to be synthesized back into VHDL.
 
 -   **llhd-vc** acts as the Verilog compiler whose main task it is to convert Verilog source code to LLHD. May also be used to syntax check, parse, and rewrite Verilog code. Allows LLHD code to be synthesized back into Verilog.

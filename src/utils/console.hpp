@@ -34,33 +34,30 @@ public:
 	static const unsigned uninvert    = 27;
 	static const unsigned unhide      = 28;
 
-	#define COLORS_STRUCT(B) \
-	struct { \
-		const unsigned def          = B+9; \
-		const unsigned black        = B+0; \
-		const unsigned red          = B+1; \
-		const unsigned green        = B+2; \
-		const unsigned yellow       = B+3; \
-		const unsigned blue         = B+4; \
-		const unsigned magenta      = B+5; \
-		const unsigned cyan         = B+6; \
-		const unsigned lightgray    = B+7; \
-		const unsigned darkgray     = B+60; \
-		const unsigned lightred     = B+61; \
-		const unsigned lightgreen   = B+62; \
-		const unsigned lightyellow  = B+63; \
-		const unsigned lightblue    = B+64; \
-		const unsigned lightmagenta = B+65; \
-		const unsigned lightcyan    = B+66; \
-		const unsigned white        = B+67; \
-	}
+	#define COLORS(N,B) \
+	static const unsigned N##_def          = B+9; \
+	static const unsigned N##_black        = B+0; \
+	static const unsigned N##_red          = B+1; \
+	static const unsigned N##_green        = B+2; \
+	static const unsigned N##_yellow       = B+3; \
+	static const unsigned N##_blue         = B+4; \
+	static const unsigned N##_magenta      = B+5; \
+	static const unsigned N##_cyan         = B+6; \
+	static const unsigned N##_lightgray    = B+7; \
+	static const unsigned N##_darkgray     = B+60; \
+	static const unsigned N##_lightred     = B+61; \
+	static const unsigned N##_lightgreen   = B+62; \
+	static const unsigned N##_lightyellow  = B+63; \
+	static const unsigned N##_lightblue    = B+64; \
+	static const unsigned N##_lightmagenta = B+65; \
+	static const unsigned N##_lightcyan    = B+66; \
+	static const unsigned N##_white        = B+67;
 
 	/// Foreground color modifiers.
-	static const COLORS_STRUCT(30) fg;
+	COLORS(fg,30);
 	/// Background color modifiers.
-	static const COLORS_STRUCT(40) bg;
-
-	#undef COLORS_STRUCT
+	COLORS(bg,40);
+	#undef COLORS
 
 private:
 	template<typename... Args>

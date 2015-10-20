@@ -12,12 +12,11 @@ namespace llhd {
 /// \needsdoc
 /// \ingroup diagnostic
 class ConsoleDiagnosticPrinter : public DiagnosticConsumer {
-	std::function<std::string(SourceId)> path_callback;
-	std::function<Range<const char*>(SourceId)> content_callback;
-
 public:
 	ConsoleDiagnosticPrinter() {}
 
+	std::function<std::string(SourceId)> path_callback;
+	std::function<Range<const char*>(SourceId)> content_callback;
 	void consume(Diagnostic const& d);
 
 	unsigned line_width = 0;

@@ -14,13 +14,13 @@ void ConsoleDiagnosticPrinter::consume(Diagnostic const& d) {
 		std::cout << std::string(msg_indent, ' ');
 
 		switch (msg.get_severity()) {
-			case kFatal:   std::cout << kout.format(kout.bold,kout.fg.red)     << "fatal: "   << kout.format(kout.fg.def); break;
-			case kError:   std::cout << kout.format(kout.bold,kout.fg.red)     << "error: "   << kout.format(kout.fg.def); break;
-			case kWarning: std::cout << kout.format(kout.bold,kout.fg.yellow)  << "warning: " << kout.format(kout.fg.def); break;
-			case kInfo:    std::cout << kout.format(kout.bold,kout.fg.magenta) << "info: "    << kout.format(kout.fg.def); break;
+			case DIAG_FATAL:   std::cout << kout.format(kout.bold,kout.fg_red)     << "fatal: "   << kout.format(kout.fg_def); break;
+			case DIAG_ERROR:   std::cout << kout.format(kout.bold,kout.fg_red)     << "error: "   << kout.format(kout.fg_def); break;
+			case DIAG_WARNING: std::cout << kout.format(kout.bold,kout.fg_yellow)  << "warning: " << kout.format(kout.fg_def); break;
+			case DIAG_INFO:    std::cout << kout.format(kout.bold,kout.fg_magenta) << "info: "    << kout.format(kout.fg_def); break;
 			default: break;
 		}
-		std::cout << msg.get_text() << kout.format(kout.reset) << '\n';
+		std::cout << msg.get_text() << kout.format(kout.reset) << " [" << msg.get_main_range() << "]" << '\n';
 
 
 		// Gather the ranges of the source code that are visible in the output.
@@ -114,10 +114,10 @@ void ConsoleDiagnosticPrinter::consume(Diagnostic const& d) {
 			auto source_layout = lookup_source_layout(l.sid);
 
 			std::cout << "    " << kout.format(kout.dim) << lookup_source_path(l.sid);
-			std::cout << ' ' << l.offset+1;
+			std::cout << ':' << l.offset+1;
 			if (l.length > 1)
-				std::cout << '-' << l.offset+l.length-1;
-			std::cout << ':' << kout.format(kout.undim) << '\n';
+				std::cout << '-' << l.offset+l.length;
+			std::cout << kout.format(kout.undim) << '\n';
 
 			auto common_indent = source_layout.get_line(l.offset).indent;
 			for (unsigned i = 1; i < l.length; ++i) {
@@ -138,8 +138,6 @@ void ConsoleDiagnosticPrinter::consume(Diagnostic const& d) {
 				unsigned last = line.offset + line.length;
 				if (!line.empty)
 					first += common_indent.tabs + common_indent.spaces;
-				if (line.includes_newline)
-					--last;
 
 				auto rng = make_range(
 					content.begin() + first,
@@ -152,6 +150,9 @@ void ConsoleDiagnosticPrinter::consume(Diagnostic const& d) {
 					if (c == '\t') {
 						std::cout << "    ";
 						chars_written += 4;
+					} else if (c == '\n') {
+						std::cout << ' ';
+						chars_written += 1;
 					} else {
 						std::cout << c;
 						++chars_written;
@@ -172,8 +173,7 @@ void ConsoleDiagnosticPrinter::consume(Diagnostic const& d) {
 
 					auto ra = first < a ? a - first : 0;
 					auto rb = b - first;
-					auto l = std::min(last-first, rb-ra);
-					if (l == 0) l = 1;
+					if (rb-ra == 0) ++rb;
 
 					std::replace(markers.begin()+ra, markers.begin()+rb, ' ', m);
 					anything_marked = true;
@@ -184,7 +184,7 @@ void ConsoleDiagnosticPrinter::consume(Diagnostic const& d) {
 					mark(r, '`');
 
 				if (anything_marked) {
-					std::cout << "    " << kout.format(kout.fg.green);
+					std::cout << "    " << kout.format(kout.fg_green);
 					auto ic = rng.begin();
 					auto im = markers.begin();
 					for (; ic != rng.end(); ++ic, ++im) {
@@ -195,17 +195,17 @@ void ConsoleDiagnosticPrinter::consume(Diagnostic const& d) {
 					}
 					for (; im != markers.end(); ++im)
 						std::cout << *im;
-					std::cout << kout.format(kout.fg.def) << '\n';
+					std::cout << kout.format(kout.fg_def) << '\n';
 				}
 			}
 
-			std::cout << "\n";
+			// std::cout << "\n";
 		}
 
 		msg_indent = 2;
 	}
 
-	std::cout << '\n';
+	// std::cout << '\n';
 }
 
 
