@@ -1,5 +1,7 @@
 /* Copyright (c) 2015 Fabian Schuiki */
 #include "llhd/assembly/lexer.hpp"
+#include "llhd/diagnostic/diagnostic.hpp"
+#include "llhd/utils/memory.hpp"
 #include <iostream>
 
 namespace llhd {
@@ -17,12 +19,26 @@ static bool is_comment(char c) {
 }
 
 
-/// Returns true if \a is a valid hexadecimal digit. The numbers 0 through 9 and
-/// the uppercase letters A through F are considered valid hexadecimal digits in
-/// LLHD.
+/// Returns true if \a c is a valid hexadecimal digit. The numbers 0 through 9
+/// and the uppercase letters A through F are considered valid hexadecimal
+/// digits in LLHD.
 static bool is_hexadecimal(char c) {
 	return (c >= '0' && c <= '9') ||
 	       (c >= 'A' && c <= 'F');
+}
+
+
+/// Returns true if \a c is a valid decimal digit. The numbers 0 through 9 are
+/// considered valid decimal digits in LLHD.
+static bool is_decimal(char c) {
+	return (c >= '0' && c <= '9');
+}
+
+
+/// Returns true if \a c is a valid SI prefix. The letters "munpf" are
+/// considered valid SI prefices in LLHD.
+static bool is_si_prefix(char c) {
+	return (c == 'm' || c == 'u' || c == 'n' || c == 'p' || c == 'f');
 }
 
 
@@ -41,7 +57,7 @@ static bool is_name_char(char c) {
 static bool is_number_literal_char(char c) {
 	return (c >= '0' && c <= '9') ||
 	       (c >= 'A' && c <= 'Z') ||
-	       (c == '-' || c == 'd' || c == 'h');
+	       (c == '-' || c == 'd' || c == 'h' || c == 'b');
 }
 
 
@@ -76,6 +92,8 @@ static bool is_type_name(const char *c, const char *e) {
 }
 
 
+
+
 /// \needsdoc
 AssemblyLexer::AssemblyLexer(Range<const char*> input, SourceLocation loc, DiagnosticContext *dctx)
 	:	m_input(input), m_loc(loc), m_dctx(dctx) {
@@ -103,12 +121,14 @@ AssemblyLexer& AssemblyLexer::next() {
 	while (!end()) {
 		// Skip whitespaces.
 		if (is_whitespace(*m_ptr)) {
+			m_base = m_ptr;
 			++m_ptr;
 			continue;
 		}
 
 		// Skip comments.
 		if (is_comment(*m_ptr)) {
+			m_base = m_ptr;
 			while (!end() && *m_ptr != '\n')
 				++m_ptr;
 			continue;
@@ -134,6 +154,66 @@ AssemblyLexer& AssemblyLexer::next() {
 			return *this;
 		}
 
+		// Symbols.
+		#define SYMBOL(sym, tkn) if (*m_ptr == sym) {\
+			m_base = m_ptr; \
+			m_token = tkn; \
+			++m_ptr; \
+			return *this;\
+		}
+		SYMBOL('(', TOKEN_LPAREN);
+		SYMBOL(')', TOKEN_RPAREN);
+		SYMBOL('{', TOKEN_LBRACE);
+		SYMBOL('}', TOKEN_RBRACE);
+		SYMBOL(',', TOKEN_COMMA);
+		SYMBOL('=', TOKEN_EQUAL);
+		SYMBOL('-', TOKEN_MINUS);
+		#undef SYMBOL
+
+		// Integer and real literals.
+		if (!end() && is_decimal(*m_ptr)) {
+			m_base = m_ptr;
+			m_token = TOKEN_INTEGER_LITERAL;
+			++m_ptr;
+			while (!end() && is_decimal(*m_ptr))
+				++m_ptr;
+
+			if (!end() && *m_ptr == '.') {
+				m_token = TOKEN_REAL_LITERAL;
+				++m_ptr;
+				while (!end() && is_decimal(*m_ptr))
+					++m_ptr;
+			}
+		}
+
+		// Time literals.
+		if (m_token == TOKEN_INTEGER_LITERAL || m_token == TOKEN_REAL_LITERAL) {
+			if (!end() && *m_ptr == 's') {
+				m_token = TOKEN_TIME_LITERAL;
+				++m_ptr;
+				return *this;
+			}
+			else if (!end() && is_si_prefix(*m_ptr)) {
+				m_token = TOKEN_TIME_LITERAL;
+				++m_ptr;
+				if (end() || *m_ptr != 's') {
+					if (m_dctx) {
+						auto msg = make_unique<DiagnosticMessage>(DIAG_WARNING, "missing 's' suffix at the end of time literal");
+						msg->set_main_range(current_range());
+						auto d = make_unique<Diagnostic>();
+						d->add(std::move(msg));
+						m_dctx->add(std::move(d));
+					}
+				} else {
+					++m_ptr;
+				}
+				return *this;
+			}
+			else {
+				return *this;
+			}
+		}
+
 		// All that's left are either keywords, types, or number literals.
 		m_base = m_ptr;
 		while (!end() && is_name_char(*m_ptr))
@@ -148,8 +228,13 @@ AssemblyLexer& AssemblyLexer::next() {
 		if (!end() && m_token == TOKEN_TYPE && *m_ptr == '\'') {
 			++m_ptr;
 			if (end() || !is_number_literal_char(*m_ptr)) {
-				/// \todo Emit a diagnostic message.
-				std::cerr << "expected character in number literal\n";
+				if (m_dctx) {
+					auto msg = make_unique<DiagnosticMessage>(DIAG_ERROR, "expected character in number literal");
+					msg->set_main_range(current_range());
+					auto d = make_unique<Diagnostic>();
+					d->add(std::move(msg));
+					m_dctx->add(std::move(d));
+				}
 				m_token = TOKEN_INVALID;
 				return *this;
 			}
@@ -161,19 +246,73 @@ AssemblyLexer& AssemblyLexer::next() {
 		if (m_token != TOKEN_INVALID)
 			return *this;
 
+		// If the following character is a colon, this is a label token.
+		if (!end() && *m_ptr == ':') {
+			++m_ptr;
+			m_token = TOKEN_LABEL;
+			return *this;
+		}
+
 		// All that's left are keywords.
 		#define KEYWORD(name, tkn) if (match(name)) {\
 			m_token = tkn; return *this;\
 		}
-		KEYWORD("mod",  TOKEN_KW_MOD);
-		KEYWORD("proc", TOKEN_KW_PROC);
-		KEYWORD("func", TOKEN_KW_FUNC);
+		KEYWORD("abs",      TOKEN_KW_ABS);
+		KEYWORD("add",      TOKEN_KW_ADD);
+		KEYWORD("alloc",    TOKEN_KW_ALLOC);
+		KEYWORD("and",      TOKEN_KW_AND);
+		KEYWORD("br",       TOKEN_KW_BR);
+		KEYWORD("call",     TOKEN_KW_CALL);
+		KEYWORD("cat",      TOKEN_KW_CAT);
+		KEYWORD("clear",    TOKEN_KW_CLEAR);
+		KEYWORD("cmp",      TOKEN_KW_CMP);
+		KEYWORD("cond",     TOKEN_KW_COND);
+		KEYWORD("div",      TOKEN_KW_DIV);
+		KEYWORD("drv",      TOKEN_KW_DRV);
+		KEYWORD("eq",       TOKEN_KW_EQ);
+		KEYWORD("ext",      TOKEN_KW_EXT);
+		KEYWORD("func",     TOKEN_KW_FUNC);
+		KEYWORD("inst",     TOKEN_KW_INST);
+		KEYWORD("ld",       TOKEN_KW_LD);
+		KEYWORD("lmap",     TOKEN_KW_LMAP);
+		KEYWORD("mod",      TOKEN_KW_MOD);
+		KEYWORD("mul",      TOKEN_KW_MUL);
+		KEYWORD("ne",       TOKEN_KW_NE);
+		KEYWORD("not",      TOKEN_KW_NOT);
+		KEYWORD("or",       TOKEN_KW_OR);
+		KEYWORD("proc",     TOKEN_KW_PROC);
+		KEYWORD("rem",      TOKEN_KW_REM);
+		KEYWORD("ret",      TOKEN_KW_RET);
+		KEYWORD("sel",      TOKEN_KW_SEL);
+		KEYWORD("sge",      TOKEN_KW_SGE);
+		KEYWORD("sgt",      TOKEN_KW_SGT);
+		KEYWORD("sig",      TOKEN_KW_SIG);
+		KEYWORD("sle",      TOKEN_KW_SLE);
+		KEYWORD("slt",      TOKEN_KW_SLT);
+		KEYWORD("st",       TOKEN_KW_ST);
+		KEYWORD("sub",      TOKEN_KW_SUB);
+		KEYWORD("trunc",    TOKEN_KW_TRUNC);
+		KEYWORD("uge",      TOKEN_KW_UGE);
+		KEYWORD("ugt",      TOKEN_KW_UGT);
+		KEYWORD("ule",      TOKEN_KW_ULE);
+		KEYWORD("ult",      TOKEN_KW_ULT);
+		KEYWORD("wait",     TOKEN_KW_WAIT);
+		KEYWORD("xor",      TOKEN_KW_XOR);
+		KEYWORD("signed",   TOKEN_KW_SIGNED);
+		KEYWORD("unsigned", TOKEN_KW_UNSIGNED);
 		#undef KEYWORD
 
 		// If we get here, whatever we read was invalid and did not match
 		// anything. Emit a diagnostic message and abort.
 		/// \todo Emit a diagnostic message.
-		std::cerr << "garbage in input file\n";
+		if (m_dctx) {
+			auto msg = make_unique<DiagnosticMessage>(DIAG_ERROR, "unrecognized token");
+			msg->set_main_range(current_range());
+			auto d = make_unique<Diagnostic>();
+			d->add(std::move(msg));
+			m_dctx->add(std::move(d));
+		}
+		m_token = TOKEN_INVALID;
 		return *this;
 	}
 
