@@ -13,6 +13,12 @@
 #include "llhd/utils/memory.hpp"
 #include <iostream>
 
+/// \file
+/// \refactor The code snippets that emit diagnostic messages are highly
+/// repetitive and can easily be generalized either as a function, or
+/// preferrably as a builder class that could also be used elsewhere in the
+/// code. Especially message formatting would be useful.
+
 namespace llhd {
 
 struct AssemblyReaderInternal {

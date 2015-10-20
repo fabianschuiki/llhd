@@ -48,3 +48,4 @@ EXTRACT_STATIC = YES   # include static members
 ALIASES += needsdoc="\todo Needs documentation\n"
 ALIASES += needsdoc{1}="\todo Needs documentation (\1)\n"
 ALIASES += debug="\todo Contains debug code"
+ALIASES += refactor="\todo Refactor:"
