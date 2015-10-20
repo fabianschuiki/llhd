@@ -61,6 +61,8 @@ unsigned SourceLayout::find_line_index_at_offset(unsigned offset) const {
 			return line.offset + line.length <= offset;
 		}
 	);
+	if (it == lines.end())
+		return lines.size()-1;
 	return std::distance(lines.begin(), it);
 }
 
@@ -76,6 +78,7 @@ SourceLayout::Line const& SourceLayout::get_line(unsigned index) const {
 PerceivedLocation SourceLayout::lookup(SourceLocation const& l) const {
 	// assert(l.get_source_id() == source->getId());
 	unsigned idx = find_line_index_at_offset(l.get_offset());
+	assert(idx < lines.size());
 	return PerceivedLocation(
 		l.get_source_id(), idx, l.get_offset() - lines[idx].offset
 	);
@@ -87,6 +90,7 @@ PerceivedRange SourceLayout::lookup(SourceRange const& r) const {
 	// assert(r.get_source_id() == source->getId());
 	unsigned idx_start = find_line_index_at_offset(r.get_offset());
 	unsigned idx_end   = find_line_index_at_offset(r.get_offset() + r.get_length());
+	assert(idx_start < lines.size() && idx_end < lines.size());
 	return PerceivedRange(
 		r.get_source_id(),
 		idx_start, r.get_offset() - lines[idx_start].offset,

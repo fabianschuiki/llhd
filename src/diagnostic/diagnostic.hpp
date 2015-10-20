@@ -20,11 +20,11 @@ class DiagnosticMessage;
 /// \needsdoc
 /// \ingroup diagnostic
 enum DiagnosticSeverity {
-	kFatal,
-	kError,
-	kWarning,
-	kInfo,
-	kNone
+	DIAG_FATAL,
+	DIAG_ERROR,
+	DIAG_WARNING,
+	DIAG_INFO,
+	DIAG_NONE
 };
 
 
@@ -40,7 +40,7 @@ public:
 /// \ingroup diagnostic
 class DiagnosticContext {
 	typedef std::vector<std::unique_ptr<Diagnostic>> diagnostics_type;
-	DiagnosticSeverity severity = kNone;
+	DiagnosticSeverity severity = DIAG_NONE;
 	diagnostics_type diagnostics;
 
 public:
@@ -51,10 +51,10 @@ public:
 
 	DiagnosticSeverity get_severity() const { return severity; }
 
-	bool is_fatal()   const { return severity <= kFatal; }
-	bool is_error()   const { return severity <= kError; }
-	bool is_warning() const { return severity <= kWarning; }
-	bool is_info()    const { return severity <= kInfo; }
+	bool is_fatal()   const { return severity <= DIAG_FATAL; }
+	bool is_error()   const { return severity <= DIAG_ERROR; }
+	bool is_warning() const { return severity <= DIAG_WARNING; }
+	bool is_info()    const { return severity <= DIAG_INFO; }
 
 	void each_diagnostic(std::function<void(Diagnostic&)> fn) {
 		for (auto const& d : diagnostics)
@@ -87,7 +87,7 @@ class Diagnostic {
 	friend class DiagnosticContext;
 
 	unsigned id;
-	DiagnosticSeverity severity = kNone;
+	DiagnosticSeverity severity = DIAG_NONE;
 	messages_type messages;
 
 public:
