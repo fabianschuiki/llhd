@@ -54,7 +54,7 @@ configure_file(src/config.hpp.in ${LLHD_CONFIG_DIR}/llhd/config.hpp)
 
 
 # Compiler Flags
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra" CACHE STRING "C++ compiler flags" FORCE)
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Wno-parentheses" CACHE STRING "C++ compiler flags" FORCE)
 set(CMAKE_CXX_FLAGS_COVERAGE "-O0 -g --coverage")
 mark_as_advanced(CMAKE_CXX_FLAGS_COVERAGE)
 
@@ -121,6 +121,12 @@ file(GLOB_RECURSE LLHD_COMMON_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/a
 add_library(llhd-common ${LLHD_COMMON_SOURCES} ${LLHD_INCLUDE_DIR}/llhd)
 
 
+# Build the programs.
+file(GLOB_RECURSE LLHD_TOOL_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/tool/*.cpp)
+add_executable(llhd-tool ${LLHD_TOOL_SOURCES} ${LLHD_INCLUDE_DIR}/llhd)
+target_link_libraries(llhd-tool llhd-common)
+
+
 # Build the tests if so requested.
 option(LLHD_BUILD_TESTS "Build the unit tests" ON)
 if (LLHD_BUILD_TESTS)
@@ -145,7 +151,7 @@ endif()
 
 
 # Installation
-# install(TARGETS llhd-vhdl RUNTIME DESTINATION bin)
+install(TARGETS llhd-tool RUNTIME DESTINATION bin)
 install(TARGETS llhd-common ARCHIVE DESTINATION lib)
 install(DIRECTORY src/ DESTINATION include/llhd FILES_MATCHING PATTERN "*.hpp")
 install(FILES ${LLHD_CONFIG_DIR}/llhd/config.hpp DESTINATION include/llhd)

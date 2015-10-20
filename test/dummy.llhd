@@ -1,0 +1,77 @@
+; A dummy assembly file, just for the lulz.
+mod @not_gate (l1 %a) (l1 %b) {
+	%0 = not %a
+	%1 = sub %a %0
+	drv %b %0 9.87954ns
+}
+
+mod @inc_gate (l4 %a) (l4 %b) {
+	%0 = add %a l4'1
+	%1 = and l4'0000 l4'1111
+	%3 = or l4'0000 l4'1111
+	%4 = xor l4'0000 l4'1111
+	%5 = mul signed %3 %4
+	%6 = mul unsigned %0 %1
+	drv %b %0 14.8ns
+
+	%10 = ext signed i8 i4'1100
+	%11 = ext i8 i4'1100 i1'0
+	%12 = ext i8 i4'1100 i1'1
+
+	%20 = cat i2 %a, i2 %b
+
+	%30 = sel i4 i4'b0101, 0, 0, 3-0, 0-3
+}
+
+mod @such_wait () () {
+	wait
+	wait cond i1'0 %somewhere
+	wait 60ns
+	wait abs 12659.45ps
+
+	%tmp = ld l8 i8'1245
+	%tmp2 = add %tmp i8'1
+	st i8'1245 %tmp2
+
+	br %endIf0
+	br %0, %ifTrue0, %ifFalse0
+
+	%2 = trunc i2 i4'b0110
+}
+
+mod @moar_stuff () () {
+	%clk = sig l1
+	%rst = sig l1, l1'1
+
+	%a = alloc i32
+	%b = alloc i32, i32'12560342
+
+	%0 = cmp ne %a %b
+	%1 = cmp sgt %b i32'9
+
+	%10 = div unsigned %a %b
+	%11 = div signed mod i32'58912495 %b
+	%12 = div signed rem i32'58912495 %b
+
+	%20 = lmap ls9 l9'UX01ZWLH-
+	%21 = lmap l4 ls4'UX01
+
+	inst @inc_gate (%a, %20) (%b, %rst, @gubbl)
+	%40, %41, %42 = call @log2 (i32'd32, i32'd2)
+}
+
+proc @ff (l1 %clk, l1 %rst, l1 %d) (l1 %q) {
+	%0 = cmp eq %clk l1'1
+	br %0, %if0, %endif0
+if0:
+	drv %q %d
+endif0:
+	ret
+}
+
+func @and_or (l1 %a, l1 %b) (l1 %x, l1 %y) {
+	%0 = and %a %b
+	%1 = or %a %b
+	st %x %0
+	st %y %1
+}
