@@ -24,13 +24,15 @@ if (LLHD_BUILD_LEGACY)
 	add_test(asm-parser test-asm-parser)
 endif()
 
+add_library(catch-main main.cpp)
+
 function(add_unit_test basepath)
 	string(REPLACE "/" "-" test_name ${basepath})
 	set(target_name test-${test_name})
 
-	add_executable(${target_name} ${basepath}.cpp main.cpp)
+	add_executable(${target_name} ${basepath}.cpp)
 	set_target_properties(${target_name} PROPERTIES OUTPUT_NAME ${test_name})
-	target_link_libraries(${target_name} llhd-common)
+	target_link_libraries(${target_name} catch-main llhd-common)
 
 	add_test(${basepath} ${test_name} ${ARGN})
 endfunction(add_unit_test)
