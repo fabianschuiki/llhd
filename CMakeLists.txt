@@ -169,5 +169,5 @@ endif()
 # Installation
 install(TARGETS llhd-tool RUNTIME DESTINATION bin)
 install(TARGETS llhd-common ARCHIVE DESTINATION lib)
-install(DIRECTORY src/ DESTINATION include/llhd FILES_MATCHING PATTERN "*.hpp")
+install(DIRECTORY include/ DESTINATION include FILES_MATCHING PATTERN "*.hpp")
 install(FILES ${LLHD_CONFIG_DIR}/llhd/config.hpp DESTINATION include/llhd)
