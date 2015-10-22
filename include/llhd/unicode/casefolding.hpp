@@ -3,8 +3,15 @@
 #include "llhd/unicode/unichar.hpp"
 #include <iterator>
 
+/// \file
+/// \author Fabian Schuiki
+
 namespace llhd {
 namespace unicode {
+
+/// \addtogroup unicode
+/// @{
+
 
 /// Looks up the casefolded equivalent for the first character in \a c.
 ///
@@ -20,7 +27,8 @@ namespace unicode {
 /// \return The same pointer as \a c if no casefolding is necessary, or a
 ///         pointer to a null-terminated casefolded replacement string.
 template<typename T, bool full = true>
-const T* casefold(const T* c, unsigned* shift = 0);
+const T* casefold(const T* c, unsigned* shift = nullptr);
+
 
 /// Forward iterator that performs unicode casefolding. Note that the iterator
 /// steps through the elements of the string, not the unicode code points
@@ -28,7 +36,7 @@ const T* casefold(const T* c, unsigned* shift = 0);
 /// the iterator steps through each byte of the string individually which
 /// frequently places the iterator in the middle of a multi-byte character.
 template<typename T, bool full = true>
-class casefold_iterator : public std::iterator<std::input_iterator_tag, T> {
+class CasefoldIterator : public std::iterator<std::input_iterator_tag, T> {
 	const T *base, *mapped;
 
 	void lookup() {
@@ -44,27 +52,27 @@ class casefold_iterator : public std::iterator<std::input_iterator_tag, T> {
 
 public:
 	/// Yields the end iterator.
-	casefold_iterator(): base(0), mapped(0) {}
+	CasefoldIterator(): base(nullptr), mapped(nullptr) {}
 	/// Yields the begin iterator for string \a b.
-	casefold_iterator(const T* b): base(b), mapped(0) { lookup(); }
+	CasefoldIterator(const T* b): base(b), mapped(nullptr) { lookup(); }
 	/// Copies the given iterator.
-	casefold_iterator(const casefold_iterator& o):
+	CasefoldIterator(const CasefoldIterator& o):
 		base(o.base),
 		mapped(o.mapped) {}
 
 	/// Advances the iterator to the next element of the string.
-	casefold_iterator& operator++() {
-		if (mapped != 0) {
+	CasefoldIterator& operator++() {
+		if (mapped != nullptr) {
 			++mapped;
 			if (*mapped == 0) {
-				mapped = 0;
-				if (base != 0)
+				mapped = nullptr;
+				if (base != nullptr)
 					lookup();
 			}
 		} else {
 			++base;
 			if (*base == 0) {
-				base = 0;
+				base = nullptr;
 			} else {
 				lookup();
 			}
@@ -73,18 +81,18 @@ public:
 	}
 
 	/// Advances the iterator to the next element of the string.
-	casefold_iterator operator++(int) {
-		casefold_iterator tmp(*this);
+	CasefoldIterator operator++(int) {
+		CasefoldIterator tmp(*this);
 		operator++();
 		return tmp;
 	}
 
 	/// Checks whether two iterators are equal.
-	bool operator==(const casefold_iterator& i) const {
+	bool operator==(const CasefoldIterator& i) const {
 		return base == i.base && mapped == i.mapped;
 	}
 	/// Checks whether two iterators are unequal.
-	bool operator!=(const casefold_iterator& i) const {
+	bool operator!=(const CasefoldIterator& i) const {
 		return base != i.base || mapped != i.mapped;
 	}
 
@@ -95,6 +103,9 @@ public:
 		return mapped ? *mapped : *base;
 	}
 };
+
+
+/// @}
 
 } // namespace unicode
 } // namespace llhd

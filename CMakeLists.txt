@@ -8,8 +8,9 @@ endif()
 
 
 set(LLHD_INCLUDE_DIR ${PROJECT_BINARY_DIR}/include)
+set(LLHD_PUBLIC_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 set(LLHD_CONFIG_DIR ${PROJECT_BINARY_DIR}/config)
-include_directories(${LLHD_INCLUDE_DIR} ${LLHD_CONFIG_DIR} ${PROJECT_SOURCE_DIR})
+include_directories(${LLHD_INCLUDE_DIR} ${LLHD_PUBLIC_INCLUDE_DIR} ${LLHD_CONFIG_DIR} ${PROJECT_SOURCE_DIR})
 
 
 # Alias "src/" as "llhd/" in the include directories using a symlink.
@@ -115,9 +116,24 @@ if (LLHD_BUILD_LEGACY)
 endif()
 
 
+# Generate the unicode casefolding table.
+set(LLHD_UNICODE_CASEFOLDING_INPUT  ${CMAKE_CURRENT_SOURCE_DIR}/src/unicode/CaseFolding.txt)
+set(LLHD_UNICODE_CASEFOLDING_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/casefolding-table.cpp)
+add_executable(casefolding-tablegen src/unicode/casefolding-tablegen.cpp)
+add_custom_command(
+	OUTPUT ${LLHD_UNICODE_CASEFOLDING_OUTPUT}
+	COMMAND casefolding-tablegen ${LLHD_UNICODE_CASEFOLDING_INPUT} ${LLHD_UNICODE_CASEFOLDING_OUTPUT} > ${CMAKE_CURRENT_BINARY_DIR}/casefolding-tablegen.log
+	MAIN_DEPENDENCY ${LLHD_UNICODE_CASEFOLDING_INPUT}
+	DEPENDS casefolding-tablegen
+	COMMENT "Generating unicode casefolding table")
+
+
 # Build the libraries.
 include_directories(${PROJECT_SOURCE_DIR}/deps/catch)
 file(GLOB_RECURSE LLHD_COMMON_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/assembly/*.cpp src/diagnostic/*.cpp src/utils/*.cpp)
+list(APPEND LLHD_COMMON_SOURCES
+	src/unicode/casefolding.cpp
+	${LLHD_UNICODE_CASEFOLDING_OUTPUT})
 add_library(llhd-common ${LLHD_COMMON_SOURCES} ${LLHD_INCLUDE_DIR}/llhd)
 
 

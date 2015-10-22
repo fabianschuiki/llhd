@@ -1,12 +1,12 @@
 # Copyright (c) 2014 Fabian Schuiki
-INPUT = @PROJECT_SOURCE_DIR@/src/ @PROJECT_SOURCE_DIR@/README.md
+INPUT = @PROJECT_SOURCE_DIR@/src/ @PROJECT_SOURCE_DIR@/include/ @PROJECT_SOURCE_DIR@/README.md @PROJECT_SOURCE_DIR@/ASSEMBLY.md
 RECURSIVE = YES           # since the source tree has multiple layers
 EXCLUDE_SYMLINKS = YES    # no need to follow symlinks
 EXCLUDE_PATTERNS = */test/*
 
 # Make sure the paths are presented relative to the project directory.
 FULL_PATH_NAMES = YES
-STRIP_FROM_PATH = @PROJECT_SOURCE_DIR@
+STRIP_FROM_PATH = @PROJECT_SOURCE_DIR@ @PROJECT_SOURCE_DIR@/include
 STRIP_FROM_INC_PATH = @PROJECT_SOURCE_DIR@
 
 # Setup the project details.

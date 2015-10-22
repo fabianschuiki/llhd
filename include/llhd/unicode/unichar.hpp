@@ -1,11 +1,16 @@
 /* Copyright (c) 2014 Fabian Schuiki */
+#pragma once
+#include "llhd/types.hpp"
+
 /// \file
 /// \author Fabian Schuiki
-#pragma once
-#include "llhd/compiler.hpp"
 
 namespace llhd {
 namespace unicode {
+
+/// \addtogroup unicode
+/// @{
+
 
 /// A single 8 bit character in a UTF-8-encoded string.
 typedef uint8_t  utf8char;
@@ -30,7 +35,7 @@ const unichar incomplete = -2; // = 0xFFFFFFFEu
 /// characters on Wikipedia][1] for more information.
 ///
 /// [1]: http://en.wikipedia.org/wiki/Universal_Character_Set_characters
-inline bool isNonCharacter(unichar c) {
+inline bool is_non_character(unichar c) {
 	if ((c & 0xFFFE) == 0xFFFE) // 0xFFFE, 0xFFFF, 0x1FFFE, 0x1FFFF ... 0x10FFFF
 		return true;
 	if (0xFDD0 <= c && c <= 0xFDEF) // continuous range of 32 non-characters in the BMP
@@ -43,7 +48,7 @@ inline bool isNonCharacter(unichar c) {
 /// Character Set characters on Wikipedia][1] for more information.
 ///
 /// [1]: http://en.wikipedia.org/wiki/Universal_Character_Set_characters
-inline bool isSurrogate(unichar c) {
+inline bool is_surrogate(unichar c) {
 	return (0xD800 <= c && c <= 0xDFFF);
 }
 
@@ -52,19 +57,18 @@ inline bool isSurrogate(unichar c) {
 /// character or a surrogate.
 ///
 /// \return Returns true if the code point \a c is a valid character.
-inline bool isValid(unichar c) {
+inline bool is_valid(unichar c) {
 	if (c > 0x10FFFF)
 		return false;
-	if (isNonCharacter(c))
+	if (is_non_character(c))
 		return false;
-	if (isSurrogate(c))
+	if (is_surrogate(c))
 		return false;
 	return true;
 }
 
 
-const utf8char* fullCaseFold(const utf8char* c);
-const utf8char* simpleCaseFold(const utf8char* c);
+/// @}
 
 } // namespace unicode
 } // namespace llhd

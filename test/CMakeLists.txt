@@ -36,3 +36,4 @@ function(add_unit_test basepath)
 endfunction(add_unit_test)
 
 add_unit_test(assembly/lexer)
+add_unit_test(unicode/casefolding)

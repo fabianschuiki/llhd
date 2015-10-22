@@ -1,4 +1,8 @@
 /* Copyright (c) 2014 Fabian Schuiki */
+#pragma once
+#include "llhd/unicode/unichar.hpp"
+#include "llhd/utils/assert.hpp"
+
 /// \file
 /// Provides mechanisms to encode and decode UTF-8, UTF-16 and UTF-32 strings.
 ///
@@ -9,20 +13,22 @@
 /// \author Fabian Schuiki
 ///
 /// [1]: http://www.boost.org/doc/libs/release/libs/locale/doc/html/utf_8hpp_source.html
-#pragma once
-#include "llhd/unicode.hpp"
 
 namespace llhd {
 namespace unicode {
 
+/// \addtogroup unicode
+/// @{
+
+
 /// UTF-8 encoding and decoding facilities.
 struct utf8 {
 	/// Maximum number of UTF-8 characters generated for a single code point.
-	static const unsigned maxWidth = 4;
+	static const unsigned max_width = 4;
 
 	/// Computes the number of UTF-8 characters needed to encode the code
 	/// point \a c.
-	static unsigned getWidth(unichar c) {
+	static unsigned get_width(unichar c) {
 		if (c <= 0x7F)
 			return 1;
 		if (c <= 0x7FF)
@@ -36,17 +42,17 @@ struct utf8 {
 	/// this function returns true, one or more subsequent characters are
 	/// trailing characters that encode one code point. Also returns true for
 	/// singlebyte characters.
-	static bool isLead(utf8char u) {
+	static bool is_lead(utf8char u) {
 		return (u & 0xC0) != 0x80;
 	}
 
 	/// Checks whether \a u is a trailing character in a multibyte group.
-	static bool isTrail(utf8char u) {
+	static bool is_trail(utf8char u) {
 		return (u & 0xC0) == 0x80;
 	}
 
 	/// Computes the number of trailing characters to be expected after \a u.
-	static int getTrailLength(utf8char u) {
+	static int get_trail_length(utf8char u) {
 		if (u < 0x80)
 			return 0;
 		if (u < 194)
@@ -75,7 +81,7 @@ struct utf8 {
 	///          the end of the input was reached prematurely (p == e), or
 	///          ::illegal if an encoding error was detected.
 	template <typename Iterator>
-	static unichar decodePedantic(Iterator& p, Iterator e) {
+	static unichar decode_pedantic(Iterator& p, Iterator e) {
 		if (p == e)
 			return incomplete;
 
@@ -84,7 +90,7 @@ struct utf8 {
 		// optimizing for ASCII text. Trail lengths < 0 indicate an illegal
 		// encoding.
 		utf8char lead = *p++;
-		int trail = getTrailLength(lead);
+		int trail = get_trail_length(lead);
 		if (trail == 0)
 			return lead;
 		if (trail < 0)
@@ -112,31 +118,31 @@ struct utf8 {
 			if (p == e)
 				return incomplete;
 			tmp = *p++;
-			if (!isTrail(tmp))
+			if (!is_trail(tmp))
 				return illegal;
 			c = (c << 6) | (tmp & 0x3F);
 		case 2:
 			if (p == e)
 				return incomplete;
 			tmp = *p++;
-			if (!isTrail(tmp))
+			if (!is_trail(tmp))
 				return illegal;
 			c = (c << 6) | (tmp & 0x3F);
 		case 1:
 			if (p == e)
 				return incomplete;
 			tmp = *p++;
-			if (!isTrail(tmp))
+			if (!is_trail(tmp))
 				return illegal;
 			c = (c << 6) | (tmp & 0x3F);
 		}
 
 		// Make sure the code point is valid.
-		if (!isValid(c))
+		if (!is_valid(c))
 			return illegal;
 
 		// Make sure the code point was encoded in the most compact manner.
-		if (getWidth(c) != trail + 1)
+		if (get_width(c) != trail + 1)
 			return illegal;
 
 		return c;
@@ -144,8 +150,8 @@ struct utf8 {
 
 	/// Decodes a code point from the iterator \a p. This function assumes that
 	/// the input is encoded correctly and is therefore faster than
-	/// decodePedantic(). The downside is that this function is less robust to
-	/// encoding errors. While decodePedantic() returns individual ::illegal or
+	/// decode_pedantic(). The downside is that this function is less robust to
+	/// encoding errors. While decode_pedantic() returns individual ::illegal or
 	/// ::incomplete code points but keeps the rest of the input intact,
 	/// decode() is likely to only decode garbage after an encoding error was
 	/// encountered.
@@ -178,7 +184,7 @@ struct utf8 {
 		else
 			trail = 3;
 
-		// Decode the code point. See decodePedantic() for more information.
+		// Decode the code point. See decode_pedantic() for more information.
 		utf8char mask = (1 << (6-trail)) - 1;
 		unichar c = lead & mask;
 
@@ -193,14 +199,14 @@ struct utf8 {
 
 	/// Encodes a code point to the iterator \a out. Make sure the iterator
 	/// points to a destination that has enough room to accept at least
-	/// maxWidth characters, or that it is an insertion iterator that will
+	/// max_width characters, or that it is an insertion iterator that will
 	/// dynamically expand the destination to accomodate new bytes.
 	///
 	/// \param c   Code point to be encoded.
 	/// \param out Iterator where encoded bytes are written to.
 	template <typename Iterator>
 	static void encode(unichar c, Iterator& out) {
-		assert(isValid(c));
+		assert(is_valid(c));
 		if (c <= 0x7F) {
 			*out++ = utf8char(c);
 		} else if (c <= 0x7FF) {
@@ -219,31 +225,32 @@ struct utf8 {
 	}
 };
 
+
 /// UTF-16 encoding and decoding facilities.
 struct utf16 {
 	/// Maximum number of UTF-16 characters generated for a single code point.
-	static const unsigned maxWidth = 2;
+	static const unsigned max_width = 2;
 
 	/// Computes the number of UTF-16 characters needed to encode the code
 	/// point \a c.
-	static unsigned getWidth(unichar c) {
+	static unsigned get_width(unichar c) {
 		return (c <= 0xFFFF) ? 1 : 2;
 	}
 
 	/// Checks whether the character \a u belongs to the group of first
 	/// surrogates.
-	static bool isFirstSurrogate(utf16char u) {
+	static bool is_first_surrogate(utf16char u) {
 		return 0xD800 <= u && u <= 0xDBFF;
 	}
 
 	/// Checks whether the character \a u belongs to the group of second
 	/// surrogates.
-	static bool isSecondSurrogate(utf16char u) {
+	static bool is_second_surrogate(utf16char u) {
 		return 0xDC00 <= u && u <= 0xDFFF;
 	}
 
 	/// Computes the code point encoded by the two surrogates \a u1 and \a u2.
-	static unichar combineSurrogates(utf16char u1, utf16char u2) {
+	static unichar combine_surrogates(utf16char u1, utf16char u2) {
 		unichar c1 = u1 & 0x3FF;
 		unichar c2 = u2 & 0x3FF;
 		return ((c1 << 10) | c2) + 0x10000;
@@ -253,20 +260,20 @@ struct utf16 {
 	/// this function returns true, the subsequent character is a trailing
 	/// character and encodes one code point together with this character.
 	/// Also returns true for singleword characters.
-	static bool isLead(utf16char u) {
-		return !isSecondSurrogate(u);
+	static bool is_lead(utf16char u) {
+		return !is_second_surrogate(u);
 	}
 
 	/// Checks whether \a u is a trailing character in a multiword group.
-	static bool isTrail(utf16char u) {
-		return isSecondSurrogate(u);
+	static bool is_trail(utf16char u) {
+		return is_second_surrogate(u);
 	}
 
 	/// Computes the number of trailing characters to be expected after \a u.
-	static int getTrailLength(utf16char u) {
-		if (isFirstSurrogate(u))
+	static int get_trail_length(utf16char u) {
+		if (is_first_surrogate(u))
 			return 1;
-		if (isSecondSurrogate(u))
+		if (is_second_surrogate(u))
 			return -1;
 		return 0;
 	}
@@ -286,7 +293,7 @@ struct utf16 {
 	///          the end of the input was reached prematurely (p == e), or
 	///          ::illegal if an encoding error was detected.
 	template <typename Iterator>
-	static unichar decodePedantic(Iterator& p, Iterator e) {
+	static unichar decode_pedantic(Iterator& p, Iterator e) {
 		if (p == e)
 			return incomplete;
 
@@ -295,7 +302,7 @@ struct utf16 {
 		// ensure it is in the range of a first surrogate and that we have not
 		// read past the end of the input.
 		utf16char u1 = *p++;
-		if (!isSurrogate(u1))
+		if (!is_surrogate(u1))
 			return u1;
 		if (u1 > 0xDBFF)
 			return illegal;
@@ -304,17 +311,17 @@ struct utf16 {
 
 		// Fetch the second character. This now needs to be a second surrogate.
 		utf16char u2 = *p++;
-		if (!isSecondSurrogate(u2))
+		if (!is_second_surrogate(u2))
 			return illegal;
 
 		// Combine the two surrogates into a code point.
-		return combineSurrogates(u1, u2);
+		return combine_surrogates(u1, u2);
 	}
 
 	/// Decodes a code point from the iterator \a p. This function assumes that
 	/// the input is encoded correctly and is therefore faster than
-	/// decodePedantic(). The downside is that this function is less robust to
-	/// encoding errors. While decodePedantic() returns individual ::illegal or
+	/// decode_pedantic(). The downside is that this function is less robust to
+	/// encoding errors. While decode_pedantic() returns individual ::illegal or
 	/// ::incomplete code points but keeps the rest of the input intact,
 	/// decode() is likely to only decode garbage after an encoding error was
 	/// encountered.
@@ -333,22 +340,22 @@ struct utf16 {
 	template <typename Iterator>
 	static unichar decode(Iterator& p) {
 		utf16char u1 = *p++;
-		if (!isSurrogate(u1))
+		if (!is_surrogate(u1))
 			return u1;
 		utf16char u2 = *p++;
-		return combineSurrogates(u1, u2);
+		return combine_surrogates(u1, u2);
 	}
 
 	/// Encodes a code point to the iterator \a out. Make sure the iterator
 	/// points to a destination that has enough room to accept at least
-	/// maxWidth words, or that it is an insertion iterator that will
+	/// max_width words, or that it is an insertion iterator that will
 	/// dynamically expand the destination to accomodate new words.
 	///
 	/// \param c   Code point to be encoded.
 	/// \param out Iterator where encoded words are written to.
 	template <typename Iterator>
 	static void encode(unichar c, Iterator& out) {
-		assert(isValid(c));
+		assert(is_valid(c));
 		if (c <= 0xFFFF) {
 			*out++ = utf16char(c);
 		} else {
@@ -358,6 +365,9 @@ struct utf16 {
 		}
 	}
 };
+
+
+/// @}
 
 } // namespace unicode
 } // namespace llhd

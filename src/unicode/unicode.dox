@@ -1,5 +1,5 @@
 /**
-\namespace llhd::unicode
+\defgroup unicode Unicode
 
 A highly efficient library to deal with unicode strings. Primarily, it provides
 encoding and decoding for UTF-8, UTF-16, and UTF-32 strings; and an
