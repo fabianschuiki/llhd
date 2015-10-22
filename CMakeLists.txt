@@ -7,18 +7,9 @@ if (CMAKE_BUILD_TYPE)
 endif()
 
 
-set(LLHD_INCLUDE_DIR ${PROJECT_BINARY_DIR}/include)
-set(LLHD_PUBLIC_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+set(LLHD_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 set(LLHD_CONFIG_DIR ${PROJECT_BINARY_DIR}/config)
-include_directories(${LLHD_INCLUDE_DIR} ${LLHD_PUBLIC_INCLUDE_DIR} ${LLHD_CONFIG_DIR} ${PROJECT_SOURCE_DIR})
-
-
-# Alias "src/" as "llhd/" in the include directories using a symlink.
-add_custom_command(
-	OUTPUT ${LLHD_INCLUDE_DIR}/llhd
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${LLHD_INCLUDE_DIR}
-	COMMAND ${CMAKE_COMMAND} -E create_symlink ${PROJECT_SOURCE_DIR}/src ${LLHD_INCLUDE_DIR}/llhd
-	COMMENT "Create symlink to source in include path")
+include_directories(${LLHD_INCLUDE_DIR} ${LLHD_CONFIG_DIR} ${PROJECT_SOURCE_DIR})
 
 
 # Generate the configuration header. Retrieve the current git commit and branch
@@ -134,12 +125,12 @@ file(GLOB_RECURSE LLHD_COMMON_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/a
 list(APPEND LLHD_COMMON_SOURCES
 	src/unicode/casefolding.cpp
 	${LLHD_UNICODE_CASEFOLDING_OUTPUT})
-add_library(llhd-common ${LLHD_COMMON_SOURCES} ${LLHD_INCLUDE_DIR}/llhd)
+add_library(llhd-common ${LLHD_COMMON_SOURCES})
 
 
 # Build the programs.
 file(GLOB_RECURSE LLHD_TOOL_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/tool/*.cpp)
-add_executable(llhd-tool ${LLHD_TOOL_SOURCES} ${LLHD_INCLUDE_DIR}/llhd)
+add_executable(llhd-tool ${LLHD_TOOL_SOURCES})
 target_link_libraries(llhd-tool llhd-common)
 
 
@@ -160,8 +151,7 @@ if (LLHD_BUILD_DOC)
 		add_custom_target(doc
 			${DOXYGEN_EXECUTABLE} Doxyfile 1> doxygen.log 2> doxygen.err
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
-			COMMENT "Generating API documentation with Doxygen" VERBATIM
-			SOURCES ${LLHD_INCLUDE_DIR}/llhd)
+			COMMENT "Generating API documentation with Doxygen" VERBATIM)
 	endif()
 endif()
 
