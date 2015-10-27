@@ -24,3 +24,40 @@ The source code is separated into several distinct sets of functionality which a
 -   **libllhd-verilog** contains Verilog-specific code such as an AST, lexer, parser, writer, and compiler.
 
 -   **libllhd-systemverilog** contains SystemVerilog-specific code such as an AST, lexer, parser, writer, and compiler. Might also pull in dependencies from the *libllhd-verilog* library if need be, since the two languages share a common foundation, or rather SystemVerilog is a superset of Verilog.
+
+
+## Steps
+The following is a very coarse estimate of the work required to get LLHD to a point where it is actually useful.
+
+- specify components and final programs that the user interacts with *(1d)*
+- specify assembly *(3d)*
+  - structure and event model
+  - drive conflict resolution
+  - instructions
+  - data types
+  - metadata
+- overhaul diagnostic subsystem *(0.5d)*
+- restructure source code to match atlas *(0.5d)*
+- implement assembly representations (in-memory, bitcode, human-readable) *(4d)*
+  - assembly reader / writer *(2d)*
+  - bitcode reader / writer *(2d)*
+- implement reference simulator *(5d)*
+  - event queue and value representation *(1d)*
+  - simulation stepping and value change dump *(2d)*
+  - frontend program and its arguments *(1d)*
+- implement VHDL compiler *(9d)*
+  - lexer *(1d)*
+  - parser (needs some template magic to get an LR(1) parser) *(3d)*
+  - code generation *(5d)*
+- implement Verilog compiler *(6.5d)*
+  - lexer (reuse VHDL lexer where possible) *(0.5d)*
+  - parser *(2d)*
+  - code generation *(4d)*
+- implement SystemVerilog compiler *(8.5d)*
+  - lexer (reuse Verilog lexer where possible) *(0.5d)*
+  - parser *(3d)*
+  - code generation *(5d)*
+- implement assembly synthesizer *(2d)*
+  - to VHDL
+  - to Verilog
+  - to SystemVerilog
