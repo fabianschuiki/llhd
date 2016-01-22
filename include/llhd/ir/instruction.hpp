@@ -12,6 +12,13 @@ public:
 	Instruction(Type * type, BasicBlock * parent = nullptr);
 	virtual ~Instruction();
 
+	void insertAtBegin(BasicBlock * BB);
+	void insertAtEnd(BasicBlock * BB);
+	void insertBefore(Instruction * I);
+	void insertAfter(Instruction * I);
+	void removeFromParent();
+	void eraseFromParent();
+
 private:
 };
 

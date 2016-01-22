@@ -17,11 +17,15 @@ public:
 		IntegerTypeId,
 	};
 
-	static Type * getVoidType(Context &C);
-	static Type * getLogicType(Context &C, unsigned width);
+	static Type * getVoidType(Context & C);
+	static Type * getLogicType(Context & C, unsigned width);
+	static Type * getIntegerType(Context & C, unsigned width);
 
 	Context & getContext() const { return context; }
 	TypeId getTypeId() const { return tid; }
+
+	virtual bool equalTo(Type * other) const;
+	friend bool equal(Type * A, Type * B);
 
 protected:
 	Type(const Type &) = delete;

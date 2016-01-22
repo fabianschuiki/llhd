@@ -15,6 +15,11 @@ Context & Value::getContext() const {
 	return type->getContext();
 }
 
+Value * Value::getConst(Type * type, const std::string & str) {
+	llhd_assert(type);
+	return Constant::getValue(type,str);
+}
+
 Value * Value::getConstNull(Type * type) {
 	llhd_assert(type);
 	return Constant::getNullValue(type);

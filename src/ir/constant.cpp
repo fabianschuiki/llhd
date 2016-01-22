@@ -5,6 +5,17 @@
 
 namespace llhd {
 
+Constant * Constant::getValue(Type * type, const std::string & str) {
+	llhd_assert(type);
+	switch (type->getTypeId()) {
+		case Type::LogicTypeId:
+			return ConstantLogic::get(dynamic_cast<LogicType*>(type), str);
+		default:
+			llhd_abort_msg("cannot construct value from string for type");
+			return nullptr;
+	}
+}
+
 Constant * Constant::getNullValue(Type * type) {
 	llhd_assert(type);
 	switch (type->getTypeId()) {

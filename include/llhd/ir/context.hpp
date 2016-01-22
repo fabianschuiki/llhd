@@ -20,6 +20,7 @@ public:
 
 	Type voidType;
 	std::map<unsigned,LogicType*> logicTypeMap;
+	std::map<unsigned,IntegerType*> intTypeMap;
 	std::vector<Value*> values;
 
 	// TODO: add register/unregister module functions

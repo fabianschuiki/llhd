@@ -31,4 +31,39 @@ ConstantLogic::ConstantLogic(LogicType * type):
 	bits.resize(type->getWidth());
 }
 
+ConstantInteger * ConstantInteger::getNullValue(IntegerType * type) {
+	llhd_assert(type);
+
+	auto * C = new ConstantInteger(type);
+	type->getContext().values.push_back(C);
+	C->value = 0;
+
+	return C;
+}
+
+ConstantInteger * ConstantInteger::get(IntegerType * type, const std::string & str) {
+	llhd_assert(type);
+
+	auto * C = new ConstantInteger(type);
+	type->getContext().values.push_back(C);
+	C->value = std::stoll(str);
+
+	return C;
+}
+
+ConstantInteger * ConstantInteger::get(IntegerType * type, std::intmax_t value) {
+	llhd_assert(type);
+
+	auto * C = new ConstantInteger(type);
+	type->getContext().values.push_back(C);
+	C->value = value;
+
+	return C;
+}
+
+ConstantInteger::ConstantInteger(IntegerType * type):
+	Constant(type) {
+	llhd_assert(type);
+}
+
 } // namespace llhd

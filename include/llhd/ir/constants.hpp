@@ -12,10 +12,20 @@ class ConstantLogic : public Constant {
 public:
 	static ConstantLogic * getNullValue(LogicType * type);
 	static ConstantLogic * get(LogicType * type, const std::string & str);
-	unsigned getBitWidth() const { return bits.size(); }
 private:
 	ConstantLogic(LogicType * type);
 	std::vector<char> bits;
+};
+
+
+class ConstantInteger : public Constant {
+public:
+	static ConstantInteger * getNullValue(IntegerType * type);
+	static ConstantInteger * get(IntegerType * type, const std::string & str);
+	static ConstantInteger * get(IntegerType * type, std::intmax_t value);
+private:
+	ConstantInteger(IntegerType * type);
+	std::intmax_t value;
 };
 
 } // namespace llhd

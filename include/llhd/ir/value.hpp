@@ -24,6 +24,7 @@ public:
 	const std::string & getName() const { return name; }
 	void setName(const std::string & name) { this->name = name; }
 
+	static Value * getConst(Type * type, const std::string & str);
 	static Value * getConstNull(Type * type);
 
 protected:
