@@ -1,0 +1,14 @@
+/* Copyright (c) 2015-2016 Fabian Schuiki */
+#include "llhd/config.hpp"
+
+namespace llhd {
+
+int VERSION_MAJOR = @LLHD_VERSION_MAJOR@;
+int VERSION_MINOR = @LLHD_VERSION_MINOR@;
+int VERSION_PATCH = @LLHD_VERSION_PATCH@;
+const char * VERSION = "@LLHD_VERSION@";
+
+const char * GIT_COMMIT = "@LLHD_GIT_COMMIT@";
+const char * GIT_BRANCH = "@LLHD_GIT_BRANCH@";
+
+} // namespace llhd

@@ -42,11 +42,11 @@ if (LLHD_NIGHTLY)
 endif()
 
 message("## llhd version ${LLHD_VERSION}")
-configure_file(src/config.hpp.in ${LLHD_CONFIG_DIR}/llhd/config.hpp)
+configure_file(src/config.cpp.in src/config.cpp)
 
 
 # Compiler Flags
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Wno-parentheses" CACHE STRING "C++ compiler flags" FORCE)
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Wno-parentheses -Wno-uninitialized")
 set(CMAKE_CXX_FLAGS_COVERAGE "-O0 -g --coverage")
 mark_as_advanced(CMAKE_CXX_FLAGS_COVERAGE)
 
@@ -120,18 +120,28 @@ add_custom_command(
 
 
 # Build the libraries.
-include_directories(${PROJECT_SOURCE_DIR}/deps/catch)
-file(GLOB_RECURSE LLHD_COMMON_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/assembly/*.cpp src/diagnostic/*.cpp src/utils/*.cpp)
-list(APPEND LLHD_COMMON_SOURCES
+include_directories(deps/catch deps/tinyformat)
+file(GLOB_RECURSE LLHD_COMMON_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+	# src/assembly/*.cpp
+	src/diagnostic/*.cpp
+	src/ir/*.cpp
+	src/utils/*.cpp
+)
+add_library(llhd-common
+	${LLHD_COMMON_SOURCES}
+	${CMAKE_CURRENT_BINARY_DIR}/src/config.cpp
 	src/unicode/casefolding.cpp
-	${LLHD_UNICODE_CASEFOLDING_OUTPUT})
-add_library(llhd-common ${LLHD_COMMON_SOURCES})
+	${LLHD_UNICODE_CASEFOLDING_OUTPUT}
+)
 
 
 # Build the programs.
 file(GLOB_RECURSE LLHD_TOOL_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/tool/*.cpp)
-add_executable(llhd-tool ${LLHD_TOOL_SOURCES})
-target_link_libraries(llhd-tool llhd-common)
+# add_executable(llhd-tool ${LLHD_TOOL_SOURCES})
+# target_link_libraries(llhd-tool llhd-common)
+
+add_executable(debug src/debug.cpp)
+target_link_libraries(debug llhd-common)
 
 
 # Build the tests if so requested.
@@ -157,7 +167,7 @@ endif()
 
 
 # Installation
-install(TARGETS llhd-tool RUNTIME DESTINATION bin)
+# install(TARGETS llhd-tool RUNTIME DESTINATION bin)
 install(TARGETS llhd-common ARCHIVE DESTINATION lib)
 install(DIRECTORY include/ DESTINATION include FILES_MATCHING PATTERN "*.hpp")
 install(FILES ${LLHD_CONFIG_DIR}/llhd/config.hpp DESTINATION include/llhd)
