@@ -1,5 +1,6 @@
 /* Copyright (c) 2016 Fabian Schuiki */
 #include "llhd/ir/instructions.hpp"
+#include "llhd/ir/basicblock.hpp"
 #include "llhd/ir/type.hpp"
 
 namespace llhd {
@@ -11,20 +12,20 @@ DriveInst::DriveInst(Value * target, Value * value):
 	llhd_assert_msg(equal(target->getType(), value->getType()), "target and value must be of the same type");
 }
 
-BranchInst::BranchInst(Value * ifTrue, Value * ifFalse, Value * cond):
+BranchInst::BranchInst(BasicBlock * ifTrue, BasicBlock * ifFalse, Value * cond):
 	Instruction(Instruction::Branch, Type::getVoidType(ifTrue->getContext())),
 	ifTrue(ifTrue),
 	ifFalse(ifFalse),
 	condition(cond) {
 }
 
-SwitchInst::SwitchInst(Value * value, Value * otherwise):
+SwitchInst::SwitchInst(Value * value, BasicBlock * otherwise):
 	Instruction(Instruction::Switch, Type::getVoidType(value->getContext())),
 	value(value),
 	otherwise(otherwise) {
 }
 
-void SwitchInst::addDestination(Value * val, Value * dst) {
+void SwitchInst::addDestination(Value * val, BasicBlock * dst) {
 	llhd_assert(val);
 	llhd_assert(dst);
 	destinations.push_back(Destination(val,dst));

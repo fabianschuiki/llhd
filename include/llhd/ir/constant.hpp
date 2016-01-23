@@ -7,8 +7,8 @@ namespace llhd {
 
 class Constant : public Value {
 public:
-	static Constant * getValue(Type * type, const std::string & str);
-	static Constant * getNullValue(Type * type);
+	static Constant * get(Type * type, const std::string & str);
+	static Constant * getNull(Type * type);
 protected:
 	Constant(Type * type);
 };

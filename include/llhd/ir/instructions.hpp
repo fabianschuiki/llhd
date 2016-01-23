@@ -22,44 +22,44 @@ private:
 
 class BranchInst : public Instruction {
 public:
-	BranchInst(Value * ifTrue, Value * ifFalse, Value * cond);
+	BranchInst(BasicBlock * ifTrue, BasicBlock * ifFalse, Value * cond);
 
-	Value * getIfTrue() { return ifTrue; }
-	Value * getIfFalse() { return ifFalse; }
+	BasicBlock * getIfTrue() { return ifTrue; }
+	BasicBlock * getIfFalse() { return ifFalse; }
 	Value * getCondition() { return condition; }
 
-	const Value * getIfTrue() const { return ifTrue; }
-	const Value * getIfFalse() const { return ifFalse; }
+	const BasicBlock * getIfTrue() const { return ifTrue; }
+	const BasicBlock * getIfFalse() const { return ifFalse; }
 	const Value * getCondition() const { return condition; }
 
 private:
-	Value * ifTrue;
-	Value * ifFalse;
+	BasicBlock * ifTrue;
+	BasicBlock * ifFalse;
 	Value * condition;
 };
 
 
 class SwitchInst : public Instruction {
 public:
-	typedef std::pair<Value*,Value*> Destination;
+	typedef std::pair<Value*,BasicBlock*> Destination;
 	typedef std::vector<Destination> DestinationList;
 
-	SwitchInst(Value * value, Value * otherwise);
+	SwitchInst(Value * value, BasicBlock * otherwise);
 
 	Value * getValue() { return value; }
 	DestinationList getDestinationList() { return destinations; }
-	Value * getOtherwise() { return otherwise; }
+	BasicBlock * getOtherwise() { return otherwise; }
 
 	const Value * getValue() const { return value; }
 	const DestinationList & getDestinationList() const { return destinations; }
-	const Value * getOtherwise() const { return otherwise; }
+	const BasicBlock * getOtherwise() const { return otherwise; }
 
-	void addDestination(Value * val, Value * dst);
+	void addDestination(Value * val, BasicBlock * dst);
 
 private:
 	Value * value;
 	DestinationList destinations;
-	Value * otherwise;
+	BasicBlock * otherwise;
 };
 
 

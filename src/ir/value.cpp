@@ -18,12 +18,12 @@ Context & Value::getContext() const {
 
 Value * Value::getConst(Type * type, const std::string & str) {
 	llhd_assert(type);
-	return Constant::getValue(type,str);
+	return Constant::get(type,str);
 }
 
 Value * Value::getConstNull(Type * type) {
 	llhd_assert(type);
-	return Constant::getNullValue(type);
+	return Constant::getNull(type);
 }
 
 } // namespace llhd

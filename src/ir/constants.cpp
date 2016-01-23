@@ -4,7 +4,7 @@
 
 namespace llhd {
 
-ConstantLogic * ConstantLogic::getNullValue(LogicType * type) {
+ConstantLogic * ConstantLogic::getNull(LogicType * type) {
 	llhd_assert(type);
 
 	auto * C = new ConstantLogic(type);
@@ -31,7 +31,7 @@ ConstantLogic::ConstantLogic(LogicType * type):
 	bits.resize(type->getWidth());
 }
 
-ConstantInteger * ConstantInteger::getNullValue(IntegerType * type) {
+ConstantInteger * ConstantInteger::getNull(IntegerType * type) {
 	llhd_assert(type);
 
 	auto * C = new ConstantInteger(type);

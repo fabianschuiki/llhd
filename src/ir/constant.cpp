@@ -5,7 +5,7 @@
 
 namespace llhd {
 
-Constant * Constant::getValue(Type * type, const std::string & str) {
+Constant * Constant::get(Type * type, const std::string & str) {
 	llhd_assert(type);
 	switch (type->getTypeId()) {
 		case Type::LogicTypeId:
@@ -16,11 +16,11 @@ Constant * Constant::getValue(Type * type, const std::string & str) {
 	}
 }
 
-Constant * Constant::getNullValue(Type * type) {
+Constant * Constant::getNull(Type * type) {
 	llhd_assert(type);
 	switch (type->getTypeId()) {
 		case Type::LogicTypeId:
-			return ConstantLogic::getNullValue(dynamic_cast<LogicType*>(type));
+			return ConstantLogic::getNull(dynamic_cast<LogicType*>(type));
 		default:
 			llhd_abort_msg("No corresponding null value for type");
 			return nullptr;

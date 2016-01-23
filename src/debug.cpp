@@ -8,17 +8,16 @@
 #include "llhd/ir/instructions.hpp"
 #include "llhd/ir/context.hpp"
 #include "llhd/ir/constants.hpp"
+#include "llhd/sim/instexecutor.hpp"
 
 using namespace llhd;
 
 // TODO:
 // - arbitrary-precision integers
 // - logic values, then use them inside ConstantLogic
-// - introduce opcodes for Instruction class
-// - introduce id for Value class (analogous to Type)
 
-// entity is parallel and driving
-// process is sequential and driving
+// entity is parallel and time-based
+// process is sequential and time-based
 // function is sequential and immediate
 
 // types and certain values are managed in a context
@@ -235,6 +234,18 @@ int main() {
 
 	I = new BranchInst(BBexit, nullptr, nullptr);
 	I->insertAtEnd(BBothers);
+
+
+	// TODO:
+	// instantiate simulation engine
+	// initialize input values
+	// execute process
+	// log the resulting drive events
+	InstExecutor * IE = new InstExecutor(P);
+	IE->setValue(Adata_a, Constant::get(Adata_a->getType(), "1010"));
+	IE->setValue(Adata_b, Constant::get(Adata_b->getType(), "0011"));
+	IE->setValue(Aoperation, Constant::get(Aoperation->getType(), "000"));
+	IE->run();
 
 	return 0;
 }

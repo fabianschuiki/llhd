@@ -125,6 +125,7 @@ file(GLOB_RECURSE LLHD_COMMON_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 	# src/assembly/*.cpp
 	src/diagnostic/*.cpp
 	src/ir/*.cpp
+	src/sim/*.cpp
 	src/utils/*.cpp
 )
 add_library(llhd-common

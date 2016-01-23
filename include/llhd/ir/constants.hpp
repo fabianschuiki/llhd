@@ -10,7 +10,7 @@ namespace llhd {
 
 class ConstantLogic : public Constant {
 public:
-	static ConstantLogic * getNullValue(LogicType * type);
+	static ConstantLogic * getNull(LogicType * type);
 	static ConstantLogic * get(LogicType * type, const std::string & str);
 private:
 	ConstantLogic(LogicType * type);
@@ -20,7 +20,7 @@ private:
 
 class ConstantInteger : public Constant {
 public:
-	static ConstantInteger * getNullValue(IntegerType * type);
+	static ConstantInteger * getNull(IntegerType * type);
 	static ConstantInteger * get(IntegerType * type, const std::string & str);
 	static ConstantInteger * get(IntegerType * type, std::intmax_t value);
 private:

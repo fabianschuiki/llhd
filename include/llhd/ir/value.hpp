@@ -20,6 +20,8 @@ public:
 		InstructionId,
 	};
 
+	virtual ~Value() {}
+
 	Type * getType() const { return type; }
 	Context & getContext() const;
 	ValueId getValueId() const { return vid; }
