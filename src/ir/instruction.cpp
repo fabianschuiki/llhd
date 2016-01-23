@@ -4,9 +4,10 @@
 
 namespace llhd {
 
-Instruction::Instruction(Type * type, BasicBlock * parent):
-	Value(type),
-	OwnedBy(parent) {
+Instruction::Instruction(Opcode opc, Type * type, BasicBlock * parent):
+	Value(Value::InstructionId, type),
+	OwnedBy(parent),
+	opcode(opc) {
 }
 
 Instruction::~Instruction() {

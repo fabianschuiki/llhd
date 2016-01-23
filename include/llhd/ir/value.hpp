@@ -16,10 +16,13 @@ public:
 		FunctionId,
 		ArgumentId,
 		BasicBlockId,
+		ConstantId,
+		InstructionId,
 	};
 
 	Type * getType() const { return type; }
 	Context & getContext() const;
+	ValueId getValueId() const { return vid; }
 
 	const std::string & getName() const { return name; }
 	void setName(const std::string & name) { this->name = name; }
@@ -31,9 +34,10 @@ protected:
 	Value & operator= (const Value &) = delete;
 	Value(const Value &) = delete;
 
-	Value(Type * type);
+	Value(ValueId vid, Type * type);
 
 private:
+	ValueId vid;
 	Type * type;
 	std::string name;
 };

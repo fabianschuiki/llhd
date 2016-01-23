@@ -4,22 +4,22 @@
 
 namespace llhd {
 
-DriveInst::DriveInst(Value * target, Value * value, BasicBlock * parent):
-	Instruction(Type::getVoidType(target->getContext()), parent),
+DriveInst::DriveInst(Value * target, Value * value):
+	Instruction(Instruction::Drive, Type::getVoidType(target->getContext())),
 	target(target),
 	value(value) {
 	llhd_assert_msg(equal(target->getType(), value->getType()), "target and value must be of the same type");
 }
 
-BranchInst::BranchInst(Value * ifTrue, Value * ifFalse, Value * cond, BasicBlock * parent):
-	Instruction(Type::getVoidType(ifTrue->getContext()), parent),
+BranchInst::BranchInst(Value * ifTrue, Value * ifFalse, Value * cond):
+	Instruction(Instruction::Branch, Type::getVoidType(ifTrue->getContext())),
 	ifTrue(ifTrue),
 	ifFalse(ifFalse),
 	condition(cond) {
 }
 
-SwitchInst::SwitchInst(Value * value, Value * otherwise, BasicBlock * parent):
-	Instruction(Type::getVoidType(value->getContext()), parent),
+SwitchInst::SwitchInst(Value * value, Value * otherwise):
+	Instruction(Instruction::Switch, Type::getVoidType(value->getContext())),
 	value(value),
 	otherwise(otherwise) {
 }
@@ -30,18 +30,11 @@ void SwitchInst::addDestination(Value * val, Value * dst) {
 	destinations.push_back(Destination(val,dst));
 }
 
-AddInst::AddInst(Value * lhs, Value * rhs, BasicBlock * parent):
-	Instruction(lhs->getType(), parent),
+BinaryInst::BinaryInst(Opcode opc, Value * lhs, Value * rhs):
+	Instruction(opc, lhs->getType()),
 	lhs(lhs),
 	rhs(rhs) {
-	llhd_assert_msg(equal(lhs->getType(), rhs->getType()), "lhs and rhs of add must be of same type");
-}
-
-SubInst::SubInst(Value * lhs, Value * rhs, BasicBlock * parent):
-	Instruction(lhs->getType(), parent),
-	lhs(lhs),
-	rhs(rhs) {
-	llhd_assert_msg(equal(lhs->getType(), rhs->getType()), "lhs and rhs of sub must be of same type");
+	llhd_assert_msg(equal(lhs->getType(), rhs->getType()), "lhs and rhs of binary op must be of same type");
 }
 
 static Type * getExtractValueType(Type * type, unsigned length) {
@@ -53,23 +46,23 @@ static Type * getExtractValueType(Type * type, unsigned length) {
 	}
 }
 
-ExtractValueInst::ExtractValueInst(Value * target, Value * index, unsigned length, BasicBlock * parent):
-	Instruction(getExtractValueType(target->getType(), length), parent),
+ExtractValueInst::ExtractValueInst(Value * target, Value * index, unsigned length):
+	Instruction(Instruction::ExtractValue, getExtractValueType(target->getType(), length)),
 	target(target),
 	index(index),
 	length(length) {
 }
 
-InsertValueInst::InsertValueInst(Value * target, Value * value, Value * index, unsigned length, BasicBlock * parent):
-	Instruction(target->getType(), parent),
+InsertValueInst::InsertValueInst(Value * target, Value * value, Value * index, unsigned length):
+	Instruction(Instruction::InsertValue, target->getType()),
 	target(target),
 	value(value),
 	index(index),
 	length(length) {
 }
 
-CompareInst::CompareInst(Op op, Value * lhs, Value * rhs, BasicBlock * parent):
-	Instruction(Type::getLogicType(lhs->getContext(),1), parent),
+CompareInst::CompareInst(Op op, Value * lhs, Value * rhs):
+	Instruction(Instruction::Compare, Type::getLogicType(lhs->getContext(),1)),
 	op(op),
 	lhs(lhs),
 	rhs(rhs) {

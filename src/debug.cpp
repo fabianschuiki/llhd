@@ -95,7 +95,7 @@ int main() {
 	IB->insertAtEnd(BB000);
 	IB = new InsertValueInst(IB, Adata_b, ConstantInteger::get(IntegerType::get(C,1), 0), 4);
 	IB->insertAtEnd(BB000);
-	I = new AddInst(IA, IB);
+	I = new BinaryInst(Instruction::Add, IA, IB);
 	I->insertAtEnd(BB000);
 	Value * temp = I;
 
@@ -127,7 +127,7 @@ int main() {
 
 	// -- if true
 	// result <= std_logic_vector(unsigned(data_a) - unsigned(data_b))
-	I = new SubInst(Adata_a, Adata_b);
+	I = new BinaryInst(Instruction::Sub, Adata_a, Adata_b);
 	I->insertAtEnd(BB001A);
 	I = new DriveInst(Aresult, I);
 	I->insertAtEnd(BB001A);
@@ -141,7 +141,7 @@ int main() {
 
 	// -- if false
 	// result <= std_logic_vector(unsigned(data_b) - unsigned(data_a))
-	I = new SubInst(Adata_b, Adata_a);
+	I = new BinaryInst(Instruction::Sub, Adata_b, Adata_a);
 	I->insertAtEnd(BB001B);
 	I = new DriveInst(Aresult, I);
 	I->insertAtEnd(BB001B);
@@ -153,7 +153,88 @@ int main() {
 	I = new BranchInst(BBexit, nullptr, nullptr);
 	I->insertAtEnd(BB001B);
 
-	tfm::format(std::cout, "BB000 has %d instructions\n", BB000->getInstList().size());
+	// when "010" =>
+	// result <= data_a and data_b
+	I = new BinaryInst(Instruction::And, Adata_a, Adata_b);
+	I->insertAtEnd(BB010);
+	I = new DriveInst(Aresult, I);
+	I->insertAtEnd(BB010);
+
+	I = new BranchInst(BBexit, nullptr, nullptr);
+	I->insertAtEnd(BB010);
+
+	// when "011" =>
+	// result <= data_a or data_b
+	I = new BinaryInst(Instruction::Or, Adata_a, Adata_b);
+	I->insertAtEnd(BB011);
+	I = new DriveInst(Aresult, I);
+	I->insertAtEnd(BB011);
+
+	I = new BranchInst(BBexit, nullptr, nullptr);
+	I->insertAtEnd(BB011);
+
+	// when "100" =>
+	// result <= data_a xor data_b
+	I = new BinaryInst(Instruction::Xor, Adata_a, Adata_b);
+	I->insertAtEnd(BB100);
+	I = new DriveInst(Aresult, I);
+	I->insertAtEnd(BB100);
+
+	I = new BranchInst(BBexit, nullptr, nullptr);
+	I->insertAtEnd(BB100);
+
+	// when "101" =>
+	// result <= not data_a
+	I = new BinaryInst(Instruction::Xor, Adata_a, Value::getConst(Adata_a->getType(), "1111"));
+	I->insertAtEnd(BB101);
+	I = new DriveInst(Aresult, I);
+	I->insertAtEnd(BB101);
+
+	I = new BranchInst(BBexit, nullptr, nullptr);
+	I->insertAtEnd(BB101);
+
+	// when "110" =>
+	// result <= not data_b
+	I = new BinaryInst(Instruction::Xor, Adata_b, Value::getConst(Adata_b->getType(), "1111"));
+	I->insertAtEnd(BB101);
+	I = new DriveInst(Aresult, I);
+	I->insertAtEnd(BB101);
+
+	I = new BranchInst(BBexit, nullptr, nullptr);
+	I->insertAtEnd(BB101);
+
+	// when others =>
+	// temp <= std_logic_vector(unsigned("0" & data_a) + unsigned(not data_b) + 1)
+	IA = new InsertValueInst(Value::getConstNull(Type::getLogicType(C,5)), Value::getConstNull(Type::getLogicType(C,1)), ConstantInteger::get(IntegerType::get(C,3), 4), 1);
+	IA->insertAtEnd(BBothers);
+	IA = new InsertValueInst(IA, Adata_a, ConstantInteger::get(IntegerType::get(C,1), 0), 4);
+	IA->insertAtEnd(BBothers);
+	I = new BinaryInst(Instruction::Xor, Adata_b, Value::getConst(Adata_b->getType(), "1111"));
+	I->insertAtEnd(BBothers);
+	IB = new InsertValueInst(Value::getConstNull(Type::getLogicType(C,5)), Value::getConstNull(Type::getLogicType(C,1)), ConstantInteger::get(IntegerType::get(C,3), 4), 1);
+	IB->insertAtEnd(BBothers);
+	IB = new InsertValueInst(IB, I, ConstantInteger::get(IntegerType::get(C,1), 0), 4);
+	IB->insertAtEnd(BBothers);
+	I = new BinaryInst(Instruction::Add, IA, IB);
+	I->insertAtEnd(BBothers);
+	I = new BinaryInst(Instruction::Add, I, Value::getConst(Type::getLogicType(C,5), "00001"));
+	I->insertAtEnd(BBothers);
+	temp = I;
+
+	// result <= temp(3 downto 0)
+	I = new ExtractValueInst(temp, ConstantInteger::get(IntegerType::get(C,1), 0), 4);
+	I->insertAtEnd(BBothers);
+	I = new DriveInst(Aresult, I);
+	I->insertAtEnd(BBothers);
+
+	// flag <= temp(4)
+	I = new ExtractValueInst(temp, ConstantInteger::get(IntegerType::get(C,3), 4), 1);
+	I->insertAtEnd(BBothers);
+	I = new DriveInst(Aflag, I);
+	I->insertAtEnd(BBothers);
+
+	I = new BranchInst(BBexit, nullptr, nullptr);
+	I->insertAtEnd(BBothers);
 
 	return 0;
 }

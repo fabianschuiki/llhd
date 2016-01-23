@@ -6,7 +6,7 @@ namespace llhd {
 
 class DriveInst : public Instruction {
 public:
-	DriveInst(Value * target, Value * value, BasicBlock * parent = nullptr);
+	DriveInst(Value * target, Value * value);
 
 	Value * getTarget() { return target; }
 	Value * getValue() { return value; }
@@ -22,7 +22,7 @@ private:
 
 class BranchInst : public Instruction {
 public:
-	BranchInst(Value * ifTrue, Value * ifFalse, Value * cond, BasicBlock * parent = nullptr);
+	BranchInst(Value * ifTrue, Value * ifFalse, Value * cond);
 
 	Value * getIfTrue() { return ifTrue; }
 	Value * getIfFalse() { return ifFalse; }
@@ -44,7 +44,7 @@ public:
 	typedef std::pair<Value*,Value*> Destination;
 	typedef std::vector<Destination> DestinationList;
 
-	SwitchInst(Value * value, Value * otherwise, BasicBlock * parent = nullptr);
+	SwitchInst(Value * value, Value * otherwise);
 
 	Value * getValue() { return value; }
 	DestinationList getDestinationList() { return destinations; }
@@ -63,19 +63,9 @@ private:
 };
 
 
-class AddInst : public Instruction {
+class BinaryInst : public Instruction {
 public:
-	AddInst(Value * lhs, Value * rhs, BasicBlock * parent = nullptr);
-
-private:
-	Value * lhs;
-	Value * rhs;
-};
-
-
-class SubInst : public Instruction {
-public:
-	SubInst(Value * lhs, Value * rhs, BasicBlock * parent = nullptr);
+	BinaryInst(Opcode opc, Value * lhs, Value * rhs);
 
 private:
 	Value * lhs;
@@ -85,7 +75,7 @@ private:
 
 class ExtractValueInst : public Instruction {
 public:
-	ExtractValueInst(Value * target, Value * index, unsigned length = 0, BasicBlock * parent = nullptr);
+	ExtractValueInst(Value * target, Value * index, unsigned length = 0);
 
 private:
 	Value * target;
@@ -96,7 +86,7 @@ private:
 
 class InsertValueInst : public Instruction {
 public:
-	InsertValueInst(Value * target, Value * value, Value * index, unsigned length = 0, BasicBlock * parent = nullptr);
+	InsertValueInst(Value * target, Value * value, Value * index, unsigned length = 0);
 
 private:
 	Value * target;
@@ -121,7 +111,7 @@ public:
 		SLE, // signed less or equal
 	};
 
-	CompareInst(Op op, Value * lhs, Value * rhs, BasicBlock * parent = nullptr);
+	CompareInst(Op op, Value * lhs, Value * rhs);
 
 private:
 	Op op;

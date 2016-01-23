@@ -4,7 +4,7 @@
 namespace llhd {
 
 Argument::Argument(const std::string & name, Type * type, Process * parent):
-	Value(type),
+	Value(Value::ArgumentId, type),
 	OwnedBy(parent),
 	name(name),
 	type(type) {

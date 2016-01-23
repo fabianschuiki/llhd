@@ -6,7 +6,7 @@
 namespace llhd {
 
 BasicBlock::BasicBlock(Context & C, const std::string & name, Process * parent):
-	Value(Type::getVoidType(C)),
+	Value(Value::BasicBlockId, Type::getVoidType(C)),
 	OwnedBy(parent),
 	name(name) {
 }

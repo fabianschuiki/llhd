@@ -28,7 +28,7 @@ Constant * Constant::getNullValue(Type * type) {
 }
 
 Constant::Constant(Type * type):
-	Value(type) {
+	Value(Value::ConstantId, type) {
 }
 
 } // namespace llhd

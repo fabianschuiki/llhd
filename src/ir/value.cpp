@@ -5,7 +5,8 @@
 
 namespace llhd {
 
-Value::Value(Type * type):
+Value::Value(ValueId vid, Type * type):
+	vid(vid),
 	type(type) {
 	llhd_assert_msg(type, "Value must have a non-null type");
 }
