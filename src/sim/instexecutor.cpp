@@ -45,11 +45,13 @@ static bool valuesEqual(Constant * A, Constant * B) {
 	if (auto AA = dynamic_cast<ConstantLogic*>(A)) {
 		auto BB = dynamic_cast<ConstantLogic*>(B);
 		if (!BB) return false;
+		llhd_abort_msg("valuesEqual for ConstantLogic not implemented");
 		return true;
 	}
 	if (auto AA = dynamic_cast<ConstantInteger*>(A)) {
 		auto BB = dynamic_cast<ConstantInteger*>(B);
 		if (!BB) return false;
+		llhd_abort_msg("valuesEqual for ConstantInteger not implemented");
 		return true;
 	}
 }
