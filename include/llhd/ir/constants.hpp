@@ -3,6 +3,7 @@
 #include "llhd/common.hpp"
 #include "llhd/ir/constant.hpp"
 #include "llhd/ir/types.hpp"
+#include "llhd/utils/logic.hpp"
 
 namespace llhd {
 
@@ -12,9 +13,10 @@ class ConstantLogic : public Constant {
 public:
 	static ConstantLogic * getNull(LogicType * type);
 	static ConstantLogic * get(LogicType * type, const std::string & str);
+	const Logic & getValue() const { return value; }
 private:
-	ConstantLogic(LogicType * type);
-	std::vector<char> bits;
+	ConstantLogic(LogicType * type, const Logic & value);
+	Logic value;
 };
 
 

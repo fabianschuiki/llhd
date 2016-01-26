@@ -45,8 +45,9 @@ static bool valuesEqual(Constant * A, Constant * B) {
 	if (auto AA = dynamic_cast<ConstantLogic*>(A)) {
 		auto BB = dynamic_cast<ConstantLogic*>(B);
 		if (!BB) return false;
-		llhd_abort_msg("valuesEqual for ConstantLogic not implemented");
-		return true;
+		auto r = AA->getValue() == BB->getValue();
+		tfm::printf("comparing \"%s\" == \"%s\" (%s)\n", AA->getValue().toString(), BB->getValue().toString(), r ? "true" : "false");
+		return r;
 	}
 	if (auto AA = dynamic_cast<ConstantInteger*>(A)) {
 		auto BB = dynamic_cast<ConstantInteger*>(B);

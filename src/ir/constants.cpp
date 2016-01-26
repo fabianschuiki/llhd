@@ -6,29 +6,24 @@ namespace llhd {
 
 ConstantLogic * ConstantLogic::getNull(LogicType * type) {
 	llhd_assert(type);
-
-	auto * C = new ConstantLogic(type);
+	auto * C = new ConstantLogic(type, Logic(type->getWidth(), Logic::O));
 	type->getContext().values.push_back(C);
-	std::fill(C->bits.begin(), C->bits.end(), '0');
-
 	return C;
 }
 
 ConstantLogic * ConstantLogic::get(LogicType * type, const std::string & str) {
 	llhd_assert(type);
 	llhd_assert(type->getWidth() == str.size());
-
-	auto * C = new ConstantLogic(type);
+	auto * C = new ConstantLogic(type, Logic(str));
 	type->getContext().values.push_back(C);
-	std::copy(str.begin(), str.end(), C->bits.begin());
-
 	return C;
 }
 
-ConstantLogic::ConstantLogic(LogicType * type):
-	Constant(type) {
+ConstantLogic::ConstantLogic(LogicType * type, const Logic & value):
+	Constant(type),
+	value(value) {
 	llhd_assert(type);
-	bits.resize(type->getWidth());
+	llhd_assert(type->getWidth() == value.getWidth());
 }
 
 ConstantInteger * ConstantInteger::getNull(IntegerType * type) {
