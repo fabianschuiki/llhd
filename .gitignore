@@ -1,7 +1,7 @@
 .*
 !.giti*
 !.travis.yml
-_*
 build
+_build
 *~
 ~*

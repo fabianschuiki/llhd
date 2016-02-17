@@ -144,6 +144,11 @@ file(GLOB_RECURSE LLHD_TOOL_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/too
 add_executable(debug src/debug.cpp)
 target_link_libraries(debug llhd-common)
 
+add_executable(cdebug
+	src/llhdc/common.c
+	src/llhdc/debug.c
+)
+
 
 # Build the tests if so requested.
 option(LLHD_BUILD_TESTS "Build the unit tests" ON)
