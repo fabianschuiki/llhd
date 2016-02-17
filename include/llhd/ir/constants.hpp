@@ -13,6 +13,7 @@ class ConstantLogic : public Constant {
 public:
 	static ConstantLogic * getNull(LogicType * type);
 	static ConstantLogic * get(LogicType * type, const std::string & str);
+	static ConstantLogic * get(LogicType * type, const Logic & value);
 	const Logic & getValue() const { return value; }
 private:
 	ConstantLogic(LogicType * type, const Logic & value);
@@ -25,6 +26,7 @@ public:
 	static ConstantInteger * getNull(IntegerType * type);
 	static ConstantInteger * get(IntegerType * type, const std::string & str);
 	static ConstantInteger * get(IntegerType * type, std::intmax_t value);
+	const std::intmax_t & getValue() const { return value; }
 private:
 	ConstantInteger(IntegerType * type);
 	std::intmax_t value;

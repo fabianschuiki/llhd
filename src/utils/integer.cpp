@@ -176,7 +176,7 @@ Integer & Integer::lsl(unsigned shift) {
 	} else {
 		int major = shift / 64;
 		int minor = shift % 64;
-		for (int i = width; i >= 0; --i) {
+		for (int i = width-1; i >= 0; --i) {
 			uint64_t wh = (i >= major   ? words[i-major]   : 0);
 			uint64_t wl = (i >= major+1 ? words[i-major-1] : 0);
 			words[i] = wh << minor | wl >> (64-minor);
@@ -219,8 +219,8 @@ Integer & Integer::asr(unsigned shift) {
 		if (shift >= bitWidth) {
 			std::fill(words, words+width, mask);
 		} else {
-			int major = shift / 64;
-			int minor = shift % 64;
+			unsigned major = shift / 64;
+			unsigned minor = shift % 64;
 			for (unsigned i = 0; i < width; ++i) {
 				uint64_t wh = (i < width-major-1 ? words[i+major+1] : mask);
 				uint64_t wl = (i < width-major   ? words[i+major]   : mask);
@@ -229,6 +229,34 @@ Integer & Integer::asr(unsigned shift) {
 		}
 	}
 	clearUnusedBits();
+	return *this;
+}
+
+Integer & Integer::rol(unsigned shift) {
+	shift %= bitWidth;
+	unsigned width = getWordWidth();
+	if (shift == 0) {
+		// do nothing
+	} else if (isSingleWord()) {
+		value = value << shift | value >> (bitWidth-shift);
+	} else {
+		int major = shift / 64;
+		int minor = shift % 64;
+		llhd_unimplemented();
+		for (int i = width-1; i >= 0; --i) {
+			// Tricky since the topmost word need not be fully used...
+			// uint64_t wh = words[(i-major+width)   % width];
+			// uint64_t wl = words[(i-major+width-1) % width];
+			// words[i] = wh << minor | wl >> (64-minor);
+		}
+	}
+	clearUnusedBits();
+	return *this;
+}
+
+Integer & Integer::ror(unsigned shift) {
+	shift %= bitWidth;
+	llhd_unimplemented();
 	return *this;
 }
 

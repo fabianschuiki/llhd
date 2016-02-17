@@ -67,6 +67,12 @@ class BinaryInst : public Instruction {
 public:
 	BinaryInst(Opcode opc, Value * lhs, Value * rhs);
 
+	Value * getLhs() { return lhs; }
+	Value * getRhs() { return rhs; }
+
+	const Value * getLhs() const { return lhs; }
+	const Value * getRhs() const { return rhs; }
+
 private:
 	Value * lhs;
 	Value * rhs;
@@ -76,6 +82,13 @@ private:
 class ExtractValueInst : public Instruction {
 public:
 	ExtractValueInst(Value * target, Value * index, unsigned length = 0);
+
+	Value * getTarget() { return target; }
+	Value * getIndex() { return index; }
+
+	const Value * getTarget() const { return target; }
+	const Value * getIndex() const { return index; }
+	unsigned getLength() const { return length; }
 
 private:
 	Value * target;
@@ -87,6 +100,15 @@ private:
 class InsertValueInst : public Instruction {
 public:
 	InsertValueInst(Value * target, Value * value, Value * index, unsigned length = 0);
+
+	Value * getTarget() { return target; }
+	Value * getValue() { return value; }
+	Value * getIndex() { return index; }
+
+	const Value * getTarget() const { return target; }
+	const Value * getValue() const { return value; }
+	const Value * getIndex() const { return index; }
+	unsigned getLength() const { return length; }
 
 private:
 	Value * target;

@@ -19,6 +19,14 @@ ConstantLogic * ConstantLogic::get(LogicType * type, const std::string & str) {
 	return C;
 }
 
+ConstantLogic * ConstantLogic::get(LogicType * type, const Logic & value) {
+	llhd_assert(type);
+	llhd_assert(type->getWidth() == value.getWidth());
+	auto * C = new ConstantLogic(type, value);
+	type->getContext().values.push_back(C);
+	return C;
+}
+
 ConstantLogic::ConstantLogic(LogicType * type, const Logic & value):
 	Constant(type),
 	value(value) {

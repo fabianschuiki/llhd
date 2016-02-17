@@ -23,6 +23,13 @@ private:
 
 	std::map<Value*,Constant*> valueMap;
 	Constant * lookup(Value * value);
+
+	void execDrive(DriveInst * I);
+	BasicBlock * execSwitch(SwitchInst * I);
+	void execInsertValue(InsertValueInst * I);
+	void execExtractValue(ExtractValueInst * I);
+	void execBinary(BinaryInst * I);
+	BasicBlock * execBranch(BranchInst * I);
 };
 
 } // namespace llhd

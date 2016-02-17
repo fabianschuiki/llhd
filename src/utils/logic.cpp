@@ -47,6 +47,11 @@ static uint64_t lowerNBits(unsigned N) {
 }
 
 
+Logic::Logic():
+	width(0),
+	data(nullptr) {
+}
+
 Logic::Logic(unsigned width, Bit initial):
 	width(width) {
 	data = new uint64_t[numWords()];
@@ -117,9 +122,20 @@ bool Logic::operator!=(const Logic & other) const {
 std::string Logic::toString() const {
 	std::string result(width, 0);
 	for (unsigned i = 0; i < width; ++i) {
-		result[width-i-1] = bitToChar(Bit((data[i/16] >> ((i%16)*4)) & 0xF));
+		result[width-i-1] = bitToChar(get(i));
 	}
 	return result;
+}
+
+Logic::Bit Logic::get(unsigned index) const {
+	return Bit((data[index/16] >> ((index%16)*4)) & 0xF);
+}
+
+void Logic::set(unsigned index, Bit bit) {
+	unsigned word = index/16;
+	unsigned offset = (index%16)*4;
+	data[word] &= ~(0xF << (uint64_t)offset);
+	data[word] |= bit << offset;
 }
 
 } // namespace llhd

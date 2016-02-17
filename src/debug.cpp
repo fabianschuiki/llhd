@@ -14,7 +14,8 @@ using namespace llhd;
 
 // TODO:
 // - arbitrary-precision integers
-// - logic values, then use them inside ConstantLogic
+// - use casts that assert the pointer is of the right dynamic type (see LLVM's
+//   implementation of dyn_cast<> and cast<>)
 
 // entity is parallel and time-based
 // process is sequential and time-based
@@ -24,6 +25,16 @@ using namespace llhd;
 
 // static get implies the returned ptr is memory-managed
 // static make implies the caller is responsible for deleting the returned ptr
+
+// Maybe restrict InsertValue and ExtractValue to compound types like arrays and
+// structures. Add a Concat and Select to extract sections of a word and
+// concatenate multiple words into one.
+
+// Only define boolean arithmetic on logic values (and, or, xor, not, equiv).
+// Define add, sub, mul, div, etc. on integer values only. Add LogicToInteger
+// instruction that yields a logic value as an integer, or branches if undefined
+// values are present. Add IntegerToLogic to perform the inverse operation.
+// Makes conversion explicit and allows handling of invalid values.
 
 int main() {
 	tfm::format(std::cout, "llhd version %s\n", VERSION);

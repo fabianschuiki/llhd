@@ -8,3 +8,4 @@
 #define llhd_assert_msg(expr, msg) assert(expr && msg)
 #define llhd_abort() llhd_assert(false)
 #define llhd_abort_msg(msg) llhd_assert_msg(false, msg)
+#define llhd_unimplemented() llhd_abort_msg("not implemented")

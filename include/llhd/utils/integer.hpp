@@ -191,6 +191,8 @@ public:
 	Integer & lsl(unsigned shift);
 	Integer & lsr(unsigned shift);
 	Integer & asr(unsigned shift);
+	Integer & rol(unsigned shift);
+	Integer & ror(unsigned shift);
 
 	friend Integer add(const Integer & a, const Integer & b);
 	friend Integer sub(const Integer & a, const Integer & b);
@@ -227,12 +229,22 @@ public:
 			return getActiveBits() + 1;
 	}
 
+	/// @name Conversion
+	/// @{
+
+	std::string toString(unsigned radix, bool isSigned);
+	std::string toStringUnsigned(unsigned radix);
+	std::string toStringSigned(unsigned radix);
+
+	/// @}
+
 	// TODO:
 	// smul
 	// rol,ror
 	// fromString
 	// toString
 	// to uint64_t, to int64_t
+	// lt,gt,le,ge signed/unsigned, for Integer and uint64_t/int64_t
 };
 
 

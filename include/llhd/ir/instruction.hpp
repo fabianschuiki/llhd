@@ -23,6 +23,9 @@ public:
 		ExtractValue,
 		InsertValue,
 		Compare,
+
+		BinaryFirst = Add,
+		BinaryLast = Xor,
 	};
 
 	virtual ~Instruction();

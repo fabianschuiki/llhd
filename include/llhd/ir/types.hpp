@@ -12,6 +12,7 @@ public:
 	static LogicType * get(Context & C, unsigned width);
 	unsigned getWidth() const { return width; }
 	virtual bool equalTo(Type * type) const override;
+	virtual bool isLogic(unsigned width) const override;
 protected:
 	LogicType(Context & C, unsigned width);
 	unsigned width;
@@ -23,6 +24,7 @@ public:
 	static IntegerType * get(Context & C, unsigned width);
 	unsigned getWidth() const { return width; }
 	virtual bool equalTo(Type * type) const override;
+	virtual bool isInteger(unsigned width) const override;
 protected:
 	IntegerType(Context & C, unsigned width);
 	unsigned width;

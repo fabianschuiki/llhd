@@ -27,6 +27,13 @@ public:
 	virtual bool equalTo(Type * other) const;
 	friend bool equal(Type * A, Type * B);
 
+	bool isVoid() const { return tid == VoidTypeId; }
+	bool isLogic() const { return tid == LogicTypeId; }
+	bool isInteger() const { return tid == IntegerTypeId; }
+
+	virtual bool isLogic(unsigned width) const { return false; }
+	virtual bool isInteger(unsigned width) const { return false; }
+
 protected:
 	Type(const Type &) = delete;
 	Type & operator=(const Type &) = delete;

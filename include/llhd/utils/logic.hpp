@@ -31,6 +31,7 @@ public:
 	//
 	// (1) considering that L == O, H == I, X != X, DC == *, etc.
 
+	Logic();
 	explicit Logic(unsigned width, Bit initial = U);
 	Logic(const Logic & other);
 	Logic(Logic && other);
@@ -45,6 +46,9 @@ public:
 
 	std::string toString() const;
 	unsigned getWidth() const { return width; }
+
+	Bit get(unsigned index) const;
+	void set(unsigned index, Bit bit);
 
 private:
 	unsigned width;

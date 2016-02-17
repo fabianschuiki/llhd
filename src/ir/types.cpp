@@ -24,6 +24,10 @@ bool LogicType::equalTo(Type * other) const {
 	return width == o->width;
 }
 
+bool LogicType::isLogic(unsigned width) const {
+	return this->width == width;
+}
+
 IntegerType * IntegerType::get(Context & C, unsigned width) {
 	auto & slot = C.intTypeMap[width];
 	if (!slot)
@@ -42,6 +46,10 @@ bool IntegerType::equalTo(Type * other) const {
 		return false;
 	auto * o = static_cast<IntegerType*>(other);
 	return width == o->width;
+}
+
+bool IntegerType::isInteger(unsigned width) const {
+	return this->width == width;
 }
 
 } // namespace llhd

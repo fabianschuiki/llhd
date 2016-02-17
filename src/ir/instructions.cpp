@@ -17,6 +17,11 @@ BranchInst::BranchInst(BasicBlock * ifTrue, BasicBlock * ifFalse, Value * cond):
 	ifTrue(ifTrue),
 	ifFalse(ifFalse),
 	condition(cond) {
+	llhd_assert(ifTrue);
+	if (cond) {
+		llhd_assert(cond->getType()->isInteger(1));
+		llhd_assert(ifFalse);
+	}
 }
 
 SwitchInst::SwitchInst(Value * value, BasicBlock * otherwise):
@@ -52,6 +57,7 @@ ExtractValueInst::ExtractValueInst(Value * target, Value * index, unsigned lengt
 	target(target),
 	index(index),
 	length(length) {
+	llhd_assert(index->getType()->getTypeId() == Type::IntegerTypeId);
 }
 
 InsertValueInst::InsertValueInst(Value * target, Value * value, Value * index, unsigned length):
@@ -60,10 +66,11 @@ InsertValueInst::InsertValueInst(Value * target, Value * value, Value * index, u
 	value(value),
 	index(index),
 	length(length) {
+	llhd_assert(index->getType()->getTypeId() == Type::IntegerTypeId);
 }
 
 CompareInst::CompareInst(Op op, Value * lhs, Value * rhs):
-	Instruction(Instruction::Compare, Type::getLogicType(lhs->getContext(),1)),
+	Instruction(Instruction::Compare, Type::getIntegerType(lhs->getContext(),1)),
 	op(op),
 	lhs(lhs),
 	rhs(rhs) {
