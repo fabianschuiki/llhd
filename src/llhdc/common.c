@@ -81,7 +81,6 @@ llhd_dispose_const_int (llhd_const_int_t *C) {
 static void
 llhd_dump_const_int (llhd_const_int_t *C, FILE *f) {
 	assert(C);
-	// TODO: dump type
 	llhd_dump_type(C->_const._value.type, f);
 	fputc(' ', f);
 	fputs(C->value, f);
@@ -94,7 +93,6 @@ static struct llhd_value_intf const_int_value_intf = {
 
 llhd_const_int_t *
 llhd_make_const_int (unsigned width, const char *value) {
-	// TODO: make this allocate the value in an autofree pool
 	assert(value);
 	llhd_const_int_t *C = malloc(sizeof(*C));
 	memset(C, 0, sizeof(*C));
@@ -114,10 +112,10 @@ llhd_dispose_const_logic (llhd_const_logic_t *C) {
 static void
 llhd_dump_const_logic (llhd_const_logic_t *C, FILE *f) {
 	assert(C);
-	// TODO: dump type
 	llhd_dump_type(C->_const._value.type, f);
-	fputc(' ', f);
+	fputs(" \"", f);
 	fputs(C->value, f);
+	fputc('"', f);
 }
 
 static struct llhd_value_intf const_logic_value_intf = {
@@ -127,7 +125,6 @@ static struct llhd_value_intf const_logic_value_intf = {
 
 llhd_const_logic_t *
 llhd_make_const_logic (unsigned width, const char *value) {
-	// TODO: make this allocate the value in an autofree pool
 	assert(value);
 	llhd_const_logic_t *C = malloc(sizeof(*C));
 	memset(C, 0, sizeof(*C));
