@@ -3,10 +3,10 @@
 #include <stdio.h>
 
 int main() {
-	llhd_arg_t *Aa = llhd_make_arg("a", NULL);
-	llhd_arg_t *Ab = llhd_make_arg("b", NULL);
-	llhd_arg_t *Aop = llhd_make_arg("op", NULL);
-	llhd_arg_t *Ar = llhd_make_arg("r", NULL);
+	llhd_arg_t *Aa = llhd_make_arg("a", llhd_make_logic_type(8));
+	llhd_arg_t *Ab = llhd_make_arg("b", llhd_make_logic_type(8));
+	llhd_arg_t *Aop = llhd_make_arg("op", llhd_make_logic_type(2));
+	llhd_arg_t *Ar = llhd_make_arg("r", llhd_make_logic_type(8));
 
 	llhd_basic_block_t *BBentry = llhd_make_basic_block("entry");
 	llhd_proc_t *P = llhd_make_proc("alu", (llhd_arg_t*[]){Aa, Ab, Aop}, 3, (llhd_arg_t*[]){Ar}, 1, BBentry);
@@ -31,11 +31,11 @@ int main() {
 	llhd_inst_t *I;
 
 	// r <= (others => 'U')
-	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)Aa /*fix*/);
+	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)llhd_make_const_logic(8,"UUUUUUUU"));
 	llhd_add_inst(I, BBentry);
 
 	// when "00"
-	I = (llhd_inst_t*)llhd_make_compare_inst(LLHD_EQ, (llhd_value_t*)Aop, (llhd_value_t*)Aop /*00*/);
+	I = (llhd_inst_t*)llhd_make_compare_inst(LLHD_EQ, (llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"00"));
 	llhd_value_set_name(I, "0");
 	llhd_add_inst(I, BBentry);
 	I = (llhd_inst_t*)llhd_make_conditional_branch_inst((llhd_value_t*)I, BB00, BBnot00);
@@ -44,7 +44,7 @@ int main() {
 	llhd_add_inst(I, BB00);
 
 	// when "01"
-	I = (llhd_inst_t*)llhd_make_compare_inst(LLHD_EQ, (llhd_value_t*)Aop, (llhd_value_t*)Aop /*01*/);
+	I = (llhd_inst_t*)llhd_make_compare_inst(LLHD_EQ, (llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"01"));
 	llhd_value_set_name(I, "1");
 	llhd_add_inst(I, BBnot00);
 	I = (llhd_inst_t*)llhd_make_conditional_branch_inst((llhd_value_t*)I, BB01, BBnot01);
@@ -53,7 +53,7 @@ int main() {
 	llhd_add_inst(I, BB01);
 
 	// when "10"
-	I = (llhd_inst_t*)llhd_make_compare_inst(LLHD_EQ, (llhd_value_t*)Aop, (llhd_value_t*)Aop /*10*/);
+	I = (llhd_inst_t*)llhd_make_compare_inst(LLHD_EQ, (llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"10"));
 	llhd_value_set_name(I, "2");
 	llhd_add_inst(I, BBnot01);
 	I = (llhd_inst_t*)llhd_make_conditional_branch_inst((llhd_value_t*)I, BB10, BBnot10);
@@ -62,7 +62,7 @@ int main() {
 	llhd_add_inst(I, BB10);
 
 	// when "11"
-	I = (llhd_inst_t*)llhd_make_compare_inst(LLHD_EQ, (llhd_value_t*)Aop, (llhd_value_t*)Aop /*11*/);
+	I = (llhd_inst_t*)llhd_make_compare_inst(LLHD_EQ, (llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"11"));
 	llhd_value_set_name(I, "3");
 	llhd_add_inst(I, BBnot10);
 	I = (llhd_inst_t*)llhd_make_conditional_branch_inst((llhd_value_t*)I, BB11, BBnot11);

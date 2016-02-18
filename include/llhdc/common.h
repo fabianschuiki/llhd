@@ -1,9 +1,13 @@
 #pragma once
 #include <stdio.h>
+#include <stdint.h>
 
 #define TYPEDEF(name) typedef struct llhd_##name llhd_##name##_t
 TYPEDEF(module);
 TYPEDEF(value);
+TYPEDEF(const);
+TYPEDEF(const_logic);
+TYPEDEF(const_int);
 TYPEDEF(unit);
 TYPEDEF(func);
 TYPEDEF(proc);
@@ -15,6 +19,7 @@ TYPEDEF(drive_inst);
 TYPEDEF(branch_inst);
 TYPEDEF(compare_inst);
 TYPEDEF(type);
+TYPEDEF(struct_field);
 #undef TYPEDEF
 
 typedef enum llhd_compare_mode llhd_compare_mode_t;
@@ -33,8 +38,22 @@ struct llhd_value_intf {
 	llhd_value_intf_dump_fn dump;
 };
 
+struct llhd_const {
+	llhd_value_t _value;
+};
+
+struct llhd_const_logic {
+	llhd_const_t _const;
+	char *value;
+};
+
+struct llhd_const_int {
+	llhd_const_t _const;
+	char *value;
+};
+
 struct llhd_arg {
-	llhd_value_t _base;
+	llhd_value_t _value;
 	llhd_unit_t *parent;
 };
 
@@ -124,6 +143,22 @@ struct llhd_compare_inst {
 	llhd_value_t *rhs;
 };
 
+enum llhd_type_kind {
+	LLHD_VOID_TYPE,
+	LLHD_LABEL_TYPE,
+	LLHD_INT_TYPE,
+	LLHD_LOGIC_TYPE,
+	LLHD_STRUCT_TYPE,
+	LLHD_ARRAY_TYPE,
+	LLHD_PTR_TYPE,
+};
+
+struct llhd_type {
+	enum llhd_type_kind kind;
+	unsigned length;
+	llhd_type_t *inner[];
+};
+
 void llhd_init_value(llhd_value_t *V, const char *name, llhd_type_t *type);
 void llhd_dispose_value(void*);
 void llhd_destroy_value(void*);
@@ -131,6 +166,9 @@ void llhd_dump_value(void*, FILE*);
 void llhd_dump_value_name(void*, FILE*);
 void llhd_value_set_name(void*, const char*);
 const char *llhd_value_get_name(void*);
+
+llhd_const_int_t *llhd_make_const_int(unsigned width, const char *value);
+llhd_const_logic_t *llhd_make_const_logic(unsigned width, const char *value);
 
 llhd_proc_t *llhd_make_proc(const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t **out, unsigned num_out, llhd_basic_block_t *entry);
 
@@ -146,3 +184,23 @@ llhd_branch_inst_t *llhd_make_unconditional_branch_inst(llhd_basic_block_t *dst)
 llhd_arg_t *llhd_make_arg(const char *name, llhd_type_t *type);
 
 void llhd_add_inst(llhd_inst_t *I, llhd_basic_block_t *BB);
+
+llhd_type_t *llhd_make_void_type();
+llhd_type_t *llhd_make_label_type();
+llhd_type_t *llhd_make_int_type(unsigned width);
+llhd_type_t *llhd_make_logic_type(unsigned width);
+llhd_type_t *llhd_make_struct_type(llhd_struct_field_t **fields, unsigned num_fields);
+llhd_type_t *llhd_make_array_type(llhd_type_t *element, unsigned length);
+llhd_type_t *llhd_make_ptr_type(llhd_type_t *to);
+void llhd_destroy_type(llhd_type_t *T);
+void llhd_dump_type(llhd_type_t *T, FILE *f);
+int llhd_equal_types(llhd_type_t*, llhd_type_t*);
+int llhd_type_is_void(llhd_type_t*);
+int llhd_type_is_label(llhd_type_t*);
+int llhd_type_is_int(llhd_type_t*);
+int llhd_type_is_int_width(llhd_type_t*, unsigned);
+int llhd_type_is_logic(llhd_type_t*);
+int llhd_type_is_logic_width(llhd_type_t*, unsigned);
+int llhd_type_is_struct(llhd_type_t*);
+int llhd_type_is_array(llhd_type_t*);
+int llhd_type_is_ptr(llhd_type_t*);
