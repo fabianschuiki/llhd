@@ -33,6 +33,8 @@ int main() {
 	// r <= (others => 'U')
 	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)llhd_make_const_logic(8,"UUUUUUUU"));
 	llhd_add_inst(I, BBentry);
+	I = (llhd_inst_t*)llhd_make_ret_inst(NULL, 0);
+	llhd_add_inst(I, BBnot11);
 
 	// when "00"
 	I = (llhd_inst_t*)llhd_make_compare_inst(LLHD_EQ, (llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"00"));
@@ -40,7 +42,12 @@ int main() {
 	llhd_add_inst(I, BBentry);
 	I = (llhd_inst_t*)llhd_make_conditional_branch_inst((llhd_value_t*)I, BB00, BBnot00);
 	llhd_add_inst(I, BBentry);
-	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)Aa /*fix*/);
+	I = (llhd_inst_t*)llhd_make_binary_inst(LLHD_ADD, (llhd_value_t*)Aa, (llhd_value_t*)Ab);
+	llhd_value_set_name(I, "6");
+	llhd_add_inst(I, BB00);
+	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)I);
+	llhd_add_inst(I, BB00);
+	I = (llhd_inst_t*)llhd_make_ret_inst(NULL, 0);
 	llhd_add_inst(I, BB00);
 
 	// when "01"
@@ -49,7 +56,12 @@ int main() {
 	llhd_add_inst(I, BBnot00);
 	I = (llhd_inst_t*)llhd_make_conditional_branch_inst((llhd_value_t*)I, BB01, BBnot01);
 	llhd_add_inst(I, BBnot00);
-	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)Ab /*fix*/);
+	I = (llhd_inst_t*)llhd_make_binary_inst(LLHD_SUB, (llhd_value_t*)Aa, (llhd_value_t*)Ab);
+	llhd_value_set_name(I, "7");
+	llhd_add_inst(I, BB01);
+	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)I);
+	llhd_add_inst(I, BB01);
+	I = (llhd_inst_t*)llhd_make_ret_inst(NULL, 0);
 	llhd_add_inst(I, BB01);
 
 	// when "10"
@@ -58,7 +70,12 @@ int main() {
 	llhd_add_inst(I, BBnot01);
 	I = (llhd_inst_t*)llhd_make_conditional_branch_inst((llhd_value_t*)I, BB10, BBnot10);
 	llhd_add_inst(I, BBnot01);
-	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)Aa /*fix*/);
+	I = (llhd_inst_t*)llhd_make_binary_inst(LLHD_AND, (llhd_value_t*)Aa, (llhd_value_t*)Ab);
+	llhd_value_set_name(I, "4");
+	llhd_add_inst(I, BB10);
+	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)I);
+	llhd_add_inst(I, BB10);
+	I = (llhd_inst_t*)llhd_make_ret_inst(NULL, 0);
 	llhd_add_inst(I, BB10);
 
 	// when "11"
@@ -67,7 +84,12 @@ int main() {
 	llhd_add_inst(I, BBnot10);
 	I = (llhd_inst_t*)llhd_make_conditional_branch_inst((llhd_value_t*)I, BB11, BBnot11);
 	llhd_add_inst(I, BBnot10);
-	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)Ab /*fix*/);
+	I = (llhd_inst_t*)llhd_make_binary_inst(LLHD_OR, (llhd_value_t*)Aa, (llhd_value_t*)Ab);
+	llhd_value_set_name(I, "5");
+	llhd_add_inst(I, BB11);
+	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)I);
+	llhd_add_inst(I, BB11);
+	I = (llhd_inst_t*)llhd_make_ret_inst(NULL, 0);
 	llhd_add_inst(I, BB11);
 
 

@@ -197,7 +197,7 @@ llhd_make_proc (const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t *
 	}
 	assert(entry);
 	assert(entry->parent == NULL);
-	entry->parent = P;
+	entry->parent = (void*)P;
 	P->bb_head = entry;
 	P->bb_tail = entry;
 	return P;
@@ -285,6 +285,8 @@ llhd_dump_drive_inst (llhd_drive_inst_t *I, FILE *f) {
 	if (name)
 		fprintf(f, "%%%s = ", name);
 	fputs("drv ", f);
+	llhd_dump_type(I->target->type, f);
+	fputc(' ', f);
 	llhd_dump_value_name(I->target, f);
 	fputc(' ', f);
 	llhd_dump_value_name(I->value, f);
@@ -301,7 +303,7 @@ llhd_make_drive_inst (llhd_value_t *target, llhd_value_t *value) {
 	llhd_drive_inst_t *I = malloc(sizeof(*I));
 	memset(I, 0, sizeof(*I));
 	llhd_init_value((llhd_value_t*)I, NULL, llhd_make_void_type());
-	I->_base._base._intf = &drive_inst_value_intf;
+	I->_inst._value._intf = &drive_inst_value_intf;
 	I->target = target;
 	I->value = value;
 	return I;
@@ -328,6 +330,8 @@ llhd_dump_compare_inst (llhd_compare_inst_t *I, FILE *f) {
 	if (name)
 		fprintf(f, "%%%s = ", name);
 	fprintf(f, "cmp %s ", compare_inst_mode_str[I->mode]);
+	llhd_dump_type(I->lhs->type, f);
+	fputc(' ', f);
 	llhd_dump_value_name(I->lhs, f);
 	fputc(' ', f);
 	llhd_dump_value_name(I->rhs, f);
@@ -344,7 +348,7 @@ llhd_make_compare_inst (llhd_compare_mode_t mode, llhd_value_t *lhs, llhd_value_
 	llhd_compare_inst_t *I = malloc(sizeof(*I));
 	memset(I, 0, sizeof(*I));
 	llhd_init_value((llhd_value_t*)I, NULL, llhd_make_int_type(1));
-	I->_base._base._intf = &compare_inst_value_intf;
+	I->_inst._value._intf = &compare_inst_value_intf;
 	I->mode = mode;
 	I->lhs = lhs;
 	I->rhs = rhs;
@@ -383,7 +387,7 @@ llhd_make_conditional_branch_inst (llhd_value_t *cond, llhd_basic_block_t *dst1,
 	llhd_branch_inst_t *I = malloc(sizeof(*I));
 	memset(I, 0, sizeof(*I));
 	llhd_init_value((llhd_value_t*)I, NULL, llhd_make_void_type());
-	I->_base._base._intf = &branch_inst_value_intf;
+	I->_inst._value._intf = &branch_inst_value_intf;
 	I->cond = cond;
 	I->dst1 = dst1;
 	I->dst0 = dst0;
@@ -397,8 +401,116 @@ llhd_make_unconditional_branch_inst (llhd_basic_block_t *dst) {
 	llhd_branch_inst_t *I = malloc(sizeof(*I));
 	memset(I, 0, sizeof(*I));
 	llhd_init_value((llhd_value_t*)I, NULL, llhd_make_void_type());
-	I->_base._base._intf = &branch_inst_value_intf;
+	I->_inst._value._intf = &branch_inst_value_intf;
 	I->dst1 = dst;
+	return I;
+}
+
+
+static const char *unary_inst_op_str[] = {
+	[LLHD_NOT] = "not",
+};
+
+static void
+llhd_dump_unary_inst (llhd_unary_inst_t *I, FILE *f) {
+	assert(I);
+	const char *name = I->_inst._value.name;
+	if (name)
+		fprintf(f, "%%%s = ", name);
+	fputs(unary_inst_op_str[I->op], f);
+	fputc(' ', f);
+	llhd_dump_type(I->_inst._value.type, f);
+	fputc(' ', f);
+	llhd_dump_value_name(I->arg, f);
+}
+
+static struct llhd_value_intf unary_inst_value_intf = {
+	.dump = (llhd_value_intf_dump_fn)llhd_dump_unary_inst,
+};
+
+llhd_unary_inst_t *
+llhd_make_unary_inst (llhd_unary_op_t op, llhd_value_t *arg) {
+	assert(arg);
+	llhd_unary_inst_t *I = malloc(sizeof(*I));
+	memset(I, 0, sizeof(*I));
+	llhd_init_value((llhd_value_t*)I, NULL, llhd_copy_type(arg->type));
+	I->_inst._value._intf = &unary_inst_value_intf;
+	I->op = op;
+	I->arg = arg;
+	return I;
+}
+
+
+static const char *binary_inst_op_str[] = {
+	[LLHD_ADD] = "add",
+	[LLHD_SUB] = "sub",
+	[LLHD_MUL] = "mul",
+	[LLHD_DIV] = "div",
+	[LLHD_AND] = "and",
+	[LLHD_OR]  = "or",
+	[LLHD_XOR] = "xor",
+};
+
+static void
+llhd_dump_binary_inst (llhd_binary_inst_t *I, FILE *f) {
+	assert(I);
+	const char *name = I->_inst._value.name;
+	if (name)
+		fprintf(f, "%%%s = ", name);
+	fputs(binary_inst_op_str[I->op], f);
+	fputc(' ', f);
+	llhd_dump_type(I->_inst._value.type, f);
+	fputc(' ', f);
+	llhd_dump_value_name(I->lhs, f);
+	fputc(' ', f);
+	llhd_dump_value_name(I->rhs, f);
+}
+
+static struct llhd_value_intf binary_inst_value_intf = {
+	.dump = (llhd_value_intf_dump_fn)llhd_dump_binary_inst,
+};
+
+llhd_binary_inst_t *
+llhd_make_binary_inst (llhd_binary_op_t op, llhd_value_t *lhs, llhd_value_t *rhs) {
+	assert(lhs && rhs);
+	assert(llhd_equal_types(lhs->type, rhs->type));
+	llhd_binary_inst_t *I = malloc(sizeof(*I));
+	memset(I, 0, sizeof(*I));
+	llhd_init_value((llhd_value_t*)I, NULL, llhd_copy_type(lhs->type));
+	I->_inst._value._intf = &binary_inst_value_intf;
+	I->op = op;
+	I->lhs = lhs;
+	I->rhs = rhs;
+	return I;
+}
+
+
+static void
+llhd_dump_ret_inst (llhd_ret_inst_t *I, FILE *f) {
+	assert(I);
+	fputs("ret", f);
+	unsigned i;
+	for (i = 0; i < I->num_values; ++i) {
+		if (i > 0) fputc(',', f);
+		fputc(' ', f);
+		llhd_dump_value_name(I->values[i], f);
+	}
+}
+
+static struct llhd_value_intf ret_inst_value_intf = {
+	.dump = (llhd_value_intf_dump_fn)llhd_dump_ret_inst,
+};
+
+llhd_ret_inst_t *
+llhd_make_ret_inst (llhd_value_t **values, unsigned num_values) {
+	assert(num_values == 0 || values);
+	unsigned values_size = sizeof(llhd_value_t*) * num_values;
+	unsigned size = sizeof(llhd_ret_inst_t) + values_size;
+	llhd_ret_inst_t *I = malloc(size);
+	memset(I, 0, size);
+	llhd_init_value((llhd_value_t*)I, NULL, llhd_make_void_type());
+	I->_inst._value._intf = &ret_inst_value_intf;
+	memcpy(I->values, values, values_size);
 	return I;
 }
 
@@ -463,7 +575,7 @@ llhd_make_logic_type (unsigned width) {
 }
 
 llhd_type_t *
-llhd_make_struct_type (llhd_struct_field_t **fields, unsigned num_fields) {
+llhd_make_struct_type (llhd_type_t **fields, unsigned num_fields) {
 	assert(!num_fields || fields);
 	llhd_type_t *T = make_type(LLHD_STRUCT_TYPE, num_fields);
 	T->length = num_fields;
@@ -486,6 +598,20 @@ llhd_make_ptr_type (llhd_type_t *to) {
 	llhd_type_t *T = make_type(LLHD_PTR_TYPE, 1);
 	T->inner[0] = to;
 	return T;
+}
+
+llhd_type_t *
+llhd_copy_type (llhd_type_t *T) {
+	assert(T);
+	switch (T->kind) {
+	case LLHD_VOID_TYPE: return llhd_make_void_type();
+	case LLHD_LABEL_TYPE: return llhd_make_label_type();
+	case LLHD_INT_TYPE: return llhd_make_int_type(T->length);
+	case LLHD_LOGIC_TYPE: return llhd_make_logic_type(T->length);
+	case LLHD_STRUCT_TYPE: return llhd_make_struct_type(T->inner, T->length);
+	case LLHD_ARRAY_TYPE: return llhd_make_array_type(T->inner[0], T->length);
+	case LLHD_PTR_TYPE: return llhd_make_ptr_type(T->inner[0]);
+	}
 }
 
 static void
