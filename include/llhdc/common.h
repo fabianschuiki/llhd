@@ -9,6 +9,7 @@ TYPEDEF(value);
 TYPEDEF(const);
 TYPEDEF(const_logic);
 TYPEDEF(const_int);
+TYPEDEF(const_time);
 TYPEDEF(unit);
 TYPEDEF(func);
 TYPEDEF(proc);
@@ -22,6 +23,7 @@ TYPEDEF(compare_inst);
 TYPEDEF(unary_inst);
 TYPEDEF(binary_inst);
 TYPEDEF(ret_inst);
+TYPEDEF(wait_inst);
 TYPEDEF(type);
 TYPEDEF(struct_field);
 #undef TYPEDEF
@@ -54,6 +56,11 @@ struct llhd_const_logic {
 };
 
 struct llhd_const_int {
+	llhd_const_t _const;
+	char *value;
+};
+
+struct llhd_const_time {
 	llhd_const_t _const;
 	char *value;
 };
@@ -182,9 +189,15 @@ struct llhd_ret_inst {
 	llhd_value_t *values[];
 };
 
+struct llhd_wait_inst {
+	llhd_inst_t _inst;
+	llhd_value_t *duration; // time or label
+};
+
 enum llhd_type_kind {
 	LLHD_VOID_TYPE,
 	LLHD_LABEL_TYPE,
+	LLHD_TIME_TYPE,
 	LLHD_INT_TYPE,
 	LLHD_LOGIC_TYPE,
 	LLHD_STRUCT_TYPE,
@@ -208,6 +221,7 @@ const char *llhd_value_get_name(void*);
 
 llhd_const_int_t *llhd_make_const_int(unsigned width, const char *value);
 llhd_const_logic_t *llhd_make_const_logic(unsigned width, const char *value);
+llhd_const_time_t *llhd_make_const_time(const char *value);
 
 llhd_proc_t *llhd_make_proc(const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t **out, unsigned num_out, llhd_basic_block_t *entry);
 
@@ -222,6 +236,7 @@ llhd_branch_inst_t *llhd_make_unconditional_branch_inst(llhd_basic_block_t *dst)
 llhd_unary_inst_t *llhd_make_unary_inst(llhd_unary_op_t op, llhd_value_t *arg);
 llhd_binary_inst_t *llhd_make_binary_inst(llhd_binary_op_t op, llhd_value_t *lhs, llhd_value_t *rhs);
 llhd_ret_inst_t *llhd_make_ret_inst(llhd_value_t **values, unsigned num_values);
+llhd_wait_inst_t *llhd_make_wait_inst(llhd_value_t *duration);
 
 llhd_arg_t *llhd_make_arg(const char *name, llhd_type_t *type);
 
@@ -229,6 +244,7 @@ void llhd_add_inst(llhd_inst_t *I, llhd_basic_block_t *BB);
 
 llhd_type_t *llhd_make_void_type();
 llhd_type_t *llhd_make_label_type();
+llhd_type_t *llhd_make_time_type();
 llhd_type_t *llhd_make_int_type(unsigned width);
 llhd_type_t *llhd_make_logic_type(unsigned width);
 llhd_type_t *llhd_make_struct_type(llhd_type_t **fields, unsigned num_fields);
@@ -240,6 +256,7 @@ void llhd_dump_type(llhd_type_t *T, FILE *f);
 int llhd_equal_types(llhd_type_t*, llhd_type_t*);
 int llhd_type_is_void(llhd_type_t*);
 int llhd_type_is_label(llhd_type_t*);
+int llhd_type_is_time(llhd_type_t*);
 int llhd_type_is_int(llhd_type_t*);
 int llhd_type_is_int_width(llhd_type_t*, unsigned);
 int llhd_type_is_logic(llhd_type_t*);

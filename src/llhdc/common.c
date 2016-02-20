@@ -76,6 +76,7 @@ static void
 llhd_dispose_const_int (llhd_const_int_t *C) {
 	assert(C);
 	free(C->value);
+	C->value = NULL;
 }
 
 static void
@@ -107,6 +108,7 @@ static void
 llhd_dispose_const_logic (llhd_const_logic_t *C) {
 	assert(C);
 	free(C->value);
+	C->value = NULL;
 }
 
 static void
@@ -130,6 +132,37 @@ llhd_make_const_logic (unsigned width, const char *value) {
 	memset(C, 0, sizeof(*C));
 	llhd_init_value((llhd_value_t*)C, NULL, llhd_make_logic_type(width));
 	C->_const._value._intf = &const_logic_value_intf;
+	C->value = strdup(value);
+	return C;
+}
+
+
+static void
+llhd_dispose_const_time (llhd_const_time_t *C) {
+	assert(C);
+	free(C->value);
+	C->value = NULL;
+}
+
+static void
+llhd_dump_const_time (llhd_const_time_t *C, FILE *f) {
+	assert(C);
+	fputs("time ", f);
+	fputs(C->value, f);
+}
+
+static struct llhd_value_intf const_time_value_intf = {
+	.dispose = (llhd_value_intf_dispose_fn)llhd_dispose_const_time,
+	.dump = (llhd_value_intf_dump_fn)llhd_dump_const_time,
+};
+
+llhd_const_time_t *
+llhd_make_const_time (const char *value) {
+	assert(value);
+	llhd_const_time_t *C = malloc(sizeof(*C));
+	memset(C, 0, sizeof(*C));
+	llhd_init_value((llhd_value_t*)C, NULL, llhd_make_time_type());
+	C->_const._value._intf = &const_time_value_intf;
 	C->value = strdup(value);
 	return C;
 }
@@ -516,6 +549,29 @@ llhd_make_ret_inst (llhd_value_t **values, unsigned num_values) {
 
 
 static void
+llhd_dump_wait_inst (llhd_wait_inst_t *I, FILE *f) {
+	assert(I);
+	fputs("wait ", f);
+	llhd_dump_value_name(I->duration, f);
+}
+
+static struct llhd_value_intf wait_inst_value_intf = {
+	.dump = (llhd_value_intf_dump_fn)llhd_dump_wait_inst,
+};
+
+llhd_wait_inst_t *
+llhd_make_wait_inst (llhd_value_t *duration) {
+	// assert(duration);
+	llhd_wait_inst_t *I = malloc(sizeof(*I));
+	memset(I, 0, sizeof(*I));
+	llhd_init_value((llhd_value_t*)I, NULL, llhd_make_void_type());
+	I->_inst._value._intf = &wait_inst_value_intf;
+	I->duration = duration;
+	return I;
+}
+
+
+static void
 llhd_dump_arg (llhd_arg_t *A, FILE *f) {
 	llhd_dump_type(A->_value.type, f);
 	fprintf(f, " %%%s", A->_value.name);
@@ -558,6 +614,11 @@ llhd_make_void_type () {
 llhd_type_t *
 llhd_make_label_type () {
 	return make_type(LLHD_LABEL_TYPE, 0);
+}
+
+llhd_type_t *
+llhd_make_time_type () {
+	return make_type(LLHD_TIME_TYPE, 0);
 }
 
 llhd_type_t *
@@ -606,6 +667,7 @@ llhd_copy_type (llhd_type_t *T) {
 	switch (T->kind) {
 	case LLHD_VOID_TYPE: return llhd_make_void_type();
 	case LLHD_LABEL_TYPE: return llhd_make_label_type();
+	case LLHD_TIME_TYPE: return llhd_make_time_type();
 	case LLHD_INT_TYPE: return llhd_make_int_type(T->length);
 	case LLHD_LOGIC_TYPE: return llhd_make_logic_type(T->length);
 	case LLHD_STRUCT_TYPE: return llhd_make_struct_type(T->inner, T->length);
@@ -621,6 +683,7 @@ llhd_dispose_type (llhd_type_t *T) {
 	switch (T->kind) {
 	case LLHD_VOID_TYPE:
 	case LLHD_LABEL_TYPE:
+	case LLHD_TIME_TYPE:
 	case LLHD_INT_TYPE:
 	case LLHD_LOGIC_TYPE:
 		break;
@@ -650,6 +713,7 @@ llhd_dump_type (llhd_type_t *T, FILE *f) {
 	switch (T->kind) {
 	case LLHD_VOID_TYPE: fputs("void", f); break;
 	case LLHD_LABEL_TYPE: fputs("label", f); break;
+	case LLHD_TIME_TYPE: fputs("time", f); break;
 	case LLHD_INT_TYPE: fprintf(f, "i%u", T->length); break;
 	case LLHD_LOGIC_TYPE: fprintf(f, "l%u", T->length); break;
 	case LLHD_STRUCT_TYPE:
@@ -681,6 +745,7 @@ llhd_equal_types (llhd_type_t *A, llhd_type_t *B) {
 	switch (A->kind) {
 	case LLHD_VOID_TYPE:
 	case LLHD_LABEL_TYPE:
+	case LLHD_TIME_TYPE:
 		return 1;
 	case LLHD_INT_TYPE:
 	case LLHD_LOGIC_TYPE:
@@ -709,6 +774,11 @@ llhd_type_is_void (llhd_type_t *T) {
 int
 llhd_type_is_label (llhd_type_t *T) {
 	return T->kind == LLHD_LABEL_TYPE;
+}
+
+int
+llhd_type_is_time (llhd_type_t *T) {
+	return T->kind == LLHD_TIME_TYPE;
 }
 
 int

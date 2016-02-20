@@ -2,7 +2,7 @@
 #include "llhdc/common.h"
 #include <stdio.h>
 
-int main() {
+static llhd_proc_t *make_alu () {
 	llhd_arg_t *Aa = llhd_make_arg("a", llhd_make_logic_type(8));
 	llhd_arg_t *Ab = llhd_make_arg("b", llhd_make_logic_type(8));
 	llhd_arg_t *Aop = llhd_make_arg("op", llhd_make_logic_type(2));
@@ -92,11 +92,75 @@ int main() {
 	I = (llhd_inst_t*)llhd_make_ret_inst(NULL, 0);
 	llhd_add_inst(I, BB11);
 
+	return P;
+}
 
-	printf("P = ");
-	llhd_dump_value(P, stdout);
-	printf("\n");
+static llhd_proc_t *make_stim() {
+	llhd_arg_t *Aa = llhd_make_arg("a", llhd_make_logic_type(8));
+	llhd_arg_t *Ab = llhd_make_arg("b", llhd_make_logic_type(8));
+	llhd_arg_t *Aop = llhd_make_arg("op", llhd_make_logic_type(2));
+	llhd_arg_t *Ar = llhd_make_arg("r", llhd_make_logic_type(8));
 
-	llhd_destroy_value(P);
+	llhd_basic_block_t *BBentry = llhd_make_basic_block("entry");
+	llhd_proc_t *P = llhd_make_proc("stim", (llhd_arg_t*[]){Ar}, 1, (llhd_arg_t*[]){Aa, Ab, Aop}, 3, BBentry);
+
+	llhd_inst_t *I;
+
+	// a <= "00010010"
+	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Aa, (llhd_value_t*)llhd_make_const_logic(8,"00010010"));
+	llhd_add_inst(I, BBentry);
+
+	// b <= "00001010"
+	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ab, (llhd_value_t*)llhd_make_const_logic(8,"00001010"));
+	llhd_add_inst(I, BBentry);
+
+	// op <= "00"; wait for 1 ns
+	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"00"));
+	llhd_add_inst(I, BBentry);
+	I = (llhd_inst_t*)llhd_make_wait_inst((llhd_value_t*)llhd_make_const_time("1ns"));
+	llhd_add_inst(I, BBentry);
+
+	// op <= "01"; wait for 1 ns
+	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"01"));
+	llhd_add_inst(I, BBentry);
+	I = (llhd_inst_t*)llhd_make_wait_inst((llhd_value_t*)llhd_make_const_time("1ns"));
+	llhd_add_inst(I, BBentry);
+
+	// op <= "10"; wait for 1 ns
+	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"10"));
+	llhd_add_inst(I, BBentry);
+	I = (llhd_inst_t*)llhd_make_wait_inst((llhd_value_t*)llhd_make_const_time("1ns"));
+	llhd_add_inst(I, BBentry);
+
+	// op <= "11"; wait for 1 ns
+	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"11"));
+	llhd_add_inst(I, BBentry);
+	I = (llhd_inst_t*)llhd_make_wait_inst((llhd_value_t*)llhd_make_const_time("1ns"));
+	llhd_add_inst(I, BBentry);
+
+	I = (llhd_inst_t*)llhd_make_ret_inst(NULL, 0);
+	llhd_add_inst(I, BBentry);
+
+	return P;
+}
+
+int main() {
+	llhd_proc_t *Palu = make_alu();
+	llhd_proc_t *Pstim = make_stim();
+
+	llhd_dump_value(Palu, stdout); fputs("\n\n", stdout);
+	llhd_dump_value(Pstim, stdout); fputs("\n\n", stdout);
+
+	llhd_entity_t *Etb = NULL;
+	// llhd_signal_t *Sa = llhd_make_signal(llhd_make_logic_type(8));
+	// llhd_signal_t *Sb = llhd_make_signal(llhd_make_logic_type(8));
+	// llhd_signal_t *Sop = llhd_make_signal(llhd_make_logic_type(2));
+	// llhd_signal_t *Sr = llhd_make_signal(llhd_make_logic_type(8));
+	// llhd_instance_t *Ialu = llhd_make_instance(Palu, {Sa,Sb,Sop}, 3, {Sr}, 1);
+	// llhd_instance_t *Istim = llhd_make_instance(Pstim, {Sr}, 1, {Sa,Sb,Sop}, 3);
+
+	llhd_destroy_value(Palu);
+	llhd_destroy_value(Pstim);
+	llhd_destroy_value(Etb);
 	return 0;
 }
