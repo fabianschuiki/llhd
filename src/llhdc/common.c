@@ -214,6 +214,8 @@ static struct llhd_value_intf proc_value_intf = {
 llhd_proc_t *
 llhd_make_proc (const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t **out, unsigned num_out, llhd_basic_block_t *entry) {
 	assert(name);
+	assert(!num_in || in);
+	assert(!num_out || out);
 	llhd_proc_t *P = malloc(sizeof(*P));
 	memset(P, 0, sizeof(*P));
 	llhd_init_value((llhd_value_t*)P, name, llhd_make_void_type());
@@ -221,12 +223,14 @@ llhd_make_proc (const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t *
 	P->num_in = num_in;
 	P->num_out = num_out;
 	if (num_in > 0) {
-		P->in = malloc(num_in * sizeof(llhd_arg_t));
-		memcpy(P->in, in, num_in * sizeof(llhd_arg_t));
+		unsigned size = num_in * sizeof(llhd_arg_t*);
+		P->in = malloc(size);
+		memcpy(P->in, in, size);
 	}
 	if (num_out > 0) {
-		P->out = malloc(num_out * sizeof(llhd_arg_t));
-		memcpy(P->out, out, num_out * sizeof(llhd_arg_t));
+		unsigned size = num_out * sizeof(llhd_arg_t*);
+		P->out = malloc(size);
+		memcpy(P->out, out, size);
 	}
 	assert(entry);
 	assert(entry->parent == NULL);
@@ -234,6 +238,69 @@ llhd_make_proc (const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t *
 	P->bb_head = entry;
 	P->bb_tail = entry;
 	return P;
+}
+
+
+static void
+llhd_dispose_entity (llhd_entity_t *E) {
+	assert(E);
+	unsigned i;
+	for (i = 0; i < E->num_in;  ++i) llhd_destroy_value(E->in[i]);
+	for (i = 0; i < E->num_out; ++i) llhd_destroy_value(E->out[i]);
+	if (E->in)  free(E->in);
+	if (E->out) free(E->out);
+}
+
+static void
+llhd_dump_entity (llhd_entity_t *E, FILE *f) {
+	assert(E);
+	unsigned i;
+	fprintf(f, "entity @%s (", E->_value.name);
+	for (i = 0; i < E->num_in; ++i) {
+		if (i > 0) fprintf(f, ", ");
+		llhd_dump_value(E->in[i], f);
+	}
+	fprintf(f, ") (");
+	for (i = 0; i < E->num_out; ++i) {
+		if (i > 0) fprintf(f, ", ");
+		llhd_dump_value(E->out[i], f);
+	}
+	fprintf(f, ") {");
+	llhd_inst_t *I;
+	for (I = E->inst_head; I; I = I->next) {
+		fputs("\n  ", f);
+		llhd_dump_value(I, f);
+	}
+	fprintf(f, "\n}");
+}
+
+static struct llhd_value_intf entity_value_intf = {
+	.dispose = (llhd_value_intf_dispose_fn)llhd_dispose_entity,
+	.dump = (llhd_value_intf_dump_fn)llhd_dump_entity,
+};
+
+llhd_entity_t *
+llhd_make_entity (const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t **out, unsigned num_out) {
+	assert(name);
+	assert(!num_in || in);
+	assert(!num_out || out);
+	llhd_entity_t *E = malloc(sizeof(*E));
+	memset(E, 0, sizeof(*E));
+	llhd_init_value((llhd_value_t*)E, name, llhd_make_void_type());
+	E->_value._intf = &entity_value_intf;
+	E->num_in = num_in;
+	E->num_out = num_out;
+	if (num_in > 0){
+		unsigned size = num_in * sizeof(llhd_arg_t*);
+		E->in = malloc(size);
+		memcpy(E->in, in, size);
+	}
+	if (num_out > 0){
+		unsigned size = num_out * sizeof(llhd_arg_t*);
+		E->out = malloc(size);
+		memcpy(E->out, out, size);
+	}
+	return E;
 }
 
 
@@ -297,8 +364,9 @@ llhd_insert_basic_block_after (llhd_basic_block_t *BB, llhd_basic_block_t *after
 
 
 void
-llhd_add_inst (llhd_inst_t *I, llhd_basic_block_t *BB) {
-	assert(I && BB);
+llhd_basic_block_append (llhd_basic_block_t *BB, llhd_inst_t *I) {
+	assert(BB && I);
+	assert(!I->parent && !I->prev && !I->next);
 	I->parent = BB;
 	if (!BB->inst_tail) {
 		BB->inst_tail = I;
@@ -307,6 +375,21 @@ llhd_add_inst (llhd_inst_t *I, llhd_basic_block_t *BB) {
 		I->prev = BB->inst_tail;
 		BB->inst_tail->next = I;
 		BB->inst_tail = I;
+	}
+}
+
+void
+llhd_entity_append (llhd_entity_t *E, llhd_inst_t *I) {
+	assert(E && I);
+	assert(!I->parent && !I->prev && !I->next);
+	I->parent = (void*)E;
+	if (!E->inst_tail) {
+		E->inst_tail = I;
+		E->inst_head = I;
+	} else {
+		I->prev = E->inst_tail;
+		E->inst_tail->next = I;
+		E->inst_tail = I;
 	}
 }
 
@@ -572,6 +655,92 @@ llhd_make_wait_inst (llhd_value_t *duration) {
 
 
 static void
+llhd_dump_signal_inst (llhd_signal_inst_t *I, FILE *f) {
+	assert(I);
+	const char *name = I->_inst._value.name;
+	if (name)
+		fprintf(f, "%%%s = ", name);
+	fputs("sig ", f);
+	llhd_dump_type(I->_inst._value.type, f);
+}
+
+static struct llhd_value_intf signal_inst_value_intf = {
+	.dump = (llhd_value_intf_dump_fn)llhd_dump_signal_inst,
+};
+
+llhd_signal_inst_t *
+llhd_make_signal_inst (llhd_type_t *type) {
+	assert(type);
+	llhd_signal_inst_t *I = malloc(sizeof(*I));
+	memset(I, 0, sizeof(*I));
+	llhd_init_value(&I->_inst._value, NULL, type);
+	I->_inst._value._intf = &signal_inst_value_intf;
+	return I;
+}
+
+
+static void
+llhd_dispose_instance_inst (llhd_instance_inst_t *I) {
+	assert(I);
+	if (I->in) free(I->in);
+	if (I->out) free(I->out);
+}
+
+static void
+llhd_dump_instance_inst (llhd_instance_inst_t *I, FILE *f) {
+	assert(I);
+	unsigned i;
+	const char *name = I->_inst._value.name;
+	if (name)
+		fprintf(f, "%%%s = ", name);
+	fputs("inst ", f);
+	llhd_dump_value_name(I->value, f);
+	fputs(" (", f);
+	for (i = 0; i < I->num_in; ++i) {
+		if (i > 0) fputs(", ", f);
+		llhd_dump_value_name(I->in[i], f);
+	}
+	fputs(") (", f);
+	for (i = 0; i < I->num_out; ++i) {
+		if (i > 0) fputs(", ", f);
+		llhd_dump_value_name(I->out[i], f);
+	}
+	fputs(")", f);
+}
+
+static struct llhd_value_intf instance_inst_value_intf = {
+	.dispose = (llhd_value_intf_dispose_fn)llhd_dispose_instance_inst,
+	.dump = (llhd_value_intf_dump_fn)llhd_dump_instance_inst,
+};
+
+llhd_instance_inst_t *
+llhd_make_instance_inst (llhd_value_t *value, llhd_value_t **in, unsigned num_in, llhd_value_t **out, unsigned num_out) {
+	assert(value);
+	assert(num_in == 0 || in);
+	assert(num_out == 0 || out);
+	// TODO: assert that the in/out types match
+	llhd_instance_inst_t *I = malloc(sizeof(*I));
+	memset(I, 0, sizeof(*I));
+	llhd_init_value(&I->_inst._value, NULL, llhd_make_void_type());
+	I->_inst._value._intf = &instance_inst_value_intf;
+	I->value = value;
+	I->num_in = num_in;
+	I->num_out = num_out;
+	if (num_in > 0) {
+		unsigned size = num_in * sizeof(llhd_value_t*);
+		I->in = malloc(size);
+		memcpy(I->in, in, size);
+	}
+	if (num_out > 0) {
+		unsigned size = num_out * sizeof(llhd_value_t*);
+		I->out = malloc(size);
+		memcpy(I->out, out, size);
+	}
+	return I;
+}
+
+
+static void
 llhd_dump_arg (llhd_arg_t *A, FILE *f) {
 	llhd_dump_type(A->_value.type, f);
 	fprintf(f, " %%%s", A->_value.name);
@@ -674,6 +843,7 @@ llhd_copy_type (llhd_type_t *T) {
 	case LLHD_ARRAY_TYPE: return llhd_make_array_type(T->inner[0], T->length);
 	case LLHD_PTR_TYPE: return llhd_make_ptr_type(T->inner[0]);
 	}
+	assert(0);
 }
 
 static void

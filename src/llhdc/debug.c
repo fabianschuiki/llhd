@@ -32,65 +32,65 @@ static llhd_proc_t *make_alu () {
 
 	// r <= (others => 'U')
 	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)llhd_make_const_logic(8,"UUUUUUUU"));
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 	I = (llhd_inst_t*)llhd_make_ret_inst(NULL, 0);
-	llhd_add_inst(I, BBnot11);
+	llhd_basic_block_append(BBnot11, I);
 
 	// when "00"
 	I = (llhd_inst_t*)llhd_make_compare_inst(LLHD_EQ, (llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"00"));
 	llhd_value_set_name(I, "0");
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 	I = (llhd_inst_t*)llhd_make_conditional_branch_inst((llhd_value_t*)I, BB00, BBnot00);
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 	I = (llhd_inst_t*)llhd_make_binary_inst(LLHD_ADD, (llhd_value_t*)Aa, (llhd_value_t*)Ab);
 	llhd_value_set_name(I, "6");
-	llhd_add_inst(I, BB00);
+	llhd_basic_block_append(BB00, I);
 	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)I);
-	llhd_add_inst(I, BB00);
+	llhd_basic_block_append(BB00, I);
 	I = (llhd_inst_t*)llhd_make_ret_inst(NULL, 0);
-	llhd_add_inst(I, BB00);
+	llhd_basic_block_append(BB00, I);
 
 	// when "01"
 	I = (llhd_inst_t*)llhd_make_compare_inst(LLHD_EQ, (llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"01"));
 	llhd_value_set_name(I, "1");
-	llhd_add_inst(I, BBnot00);
+	llhd_basic_block_append(BBnot00, I);
 	I = (llhd_inst_t*)llhd_make_conditional_branch_inst((llhd_value_t*)I, BB01, BBnot01);
-	llhd_add_inst(I, BBnot00);
+	llhd_basic_block_append(BBnot00, I);
 	I = (llhd_inst_t*)llhd_make_binary_inst(LLHD_SUB, (llhd_value_t*)Aa, (llhd_value_t*)Ab);
 	llhd_value_set_name(I, "7");
-	llhd_add_inst(I, BB01);
+	llhd_basic_block_append(BB01, I);
 	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)I);
-	llhd_add_inst(I, BB01);
+	llhd_basic_block_append(BB01, I);
 	I = (llhd_inst_t*)llhd_make_ret_inst(NULL, 0);
-	llhd_add_inst(I, BB01);
+	llhd_basic_block_append(BB01, I);
 
 	// when "10"
 	I = (llhd_inst_t*)llhd_make_compare_inst(LLHD_EQ, (llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"10"));
 	llhd_value_set_name(I, "2");
-	llhd_add_inst(I, BBnot01);
+	llhd_basic_block_append(BBnot01, I);
 	I = (llhd_inst_t*)llhd_make_conditional_branch_inst((llhd_value_t*)I, BB10, BBnot10);
-	llhd_add_inst(I, BBnot01);
+	llhd_basic_block_append(BBnot01, I);
 	I = (llhd_inst_t*)llhd_make_binary_inst(LLHD_AND, (llhd_value_t*)Aa, (llhd_value_t*)Ab);
 	llhd_value_set_name(I, "4");
-	llhd_add_inst(I, BB10);
+	llhd_basic_block_append(BB10, I);
 	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)I);
-	llhd_add_inst(I, BB10);
+	llhd_basic_block_append(BB10, I);
 	I = (llhd_inst_t*)llhd_make_ret_inst(NULL, 0);
-	llhd_add_inst(I, BB10);
+	llhd_basic_block_append(BB10, I);
 
 	// when "11"
 	I = (llhd_inst_t*)llhd_make_compare_inst(LLHD_EQ, (llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"11"));
 	llhd_value_set_name(I, "3");
-	llhd_add_inst(I, BBnot10);
+	llhd_basic_block_append(BBnot10, I);
 	I = (llhd_inst_t*)llhd_make_conditional_branch_inst((llhd_value_t*)I, BB11, BBnot11);
-	llhd_add_inst(I, BBnot10);
+	llhd_basic_block_append(BBnot10, I);
 	I = (llhd_inst_t*)llhd_make_binary_inst(LLHD_OR, (llhd_value_t*)Aa, (llhd_value_t*)Ab);
 	llhd_value_set_name(I, "5");
-	llhd_add_inst(I, BB11);
+	llhd_basic_block_append(BB11, I);
 	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ar, (llhd_value_t*)I);
-	llhd_add_inst(I, BB11);
+	llhd_basic_block_append(BB11, I);
 	I = (llhd_inst_t*)llhd_make_ret_inst(NULL, 0);
-	llhd_add_inst(I, BB11);
+	llhd_basic_block_append(BB11, I);
 
 	return P;
 }
@@ -108,38 +108,38 @@ static llhd_proc_t *make_stim() {
 
 	// a <= "00010010"
 	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Aa, (llhd_value_t*)llhd_make_const_logic(8,"00010010"));
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 
 	// b <= "00001010"
 	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Ab, (llhd_value_t*)llhd_make_const_logic(8,"00001010"));
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 
 	// op <= "00"; wait for 1 ns
 	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"00"));
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 	I = (llhd_inst_t*)llhd_make_wait_inst((llhd_value_t*)llhd_make_const_time("1ns"));
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 
 	// op <= "01"; wait for 1 ns
 	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"01"));
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 	I = (llhd_inst_t*)llhd_make_wait_inst((llhd_value_t*)llhd_make_const_time("1ns"));
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 
 	// op <= "10"; wait for 1 ns
 	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"10"));
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 	I = (llhd_inst_t*)llhd_make_wait_inst((llhd_value_t*)llhd_make_const_time("1ns"));
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 
 	// op <= "11"; wait for 1 ns
 	I = (llhd_inst_t*)llhd_make_drive_inst((llhd_value_t*)Aop, (llhd_value_t*)llhd_make_const_logic(2,"11"));
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 	I = (llhd_inst_t*)llhd_make_wait_inst((llhd_value_t*)llhd_make_const_time("1ns"));
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 
 	I = (llhd_inst_t*)llhd_make_ret_inst(NULL, 0);
-	llhd_add_inst(I, BBentry);
+	llhd_basic_block_append(BBentry, I);
 
 	return P;
 }
@@ -148,13 +148,25 @@ int main() {
 	llhd_proc_t *Palu = make_alu();
 	llhd_proc_t *Pstim = make_stim();
 
-	llhd_entity_t *Etb = NULL;
-	// llhd_signal_t *Sa = llhd_make_signal(llhd_make_logic_type(8));
-	// llhd_signal_t *Sb = llhd_make_signal(llhd_make_logic_type(8));
-	// llhd_signal_t *Sop = llhd_make_signal(llhd_make_logic_type(2));
-	// llhd_signal_t *Sr = llhd_make_signal(llhd_make_logic_type(8));
-	// llhd_instance_t *Ialu = llhd_make_instance(Palu, {Sa,Sb,Sop}, 3, {Sr}, 1);
-	// llhd_instance_t *Istim = llhd_make_instance(Pstim, {Sr}, 1, {Sa,Sb,Sop}, 3);
+	llhd_entity_t *Etb = llhd_make_entity("tb", NULL, 0, NULL, 0);
+	void *Sa = llhd_make_signal_inst(llhd_make_logic_type(8));
+	llhd_value_set_name(Sa, "a");
+	llhd_entity_append(Etb, Sa);
+	void *Sb = llhd_make_signal_inst(llhd_make_logic_type(8));
+	llhd_value_set_name(Sb, "b");
+	llhd_entity_append(Etb, Sb);
+	void *Sop = llhd_make_signal_inst(llhd_make_logic_type(2));
+	llhd_value_set_name(Sop, "op");
+	llhd_entity_append(Etb, Sop);
+	void *Sr = llhd_make_signal_inst(llhd_make_logic_type(8));
+	llhd_value_set_name(Sr, "r");
+	llhd_entity_append(Etb, Sr);
+	void *Ialu = llhd_make_instance_inst((llhd_value_t*)Palu, (llhd_value_t*[]){Sa,Sb,Sop}, 3, (llhd_value_t*[]){Sr}, 1);
+	llhd_value_set_name(Ialu, "alu_i");
+	llhd_entity_append(Etb, Ialu);
+	void *Istim = llhd_make_instance_inst((llhd_value_t*)Pstim, (llhd_value_t*[]){Sr}, 1, (llhd_value_t*[]){Sa,Sb,Sop}, 3);
+	llhd_value_set_name(Istim, "stim_i");
+	llhd_entity_append(Etb, Istim);
 
 	llhd_dump_value(Palu, stdout); fputs("\n\n", stdout);
 	llhd_dump_value(Pstim, stdout); fputs("\n\n", stdout);

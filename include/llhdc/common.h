@@ -24,6 +24,8 @@ TYPEDEF(unary_inst);
 TYPEDEF(binary_inst);
 TYPEDEF(ret_inst);
 TYPEDEF(wait_inst);
+TYPEDEF(signal_inst);
+TYPEDEF(instance_inst);
 TYPEDEF(type);
 TYPEDEF(struct_field);
 #undef TYPEDEF
@@ -89,10 +91,14 @@ struct llhd_proc {
 };
 
 struct llhd_entity {
-	llhd_value_t base;
+	llhd_value_t _value;
 	llhd_module_t *parent;
 	llhd_inst_t *inst_head;
 	llhd_inst_t *inst_tail;
+	unsigned num_in;
+	llhd_arg_t **in;
+	unsigned num_out;
+	llhd_arg_t **out;
 };
 
 // basic_block:
@@ -194,6 +200,19 @@ struct llhd_wait_inst {
 	llhd_value_t *duration; // time or label
 };
 
+struct llhd_signal_inst {
+	llhd_inst_t _inst;
+};
+
+struct llhd_instance_inst {
+	llhd_inst_t _inst;
+	llhd_value_t *value;
+	unsigned num_in;
+	llhd_value_t **in;
+	unsigned num_out;
+	llhd_value_t **out;
+};
+
 enum llhd_type_kind {
 	LLHD_VOID_TYPE,
 	LLHD_LABEL_TYPE,
@@ -224,6 +243,7 @@ llhd_const_logic_t *llhd_make_const_logic(unsigned width, const char *value);
 llhd_const_time_t *llhd_make_const_time(const char *value);
 
 llhd_proc_t *llhd_make_proc(const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t **out, unsigned num_out, llhd_basic_block_t *entry);
+llhd_entity_t *llhd_make_entity(const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t **out, unsigned num_out);
 
 llhd_basic_block_t *llhd_make_basic_block(const char *name);
 void llhd_insert_basic_block_before(llhd_basic_block_t *BB, llhd_basic_block_t *before);
@@ -237,10 +257,13 @@ llhd_unary_inst_t *llhd_make_unary_inst(llhd_unary_op_t op, llhd_value_t *arg);
 llhd_binary_inst_t *llhd_make_binary_inst(llhd_binary_op_t op, llhd_value_t *lhs, llhd_value_t *rhs);
 llhd_ret_inst_t *llhd_make_ret_inst(llhd_value_t **values, unsigned num_values);
 llhd_wait_inst_t *llhd_make_wait_inst(llhd_value_t *duration);
+llhd_signal_inst_t *llhd_make_signal_inst(llhd_type_t *type);
+llhd_instance_inst_t *llhd_make_instance_inst(llhd_value_t *value, llhd_value_t **in, unsigned num_in, llhd_value_t **out, unsigned num_out);
 
 llhd_arg_t *llhd_make_arg(const char *name, llhd_type_t *type);
 
-void llhd_add_inst(llhd_inst_t *I, llhd_basic_block_t *BB);
+void llhd_basic_block_append(llhd_basic_block_t *BB, llhd_inst_t *I);
+void llhd_entity_append(llhd_entity_t *E, llhd_inst_t *I);
 
 llhd_type_t *llhd_make_void_type();
 llhd_type_t *llhd_make_label_type();
