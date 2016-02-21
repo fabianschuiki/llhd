@@ -148,9 +148,6 @@ int main() {
 	llhd_proc_t *Palu = make_alu();
 	llhd_proc_t *Pstim = make_stim();
 
-	llhd_dump_value(Palu, stdout); fputs("\n\n", stdout);
-	llhd_dump_value(Pstim, stdout); fputs("\n\n", stdout);
-
 	llhd_entity_t *Etb = NULL;
 	// llhd_signal_t *Sa = llhd_make_signal(llhd_make_logic_type(8));
 	// llhd_signal_t *Sb = llhd_make_signal(llhd_make_logic_type(8));
@@ -158,6 +155,10 @@ int main() {
 	// llhd_signal_t *Sr = llhd_make_signal(llhd_make_logic_type(8));
 	// llhd_instance_t *Ialu = llhd_make_instance(Palu, {Sa,Sb,Sop}, 3, {Sr}, 1);
 	// llhd_instance_t *Istim = llhd_make_instance(Pstim, {Sr}, 1, {Sa,Sb,Sop}, 3);
+
+	llhd_dump_value(Palu, stdout); fputs("\n\n", stdout);
+	llhd_dump_value(Pstim, stdout); fputs("\n\n", stdout);
+	llhd_dump_value(Etb, stdout); fputs("\n\n", stdout);
 
 	llhd_destroy_value(Palu);
 	llhd_destroy_value(Pstim);
