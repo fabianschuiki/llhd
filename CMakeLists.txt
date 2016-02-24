@@ -136,6 +136,14 @@ add_library(llhd-common
 	${LLHD_UNICODE_CASEFOLDING_OUTPUT}
 )
 
+add_library(llhdc
+	src/llhdc/common.c
+	src/llhdc/ir.c
+	src/llhdc/ir-type.c
+)
+if (BUILD_SHARED_LIBS)
+	set_target_properties(llhdc PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -DLLHD_BUILD_SHARED")
+endif()
 
 # Build the programs.
 file(GLOB_RECURSE LLHD_TOOL_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/tool/*.cpp)
@@ -145,10 +153,8 @@ file(GLOB_RECURSE LLHD_TOOL_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/too
 add_executable(debug src/debug.cpp)
 target_link_libraries(debug llhd-common)
 
-add_executable(cdebug
-	src/llhdc/common.c
-	src/llhdc/debug.c
-)
+add_executable(cdebug src/llhdc/debug.c)
+target_link_libraries(cdebug llhdc)
 
 
 # Build the tests if so requested.
@@ -175,6 +181,6 @@ endif()
 
 # Installation
 # install(TARGETS llhd-tool RUNTIME DESTINATION bin)
-install(TARGETS llhd-common ARCHIVE DESTINATION lib)
+install(TARGETS llhd-common ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 install(DIRECTORY include/ DESTINATION include FILES_MATCHING PATTERN "*.hpp")
 install(FILES ${LLHD_CONFIG_DIR}/llhd/config.hpp DESTINATION include/llhd)

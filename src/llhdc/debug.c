@@ -1,12 +1,12 @@
 // Copyright (c) 2016 Fabian Schuiki
-#include "llhdc/common.h"
+#include "llhdc/ir.h"
 #include <stdio.h>
 
 static llhd_proc_t *make_alu () {
-	llhd_arg_t *Aa = llhd_make_arg("a", llhd_make_logic_type(8));
-	llhd_arg_t *Ab = llhd_make_arg("b", llhd_make_logic_type(8));
-	llhd_arg_t *Aop = llhd_make_arg("op", llhd_make_logic_type(2));
-	llhd_arg_t *Ar = llhd_make_arg("r", llhd_make_logic_type(8));
+	llhd_arg_t *Aa = llhd_make_arg("a", llhd_type_make_logic(8));
+	llhd_arg_t *Ab = llhd_make_arg("b", llhd_type_make_logic(8));
+	llhd_arg_t *Aop = llhd_make_arg("op", llhd_type_make_logic(2));
+	llhd_arg_t *Ar = llhd_make_arg("r", llhd_type_make_logic(8));
 
 	llhd_basic_block_t *BBentry = llhd_make_basic_block("entry");
 	llhd_proc_t *P = llhd_make_proc("alu", (llhd_arg_t*[]){Aa, Ab, Aop}, 3, (llhd_arg_t*[]){Ar}, 1, BBentry);
@@ -96,10 +96,10 @@ static llhd_proc_t *make_alu () {
 }
 
 static llhd_proc_t *make_stim() {
-	llhd_arg_t *Aa = llhd_make_arg("a", llhd_make_logic_type(8));
-	llhd_arg_t *Ab = llhd_make_arg("b", llhd_make_logic_type(8));
-	llhd_arg_t *Aop = llhd_make_arg("op", llhd_make_logic_type(2));
-	llhd_arg_t *Ar = llhd_make_arg("r", llhd_make_logic_type(8));
+	llhd_arg_t *Aa = llhd_make_arg("a", llhd_type_make_logic(8));
+	llhd_arg_t *Ab = llhd_make_arg("b", llhd_type_make_logic(8));
+	llhd_arg_t *Aop = llhd_make_arg("op", llhd_type_make_logic(2));
+	llhd_arg_t *Ar = llhd_make_arg("r", llhd_type_make_logic(8));
 
 	llhd_basic_block_t *BBentry = llhd_make_basic_block("entry");
 	llhd_proc_t *P = llhd_make_proc("stim", (llhd_arg_t*[]){Ar}, 1, (llhd_arg_t*[]){Aa, Ab, Aop}, 3, BBentry);
@@ -149,16 +149,16 @@ int main() {
 	llhd_proc_t *Pstim = make_stim();
 
 	llhd_entity_t *Etb = llhd_make_entity("tb", NULL, 0, NULL, 0);
-	void *Sa = llhd_make_signal_inst(llhd_make_logic_type(8));
+	void *Sa = llhd_make_signal_inst(llhd_type_make_logic(8));
 	llhd_value_set_name(Sa, "a");
 	llhd_entity_append(Etb, Sa);
-	void *Sb = llhd_make_signal_inst(llhd_make_logic_type(8));
+	void *Sb = llhd_make_signal_inst(llhd_type_make_logic(8));
 	llhd_value_set_name(Sb, "b");
 	llhd_entity_append(Etb, Sb);
-	void *Sop = llhd_make_signal_inst(llhd_make_logic_type(2));
+	void *Sop = llhd_make_signal_inst(llhd_type_make_logic(2));
 	llhd_value_set_name(Sop, "op");
 	llhd_entity_append(Etb, Sop);
-	void *Sr = llhd_make_signal_inst(llhd_make_logic_type(8));
+	void *Sr = llhd_make_signal_inst(llhd_type_make_logic(8));
 	llhd_value_set_name(Sr, "r");
 	llhd_entity_append(Etb, Sr);
 	void *Ialu = llhd_make_instance_inst((llhd_value_t*)Palu, (llhd_value_t*[]){Sa,Sb,Sop}, 3, (llhd_value_t*[]){Sr}, 1);
@@ -168,12 +168,12 @@ int main() {
 	llhd_value_set_name(Istim, "stim_i");
 	llhd_entity_append(Etb, Istim);
 
-	llhd_dump_value(Palu, stdout); fputs("\n\n", stdout);
-	llhd_dump_value(Pstim, stdout); fputs("\n\n", stdout);
-	llhd_dump_value(Etb, stdout); fputs("\n\n", stdout);
+	llhd_value_dump(Palu, stdout); fputs("\n\n", stdout);
+	llhd_value_dump(Pstim, stdout); fputs("\n\n", stdout);
+	llhd_value_dump(Etb, stdout); fputs("\n\n", stdout);
 
-	llhd_destroy_value(Palu);
-	llhd_destroy_value(Pstim);
-	llhd_destroy_value(Etb);
+	llhd_value_destroy(Palu);
+	llhd_value_destroy(Pstim);
+	llhd_value_destroy(Etb);
 	return 0;
 }

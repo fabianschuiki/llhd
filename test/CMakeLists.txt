@@ -24,7 +24,7 @@ if (LLHD_BUILD_LEGACY)
 	add_test(asm-parser test-asm-parser)
 endif()
 
-add_library(catch-main main.cpp)
+add_library(catch-main STATIC main.cpp)
 
 function(add_unit_test basepath)
 	string(REPLACE "/" "-" test_name ${basepath})
