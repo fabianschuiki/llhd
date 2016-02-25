@@ -1,6 +1,6 @@
 // Copyright (c) 2016 Fabian Schuiki
 #include "llhdc/ir.h"
-#include "ir-internal.h"
+#include "src/llhdc/ir.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -342,7 +342,7 @@ llhd_make_basic_block (const char *name) {
 }
 
 void
-llhd_insert_basic_block_before (llhd_basic_block_t *BB, llhd_basic_block_t *before) {
+llhd_basic_block_insert_before (llhd_basic_block_t *BB, llhd_basic_block_t *before) {
 	assert(BB && before);
 	assert(BB->parent == NULL && BB->next == NULL && BB->prev == NULL);
 	BB->parent = before->parent;
@@ -353,7 +353,7 @@ llhd_insert_basic_block_before (llhd_basic_block_t *BB, llhd_basic_block_t *befo
 }
 
 void
-llhd_insert_basic_block_after (llhd_basic_block_t *BB, llhd_basic_block_t *after) {
+llhd_basic_block_insert_after (llhd_basic_block_t *BB, llhd_basic_block_t *after) {
 	assert(BB && after);
 	assert(BB->parent == NULL && BB->next == NULL && BB->prev == NULL);
 	BB->parent = after->parent;
@@ -365,7 +365,7 @@ llhd_insert_basic_block_after (llhd_basic_block_t *BB, llhd_basic_block_t *after
 
 
 void
-llhd_basic_block_append (llhd_basic_block_t *BB, llhd_inst_t *I) {
+llhd_basic_block_append_inst (llhd_basic_block_t *BB, llhd_inst_t *I) {
 	assert(BB && I);
 	assert(!I->parent && !I->prev && !I->next);
 	I->parent = BB;
@@ -380,7 +380,7 @@ llhd_basic_block_append (llhd_basic_block_t *BB, llhd_inst_t *I) {
 }
 
 void
-llhd_entity_append (llhd_entity_t *E, llhd_inst_t *I) {
+llhd_entity_append_inst (llhd_entity_t *E, llhd_inst_t *I) {
 	assert(E && I);
 	assert(!I->parent && !I->prev && !I->next);
 	I->parent = (void*)E;

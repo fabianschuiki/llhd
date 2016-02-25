@@ -159,3 +159,6 @@ struct llhd_type {
 	unsigned length;
 	llhd_type_t *inner[];
 };
+
+void llhd_value_init(llhd_value_t *V, const char *name, llhd_type_t *type);
+void llhd_value_dispose(void*);
