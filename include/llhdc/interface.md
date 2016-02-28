@@ -18,18 +18,16 @@ LLHD C Interface
 
 ## Unit
 - get parent, get next, get prev
+- append bb, get first bb, get last bb, get num bb
 
 ## Function
 - make
-- append bb, get first bb, get last bb, get num bb
 
 ## Process
 - make
-- append bb, get first bb, get last bb, get num bb
 
 ## Entity
 - make
-- append inst, get first inst, get last inst, get num insts
 
 ## Basic Block
 - make

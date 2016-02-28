@@ -148,25 +148,26 @@ int main() {
 	llhd_proc_t *Palu = make_alu();
 	llhd_proc_t *Pstim = make_stim();
 
-	llhd_entity_t *Etb = llhd_make_entity("tb", NULL, 0, NULL, 0);
+	llhd_basic_block_t *BB = llhd_make_basic_block("entry");
+	llhd_entity_t *Etb = llhd_make_entity("tb", NULL, 0, NULL, 0, BB);
 	void *Sa = llhd_make_signal_inst(llhd_type_make_logic(8));
 	llhd_value_set_name(Sa, "a");
-	llhd_entity_append_inst(Etb, Sa);
+	llhd_basic_block_append_inst(BB, Sa);
 	void *Sb = llhd_make_signal_inst(llhd_type_make_logic(8));
 	llhd_value_set_name(Sb, "b");
-	llhd_entity_append_inst(Etb, Sb);
+	llhd_basic_block_append_inst(BB, Sb);
 	void *Sop = llhd_make_signal_inst(llhd_type_make_logic(2));
 	llhd_value_set_name(Sop, "op");
-	llhd_entity_append_inst(Etb, Sop);
+	llhd_basic_block_append_inst(BB, Sop);
 	void *Sr = llhd_make_signal_inst(llhd_type_make_logic(8));
 	llhd_value_set_name(Sr, "r");
-	llhd_entity_append_inst(Etb, Sr);
+	llhd_basic_block_append_inst(BB, Sr);
 	void *Ialu = llhd_make_instance_inst((llhd_value_t*)Palu, (llhd_value_t*[]){Sa,Sb,Sop}, 3, (llhd_value_t*[]){Sr}, 1);
 	llhd_value_set_name(Ialu, "alu_i");
-	llhd_entity_append_inst(Etb, Ialu);
+	llhd_basic_block_append_inst(BB, Ialu);
 	void *Istim = llhd_make_instance_inst((llhd_value_t*)Pstim, (llhd_value_t*[]){Sr}, 1, (llhd_value_t*[]){Sa,Sb,Sop}, 3);
 	llhd_value_set_name(Istim, "stim_i");
-	llhd_entity_append_inst(Etb, Istim);
+	llhd_basic_block_append_inst(BB, Istim);
 
 	llhd_value_dump(Palu, stdout); fputs("\n\n", stdout);
 	llhd_value_dump(Pstim, stdout); fputs("\n\n", stdout);

@@ -16,7 +16,7 @@ LLHD_STRUCT(module);
 // LLHD_STRUCT(proc);
 // LLHD_STRUCT(arg);
 // LLHD_STRUCT(entity);
-LLHD_STRUCT(basic_block);
+// LLHD_STRUCT(basic_block);
 LLHD_STRUCT(inst);
 LLHD_STRUCT(drive_inst);
 LLHD_STRUCT(branch_inst);
@@ -163,15 +163,16 @@ LLHD_API llhd_const_time_t  *llhd_make_const_time(const char *value);
 
 /* -------------------------------------------------------------------------- */
 /*                                                                            */
-/*   FUNCTION / PROCESS / ENTITY / BASIC BLOCK                                */
+/*   UNIT                                                                     */
 /*                                                                            */
 /* -------------------------------------------------------------------------- */
 
-typedef struct llhd_unit   llhd_unit_t;
-typedef struct llhd_arg    llhd_arg_t;
-typedef struct llhd_func   llhd_func_t;
-typedef struct llhd_proc   llhd_proc_t;
-typedef struct llhd_entity llhd_entity_t;
+typedef struct llhd_unit        llhd_unit_t;
+typedef struct llhd_arg         llhd_arg_t;
+typedef struct llhd_func        llhd_func_t;
+typedef struct llhd_proc        llhd_proc_t;
+typedef struct llhd_entity      llhd_entity_t;
+typedef struct llhd_basic_block llhd_basic_block_t;
 
 
 LLHD_API llhd_module_t *llhd_unit_get_parent(llhd_unit_t*);
@@ -182,27 +183,25 @@ LLHD_API void           llhd_unit_remove_from_parent(llhd_unit_t*);
 LLHD_API void                llhd_unit_append_basic_block(llhd_unit_t*, llhd_basic_block_t*);
 LLHD_API llhd_basic_block_t *llhd_unit_get_first_basic_block(llhd_unit_t*);
 LLHD_API llhd_basic_block_t *llhd_unit_get_last_basic_block(llhd_unit_t*);
-LLHD_API unsigned            llhd_unit_get_num_basic_block(llhd_unit_t*);
 
 
 LLHD_API llhd_arg_t *llhd_make_arg(const char *name, llhd_type_t *type);
 LLHD_API llhd_proc_t *llhd_make_proc(const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t **out, unsigned num_out, llhd_basic_block_t *entry);
 LLHD_API llhd_func_t *llhd_make_func(const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t **out, unsigned num_out, llhd_basic_block_t *entry);
-LLHD_API llhd_entity_t *llhd_make_entity(const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t **out, unsigned num_out);
+LLHD_API llhd_entity_t *llhd_make_entity(const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t **out, unsigned num_out, llhd_basic_block_t *entry);
 
 
 LLHD_API llhd_basic_block_t *llhd_make_basic_block(const char *name);
 
-LLHD_API llhd_value_t *llhd_basic_block_get_parent(llhd_basic_block_t*);
+LLHD_API llhd_unit_t *llhd_basic_block_get_parent(llhd_basic_block_t*);
 LLHD_API llhd_basic_block_t *llhd_basic_block_get_next(llhd_basic_block_t*);
 LLHD_API llhd_basic_block_t *llhd_basic_block_get_prev(llhd_basic_block_t*);
 LLHD_API void llhd_basic_block_insert_before(llhd_basic_block_t *BB, llhd_basic_block_t *before);
 LLHD_API void llhd_basic_block_insert_after(llhd_basic_block_t *BB, llhd_basic_block_t *after);
 
-LLHD_API void llhd_basic_block_append_inst(llhd_basic_block_t *, llhd_inst_t *);
+LLHD_API void llhd_basic_block_append_inst(llhd_basic_block_t*, llhd_inst_t*);
 LLHD_API llhd_inst_t *llhd_basic_block_get_first_inst(llhd_basic_block_t*);
 LLHD_API llhd_inst_t *llhd_basic_block_get_last_inst(llhd_basic_block_t*);
-LLHD_API unsigned llhd_basic_block_get_num_inst(llhd_basic_block_t*);
 
 
 

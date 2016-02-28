@@ -1,6 +1,12 @@
 // Copyright (c) 2016 Fabian Schuiki
 #pragma once
 
+struct llhd_module {
+	char *name;
+	llhd_unit_t *unit_head;
+	llhd_unit_t *unit_tail;
+};
+
 struct llhd_value {
 	struct llhd_value_intf *_intf;
 	char *name;
@@ -41,6 +47,11 @@ struct llhd_arg {
 struct llhd_unit {
 	llhd_value_t _value;
 	llhd_module_t *parent;
+	llhd_unit_t *prev;
+	llhd_unit_t *next;
+	llhd_basic_block_t *bb_head;
+	llhd_basic_block_t *bb_tail;
+	unsigned bb_num;
 };
 
 struct llhd_func {
@@ -61,8 +72,8 @@ struct llhd_proc {
 
 struct llhd_entity {
 	llhd_unit_t _unit;
-	llhd_inst_t *inst_head;
-	llhd_inst_t *inst_tail;
+	llhd_basic_block_t *bb_head;
+	llhd_basic_block_t *bb_tail;
 	unsigned num_in;
 	llhd_arg_t **in;
 	unsigned num_out;
@@ -76,7 +87,7 @@ struct llhd_entity {
 // - remove from parent
 // - dump
 struct llhd_basic_block {
-	llhd_value_t _base;
+	llhd_value_t _value;
 	llhd_unit_t *parent;
 	llhd_basic_block_t *prev;
 	llhd_basic_block_t *next;

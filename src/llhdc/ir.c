@@ -170,232 +170,6 @@ llhd_make_const_time (const char *value) {
 
 
 static void
-llhd_proc_dispose (llhd_proc_t *P) {
-	assert(P);
-	unsigned i;
-	for (i = 0; i < P->num_in;  ++i) llhd_value_destroy(P->in[i]);
-	for (i = 0; i < P->num_out; ++i) llhd_value_destroy(P->out[i]);
-	if (P->in)  free(P->in);
-	if (P->out) free(P->out);
-	llhd_basic_block_t *BB = P->bb_head, *BBn;
-	while (BB) {
-		BBn = BB->next;
-		llhd_value_destroy(BB);
-		BB = BBn;
-	}
-}
-
-static void
-llhd_proc_dump (llhd_proc_t *P, FILE *f) {
-	unsigned i;
-	fprintf(f, "proc @%s (", ((llhd_value_t*)P)->name);
-	for (i = 0; i < P->num_in; ++i) {
-		if (i > 0) fprintf(f, ", ");
-		llhd_value_dump(P->in[i], f);
-	}
-	fprintf(f, ") (");
-	for (i = 0; i < P->num_out; ++i) {
-		if (i > 0) fprintf(f, ", ");
-		llhd_value_dump(P->out[i], f);
-	}
-	fprintf(f, ") {\n");
-	llhd_basic_block_t *BB;
-	for (BB = P->bb_head; BB; BB = BB->next) {
-		llhd_value_dump(BB, f);
-		fputc('\n', f);
-	}
-	fprintf(f, "}");
-}
-
-static struct llhd_value_intf proc_value_intf = {
-	.dispose = (llhd_value_intf_dispose_fn)llhd_proc_dispose,
-	.dump = (llhd_value_intf_dump_fn)llhd_proc_dump,
-};
-
-llhd_proc_t *
-llhd_make_proc (const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t **out, unsigned num_out, llhd_basic_block_t *entry) {
-	assert(name);
-	assert(!num_in || in);
-	assert(!num_out || out);
-	llhd_proc_t *P = malloc(sizeof(*P));
-	memset(P, 0, sizeof(*P));
-	llhd_value_init((llhd_value_t*)P, name, llhd_type_make_void());
-	P->_unit._value._intf = &proc_value_intf;
-	P->num_in = num_in;
-	P->num_out = num_out;
-	if (num_in > 0) {
-		unsigned size = num_in * sizeof(llhd_arg_t*);
-		P->in = malloc(size);
-		memcpy(P->in, in, size);
-	}
-	if (num_out > 0) {
-		unsigned size = num_out * sizeof(llhd_arg_t*);
-		P->out = malloc(size);
-		memcpy(P->out, out, size);
-	}
-	assert(entry);
-	assert(entry->parent == NULL);
-	entry->parent = (void*)P;
-	P->bb_head = entry;
-	P->bb_tail = entry;
-	return P;
-}
-
-
-static void
-llhd_entity_dispose (llhd_entity_t *E) {
-	assert(E);
-	unsigned i;
-	for (i = 0; i < E->num_in;  ++i) llhd_value_destroy(E->in[i]);
-	for (i = 0; i < E->num_out; ++i) llhd_value_destroy(E->out[i]);
-	if (E->in)  free(E->in);
-	if (E->out) free(E->out);
-}
-
-static void
-llhd_entity_dump (llhd_entity_t *E, FILE *f) {
-	assert(E);
-	unsigned i;
-	fprintf(f, "entity @%s (", E->_unit._value.name);
-	for (i = 0; i < E->num_in; ++i) {
-		if (i > 0) fprintf(f, ", ");
-		llhd_value_dump(E->in[i], f);
-	}
-	fprintf(f, ") (");
-	for (i = 0; i < E->num_out; ++i) {
-		if (i > 0) fprintf(f, ", ");
-		llhd_value_dump(E->out[i], f);
-	}
-	fprintf(f, ") {");
-	llhd_inst_t *I;
-	for (I = E->inst_head; I; I = I->next) {
-		fputs("\n  ", f);
-		llhd_value_dump(I, f);
-	}
-	fprintf(f, "\n}");
-}
-
-static struct llhd_value_intf entity_value_intf = {
-	.dispose = (llhd_value_intf_dispose_fn)llhd_entity_dispose,
-	.dump = (llhd_value_intf_dump_fn)llhd_entity_dump,
-};
-
-llhd_entity_t *
-llhd_make_entity (const char *name, llhd_arg_t **in, unsigned num_in, llhd_arg_t **out, unsigned num_out) {
-	assert(name);
-	assert(!num_in || in);
-	assert(!num_out || out);
-	llhd_entity_t *E = malloc(sizeof(*E));
-	memset(E, 0, sizeof(*E));
-	llhd_value_init((llhd_value_t*)E, name, llhd_type_make_void());
-	E->_unit._value._intf = &entity_value_intf;
-	E->num_in = num_in;
-	E->num_out = num_out;
-	if (num_in > 0){
-		unsigned size = num_in * sizeof(llhd_arg_t*);
-		E->in = malloc(size);
-		memcpy(E->in, in, size);
-	}
-	if (num_out > 0){
-		unsigned size = num_out * sizeof(llhd_arg_t*);
-		E->out = malloc(size);
-		memcpy(E->out, out, size);
-	}
-	return E;
-}
-
-
-static void
-llhd_basic_block_dispose (llhd_basic_block_t *BB) {
-	assert(BB);
-	llhd_inst_t *I = BB->inst_head, *In;
-	while (I) {
-		In = I->next;
-		llhd_value_destroy(I);
-		I = In;
-	}
-}
-
-static void
-llhd_basic_block_dump (llhd_basic_block_t *BB, FILE *f) {
-	assert(BB);
-	fprintf(f, "%s:", ((llhd_value_t*)BB)->name);
-	llhd_inst_t *I;
-	for (I = BB->inst_head; I; I = I->next) {
-		fputs("\n  ", f);
-		llhd_value_dump(I, f);
-	}
-}
-
-static struct llhd_value_intf basic_block_value_intf = {
-	.dispose = (llhd_value_intf_dispose_fn)llhd_basic_block_dispose,
-	.dump = (llhd_value_intf_dump_fn)llhd_basic_block_dump,
-};
-
-llhd_basic_block_t *
-llhd_make_basic_block (const char *name) {
-	llhd_basic_block_t *BB = malloc(sizeof(*BB));
-	memset(BB, 0, sizeof(*BB));
-	llhd_value_init((llhd_value_t*)BB, name, llhd_type_make_label());
-	BB->_base._intf = &basic_block_value_intf;
-	return BB;
-}
-
-void
-llhd_basic_block_insert_before (llhd_basic_block_t *BB, llhd_basic_block_t *before) {
-	assert(BB && before);
-	assert(BB->parent == NULL && BB->next == NULL && BB->prev == NULL);
-	BB->parent = before->parent;
-	BB->prev = before->prev;
-	before->prev = BB;
-	BB->next = before;
-	if (BB->prev) BB->prev->next = BB;
-}
-
-void
-llhd_basic_block_insert_after (llhd_basic_block_t *BB, llhd_basic_block_t *after) {
-	assert(BB && after);
-	assert(BB->parent == NULL && BB->next == NULL && BB->prev == NULL);
-	BB->parent = after->parent;
-	BB->next = after->next;
-	after->next = BB;
-	BB->prev = after;
-	if (BB->next) BB->next->prev = BB;
-}
-
-
-void
-llhd_basic_block_append_inst (llhd_basic_block_t *BB, llhd_inst_t *I) {
-	assert(BB && I);
-	assert(!I->parent && !I->prev && !I->next);
-	I->parent = BB;
-	if (!BB->inst_tail) {
-		BB->inst_tail = I;
-		BB->inst_head = I;
-	} else {
-		I->prev = BB->inst_tail;
-		BB->inst_tail->next = I;
-		BB->inst_tail = I;
-	}
-}
-
-void
-llhd_entity_append_inst (llhd_entity_t *E, llhd_inst_t *I) {
-	assert(E && I);
-	assert(!I->parent && !I->prev && !I->next);
-	I->parent = (void*)E;
-	if (!E->inst_tail) {
-		E->inst_tail = I;
-		E->inst_head = I;
-	} else {
-		I->prev = E->inst_tail;
-		E->inst_tail->next = I;
-		E->inst_tail = I;
-	}
-}
-
-
-static void
 llhd_drive_inst_dump (llhd_drive_inst_t *I, FILE *f) {
 	assert(I);
 	const char *name = ((llhd_value_t*)I)->name;
@@ -499,8 +273,8 @@ llhd_branch_inst_t *
 llhd_make_conditional_branch_inst (llhd_value_t *cond, llhd_basic_block_t *dst1, llhd_basic_block_t *dst0) {
 	assert(cond && dst1 && dst0);
 	assert(llhd_type_is_int_width(cond->type,1));
-	assert(llhd_type_is_label(dst1->_base.type));
-	assert(llhd_type_is_label(dst0->_base.type));
+	assert(llhd_type_is_label(dst1->_value.type));
+	assert(llhd_type_is_label(dst0->_value.type));
 	llhd_branch_inst_t *I = malloc(sizeof(*I));
 	memset(I, 0, sizeof(*I));
 	llhd_value_init((llhd_value_t*)I, NULL, llhd_type_make_void());
@@ -514,7 +288,7 @@ llhd_make_conditional_branch_inst (llhd_value_t *cond, llhd_basic_block_t *dst1,
 llhd_branch_inst_t *
 llhd_make_unconditional_branch_inst (llhd_basic_block_t *dst) {
 	assert(dst);
-	assert(llhd_type_is_label(dst->_base.type));
+	assert(llhd_type_is_label(dst->_value.type));
 	llhd_branch_inst_t *I = malloc(sizeof(*I));
 	memset(I, 0, sizeof(*I));
 	llhd_value_init((llhd_value_t*)I, NULL, llhd_type_make_void());
@@ -738,30 +512,4 @@ llhd_make_instance_inst (llhd_value_t *value, llhd_value_t **in, unsigned num_in
 		memcpy(I->out, out, size);
 	}
 	return I;
-}
-
-
-static void
-llhd_arg_dump (llhd_arg_t *A, FILE *f) {
-	llhd_type_dump(A->_value.type, f);
-	fprintf(f, " %%%s", A->_value.name);
-}
-
-static void
-llhd_arg_dispose (llhd_arg_t *A) {
-	assert(A);
-}
-
-static struct llhd_value_intf arg_value_intf = {
-	.dispose = (llhd_value_intf_dispose_fn)llhd_arg_dispose,
-	.dump = (llhd_value_intf_dump_fn)llhd_arg_dump,
-};
-
-llhd_arg_t *
-llhd_make_arg (const char *name, llhd_type_t *type) {
-	llhd_arg_t *A = malloc(sizeof(*A));
-	memset(A, 0, sizeof(*A));
-	llhd_value_init((llhd_value_t*)A, name, type);
-	A->_value._intf = &arg_value_intf;
-	return A;
 }

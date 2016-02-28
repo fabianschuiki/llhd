@@ -140,6 +140,7 @@ add_library(llhdc
 	src/llhdc/common.c
 	src/llhdc/ir.c
 	src/llhdc/ir-type.c
+	src/llhdc/ir-unit.c
 )
 if (BUILD_SHARED_LIBS)
 	set_target_properties(llhdc PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -DLLHD_BUILD_SHARED")
