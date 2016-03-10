@@ -137,11 +137,12 @@ add_library(llhd-common
 )
 
 add_library(llhdc
-	src/llhdc/common.c
-	src/llhdc/ir.c
-	src/llhdc/ir-type.c
-	src/llhdc/ir-unit.c
+	src-c/common.c
+	src-c/ir.c
+	src-c/ir-type.c
+	src-c/ir-unit.c
 )
+add_library(llhd-linker src-c/linker.c)
 if (BUILD_SHARED_LIBS)
 	set_target_properties(llhdc PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -DLLHD_BUILD_SHARED")
 endif()
@@ -154,7 +155,7 @@ file(GLOB_RECURSE LLHD_TOOL_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/too
 add_executable(debug src/debug.cpp)
 target_link_libraries(debug llhd-common)
 
-add_executable(cdebug src/llhdc/debug.c)
+add_executable(cdebug src-c/debug.c)
 target_link_libraries(cdebug llhdc)
 
 

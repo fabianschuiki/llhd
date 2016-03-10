@@ -1,0 +1,15 @@
+llhd_module_t *llhd_module_new(const char *name);
+void llhd_module_free(llhd_module_t*);
+llhd_value_t *llhd_module_get_first_unit(llhd_module_t*);
+llhd_value_t *llhd_module_get_last_unit(llhd_module_t*);
+llhd_value_t *llhd_module_new_func_unit(llhd_module_t*, const char *name, llhd_type_t*);
+llhd_value_t *llhd_module_new_proc_unit(llhd_module_t*, const char *name, llhd_type_t*);
+llhd_value_t *llhd_module_new_entity_unit(llhd_module_t*, const char *name, llhd_type_t*);
+
+llhd_value_t *llhd_unit_next(llhd_value_t*);
+llhd_value_t *llhd_unit_prev(llhd_value_t*);
+
+void llhd_value_replace_uses(llhd_value_t*, llhd_value_t*);
+
+llhd_value_t *llhd_value_copy(llhd_value_t*);
+void llhd_value_free(llhd_value_t*);

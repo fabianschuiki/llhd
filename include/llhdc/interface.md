@@ -1,6 +1,13 @@
 LLHD C Interface
 ================
 
+## Use cases
+- Link two modules together
+- Constant folding
+- Desequentialize
+- Structuralize
+
+
 ## Type
 - make, copy, destroy
 - dump, print
