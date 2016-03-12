@@ -47,7 +47,7 @@ configure_file(src/config.cpp.in src/config.cpp)
 
 # Compiler Flags
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Wno-parentheses -Wno-uninitialized -Wno-unused-parameter")
-set(CMAKE_C_FLAGS "-Wall -Wextra")
+set(CMAKE_C_FLAGS "-Wall -Wextra -Werror-implicit-function-declaration")
 set(CMAKE_CXX_FLAGS_COVERAGE "-O0 -g --coverage")
 mark_as_advanced(CMAKE_CXX_FLAGS_COVERAGE)
 
