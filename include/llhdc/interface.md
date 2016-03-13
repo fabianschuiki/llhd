@@ -6,6 +6,8 @@ LLHD C Interface
 - Constant folding
 - Desequentialize
 - Structuralize
+- Unreachable branch deletion
+- Constant branch elision
 
 
 ## Type
