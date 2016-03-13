@@ -3,16 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int
-compare_units (const void *a, const void *b) {
-	return strcmp(llhd_value_get_name((void*)a), llhd_value_get_name((void*)b));
-}
-
-static int
-compare_units2 (const void *key, const void *u) {
-	return strcmp(key, llhd_value_get_name((void*)u));
-}
-
 // Moves all definitions and declarations into the first module and replaces
 // declarations by corresponding definitions where possible.
 //
@@ -24,6 +14,17 @@ compare_units2 (const void *key, const void *u) {
 //    if found and remove. Optimize if next declaration is the same.
 // 5) Iterate over definitions and declarations across all modules and move into
 //    the first.
+
+static int
+compare_units (const void *a, const void *b) {
+	return strcmp(llhd_value_get_name((void*)a), llhd_value_get_name((void*)b));
+}
+
+static int
+compare_units2 (const void *key, const void *u) {
+	return strcmp(key, llhd_value_get_name((void*)u));
+}
+
 void
 llhd_link_modules (llhd_module_t modules[], unsigned num_modules) {
 	unsigned i;

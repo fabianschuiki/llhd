@@ -143,7 +143,7 @@ add_library(llhdc
 	src-c/ir-unit.c
 )
 add_library(llhd-linker src-c/linker.c)
-add_library(llhd-opt src-c/opt-cbre.c)
+add_library(llhd-opt src-c/opt-cbre.c src-c/opt-ubd.c)
 if (BUILD_SHARED_LIBS)
 	set_target_properties(llhdc PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -DLLHD_BUILD_SHARED")
 endif()
