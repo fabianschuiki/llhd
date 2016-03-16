@@ -3,48 +3,39 @@
 #include <assert.h>
 #include <stdio.h>
 
-typedef struct llhd_type * llhd_type_t;
 int llhd_unit_get_kind(llhd_value_t);
 llhd_type_t llhd_value_get_type(llhd_value_t);
-unsigned llhd_type_get_scalar_width(llhd_type_t);
-unsigned llhd_type_get_array_length(llhd_type_t);
+unsigned llhd_type_get_length(llhd_type_t);
 llhd_type_t llhd_type_get_subtype(llhd_type_t);
+unsigned llhd_type_get_num_fields(llhd_type_t);
+llhd_type_t llhd_type_get_field(llhd_type_t,unsigned);
+unsigned llhd_type_get_num_inputs(llhd_type_t);
+unsigned llhd_type_get_num_outputs(llhd_type_t);
+llhd_type_t llhd_type_get_input(llhd_type_t,unsigned);
+llhd_type_t llhd_type_get_output(llhd_type_t,unsigned);
 int llhd_type_get_kind(llhd_type_t);
-
-enum llhd_unit_kind {
-	LLHD_UNIT_DECL = 1,
-	LLHD_UNIT_DEF_FUNC = 2,
-	LLHD_UNIT_DEF_ENTITY = 3,
-	LLHD_UNIT_DEF_PROC = 4,
-};
-
-enum llhd_type_kind {
-	LLHD_TYPE_VOID   = 0x00,
-	LLHD_TYPE_LABEL  = 0x01,
-	LLHD_TYPE_TIME   = 0x02,
-	LLHD_TYPE_INT    = 0x10,
-	LLHD_TYPE_LOGIC  = 0x11,
-	LLHD_TYPE_STRUCT = 0x20,
-	LLHD_TYPE_ARRAY  = 0x21,
-	LLHD_TYPE_PTR    = 0x30,
-	LLHD_TYPE_SIGNAL = 0x31,
-};
 
 static void
 write_type (llhd_type_t T, FILE *out) {
+	unsigned i,N;
 	int kind = llhd_type_get_kind(T);
 	switch (kind) {
 		case LLHD_TYPE_VOID:   fputs("void", out); break;
 		case LLHD_TYPE_LABEL:  fputs("label", out); break;
 		case LLHD_TYPE_TIME:   fputs("time", out); break;
-		case LLHD_TYPE_INT:    fprintf(out, "i%d", llhd_type_get_scalar_width(T)); break;
-		case LLHD_TYPE_LOGIC:  fprintf(out, "l%d", llhd_type_get_scalar_width(T)); break;
+		case LLHD_TYPE_INT:    fprintf(out, "i%d", llhd_type_get_length(T)); break;
+		case LLHD_TYPE_LOGIC:  fprintf(out, "l%d", llhd_type_get_length(T)); break;
 		case LLHD_TYPE_STRUCT:
 			fputc('{', out);
+			N = llhd_type_get_num_fields(T);
+			for (i = 0; i < N; ++i) {
+				if (i > 0) fputs(", ", out);
+				write_type(llhd_type_get_field(T,i), out);
+			}
 			fputc('}', out);
 			break;
 		case LLHD_TYPE_ARRAY:
-			fprintf(out, "[%d x ", llhd_type_get_array_length(T));
+			fprintf(out, "[%d x ", llhd_type_get_length(T));
 			write_type(llhd_type_get_subtype(T), out);
 			fputc(']', out);
 			break;
@@ -55,6 +46,36 @@ write_type (llhd_type_t T, FILE *out) {
 		case LLHD_TYPE_SIGNAL:
 			write_type(llhd_type_get_subtype(T), out);
 			fputc('$', out);
+			break;
+		case LLHD_TYPE_FUNC:
+			fputs("f(", out);
+			N = llhd_type_get_num_inputs(T);
+			for (i = 0; i < N; ++i) {
+				if (i > 0) fputs(", ", out);
+				write_type(llhd_type_get_input(T,i), out);
+			}
+			fputs(")(", out);
+			N = llhd_type_get_num_outputs(T);
+			for (i = 0; i < N; ++i) {
+				if (i > 0) fputs(", ", out);
+				write_type(llhd_type_get_output(T,i), out);
+			}
+			fputs(")", out);
+			break;
+		case LLHD_TYPE_COMP:
+			fputs("c(", out);
+			N = llhd_type_get_num_inputs(T);
+			for (i = 0; i < N; ++i) {
+				if (i > 0) fputs(", ", out);
+				write_type(llhd_type_get_input(T,i), out);
+			}
+			fputs(")(", out);
+			N = llhd_type_get_num_outputs(T);
+			for (i = 0; i < N; ++i) {
+				if (i > 0) fputs(", ", out);
+				write_type(llhd_type_get_output(T,i), out);
+			}
+			fputs(")", out);
 			break;
 		default:
 			assert(0 && "unsupported type kind");

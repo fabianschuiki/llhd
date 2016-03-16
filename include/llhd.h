@@ -2,7 +2,29 @@
 #include <stddef.h>
 
 typedef struct llhd_module * llhd_module_t;
+typedef struct llhd_type * llhd_type_t;
 typedef struct llhd_value * llhd_value_t;
+
+enum llhd_type_kind {
+	LLHD_TYPE_VOID   = 1,
+	LLHD_TYPE_LABEL  = 2,
+	LLHD_TYPE_TIME   = 3,
+	LLHD_TYPE_INT    = 4,
+	LLHD_TYPE_LOGIC  = 5,
+	LLHD_TYPE_STRUCT = 6,
+	LLHD_TYPE_ARRAY  = 7,
+	LLHD_TYPE_PTR    = 8,
+	LLHD_TYPE_SIGNAL = 9,
+	LLHD_TYPE_FUNC   = 10,
+	LLHD_TYPE_COMP   = 11,
+};
+
+enum llhd_unit_kind {
+	LLHD_UNIT_DECL       = 1,
+	LLHD_UNIT_DEF_FUNC   = 2,
+	LLHD_UNIT_DEF_ENTITY = 3,
+	LLHD_UNIT_DEF_PROC   = 4,
+};
 
 enum llhd_inst_kind {
 	LLHD_INST_BRANCH = 1,
