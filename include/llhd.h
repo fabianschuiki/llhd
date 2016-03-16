@@ -4,7 +4,9 @@
 typedef struct llhd_module * llhd_module_t;
 typedef struct llhd_value * llhd_value_t;
 
-extern const int LLHD_INST_BRANCH;
+enum llhd_inst_kind {
+	LLHD_INST_BRANCH = 1,
+};
 
 llhd_module_t llhd_module_new(const char *name);
 void llhd_module_free(llhd_module_t);
