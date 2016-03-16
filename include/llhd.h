@@ -11,6 +11,7 @@ void llhd_module_free(llhd_module_t);
 llhd_value_t llhd_module_get_first_unit(llhd_module_t);
 llhd_value_t llhd_module_get_last_unit(llhd_module_t);
 void llhd_verify_module_selfcontained(llhd_module_t);
+const char *llhd_module_get_name(llhd_module_t);
 
 llhd_value_t llhd_unit_next(llhd_value_t);
 llhd_value_t llhd_unit_prev(llhd_value_t);

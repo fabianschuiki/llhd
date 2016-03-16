@@ -66,7 +66,7 @@ llhd_link_modules (llhd_module_t modules[], unsigned num_modules) {
 	for (i = 0; i < num_decls; ++i) {
 		llhd_value_t decl = decls[i];
 		const char *decl_name = llhd_value_get_name(decl);
-		llhd_value_t def = bsearch(decl_name, defs, num_defs, sizeof(llhd_value_t), compare_units2);
+		llhd_value_t def = *(llhd_value_t*)bsearch(decl_name, defs, num_defs, sizeof(llhd_value_t), compare_units2);
 		if (def) {
 			llhd_value_replace_uses(decl,def);
 			llhd_value_unlink(decl);
