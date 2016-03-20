@@ -1,4 +1,5 @@
 // Copyright (c) 2016 Fabian Schuiki
+#include <stdbool.h>
 #include <stddef.h>
 
 typedef struct llhd_module * llhd_module_t;
@@ -43,18 +44,26 @@ void llhd_unit_append_to(llhd_value_t,llhd_module_t);
 void llhd_unit_prepend_to(llhd_value_t,llhd_module_t);
 void llhd_unit_insert_after(llhd_value_t,llhd_value_t);
 void llhd_unit_insert_before(llhd_value_t,llhd_value_t);
-int llhd_unit_is_def(llhd_value_t);
-int llhd_unit_is_decl(llhd_value_t);
+int llhd_unit_get_kind(llhd_value_t);
+bool llhd_unit_is_def(llhd_value_t);
+bool llhd_unit_is_decl(llhd_value_t);
 llhd_value_t llhd_unit_get_first_block(llhd_value_t);
 llhd_value_t llhd_unit_get_last_block(llhd_value_t);
+unsigned llhd_unit_get_num_inputs(llhd_value_t);
+unsigned llhd_unit_get_num_outputs(llhd_value_t);
+llhd_value_t llhd_unit_get_input(llhd_value_t,unsigned);
+llhd_value_t llhd_unit_get_output(llhd_value_t,unsigned);
+
+llhd_value_t llhd_entity_get_first_inst(llhd_value_t);
+llhd_value_t llhd_entity_get_last_inst(llhd_value_t);
 
 llhd_value_t llhd_block_next(llhd_value_t);
 llhd_value_t llhd_block_prev(llhd_value_t);
 llhd_value_t llhd_block_get_first_inst(llhd_value_t);
 llhd_value_t llhd_block_get_last_inst(llhd_value_t);
-int llhd_block_is_entry(llhd_value_t);
-int llhd_block_has_predecessors(llhd_value_t);
-int llhd_block_has_successors(llhd_value_t);
+bool llhd_block_is_entry(llhd_value_t);
+bool llhd_block_has_predecessors(llhd_value_t);
+bool llhd_block_has_successors(llhd_value_t);
 void llhd_block_get_predecessors(llhd_value_t, llhd_value_t**, unsigned*);
 void llhd_block_get_successors(llhd_value_t, llhd_value_t**, unsigned*);
 
@@ -64,24 +73,39 @@ void llhd_inst_append_to(llhd_value_t,llhd_value_t);
 void llhd_inst_prepend_to(llhd_value_t,llhd_value_t);
 void llhd_inst_insert_after(llhd_value_t,llhd_value_t);
 void llhd_inst_insert_before(llhd_value_t,llhd_value_t);
-int llhd_inst_is(llhd_value_t,int);
+int llhd_inst_get_kind(llhd_value_t);
+bool llhd_inst_is(llhd_value_t,int);
 
 llhd_value_t llhd_inst_branch_new_uncond(llhd_value_t);
 llhd_value_t llhd_inst_branch_new_cond(llhd_value_t, llhd_value_t, llhd_value_t);
 llhd_value_t llhd_inst_branch_get_condition(llhd_value_t);
+llhd_value_t llhd_inst_branch_get_dst(llhd_value_t);
 llhd_value_t llhd_inst_branch_get_dst0(llhd_value_t);
 llhd_value_t llhd_inst_branch_get_dst1(llhd_value_t);
 
-int llhd_const_is_null(llhd_value_t);
+bool llhd_const_is_null(llhd_value_t);
 
-int llhd_value_is_const(llhd_value_t);
+bool llhd_value_is_const(llhd_value_t);
 const char *llhd_value_get_name(llhd_value_t);
+llhd_type_t llhd_value_get_type(llhd_value_t);
+bool llhd_value_has_users(llhd_value_t);
 void llhd_value_replace_uses(llhd_value_t,llhd_value_t);
 void llhd_value_unlink_from_parent(llhd_value_t);
 void llhd_value_unlink_uses(llhd_value_t);
 void llhd_value_unlink(llhd_value_t);
 void llhd_value_free(llhd_value_t);
 
+int llhd_type_get_kind(llhd_type_t);
+unsigned llhd_type_get_length(llhd_type_t);
+llhd_type_t llhd_type_get_subtype(llhd_type_t);
+unsigned llhd_type_get_num_fields(llhd_type_t);
+llhd_type_t llhd_type_get_field(llhd_type_t,unsigned);
+unsigned llhd_type_get_num_inputs(llhd_type_t);
+unsigned llhd_type_get_num_outputs(llhd_type_t);
+llhd_type_t llhd_type_get_input(llhd_type_t,unsigned);
+llhd_type_t llhd_type_get_output(llhd_type_t,unsigned);
+
 void *llhd_alloc(size_t);
+void *llhd_zalloc(size_t);
 void *llhd_realloc(void*,size_t);
 void llhd_free(void*);
