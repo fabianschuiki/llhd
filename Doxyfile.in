@@ -1,5 +1,5 @@
 # Copyright (c) 2014 Fabian Schuiki
-INPUT = @PROJECT_SOURCE_DIR@/src/ @PROJECT_SOURCE_DIR@/include/ @PROJECT_SOURCE_DIR@/README.md @PROJECT_SOURCE_DIR@/ASSEMBLY.md
+INPUT = @PROJECT_SOURCE_DIR@/src-c/ @PROJECT_SOURCE_DIR@/README.md @PROJECT_SOURCE_DIR@/ASSEMBLY.md
 RECURSIVE = YES           # since the source tree has multiple layers
 EXCLUDE_SYMLINKS = YES    # no need to follow symlinks
 EXCLUDE_PATTERNS = */test/*

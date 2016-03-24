@@ -38,7 +38,7 @@ write_type (llhd_type_t T, FILE *out) {
 			fputc('$', out);
 			break;
 		case LLHD_TYPE_FUNC:
-			fputs("f(", out);
+			fputs("func(", out);
 			N = llhd_type_get_num_inputs(T);
 			for (i = 0; i < N; ++i) {
 				if (i > 0) fputs(", ", out);
@@ -53,7 +53,7 @@ write_type (llhd_type_t T, FILE *out) {
 			fputs(")", out);
 			break;
 		case LLHD_TYPE_COMP:
-			fputs("c(", out);
+			fputs("comp(", out);
 			N = llhd_type_get_num_inputs(T);
 			for (i = 0; i < N; ++i) {
 				if (i > 0) fputs(", ", out);
@@ -247,6 +247,11 @@ write_param (llhd_value_t P, struct llhd_symtbl *symtbl, FILE *out) {
 
 static void
 write_value_ref(llhd_value_t V, int withType, struct llhd_symtbl *symtbl, FILE *out) {
+	// print local values as %<name>
+	// print proc, func, entity names as @<name>
+	// print globals as @<name>
+	// print scalar constants as <ty> <value>
+
 	if (withType) {
 		llhd_type_t T = llhd_value_get_type(V);
 		write_type(T, out);

@@ -96,76 +96,27 @@ if (CMAKE_BUILD_TYPE STREQUAL "coverage")
 endif()
 
 
-# Compile the legacy code that is factored into the improved code base step by
-# step.
-option(LLHD_BUILD_LEGACY "Build the legacy code base" OFF)
-if (LLHD_BUILD_LEGACY)
-	find_package(Boost COMPONENTS REQUIRED system unit_test_framework)
-	add_definitions(-DBOOST_TEST_DYN_LINK)
-	include_directories(${Boost_INCLUDE_DIRS})
-
-	add_subdirectory(llhd)
-endif()
-
-
-# Generate the unicode casefolding table.
-set(LLHD_UNICODE_CASEFOLDING_INPUT  ${CMAKE_CURRENT_SOURCE_DIR}/src/unicode/CaseFolding.txt)
-set(LLHD_UNICODE_CASEFOLDING_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/casefolding-table.cpp)
-add_executable(casefolding-tablegen src/unicode/casefolding-tablegen.cpp)
-add_custom_command(
-	OUTPUT ${LLHD_UNICODE_CASEFOLDING_OUTPUT}
-	COMMAND casefolding-tablegen ${LLHD_UNICODE_CASEFOLDING_INPUT} ${LLHD_UNICODE_CASEFOLDING_OUTPUT} > ${CMAKE_CURRENT_BINARY_DIR}/casefolding-tablegen.log
-	MAIN_DEPENDENCY ${LLHD_UNICODE_CASEFOLDING_INPUT}
-	DEPENDS casefolding-tablegen
-	COMMENT "Generating unicode casefolding table")
-
-
 # Build the libraries.
-include_directories(deps/catch deps/tinyformat)
-file(GLOB_RECURSE LLHD_COMMON_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-	# src/assembly/*.cpp
-	src/diagnostic/*.cpp
-	src/ir/*.cpp
-	src/sim/*.cpp
-	src/utils/*.cpp
-)
-add_library(llhd-common
-	${LLHD_COMMON_SOURCES}
-	${CMAKE_CURRENT_BINARY_DIR}/src/config.cpp
-	src/unicode/casefolding.cpp
-	${LLHD_UNICODE_CASEFOLDING_OUTPUT}
-)
-
-add_library(llhdc
-	src-c/common.c
-	src-c/ir.c
-	src-c/ir-type.c
-	src-c/ir-unit.c
-)
-add_library(llhd-linker src-c/linker.c)
-add_library(llhd-opt src-c/opt-cbre.c src-c/opt-ubd.c)
-add_library(llhd-asm src-c/asm-writer.c)
 if (BUILD_SHARED_LIBS)
 	set_target_properties(llhdc PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -DLLHD_BUILD_SHARED")
 endif()
+add_library(llhd src-c/value.c src-c/inst.c src-c/util.c src-c/type.c)
+add_library(llhd-linker src-c/linker.c)
+add_library(llhd-opt src-c/opt-cbre.c src-c/opt-ubd.c src-c/opt-cf.c)
+add_library(llhd-asm src-c/asm-writer.c)
 
 # Build the programs.
-file(GLOB_RECURSE LLHD_TOOL_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/tool/*.cpp)
-# add_executable(llhd-tool ${LLHD_TOOL_SOURCES})
-# target_link_libraries(llhd-tool llhd-common)
-
-add_executable(debug src/debug.cpp)
-target_link_libraries(debug llhd-common)
-
-add_executable(cdebug src-c/debug.c)
-target_link_libraries(cdebug llhdc)
+add_executable(cdebug1 src-c/debug1.c)
+add_executable(cdebug2 src-c/debug2.c)
+target_link_libraries(cdebug1 llhd)
+target_link_libraries(cdebug2 llhd)
 
 
 # Build the tests if so requested.
 option(LLHD_BUILD_TESTS "Build the unit tests" ON)
 if (LLHD_BUILD_TESTS)
-	enable_testing()
-	add_subdirectory(test)
+	# enable_testing()
+	# add_subdirectory(test)
 endif()
 
 
@@ -185,6 +136,6 @@ endif()
 
 # Installation
 # install(TARGETS llhd-tool RUNTIME DESTINATION bin)
-install(TARGETS llhd-common ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
-install(DIRECTORY include/ DESTINATION include FILES_MATCHING PATTERN "*.hpp")
-install(FILES ${LLHD_CONFIG_DIR}/llhd/config.hpp DESTINATION include/llhd)
+# install(TARGETS llhd-common ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
+# install(DIRECTORY include/ DESTINATION include FILES_MATCHING PATTERN "*.hpp")
+# install(FILES ${LLHD_CONFIG_DIR}/llhd/config.hpp DESTINATION include/llhd)
