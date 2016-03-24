@@ -16,13 +16,16 @@
 //    the first.
 
 static int
-compare_units (const void *a, const void *b) {
-	return strcmp(llhd_value_get_name((void*)a), llhd_value_get_name((void*)b));
+compare_units (const void *pa, const void *pb) {
+	llhd_value_t a = *(llhd_value_t*)pa;
+	llhd_value_t b = *(llhd_value_t*)pb;
+	return strcmp(llhd_value_get_name(a), llhd_value_get_name(b));
 }
 
 static int
-compare_units2 (const void *key, const void *u) {
-	return strcmp(key, llhd_value_get_name((void*)u));
+compare_units2 (const void *key, const void *pu) {
+	llhd_value_t u = *(llhd_value_t*)pu;
+	return strcmp(key, llhd_value_get_name(u));
 }
 
 void
@@ -44,7 +47,7 @@ llhd_link_modules (llhd_module_t modules[], unsigned num_modules) {
 		}
 	}
 
-	// Build two lists for definitions and declarations each, sorted by name.
+	// Build lists for definitions and declarations, sorted by name.
 	llhd_value_t *defs  = malloc(num_defs  * sizeof(llhd_value_t));
 	llhd_value_t *decls = malloc(num_decls * sizeof(llhd_value_t));
 
@@ -66,10 +69,10 @@ llhd_link_modules (llhd_module_t modules[], unsigned num_modules) {
 	for (i = 0; i < num_decls; ++i) {
 		llhd_value_t decl = decls[i];
 		const char *decl_name = llhd_value_get_name(decl);
-		llhd_value_t def = *(llhd_value_t*)bsearch(decl_name, defs, num_defs, sizeof(llhd_value_t), compare_units2);
+		llhd_value_t *def = bsearch(decl_name, defs, num_defs, sizeof(llhd_value_t), compare_units2);
 		// TODO: check whether types match
 		if (def) {
-			llhd_value_replace_uses(decl,def);
+			llhd_value_replace_uses(decl,*def);
 			llhd_value_unlink(decl);
 			llhd_value_free(decl);
 		}
