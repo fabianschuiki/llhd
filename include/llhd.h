@@ -78,6 +78,7 @@ void llhd_unit_append_to(llhd_value_t,llhd_module_t);
 void llhd_unit_prepend_to(llhd_value_t,llhd_module_t);
 void llhd_unit_insert_after(llhd_value_t,llhd_value_t);
 void llhd_unit_insert_before(llhd_value_t,llhd_value_t);
+bool llhd_unit_is(llhd_value_t,int);
 int llhd_unit_get_kind(llhd_value_t);
 bool llhd_unit_is_def(llhd_value_t);
 bool llhd_unit_is_decl(llhd_value_t);
@@ -90,6 +91,7 @@ llhd_value_t llhd_unit_get_output(llhd_value_t,unsigned);
 
 llhd_value_t llhd_entity_get_first_inst(llhd_value_t);
 llhd_value_t llhd_entity_get_last_inst(llhd_value_t);
+unsigned llhd_entity_get_num_insts(llhd_value_t);
 
 llhd_value_t llhd_block_next(llhd_value_t);
 llhd_value_t llhd_block_prev(llhd_value_t);
