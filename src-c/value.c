@@ -4,40 +4,33 @@
 #include <stdint.h>
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 
-static void entity_add_inst(void*,struct llhd_value*,int);
+llhd_type_t llhd_type_new_int(unsigned);
 
-struct llhd_const_int {
-	struct llhd_value super;
-	uint64_t value;
-};
+static char *const_int_to_string(void*);
 
-struct llhd_const_vtbl {
-	struct llhd_value_vtbl super;
-	int kind;
-};
-
-struct llhd_entity {
-	struct llhd_value super;
-	char *name;
-	struct llhd_type *type;
-	struct llhd_list in_params;
-	struct llhd_list out_params;
-	struct llhd_list insts;
-};
+static void entity_add_inst(void*, struct llhd_value*, int);
+static void entity_dispose(void*);
 
 static struct llhd_const_vtbl vtbl_const_int = {
 	.super = {
 		.kind = LLHD_VALUE_CONST,
+		.type_offset = offsetof(struct llhd_const_int, type),
 	},
 	.kind = LLHD_CONST_INT,
+	.to_string_fn = const_int_to_string,
 };
 
-static struct llhd_value_vtbl vtbl_entity = {
-	.kind = LLHD_VALUE_UNIT,
-	.name_offset = offsetof(struct llhd_entity, name),
-	.type_offset = offsetof(struct llhd_entity, type),
-	.add_inst_fn = entity_add_inst,
+static struct llhd_unit_vtbl vtbl_entity = {
+	.super = {
+		.kind = LLHD_VALUE_UNIT,
+		.name_offset = offsetof(struct llhd_entity, name),
+		.type_offset = offsetof(struct llhd_entity, type),
+		.add_inst_fn = entity_add_inst,
+		.dispose_fn = entity_dispose,
+	},
+	.kind = LLHD_UNIT_DEF_ENTITY,
 };
 
 void *
@@ -56,8 +49,17 @@ struct llhd_value *
 llhd_const_int_new(uint64_t v) {
 	struct llhd_const_int *C;
 	C = llhd_alloc_value(sizeof(*C), &vtbl_const_int);
+	C->type = llhd_type_new_int(32);
 	C->value = v;
 	return (struct llhd_value *)C;
+}
+
+static char *
+const_int_to_string(void *ptr) {
+	struct llhd_const_int *C = ptr;
+	char buf[21];
+	snprintf(buf, 21, "%lu", C->value);
+	return strdup(buf);
 }
 
 bool
@@ -79,6 +81,14 @@ llhd_const_int_get_value(struct llhd_value *V) {
 	struct llhd_const_int *C = (void*)V;
 	assert(vtbl->kind == LLHD_CONST_INT);
 	return C->value;
+}
+
+char *
+llhd_const_to_string(struct llhd_value *V) {
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_CONST);
+	struct llhd_const_vtbl *vtbl = (void*)V->vtbl;
+	assert(vtbl->to_string_fn);
+	return vtbl->to_string_fn(V);
 }
 
 bool
@@ -172,19 +182,30 @@ llhd_entity_new(struct llhd_type *T, const char *name) {
 	struct llhd_entity *E;
 	assert(T && name);
 	llhd_type_ref(T);
-	E = llhd_alloc_value(sizeof(*E), &vtbl_entity);
+	unsigned num_inputs = llhd_type_get_num_inputs(T);
+	unsigned num_outputs = llhd_type_get_num_outputs(T);
+	E = llhd_alloc_unit(sizeof(*E), &vtbl_entity, num_inputs+num_outputs);
 	E->name = strdup(name);
 	E->type = T;
-	llhd_list_init(&E->in_params);
-	llhd_list_init(&E->out_params);
+	E->super.num_inputs = num_inputs;
+	E->super.num_outputs = num_outputs;
 	llhd_list_init(&E->insts);
 	return (struct llhd_value *)E;
+}
+
+static void
+entity_dispose(void *ptr) {
+	assert(ptr);
+	struct llhd_entity *E = ptr;
+	llhd_free(E->name);
+	llhd_type_unref(E->type);
 }
 
 static void
 entity_add_inst(void *ptr, struct llhd_value *I, int append) {
 	assert(I && I->vtbl && I->vtbl->kind == LLHD_VALUE_INST);
 	struct llhd_entity *E = ptr;
+	llhd_value_ref(I);
 	llhd_list_insert(append ? E->insts.prev : &E->insts, &((struct llhd_inst *)I)->link);
 }
 
@@ -207,3 +228,98 @@ llhd_value_get_type(struct llhd_value *V) {
 	else
 		return *(struct llhd_type**)((void*)V+off);
 }
+
+void *
+llhd_alloc_unit(size_t sz, void *vtbl, unsigned num_params) {
+	struct llhd_unit *U;
+	assert(sz >= sizeof(*U));
+	U = llhd_alloc_value(sz + sizeof(struct llhd_param*)*num_params,vtbl);
+	U->params = (void*)U + sz;
+	return U;
+}
+
+bool
+llhd_unit_is(struct llhd_value *V, int kind) {
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	return ((struct llhd_unit_vtbl *)V->vtbl)->kind == kind;
+}
+
+int
+llhd_unit_get_kind(struct llhd_value *V) {
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	return ((struct llhd_unit_vtbl *)V->vtbl)->kind;
+}
+
+bool
+llhd_unit_is_def(struct llhd_value *V) {
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	int k = ((struct llhd_unit_vtbl *)V->vtbl)->kind;
+	return k == LLHD_UNIT_DEF_FUNC || k == LLHD_UNIT_DEF_ENTITY || k == LLHD_UNIT_DEF_PROC;
+}
+
+bool
+llhd_unit_is_decl(struct llhd_value *V) {
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	int k = ((struct llhd_unit_vtbl *)V->vtbl)->kind;
+	return k == LLHD_UNIT_DECL;
+}
+
+struct llhd_value *
+llhd_entity_get_first_inst(struct llhd_value *V) {
+	assert(V && V->vtbl);
+	struct llhd_entity *E = (void*)V;
+	struct llhd_unit_vtbl *vtbl = (void*)V->vtbl;
+	assert(V->vtbl->kind == LLHD_VALUE_UNIT && vtbl->kind == LLHD_UNIT_DEF_ENTITY);
+	if (E->insts.next == &E->insts)
+		return NULL;
+	return (struct llhd_value*)llhd_container_of2(E->insts.next, struct llhd_inst, link);
+}
+
+struct llhd_value *
+llhd_entity_get_last_inst(struct llhd_value *V) {
+	assert(V && V->vtbl);
+	struct llhd_entity *E = (void*)V;
+	struct llhd_unit_vtbl *vtbl = (void*)V->vtbl;
+	assert(V->vtbl->kind == LLHD_VALUE_UNIT && vtbl->kind == LLHD_UNIT_DEF_ENTITY);
+	if (E->insts.prev == &E->insts)
+		return NULL;
+	return (struct llhd_value*)llhd_container_of2(E->insts.prev, struct llhd_inst, link);
+}
+
+unsigned
+llhd_entity_get_num_insts(struct llhd_value *V) {
+	assert(V && V->vtbl);
+	struct llhd_entity *E = (void*)V;
+	struct llhd_unit_vtbl *vtbl = (void*)V->vtbl;
+	assert(V->vtbl->kind == LLHD_VALUE_UNIT && vtbl->kind == LLHD_UNIT_DEF_ENTITY);
+	return llhd_list_length(&E->insts);
+}
+
+unsigned
+llhd_unit_get_num_inputs(struct llhd_value *V) {
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	return ((struct llhd_unit*)V)->num_inputs;
+}
+
+unsigned
+llhd_unit_get_num_outputs(struct llhd_value *V) {
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	return ((struct llhd_unit*)V)->num_outputs;
+}
+
+struct llhd_value *
+llhd_unit_get_input(struct llhd_value *V, unsigned idx) {
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	struct llhd_unit *U = (void*)V;
+	assert(idx < U->num_inputs);
+	return (struct llhd_value*)U->params[idx];
+}
+
+struct llhd_value *
+llhd_unit_get_output(struct llhd_value *V, unsigned idx) {
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	struct llhd_unit *U = (void*)V;
+	assert(idx < U->num_outputs);
+	return (struct llhd_value*)U->params[U->num_inputs + idx];
+}
+

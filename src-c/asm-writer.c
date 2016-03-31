@@ -257,32 +257,68 @@ write_value_ref(llhd_value_t V, int withType, struct llhd_symtbl *symtbl, FILE *
 		write_type(T, out);
 		fputc(' ', out);
 	}
-	fputc('%', out);
-	fputs(symtbl_lookup_sym(symtbl, V), out);
+
+	if (llhd_value_is(V,LLHD_VALUE_CONST)) {
+		char *v = llhd_const_to_string(V);
+		fputs(v, out);
+		llhd_free(v);
+	}
+	else if (llhd_value_is(V,LLHD_VALUE_UNIT)) {
+		fputc('@', out);
+		fputs(llhd_value_get_name(V), out);
+	}
+	else {
+		fputc('%', out);
+		fputs(symtbl_lookup_sym(symtbl, V), out);
+	}
 }
 
 static void
 write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 	int kind = llhd_inst_get_kind(I);
+	const char *name = llhd_value_get_name(I);
+	if (name || llhd_value_has_users(I)) {
+		const char *an = symtbl_add_name(symtbl, I, name);
+		fputc('%', out);
+		fputs(an, out);
+		fputs(" = ", out);
+	}
 	switch (kind) {
 		case LLHD_INST_BRANCH:
-			fputs("br ", out);
-			llhd_value_t cond = llhd_inst_branch_get_condition(I);
-			if (cond) {
-				llhd_value_t dst0 = llhd_inst_branch_get_dst0(I);
-				llhd_value_t dst1 = llhd_inst_branch_get_dst1(I);
-				write_value_ref(cond, 1, symtbl, out);
-				fputs(", ", out);
-				write_value_ref(dst1, 1, symtbl, out);
-				fputs(", ", out);
-				write_value_ref(dst0, 1, symtbl, out);
-			} else {
-				llhd_value_t dst = llhd_inst_branch_get_dst(I);
-				write_value_ref(dst, 1, symtbl, out);
-			}
+			// fputs("br ", out);
+			// llhd_value_t cond = llhd_inst_branch_get_condition(I);
+			// if (cond) {
+			// 	llhd_value_t dst0 = llhd_inst_branch_get_dst0(I);
+			// 	llhd_value_t dst1 = llhd_inst_branch_get_dst1(I);
+			// 	write_value_ref(cond, 1, symtbl, out);
+			// 	fputs(", ", out);
+			// 	write_value_ref(dst1, 1, symtbl, out);
+			// 	fputs(", ", out);
+			// 	write_value_ref(dst0, 1, symtbl, out);
+			// } else {
+			// 	llhd_value_t dst = llhd_inst_branch_get_dst(I);
+			// 	write_value_ref(dst, 1, symtbl, out);
+			// }
+			// break;
+			assert(false && "write branch not implemented");
+		case LLHD_INST_UNARY:
+			assert(false && "write unary not implemented");
+			break;
+		case LLHD_INST_BINARY:
+			// fprintf(out, "bin%d ", llhd_inst_binary_get_op(I));
+			fputs(llhd_inst_binary_get_opname(I), out);
+			fputc(' ', out);
+			write_type(llhd_value_get_type(I), out);
+			fputc(' ', out);
+			write_value_ref(llhd_inst_binary_get_lhs(I), 0, symtbl, out);
+			fputc(' ', out);
+			write_value_ref(llhd_inst_binary_get_rhs(I), 0, symtbl, out);
 			break;
 		default:
 			assert(0 && "unknown inst kind");
+	}
+	if (llhd_value_has_users(I)) {
+		fprintf(out, "  ; [#users = %d]", llhd_value_get_num_users(I));
 	}
 }
 
@@ -295,14 +331,14 @@ write_insts(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 	}
 }
 
-static void
-write_blocks(llhd_value_t BB, struct llhd_symtbl *symtbl, FILE *out) {
-	for (; BB; BB = llhd_block_next(BB)) {
-		fputs(llhd_value_get_name(BB), out);
-		fputs(":\n", out);
-		write_insts(llhd_block_get_first_inst(BB), symtbl, out);
-	}
-}
+// static void
+// write_blocks(llhd_value_t BB, struct llhd_symtbl *symtbl, FILE *out) {
+// 	for (; BB; BB = llhd_block_next(BB)) {
+// 		fputs(llhd_value_get_name(BB), out);
+// 		fputs(":\n", out);
+// 		write_insts(llhd_block_get_first_inst(BB), symtbl, out);
+// 	}
+// }
 
 static void
 write_unit_params (llhd_value_t U, struct llhd_symtbl *symtbl, FILE *out) {
@@ -322,16 +358,16 @@ write_unit_params (llhd_value_t U, struct llhd_symtbl *symtbl, FILE *out) {
 	fputc(')', out);
 }
 
-static void
-write_func_def (llhd_value_t D, FILE *out) {
-	fprintf(out, "func @%s ", llhd_value_get_name(D));
-	struct llhd_symtbl *symtbl = symtbl_new();
-	write_unit_params(D, symtbl, out);
-	fputs(" {\n", out);
-	write_blocks(llhd_unit_get_first_block(D), symtbl, out);
-	fputs("}\n", out);
-	symtbl_free(symtbl);
-}
+// static void
+// write_func_def (llhd_value_t D, FILE *out) {
+// 	fprintf(out, "func @%s ", llhd_value_get_name(D));
+// 	struct llhd_symtbl *symtbl = symtbl_new();
+// 	write_unit_params(D, symtbl, out);
+// 	fputs(" {\n", out);
+// 	write_blocks(llhd_unit_get_first_block(D), symtbl, out);
+// 	fputs("}\n", out);
+// 	symtbl_free(symtbl);
+// }
 
 static void
 write_entity_def (llhd_value_t D, FILE *out) {
@@ -344,36 +380,36 @@ write_entity_def (llhd_value_t D, FILE *out) {
 	symtbl_free(symtbl);
 }
 
-static void
-write_proc_def (llhd_value_t D, FILE *out) {
-	fprintf(out, "proc @%s ", llhd_value_get_name(D));
-	struct llhd_symtbl *symtbl = symtbl_new();
-	write_unit_params(D, symtbl, out);
-	fputs(" {\n", out);
-	write_blocks(llhd_unit_get_first_block(D), symtbl, out);
-	fputs("}\n", out);
-	symtbl_free(symtbl);
-}
+// static void
+// write_proc_def (llhd_value_t D, FILE *out) {
+// 	fprintf(out, "proc @%s ", llhd_value_get_name(D));
+// 	struct llhd_symtbl *symtbl = symtbl_new();
+// 	write_unit_params(D, symtbl, out);
+// 	fputs(" {\n", out);
+// 	write_blocks(llhd_unit_get_first_block(D), symtbl, out);
+// 	fputs("}\n", out);
+// 	symtbl_free(symtbl);
+// }
 
 void
 llhd_asm_write_unit (llhd_value_t U, FILE *out) {
 	int kind = llhd_unit_get_kind(U);
 	switch (kind) {
 		case LLHD_UNIT_DECL: write_decl(U, out); break;
-		case LLHD_UNIT_DEF_FUNC: write_func_def(U, out); break;
+		// case LLHD_UNIT_DEF_FUNC: write_func_def(U, out); break;
 		case LLHD_UNIT_DEF_ENTITY: write_entity_def(U, out); break;
-		case LLHD_UNIT_DEF_PROC: write_proc_def(U, out); break;
+		// case LLHD_UNIT_DEF_PROC: write_proc_def(U, out); break;
 		default:
 			assert(0 && "unsupported unit kind");
 	}
 }
 
-void
-llhd_asm_write_module (llhd_module_t M, FILE *out) {
-	fprintf(out, "; module '%s'\n", llhd_module_get_name(M));
-	llhd_value_t U;
-	for (U = llhd_module_get_first_unit(M); U; U = llhd_unit_next(U)) {
-		fputc('\n', out);
-		llhd_asm_write_unit(U, out);
-	}
-}
+// void
+// llhd_asm_write_module (llhd_module_t M, FILE *out) {
+// 	fprintf(out, "; module '%s'\n", llhd_module_get_name(M));
+// 	llhd_value_t U;
+// 	for (U = llhd_module_get_first_unit(M); U; U = llhd_unit_next(U)) {
+// 		fputc('\n', out);
+// 		llhd_asm_write_unit(U, out);
+// 	}
+// }

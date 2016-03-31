@@ -19,6 +19,11 @@ llhd_zalloc(size_t sz) {
 	return ptr;
 }
 
+void *
+llhd_realloc(void *ptr, size_t sz) {
+	return realloc(ptr, sz);
+}
+
 void
 llhd_free(void *ptr) {
 	free(ptr);

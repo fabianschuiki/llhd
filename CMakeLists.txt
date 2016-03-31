@@ -102,14 +102,18 @@ if (BUILD_SHARED_LIBS)
 endif()
 add_library(llhd src-c/value.c src-c/inst.c src-c/util.c src-c/type.c)
 add_library(llhd-linker src-c/linker.c)
-add_library(llhd-opt src-c/opt-cbre.c src-c/opt-ubd.c src-c/opt-cf.c)
+add_library(llhd-opt
+	src-c/opt-cbre.c
+	src-c/opt-ubd.c
+	# src-c/opt-cf.c
+)
 add_library(llhd-asm src-c/asm-writer.c)
 
 # Build the programs.
 add_executable(cdebug1 src-c/debug1.c)
 add_executable(cdebug2 src-c/debug2.c)
 target_link_libraries(cdebug1 llhd)
-target_link_libraries(cdebug2 llhd)
+target_link_libraries(cdebug2 llhd llhd-asm)
 
 
 # Build the tests if so requested.

@@ -2,6 +2,7 @@
 #pragma once
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h> // remove later
 
 typedef struct llhd_module * llhd_module_t;
 typedef struct llhd_type * llhd_type_t;
@@ -47,18 +48,17 @@ enum llhd_unary_op {
 enum llhd_binary_op {
 	LLHD_BINARY_ADD  = 1,
 	LLHD_BINARY_SUB  = 2,
-	LLHD_BINARY_UMUL = 3,
+	LLHD_BINARY_MUL  = 3,
 	LLHD_BINARY_UDIV = 4,
 	LLHD_BINARY_UREM = 5,
-	LLHD_BINARY_SMUL = 6,
-	LLHD_BINARY_SDIV = 7,
-	LLHD_BINARY_SREM = 8,
-	LLHD_BINARY_LSL  = 9,
-	LLHD_BINARY_LSR  = 10,
-	LLHD_BINARY_ASR  = 11,
-	LLHD_BINARY_AND  = 12,
-	LLHD_BINARY_OR   = 13,
-	LLHD_BINARY_XOR  = 14,
+	LLHD_BINARY_SDIV = 6,
+	LLHD_BINARY_SREM = 7,
+	LLHD_BINARY_LSL  = 8,
+	LLHD_BINARY_LSR  = 9,
+	LLHD_BINARY_ASR  = 10,
+	LLHD_BINARY_AND  = 11,
+	LLHD_BINARY_OR   = 12,
+	LLHD_BINARY_XOR  = 13,
 };
 
 enum llhd_const_kind {
@@ -116,6 +116,7 @@ int llhd_inst_unary_get_op(llhd_value_t);
 llhd_value_t llhd_inst_unary_get_arg(llhd_value_t);
 
 int llhd_inst_binary_get_op(llhd_value_t);
+const char *llhd_inst_binary_get_opname(llhd_value_t);
 llhd_value_t llhd_inst_binary_get_lhs(llhd_value_t);
 llhd_value_t llhd_inst_binary_get_rhs(llhd_value_t);
 
@@ -127,6 +128,10 @@ llhd_value_t llhd_inst_branch_get_dst0(llhd_value_t);
 llhd_value_t llhd_inst_branch_get_dst1(llhd_value_t);
 
 bool llhd_const_is_null(llhd_value_t);
+bool llhd_const_is(llhd_value_t,int);
+int llhd_const_get_kind(llhd_value_t);
+uint64_t llhd_const_int_get_value(llhd_value_t);
+char *llhd_const_to_string(llhd_value_t);
 
 bool llhd_value_is(llhd_value_t,int);
 int llhd_value_get_kind(llhd_value_t);

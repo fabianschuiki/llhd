@@ -15,4 +15,6 @@ unsigned llhd_list_length(struct llhd_list*);
 bool llhd_list_empty(struct llhd_list*);
 
 #define llhd_container_of(ptr, sample, member) \
-	(__typeof__(sample))((char*)(ptr) - offsetof(__typeof__(*sample), member))
+	(__typeof__(sample))((void*)(ptr) - offsetof(__typeof__(*sample), member))
+#define llhd_container_of2(ptr, type, member) \
+	(type*)((void*)(ptr) - offsetof(type, member))

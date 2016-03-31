@@ -4,7 +4,9 @@
 
 struct llhd_inst {
 	struct llhd_value super;
+	struct llhd_value *parent;
 	struct llhd_list link;
+	struct llhd_type *type;
 };
 
 struct llhd_inst_vtbl {
