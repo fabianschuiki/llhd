@@ -3,7 +3,7 @@
 #include "inst.h"
 #include <stdint.h>
 #include <assert.h>
-#include <stdio.h>
+#include <string.h>
 
 static void entity_add_inst(void*,struct llhd_value*,int);
 
@@ -19,6 +19,8 @@ struct llhd_const_vtbl {
 
 struct llhd_entity {
 	struct llhd_value super;
+	char *name;
+	struct llhd_type *type;
 	struct llhd_list in_params;
 	struct llhd_list out_params;
 	struct llhd_list insts;
@@ -33,6 +35,8 @@ static struct llhd_const_vtbl vtbl_const_int = {
 
 static struct llhd_value_vtbl vtbl_entity = {
 	.kind = LLHD_VALUE_UNIT,
+	.name_offset = offsetof(struct llhd_entity, name),
+	.type_offset = offsetof(struct llhd_entity, type),
 	.add_inst_fn = entity_add_inst,
 };
 
@@ -167,7 +171,10 @@ struct llhd_value *
 llhd_entity_new(struct llhd_type *T, const char *name) {
 	struct llhd_entity *E;
 	assert(T && name);
+	llhd_type_ref(T);
 	E = llhd_alloc_value(sizeof(*E), &vtbl_entity);
+	E->name = strdup(name);
+	E->type = T;
 	llhd_list_init(&E->in_params);
 	llhd_list_init(&E->out_params);
 	llhd_list_init(&E->insts);
@@ -179,4 +186,24 @@ entity_add_inst(void *ptr, struct llhd_value *I, int append) {
 	assert(I && I->vtbl && I->vtbl->kind == LLHD_VALUE_INST);
 	struct llhd_entity *E = ptr;
 	llhd_list_insert(append ? E->insts.prev : &E->insts, &((struct llhd_inst *)I)->link);
+}
+
+const char *
+llhd_value_get_name(struct llhd_value *V) {
+	assert(V && V->vtbl);
+	size_t off = V->vtbl->name_offset;
+	if (!off)
+		return NULL;
+	else
+		return *(const char**)((void*)V+off);
+}
+
+struct llhd_type *
+llhd_value_get_type(struct llhd_value *V) {
+	assert(V && V->vtbl);
+	size_t off = V->vtbl->type_offset;
+	if (!off)
+		return NULL;
+	else
+		return *(struct llhd_type**)((void*)V+off);
 }
