@@ -317,9 +317,7 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 		default:
 			assert(0 && "unknown inst kind");
 	}
-	if (llhd_value_has_users(I)) {
-		fprintf(out, "  ; [#users = %d]", llhd_value_get_num_users(I));
-	}
+	fprintf(out, "  ; [#users = %d]", llhd_value_get_num_users(I));
 }
 
 static void

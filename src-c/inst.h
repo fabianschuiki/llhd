@@ -7,6 +7,7 @@ struct llhd_inst {
 	struct llhd_value *parent;
 	struct llhd_list link;
 	struct llhd_type *type;
+	char *name;
 };
 
 struct llhd_inst_vtbl {

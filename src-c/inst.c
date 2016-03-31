@@ -3,6 +3,7 @@
 #include "inst.h"
 #include <llhd.h>
 #include <assert.h>
+#include <string.h>
 
 static void binary_dispose(void*);
 static void binary_substitute(void*,void*,void*);
@@ -11,6 +12,7 @@ static struct llhd_inst_vtbl vtbl_binary_inst = {
 	.super = {
 		.kind = LLHD_VALUE_INST,
 		.type_offset = offsetof(struct llhd_inst, type),
+		.name_offset = offsetof(struct llhd_inst, name),
 		.dispose_fn = binary_dispose,
 		.substitute_fn = binary_substitute,
 	},
@@ -43,6 +45,7 @@ llhd_inst_binary_new(int op, struct llhd_value *lhs, struct llhd_value *rhs, con
 	assert(T);
 	llhd_type_ref(T);
 	I->super.type = T;
+	I->super.name = name ? strdup(name) : NULL;
 	I->op = op;
 	I->lhs = lhs;
 	I->rhs = rhs;
@@ -58,6 +61,8 @@ binary_dispose(void *ptr) {
 	struct llhd_binary_inst *I = ptr;
 	llhd_value_unref(I->lhs);
 	llhd_value_unref(I->rhs);
+	llhd_type_unref(I->super.type);
+	llhd_free(I->super.name);
 }
 
 static void

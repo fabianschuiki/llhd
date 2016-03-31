@@ -17,8 +17,8 @@ int main() {
 	llhd_value_t Na = llhd_const_int_new(123);
 	llhd_value_t Nb = llhd_const_int_new(42);
 	llhd_value_t Nc = llhd_const_int_new(21);
-	llhd_value_t Iadd = llhd_inst_binary_new(LLHD_BINARY_ADD, Na, Nb, "");
-	llhd_value_t Imul = llhd_inst_binary_new(LLHD_BINARY_MUL, Nc, Iadd, "");
+	llhd_value_t Iadd = llhd_inst_binary_new(LLHD_BINARY_ADD, Na, Nb, NULL);
+	llhd_value_t Imul = llhd_inst_binary_new(LLHD_BINARY_MUL, Nc, Iadd, "tmp");
 	llhd_value_unref(Na);
 	llhd_value_unref(Nb);
 	llhd_value_unref(Nc);
@@ -43,6 +43,9 @@ int main() {
 	assert(llhd_entity_get_num_insts(E) == 2);
 	assert(llhd_entity_get_first_inst(E) == Iadd);
 	assert(llhd_entity_get_last_inst(E) == Imul);
+	assert(llhd_value_get_name(Iadd) == NULL);
+	assert(llhd_value_get_name(Imul));
+	assert(strcmp(llhd_value_get_name(Imul), "tmp") == 0);
 	assert(llhd_inst_prev(Iadd) == NULL);
 	assert(llhd_inst_next(Iadd) == Imul);
 	assert(llhd_inst_prev(Imul) == Iadd);
