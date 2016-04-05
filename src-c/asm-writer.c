@@ -237,11 +237,9 @@ write_param (llhd_value_t P, struct llhd_symtbl *symtbl, FILE *out) {
 	write_type(llhd_value_get_type(P), out);
 	const char *name = llhd_value_get_name(P);
 	if (name || llhd_value_has_users(P)) {
-		name = symtbl_add_name(symtbl, P, name);
-	}
-	if (name) {
+		const char *an = symtbl_add_name(symtbl, P, name);
 		fputs(" %", out);
-		fputs(name, out);
+		fputs(an, out);
 	}
 }
 

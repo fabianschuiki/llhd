@@ -28,6 +28,7 @@ enum llhd_value_kind {
 	LLHD_VALUE_UNIT  = 1,
 	LLHD_VALUE_CONST = 2,
 	LLHD_VALUE_INST  = 3,
+	LLHD_VALUE_PARAM = 4,
 };
 
 enum llhd_unit_kind {
@@ -154,6 +155,7 @@ void llhd_value_unref(llhd_value_t);
 void llhd_value_free(llhd_value_t);
 
 llhd_type_t llhd_type_new_comp(llhd_type_t*,unsigned,llhd_type_t*,unsigned);
+llhd_type_t llhd_type_new_int(unsigned);
 int llhd_type_get_kind(llhd_type_t);
 unsigned llhd_type_get_length(llhd_type_t);
 llhd_type_t llhd_type_get_subtype(llhd_type_t);

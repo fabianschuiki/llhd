@@ -6,13 +6,23 @@
 #include <string.h>
 #include <stdio.h>
 
-llhd_type_t llhd_type_new_int(unsigned);
-
 static char *const_int_to_string(void*);
 
 static void entity_add_inst(void*, struct llhd_value*, int);
 static void entity_remove_inst(void*, struct llhd_value*);
 static void entity_dispose(void*);
+
+struct llhd_param {
+	struct llhd_value super;
+	struct llhd_type *type;
+	char *name;
+};
+
+static struct llhd_value_vtbl vtbl_param = {
+	.kind = LLHD_VALUE_PARAM,
+	.type_offset = offsetof(struct llhd_param, type),
+	.name_offset = offsetof(struct llhd_param, name),
+};
 
 static struct llhd_const_vtbl vtbl_const_int = {
 	.super = {
@@ -180,8 +190,19 @@ llhd_value_replace_uses(struct llhd_value *V, struct llhd_value *R) {
 	}
 }
 
+static struct llhd_param *
+param_new(struct llhd_type *T) {
+	struct llhd_param *P;
+	assert(T);
+	P = llhd_alloc_value(sizeof(*P), &vtbl_param);
+	P->type = T;
+	llhd_type_ref(T);
+	return P;
+}
+
 struct llhd_value *
 llhd_entity_new(struct llhd_type *T, const char *name) {
+	unsigned i;
 	struct llhd_entity *E;
 	assert(T && name);
 	llhd_type_ref(T);
@@ -192,6 +213,10 @@ llhd_entity_new(struct llhd_type *T, const char *name) {
 	E->type = T;
 	E->super.num_inputs = num_inputs;
 	E->super.num_outputs = num_outputs;
+	for (i = 0; i < num_inputs; ++i)
+		E->super.params[i] = param_new(llhd_type_get_input(T,i));
+	for (i = 0; i < num_outputs; ++i)
+		E->super.params[i+num_inputs] = param_new(llhd_type_get_output(T,i));
 	llhd_list_init(&E->insts);
 	return (struct llhd_value *)E;
 }

@@ -27,15 +27,17 @@ llhd_type_new_comp(
 	struct llhd_type **out,
 	unsigned num_out
 ) {
+	unsigned i;
+	struct llhd_type *T;
 	assert(!num_in || in);
 	assert(!num_out || out);
-	struct llhd_type *T;
 	T = llhd_alloc_type(LLHD_TYPE_COMP, num_in+num_out);
 	T->num_in = num_in;
 	T->num_out = num_out;
 	memcpy(T->subtypes, in, num_in*sizeof(T));
 	memcpy(T->subtypes + num_in, out, num_out*sizeof(T));
-	/// @todo Call ref on all subtypes.
+	for (i = 0; i < num_in+num_out; ++i)
+		llhd_type_ref(T->subtypes[i]);
 	return T;
 }
 
