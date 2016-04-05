@@ -7,6 +7,8 @@
 typedef struct llhd_module * llhd_module_t;
 typedef struct llhd_type * llhd_type_t;
 typedef struct llhd_value * llhd_value_t;
+// typedef struct llhd_apint * llhd_apint_t;
+typedef uint64_t llhd_apint_t;
 
 enum llhd_type_kind {
 	LLHD_TYPE_VOID   = 1,
@@ -89,6 +91,7 @@ unsigned llhd_unit_get_num_outputs(llhd_value_t);
 llhd_value_t llhd_unit_get_input(llhd_value_t,unsigned);
 llhd_value_t llhd_unit_get_output(llhd_value_t,unsigned);
 
+llhd_value_t llhd_entity_new(llhd_type_t,const char*);
 llhd_value_t llhd_entity_get_first_inst(llhd_value_t);
 llhd_value_t llhd_entity_get_last_inst(llhd_value_t);
 unsigned llhd_entity_get_num_insts(llhd_value_t);
@@ -115,6 +118,7 @@ int llhd_inst_get_kind(llhd_value_t);
 int llhd_inst_unary_get_op(llhd_value_t);
 llhd_value_t llhd_inst_unary_get_arg(llhd_value_t);
 
+llhd_value_t llhd_inst_binary_new(int,llhd_value_t,llhd_value_t,const char*);
 int llhd_inst_binary_get_op(llhd_value_t);
 const char *llhd_inst_binary_get_opname(llhd_value_t);
 llhd_value_t llhd_inst_binary_get_lhs(llhd_value_t);
@@ -127,10 +131,11 @@ llhd_value_t llhd_inst_branch_get_dst(llhd_value_t);
 llhd_value_t llhd_inst_branch_get_dst0(llhd_value_t);
 llhd_value_t llhd_inst_branch_get_dst1(llhd_value_t);
 
+llhd_value_t llhd_const_int_new(llhd_apint_t);
 bool llhd_const_is_null(llhd_value_t);
 bool llhd_const_is(llhd_value_t,int);
 int llhd_const_get_kind(llhd_value_t);
-uint64_t llhd_const_int_get_value(llhd_value_t);
+llhd_apint_t llhd_const_int_get_value(llhd_value_t);
 char *llhd_const_to_string(llhd_value_t);
 
 bool llhd_value_is(llhd_value_t,int);
@@ -148,6 +153,7 @@ void llhd_value_ref(llhd_value_t);
 void llhd_value_unref(llhd_value_t);
 void llhd_value_free(llhd_value_t);
 
+llhd_type_t llhd_type_new_comp(llhd_type_t*,unsigned,llhd_type_t*,unsigned);
 int llhd_type_get_kind(llhd_type_t);
 unsigned llhd_type_get_length(llhd_type_t);
 llhd_type_t llhd_type_get_subtype(llhd_type_t);
@@ -164,3 +170,5 @@ void *llhd_alloc(size_t);
 void *llhd_zalloc(size_t);
 void *llhd_realloc(void*,size_t);
 void llhd_free(void*);
+
+void llhd_fold_constants(llhd_value_t);

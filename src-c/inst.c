@@ -7,6 +7,8 @@
 
 static void binary_dispose(void*);
 static void binary_substitute(void*,void*,void*);
+static void binary_unlink_from_parent(void*);
+static void binary_unlink_uses(void*);
 
 static struct llhd_inst_vtbl vtbl_binary_inst = {
 	.super = {
@@ -15,6 +17,8 @@ static struct llhd_inst_vtbl vtbl_binary_inst = {
 		.name_offset = offsetof(struct llhd_inst, name),
 		.dispose_fn = binary_dispose,
 		.substitute_fn = binary_substitute,
+		.unlink_from_parent_fn = binary_unlink_from_parent,
+		.unlink_uses_fn = binary_unlink_uses,
 	},
 	.kind = LLHD_INST_BINARY,
 };
@@ -59,6 +63,7 @@ llhd_inst_binary_new(int op, struct llhd_value *lhs, struct llhd_value *rhs, con
 static void
 binary_dispose(void *ptr) {
 	struct llhd_binary_inst *I = ptr;
+	assert(!I->super.parent);
 	llhd_value_unref(I->lhs);
 	llhd_value_unref(I->rhs);
 	llhd_type_unref(I->super.type);
@@ -165,4 +170,25 @@ llhd_inst_prev(struct llhd_value *V) {
 	if (llhd_entity_get_first_inst(I->parent) == V)
 		return NULL;
 	return (struct llhd_value*)llhd_container_of(I->link.prev,I,link);
+}
+
+static void
+binary_unlink_from_parent(void *ptr) {
+	struct llhd_inst *I = (struct llhd_inst*)ptr;
+	struct llhd_value *P = I->parent;
+	assert(P && P->vtbl);
+	/// @todo Unlink from parent.
+	// Must go before remove_inst_fn, since that might dispose and free the
+	// inst, which triggers an assert on parent == NULL in the dispose function.
+	I->parent = NULL;
+	if (P->vtbl->remove_inst_fn)
+		P->vtbl->remove_inst_fn(P, ptr);
+}
+
+static void
+binary_unlink_uses(void *ptr) {
+	struct llhd_binary_inst *I = (struct llhd_binary_inst*)ptr;
+	/// @todo Unlink uses.
+	llhd_value_unuse(&I->uses[0]);
+	llhd_value_unuse(&I->uses[1]);
 }

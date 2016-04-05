@@ -11,6 +11,7 @@ llhd_type_t llhd_type_new_int(unsigned);
 static char *const_int_to_string(void*);
 
 static void entity_add_inst(void*, struct llhd_value*, int);
+static void entity_remove_inst(void*, struct llhd_value*);
 static void entity_dispose(void*);
 
 static struct llhd_const_vtbl vtbl_const_int = {
@@ -28,6 +29,7 @@ static struct llhd_unit_vtbl vtbl_entity = {
 		.name_offset = offsetof(struct llhd_entity, name),
 		.type_offset = offsetof(struct llhd_entity, type),
 		.add_inst_fn = entity_add_inst,
+		.remove_inst_fn = entity_remove_inst,
 		.dispose_fn = entity_dispose,
 	},
 	.kind = LLHD_UNIT_DEF_ENTITY,
@@ -58,7 +60,7 @@ static char *
 const_int_to_string(void *ptr) {
 	struct llhd_const_int *C = ptr;
 	char buf[21];
-	snprintf(buf, 21, "%lu", C->value);
+	snprintf(buf, 21, "%llu", C->value);
 	return strdup(buf);
 }
 
@@ -141,6 +143,7 @@ llhd_value_unref(struct llhd_value *V) {
 	assert(V->rc > 0 && "double-unref");
 	if (--V->rc == 0) {
 		/// @todo Assert unlinked.
+		assert(!llhd_value_has_users(V));
 		if (V->vtbl->dispose_fn)
 			V->vtbl->dispose_fn(V);
 		llhd_free(V);
@@ -207,6 +210,13 @@ entity_add_inst(void *ptr, struct llhd_value *I, int append) {
 	struct llhd_entity *E = ptr;
 	llhd_value_ref(I);
 	llhd_list_insert(append ? E->insts.prev : &E->insts, &((struct llhd_inst *)I)->link);
+}
+
+static void
+entity_remove_inst(void *ptr, struct llhd_value *I) {
+	assert(I && I->vtbl && I->vtbl->kind == LLHD_VALUE_INST);
+	llhd_list_remove(&((struct llhd_inst *)I)->link);
+	llhd_value_unref(I);
 }
 
 const char *
@@ -323,3 +333,11 @@ llhd_unit_get_output(struct llhd_value *V, unsigned idx) {
 	return (struct llhd_value*)U->params[U->num_inputs + idx];
 }
 
+void
+llhd_value_unlink(struct llhd_value *V) {
+	assert(V && V->vtbl);
+	if (V->vtbl->unlink_uses_fn)
+		V->vtbl->unlink_uses_fn(V);
+	if (V->vtbl->unlink_from_parent_fn)
+		V->vtbl->unlink_from_parent_fn(V);
+}

@@ -22,9 +22,9 @@ llhd_alloc_type(int kind, unsigned num_subtypes) {
 
 struct llhd_type *
 llhd_type_new_comp(
-	const struct llhd_type *in,
+	struct llhd_type **in,
 	unsigned num_in,
-	const struct llhd_type *out,
+	struct llhd_type **out,
 	unsigned num_out
 ) {
 	assert(!num_in || in);

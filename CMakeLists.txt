@@ -47,7 +47,7 @@ configure_file(src/config.cpp.in src/config.cpp)
 
 # Compiler Flags
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Wno-parentheses -Wno-uninitialized -Wno-unused-parameter")
-set(CMAKE_C_FLAGS "-Wall -Wextra -Werror-implicit-function-declaration")
+set(CMAKE_C_FLAGS "-Wall -Wextra -Werror-implicit-function-declaration -Wno-unused-parameter")
 set(CMAKE_CXX_FLAGS_COVERAGE "-O0 -g --coverage")
 mark_as_advanced(CMAKE_CXX_FLAGS_COVERAGE)
 
@@ -100,20 +100,26 @@ endif()
 if (BUILD_SHARED_LIBS)
 	set_target_properties(llhdc PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -DLLHD_BUILD_SHARED")
 endif()
-add_library(llhd src-c/value.c src-c/inst.c src-c/util.c src-c/type.c)
+add_library(llhd
+	src-c/value.c
+	src-c/inst.c
+	src-c/util.c
+	src-c/type.c
+	src-c/asm-writer.c
+	src-c/apint.c
+)
 add_library(llhd-linker src-c/linker.c)
 add_library(llhd-opt
 	src-c/opt-cbre.c
 	src-c/opt-ubd.c
-	# src-c/opt-cf.c
+	src-c/opt-cf.c
 )
-add_library(llhd-asm src-c/asm-writer.c)
 
 # Build the programs.
 add_executable(cdebug1 src-c/debug1.c)
 add_executable(cdebug2 src-c/debug2.c)
 target_link_libraries(cdebug1 llhd)
-target_link_libraries(cdebug2 llhd llhd-asm)
+target_link_libraries(cdebug2 llhd llhd-opt)
 
 
 # Build the tests if so requested.

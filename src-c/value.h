@@ -11,6 +11,9 @@ struct llhd_value_vtbl {
 	void (*dispose_fn)(void*);
 	void (*substitute_fn)(void*,void*,void*);
 	void (*add_inst_fn)(void*,struct llhd_value*,int);
+	void (*remove_inst_fn)(void*,struct llhd_value*);
+	void (*unlink_from_parent_fn)(void*);
+	void (*unlink_uses_fn)(void*);
 };
 
 struct llhd_value_use {

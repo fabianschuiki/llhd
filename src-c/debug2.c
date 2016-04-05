@@ -5,12 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-llhd_value_t llhd_const_int_new(uint64_t);
-llhd_value_t llhd_inst_binary_new(int,llhd_value_t,llhd_value_t,const char*);
-
-llhd_type_t llhd_type_new_comp(const llhd_type_t*,unsigned,const llhd_type_t*,unsigned);
-llhd_value_t llhd_entity_new(llhd_type_t,const char*);
-
 void llhd_asm_write_unit(llhd_value_t,FILE*);
 
 int main() {
@@ -51,6 +45,9 @@ int main() {
 	assert(llhd_inst_prev(Imul) == Iadd);
 	assert(llhd_inst_next(Imul) == NULL);
 
+	llhd_asm_write_unit(E,stdout);
+	printf("folding constants\n");
+	llhd_fold_constants(E);
 	llhd_asm_write_unit(E,stdout);
 
 	llhd_value_unref(E);
