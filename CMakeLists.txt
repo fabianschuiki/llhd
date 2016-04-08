@@ -118,8 +118,10 @@ add_library(llhd-opt
 # Build the programs.
 add_executable(cdebug1 src-c/debug1.c)
 add_executable(cdebug2 src-c/debug2.c)
+add_executable(cdebug3 src-c/debug3.c)
 target_link_libraries(cdebug1 llhd)
-target_link_libraries(cdebug2 llhd llhd-opt)
+target_link_libraries(cdebug2 llhd-opt llhd)
+target_link_libraries(cdebug3 llhd)
 
 
 # Build the tests if so requested.

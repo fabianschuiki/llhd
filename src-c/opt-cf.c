@@ -51,30 +51,30 @@ fold_binary_inst_int (int op, llhd_apint_t lhs, llhd_apint_t rhs, llhd_apint_t *
 	}
 }
 
-static void
-fold_unary_inst (llhd_value_t I) {
-	llhd_value_t arg = llhd_inst_unary_get_arg(I);
+// static void
+// fold_unary_inst (llhd_value_t I) {
+// 	llhd_value_t arg = llhd_inst_unary_get_arg(I);
 
-	// const int folding
-	if (llhd_value_is(arg, LLHD_VALUE_CONST)) {
-		if (llhd_const_is(arg, LLHD_CONST_INT)) {
-			llhd_apint_t arg_value = llhd_const_int_get_value(arg);
-			llhd_apint_t result;
-			bool changed = fold_unary_inst_int(
-				llhd_inst_unary_get_op(I),
-				arg_value,
-				&result
-			);
-			if (changed) {
-				llhd_value_t C = llhd_const_int_new(result);
-				llhd_value_replace_uses(I,C);
-				llhd_value_unref(C);
-				llhd_value_unlink(I);
-				// llhd_value_unref(I);
-			}
-		}
-	}
-}
+// 	// const int folding
+// 	if (llhd_value_is(arg, LLHD_VALUE_CONST)) {
+// 		if (llhd_const_is(arg, LLHD_CONST_INT)) {
+// 			llhd_apint_t arg_value = llhd_const_int_get_value(arg);
+// 			llhd_apint_t result;
+// 			bool changed = fold_unary_inst_int(
+// 				llhd_inst_unary_get_op(I),
+// 				arg_value,
+// 				&result
+// 			);
+// 			if (changed) {
+// 				llhd_value_t C = llhd_const_int_new(result);
+// 				llhd_value_replace_uses(I,C);
+// 				llhd_value_unref(C);
+// 				llhd_value_unlink(I);
+// 				// llhd_value_unref(I);
+// 			}
+// 		}
+// 	}
+// }
 
 static void
 fold_binary_inst (llhd_value_t I) {

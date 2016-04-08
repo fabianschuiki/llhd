@@ -177,7 +177,6 @@ binary_unlink_from_parent(void *ptr) {
 	struct llhd_inst *I = (struct llhd_inst*)ptr;
 	struct llhd_value *P = I->parent;
 	assert(P && P->vtbl);
-	/// @todo Unlink from parent.
 	// Must go before remove_inst_fn, since that might dispose and free the
 	// inst, which triggers an assert on parent == NULL in the dispose function.
 	I->parent = NULL;
@@ -188,7 +187,6 @@ binary_unlink_from_parent(void *ptr) {
 static void
 binary_unlink_uses(void *ptr) {
 	struct llhd_binary_inst *I = (struct llhd_binary_inst*)ptr;
-	/// @todo Unlink uses.
 	llhd_value_unuse(&I->uses[0]);
 	llhd_value_unuse(&I->uses[1]);
 }
