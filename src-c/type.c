@@ -60,7 +60,24 @@ void
 llhd_type_unref(struct llhd_type *T) {
 	assert(T->rc > 0);
 	if (--T->rc == 0) {
-		/// @todo Make sure all subtypes are release.
+		unsigned i;
+		// Dispose of the subtypes.
+		switch (T->kind) {
+			case LLHD_TYPE_COMP:
+			case LLHD_TYPE_FUNC:
+				for (i = 0; i < T->num_in + T->num_out; ++i)
+					llhd_type_unref(T->subtypes[i]);
+				break;
+			case LLHD_TYPE_ARRAY:
+			case LLHD_TYPE_PTR:
+			case LLHD_TYPE_SIGNAL:
+				llhd_type_unref(T->subtypes[0]);
+				break;
+			case LLHD_TYPE_STRUCT:
+				for (i = 0; i < T->num_in; ++i)
+					llhd_type_unref(T->subtypes[i]);
+				break;
+		}
 		llhd_free(T);
 	}
 }

@@ -10,6 +10,9 @@ static void binary_substitute(void*,void*,void*);
 static void binary_unlink_from_parent(void*);
 static void binary_unlink_uses(void*);
 
+static void signal_dispose(void*);
+static void signal_unlink_from_parent(void*);
+
 static struct llhd_inst_vtbl vtbl_binary_inst = {
 	.super = {
 		.kind = LLHD_VALUE_INST,
@@ -21,6 +24,17 @@ static struct llhd_inst_vtbl vtbl_binary_inst = {
 		.unlink_uses_fn = binary_unlink_uses,
 	},
 	.kind = LLHD_INST_BINARY,
+};
+
+static struct llhd_inst_vtbl vtbl_sig_inst = {
+	.super = {
+		.kind = LLHD_VALUE_INST,
+		.type_offset = offsetof(struct llhd_inst, type),
+		.name_offset = offsetof(struct llhd_inst, name),
+		.dispose_fn = signal_dispose,
+		.unlink_from_parent_fn = signal_unlink_from_parent,
+	},
+	.kind = LLHD_INST_SIGNAL,
 };
 
 static const char *binary_opnames[] = {
@@ -189,4 +203,36 @@ binary_unlink_uses(void *ptr) {
 	struct llhd_binary_inst *I = (struct llhd_binary_inst*)ptr;
 	llhd_value_unuse(&I->uses[0]);
 	llhd_value_unuse(&I->uses[1]);
+}
+
+struct llhd_value *
+llhd_inst_sig_new(struct llhd_type *T, const char *name) {
+	struct llhd_inst *I;
+	I = llhd_alloc_value(sizeof(*I), &vtbl_sig_inst);
+	assert(T);
+	llhd_type_ref(T);
+	I->type = T;
+	I->name = name ? strdup(name) : NULL;
+	return (struct llhd_value *)I;
+}
+
+static void
+signal_dispose(void *ptr) {
+	assert(ptr);
+	struct llhd_inst *I = ptr;
+	llhd_type_unref(I->type);
+	if (I->name)
+		llhd_free(I->name);
+}
+
+static void
+signal_unlink_from_parent(void *ptr) {
+	struct llhd_inst *I = (struct llhd_inst*)ptr;
+	struct llhd_value *P = I->parent;
+	assert(P && P->vtbl);
+	// Must go before remove_inst_fn, since that might dispose and free the
+	// inst, which triggers an assert on parent == NULL in the dispose function.
+	I->parent = NULL;
+	if (P->vtbl->remove_inst_fn)
+		P->vtbl->remove_inst_fn(P, ptr);
 }

@@ -42,6 +42,7 @@ enum llhd_inst_kind {
 	LLHD_INST_BRANCH = 1,
 	LLHD_INST_UNARY  = 2,
 	LLHD_INST_BINARY = 3,
+	LLHD_INST_SIGNAL = 4,
 };
 
 enum llhd_unary_op {

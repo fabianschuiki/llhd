@@ -12,6 +12,8 @@ static void entity_add_inst(void*, struct llhd_value*, int);
 static void entity_remove_inst(void*, struct llhd_value*);
 static void entity_dispose(void*);
 
+static void param_dispose(void*);
+
 struct llhd_param {
 	struct llhd_value super;
 	struct llhd_type *type;
@@ -22,6 +24,7 @@ static struct llhd_value_vtbl vtbl_param = {
 	.kind = LLHD_VALUE_PARAM,
 	.type_offset = offsetof(struct llhd_param, type),
 	.name_offset = offsetof(struct llhd_param, name),
+	.dispose_fn = param_dispose,
 };
 
 static struct llhd_const_vtbl vtbl_const_int = {
@@ -200,6 +203,15 @@ param_new(struct llhd_type *T) {
 	return P;
 }
 
+static void
+param_dispose(void *ptr) {
+	assert(ptr);
+	struct llhd_param *P = ptr;
+	llhd_type_unref(P->type);
+	if (P->name)
+		llhd_free(P->name);
+}
+
 struct llhd_value *
 llhd_entity_new(struct llhd_type *T, const char *name) {
 	unsigned i;
@@ -223,10 +235,20 @@ llhd_entity_new(struct llhd_type *T, const char *name) {
 
 static void
 entity_dispose(void *ptr) {
+	unsigned i;
 	assert(ptr);
 	struct llhd_entity *E = ptr;
+	struct llhd_list *link = E->insts.next;
+	while (link != &E->insts) {
+		struct llhd_inst *I;
+		I = llhd_container_of(link, I, link);
+		link = link->next;
+		llhd_value_unref((struct llhd_value *)I);
+	}
 	llhd_free(E->name);
 	llhd_type_unref(E->type);
+	for (i = 0; i < E->super.num_inputs + E->super.num_outputs; ++i)
+		llhd_value_unref((struct llhd_value *)E->super.params[i]);
 }
 
 static void
@@ -252,6 +274,17 @@ llhd_value_get_name(struct llhd_value *V) {
 		return NULL;
 	else
 		return *(const char**)((void*)V+off);
+}
+
+void
+llhd_value_set_name(struct llhd_value *V, const char *name) {
+	assert(V && V->vtbl);
+	size_t off = V->vtbl->name_offset;
+	assert(off);
+	char **ptr = (void*)V+off;
+	if (*ptr)
+		llhd_free(*ptr);
+	*ptr = name ? strdup(name) : NULL;
 }
 
 struct llhd_type *

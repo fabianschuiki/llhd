@@ -312,6 +312,10 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 			fputc(' ', out);
 			write_value_ref(llhd_inst_binary_get_rhs(I), 0, symtbl, out);
 			break;
+		case LLHD_INST_SIGNAL:
+			fputs("sig ", out);
+			write_type(llhd_value_get_type(I), out);
+			break;
 		default:
 			assert(0 && "unknown inst kind");
 	}
