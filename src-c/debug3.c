@@ -45,14 +45,14 @@ int main() {
 	llhd_value_set_name(llhd_unit_get_output(E,0), "GCK");
 	llhd_type_unref(Ety);
 
-	// Pty = llhd_type_new_comp((llhd_type_t[]){i1ty,i1ty,i1ty}, 3, (llhd_type_t[]){i1ty,i1ty}, 2);
-	// P = llhd_proc_new(Pty, "LAGCE_proc");
-	// llhd_value_set_name(llhd_unit_get_input(P,0), "CK");
-	// llhd_value_set_name(llhd_unit_get_input(P,1), "E");
-	// llhd_value_set_name(llhd_unit_get_input(P,2), "Q");
-	// llhd_value_set_name(llhd_unit_get_output(P,0), "GCK");
-	// llhd_value_set_name(llhd_unit_get_output(P,1), "Q");
-	// llhd_type_unref(Pty);
+	Pty = llhd_type_new_comp((llhd_type_t[]){i1ty,i1ty,i1ty}, 3, (llhd_type_t[]){i1ty,i1ty}, 2);
+	P = llhd_proc_new(Pty, "LAGCE_proc");
+	llhd_value_set_name(llhd_unit_get_input(P,0), "CK");
+	llhd_value_set_name(llhd_unit_get_input(P,1), "E");
+	llhd_value_set_name(llhd_unit_get_input(P,2), "Q");
+	llhd_value_set_name(llhd_unit_get_output(P,0), "GCK");
+	llhd_value_set_name(llhd_unit_get_output(P,1), "Q");
+	llhd_type_unref(Pty);
 
 	Q = llhd_inst_sig_new(i1ty, "Q");
 	llhd_inst_append_to(Q, E);

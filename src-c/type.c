@@ -84,7 +84,14 @@ llhd_type_unref(struct llhd_type *T) {
 
 int
 llhd_type_get_kind(struct llhd_type *T) {
+	assert(T);
 	return T->kind;
+}
+
+bool
+llhd_type_is(struct llhd_type *T, int kind) {
+	assert(T);
+	return T->kind == kind;
 }
 
 unsigned

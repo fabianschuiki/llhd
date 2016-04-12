@@ -216,7 +216,7 @@ struct llhd_value *
 llhd_entity_new(struct llhd_type *T, const char *name) {
 	unsigned i;
 	struct llhd_entity *E;
-	assert(T && name);
+	assert(T && name && llhd_type_is(T, LLHD_TYPE_COMP));
 	llhd_type_ref(T);
 	unsigned num_inputs = llhd_type_get_num_inputs(T);
 	unsigned num_outputs = llhd_type_get_num_outputs(T);
@@ -264,6 +264,26 @@ entity_remove_inst(void *ptr, struct llhd_value *I) {
 	assert(I && I->vtbl && I->vtbl->kind == LLHD_VALUE_INST);
 	llhd_list_remove(&((struct llhd_inst *)I)->link);
 	llhd_value_unref(I);
+}
+
+struct llhd_value *
+llhd_proc_new(struct llhd_type *T, const char *name) {
+	struct llhd_proc *P;
+	unsigned i, num_inputs, num_outputs;
+	assert(T && name && llhd_type_is(T, LLHD_TYPE_COMP));
+	llhd_type_ref(T);
+	num_inputs = llhd_type_get_num_inputs(T);
+	num_outputs = llhd_type_get_num_outputs(T);
+	P = llhd_alloc_unit(sizeof(*P), &vtbl_entity, num_inputs+num_outputs);
+	P->name = strdup(name);
+	P->type = T;
+	P->super.num_inputs = num_inputs;
+	P->super.num_outputs = num_outputs;
+	for (i = 0; i < num_inputs; ++i)
+		P->super.params[i] = param_new(llhd_type_get_input(T,i));
+	for (i = 0; i < num_outputs; ++i)
+		P->super.params[i+num_inputs] = param_new(llhd_type_get_output(T,i));
+	return (struct llhd_value *)P;
 }
 
 const char *

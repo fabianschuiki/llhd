@@ -157,6 +157,7 @@ void llhd_value_free(llhd_value_t);
 
 llhd_type_t llhd_type_new_comp(llhd_type_t*,unsigned,llhd_type_t*,unsigned);
 llhd_type_t llhd_type_new_int(unsigned);
+bool llhd_type_is(llhd_type_t,int);
 int llhd_type_get_kind(llhd_type_t);
 unsigned llhd_type_get_length(llhd_type_t);
 llhd_type_t llhd_type_get_subtype(llhd_type_t);

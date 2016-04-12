@@ -63,6 +63,12 @@ struct llhd_entity {
 	struct llhd_list insts;
 };
 
+struct llhd_proc {
+	struct llhd_unit super;
+	char *name;
+	struct llhd_type *type;
+};
+
 void *llhd_alloc_value(size_t,void*);
 void llhd_value_use(struct llhd_value*, struct llhd_value_use*);
 void llhd_value_unuse(struct llhd_value_use*);
