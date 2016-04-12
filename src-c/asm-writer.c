@@ -331,14 +331,17 @@ write_insts(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 	}
 }
 
-// static void
-// write_blocks(llhd_value_t BB, struct llhd_symtbl *symtbl, FILE *out) {
-// 	for (; BB; BB = llhd_block_next(BB)) {
-// 		fputs(llhd_value_get_name(BB), out);
-// 		fputs(":\n", out);
-// 		write_insts(llhd_block_get_first_inst(BB), symtbl, out);
-// 	}
-// }
+static void
+write_blocks(llhd_list_t list, struct llhd_symtbl *symtbl, FILE *out) {
+	llhd_list_t pos;
+	llhd_value_t BB;
+	pos = llhd_block_first(list);
+	while ((BB = llhd_block_next(list, &pos))) {
+		fputs(llhd_value_get_name(BB), out);
+		fputs(":\n", out);
+		write_insts(llhd_block_get_first_inst(BB), symtbl, out);
+	}
+}
 
 static void
 write_unit_params (llhd_value_t U, struct llhd_symtbl *symtbl, FILE *out) {
@@ -380,16 +383,16 @@ write_entity_def (llhd_value_t D, FILE *out) {
 	symtbl_free(symtbl);
 }
 
-// static void
-// write_proc_def (llhd_value_t D, FILE *out) {
-// 	fprintf(out, "proc @%s ", llhd_value_get_name(D));
-// 	struct llhd_symtbl *symtbl = symtbl_new();
-// 	write_unit_params(D, symtbl, out);
-// 	fputs(" {\n", out);
-// 	write_blocks(llhd_unit_get_first_block(D), symtbl, out);
-// 	fputs("}\n", out);
-// 	symtbl_free(symtbl);
-// }
+static void
+write_proc_def (llhd_value_t D, FILE *out) {
+	fprintf(out, "proc @%s ", llhd_value_get_name(D));
+	struct llhd_symtbl *symtbl = symtbl_new();
+	write_unit_params(D, symtbl, out);
+	fputs(" {\n", out);
+	write_blocks(llhd_unit_get_blocks(D), symtbl, out);
+	fputs("}\n", out);
+	symtbl_free(symtbl);
+}
 
 void
 llhd_asm_write_unit (llhd_value_t U, FILE *out) {
@@ -398,7 +401,7 @@ llhd_asm_write_unit (llhd_value_t U, FILE *out) {
 		case LLHD_UNIT_DECL: write_decl(U, out); break;
 		// case LLHD_UNIT_DEF_FUNC: write_func_def(U, out); break;
 		case LLHD_UNIT_DEF_ENTITY: write_entity_def(U, out); break;
-		// case LLHD_UNIT_DEF_PROC: write_proc_def(U, out); break;
+		case LLHD_UNIT_DEF_PROC: write_proc_def(U, out); break;
 		default:
 			assert(0 && "unsupported unit kind");
 	}

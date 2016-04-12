@@ -8,6 +8,7 @@ typedef struct llhd_module * llhd_module_t;
 typedef struct llhd_type * llhd_type_t;
 typedef struct llhd_value * llhd_value_t;
 // typedef struct llhd_apint * llhd_apint_t;
+typedef struct llhd_list * llhd_list_t;
 typedef uint64_t llhd_apint_t;
 
 enum llhd_type_kind {
@@ -29,6 +30,7 @@ enum llhd_value_kind {
 	LLHD_VALUE_CONST = 2,
 	LLHD_VALUE_INST  = 3,
 	LLHD_VALUE_PARAM = 4,
+	LLHD_VALUE_BLOCK = 5,
 };
 
 enum llhd_unit_kind {
@@ -88,6 +90,7 @@ bool llhd_unit_is_def(llhd_value_t);
 bool llhd_unit_is_decl(llhd_value_t);
 llhd_value_t llhd_unit_get_first_block(llhd_value_t);
 llhd_value_t llhd_unit_get_last_block(llhd_value_t);
+llhd_list_t llhd_unit_get_blocks(llhd_value_t);
 unsigned llhd_unit_get_num_inputs(llhd_value_t);
 unsigned llhd_unit_get_num_outputs(llhd_value_t);
 llhd_value_t llhd_unit_get_input(llhd_value_t,unsigned);
@@ -98,8 +101,12 @@ llhd_value_t llhd_entity_get_first_inst(llhd_value_t);
 llhd_value_t llhd_entity_get_last_inst(llhd_value_t);
 unsigned llhd_entity_get_num_insts(llhd_value_t);
 
-llhd_value_t llhd_block_next(llhd_value_t);
-llhd_value_t llhd_block_prev(llhd_value_t);
+// llhd_value_t llhd_block_next(llhd_value_t);
+// llhd_value_t llhd_block_prev(llhd_value_t);
+llhd_list_t llhd_block_first(llhd_list_t);
+llhd_list_t llhd_block_last(llhd_list_t);
+llhd_value_t llhd_block_next(llhd_list_t,llhd_list_t*);
+llhd_value_t llhd_block_prev(llhd_list_t,llhd_list_t*);
 llhd_value_t llhd_block_get_first_inst(llhd_value_t);
 llhd_value_t llhd_block_get_last_inst(llhd_value_t);
 bool llhd_block_is_entry(llhd_value_t);

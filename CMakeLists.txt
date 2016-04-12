@@ -110,8 +110,8 @@ add_library(llhd
 )
 add_library(llhd-linker src-c/linker.c)
 add_library(llhd-opt
-	src-c/opt-cbre.c
-	src-c/opt-ubd.c
+	# src-c/opt-cbre.c
+	# src-c/opt-ubd.c
 	src-c/opt-cf.c
 )
 
