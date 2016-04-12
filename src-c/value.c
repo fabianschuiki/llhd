@@ -454,8 +454,16 @@ llhd_value_unlink(struct llhd_value *V) {
 static void
 proc_dispose(void *ptr) {
 	unsigned i;
+	struct llhd_proc *P;
+	struct llhd_list *pos;
+	struct llhd_value *BB;
 	assert(ptr);
-	struct llhd_proc *P = ptr;
+	P = ptr;
+	pos = llhd_block_first(&P->blocks);
+	while ((BB = llhd_block_next(&P->blocks, &pos))) {
+		llhd_value_unlink(BB);
+		llhd_value_unref(BB);
+	}
 	llhd_free(P->name);
 	llhd_type_unref(P->type);
 	for (i = 0; i < P->super.num_inputs + P->super.num_outputs; ++i)
@@ -544,7 +552,7 @@ block_dispose(void *ptr) {
 		llhd_value_unref((struct llhd_value *)I);
 	}
 	llhd_free(BB->name);
-	llhd_type_unref(BB->type);
+	// llhd_type_unref(BB->type);
 }
 
 struct llhd_list *
