@@ -103,7 +103,7 @@ static char *
 const_int_to_string(void *ptr) {
 	struct llhd_const_int *C = ptr;
 	char buf[21];
-	snprintf(buf, 21, "%lu", C->value);
+	snprintf(buf, 21, "%llu", C->value);
 	return strdup(buf);
 }
 
@@ -451,6 +451,20 @@ llhd_value_unlink(struct llhd_value *V) {
 		V->vtbl->unlink_from_parent_fn(V);
 }
 
+void
+llhd_value_unlink_uses(struct llhd_value *V) {
+	assert(V && V->vtbl);
+	if (V->vtbl->unlink_uses_fn)
+		V->vtbl->unlink_uses_fn(V);
+}
+
+void
+llhd_value_unlink_from_parent(struct llhd_value *V) {
+	assert(V && V->vtbl);
+	if (V->vtbl->unlink_from_parent_fn)
+		V->vtbl->unlink_from_parent_fn(V);
+}
+
 static void
 proc_dispose(void *ptr) {
 	unsigned i;
@@ -481,7 +495,8 @@ proc_add_block(void *ptr, struct llhd_block *BB, int append) {
 
 static void
 proc_remove_block(void *ptr, struct llhd_block *BB) {
-
+	/// @todo Implement
+	assert(0 && "not implemented");
 }
 
 struct llhd_value *
@@ -490,6 +505,7 @@ llhd_block_new(const char *name) {
 	assert(name);
 	B = llhd_alloc_value(sizeof(*B), &vtbl_block);
 	B->name = strdup(name);
+	B->type = llhd_type_new_label();
 	llhd_list_init(&B->insts);
 	return (struct llhd_value *)B;
 }
@@ -507,7 +523,8 @@ llhd_block_append_to(struct llhd_value *V, struct llhd_value *to) {
 
 void
 llhd_block_prepend_to(struct llhd_value *BB, struct llhd_value *to) {
-
+	/// @todo Implement
+	assert(0 && "not implemented");
 }
 
 void
@@ -524,17 +541,22 @@ llhd_block_insert_after(struct llhd_value *V, struct llhd_value *Vpos) {
 
 void
 llhd_block_insert_before(struct llhd_value *V, struct llhd_value *Vpos) {
-
+	/// @todo Implement
+	assert(0 && "not implemented");
 }
 
 static void
-block_add_inst(void *ptr, struct llhd_value *inst, int append) {
-
+block_add_inst(void *ptr, struct llhd_value *I, int append) {
+	struct llhd_block *BB = ptr;
+	assert(I && I->vtbl && I->vtbl->kind == LLHD_VALUE_INST);
+	llhd_value_ref(I);
+	llhd_list_insert(append ? BB->insts.prev : &BB->insts, &((struct llhd_inst *)I)->link);
 }
 
 static void
-block_remove_inst(void *ptr, struct llhd_value *inst) {
-
+block_remove_inst(void *ptr, struct llhd_value *I) {
+	/// @todo Implement
+	assert(0 && "not implemented");
 }
 
 static void
@@ -549,10 +571,18 @@ block_dispose(void *ptr) {
 		struct llhd_inst *I;
 		I = llhd_container_of(link, I, link);
 		link = link->next;
+		llhd_value_unlink_uses((struct llhd_value *)I);
+	}
+	link = BB->insts.next;
+	while (link != &BB->insts) {
+		struct llhd_inst *I;
+		I = llhd_container_of(link, I, link);
+		link = link->next;
+		I->parent = NULL;
 		llhd_value_unref((struct llhd_value *)I);
 	}
 	llhd_free(BB->name);
-	// llhd_type_unref(BB->type);
+	llhd_type_unref(BB->type);
 }
 
 struct llhd_list *

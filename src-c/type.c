@@ -50,6 +50,16 @@ llhd_type_new_int(unsigned bits) {
 	return T;
 }
 
+struct llhd_type *
+llhd_type_new_void() {
+	return llhd_alloc_type(LLHD_TYPE_VOID,0);
+}
+
+struct llhd_type *
+llhd_type_new_label() {
+	return llhd_alloc_type(LLHD_TYPE_LABEL,0);
+}
+
 void
 llhd_type_ref(struct llhd_type *T) {
 	assert(T->rc > 0);
@@ -96,17 +106,21 @@ llhd_type_is(struct llhd_type *T, int kind) {
 
 unsigned
 llhd_type_get_length(struct llhd_type *T) {
-	assert(T->kind == LLHD_TYPE_INT ||
-	       T->kind == LLHD_TYPE_LOGIC ||
-	       T->kind == LLHD_TYPE_ARRAY);
+	assert(
+		T->kind == LLHD_TYPE_INT ||
+		T->kind == LLHD_TYPE_LOGIC ||
+		T->kind == LLHD_TYPE_ARRAY
+	);
 	return T->num_in;
 }
 
 struct llhd_type *
 llhd_type_get_subtype(struct llhd_type *T) {
-	assert(T->kind == LLHD_TYPE_ARRAY ||
-	       T->kind == LLHD_TYPE_PTR ||
-	       T->kind == LLHD_TYPE_SIGNAL);
+	assert(
+		T->kind == LLHD_TYPE_ARRAY ||
+		T->kind == LLHD_TYPE_PTR ||
+		T->kind == LLHD_TYPE_SIGNAL
+	);
 	return T->subtypes[0];
 }
 

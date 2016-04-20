@@ -41,10 +41,12 @@ enum llhd_unit_kind {
 };
 
 enum llhd_inst_kind {
-	LLHD_INST_BRANCH = 1,
-	LLHD_INST_UNARY  = 2,
-	LLHD_INST_BINARY = 3,
-	LLHD_INST_SIGNAL = 4,
+	LLHD_INST_BRANCH  = 1,
+	LLHD_INST_UNARY   = 2,
+	LLHD_INST_BINARY  = 3,
+	LLHD_INST_SIGNAL  = 4,
+	LLHD_INST_COMPARE = 5,
+	LLHD_INST_DRIVE   = 6,
 };
 
 enum llhd_unary_op {
@@ -65,6 +67,19 @@ enum llhd_binary_op {
 	LLHD_BINARY_AND  = 11,
 	LLHD_BINARY_OR   = 12,
 	LLHD_BINARY_XOR  = 13,
+};
+
+enum llhd_compare_op {
+	LLHD_CMP_EQ  = 0x0,
+	LLHD_CMP_NE  = 0x1,
+	LLHD_CMP_ULT = 0x4,
+	LLHD_CMP_UGT = 0x5,
+	LLHD_CMP_ULE = 0x6,
+	LLHD_CMP_UGE = 0x7,
+	LLHD_CMP_SLT = 0x8,
+	LLHD_CMP_SGT = 0x9,
+	LLHD_CMP_SLE = 0xA,
+	LLHD_CMP_SGE = 0xB,
 };
 
 enum llhd_const_kind {
@@ -140,6 +155,15 @@ llhd_value_t llhd_inst_branch_get_dst(llhd_value_t);
 llhd_value_t llhd_inst_branch_get_dst0(llhd_value_t);
 llhd_value_t llhd_inst_branch_get_dst1(llhd_value_t);
 
+llhd_value_t llhd_inst_compare_new(int,llhd_value_t,llhd_value_t,const char*);
+int llhd_inst_compare_get_op(llhd_value_t);
+const char *llhd_inst_compare_get_opname(llhd_value_t);
+llhd_value_t llhd_inst_compare_get_lhs(llhd_value_t);
+llhd_value_t llhd_inst_compare_get_rhs(llhd_value_t);
+
+llhd_value_t llhd_inst_drive_get_sig(llhd_value_t);
+llhd_value_t llhd_inst_drive_get_val(llhd_value_t);
+
 llhd_value_t llhd_const_int_new(llhd_apint_t);
 bool llhd_const_is_null(llhd_value_t);
 bool llhd_const_is(llhd_value_t,int);
@@ -164,6 +188,8 @@ void llhd_value_free(llhd_value_t);
 
 llhd_type_t llhd_type_new_comp(llhd_type_t*,unsigned,llhd_type_t*,unsigned);
 llhd_type_t llhd_type_new_int(unsigned);
+llhd_type_t llhd_type_new_void();
+llhd_type_t llhd_type_new_label();
 bool llhd_type_is(llhd_type_t,int);
 int llhd_type_get_kind(llhd_type_t);
 unsigned llhd_type_get_length(llhd_type_t);

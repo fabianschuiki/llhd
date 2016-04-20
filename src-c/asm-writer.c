@@ -275,6 +275,7 @@ static void
 write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 	int kind = llhd_inst_get_kind(I);
 	const char *name = llhd_value_get_name(I);
+	llhd_value_t cond;
 	if (name || llhd_value_has_users(I)) {
 		const char *an = symtbl_add_name(symtbl, I, name);
 		fputc('%', out);
@@ -282,23 +283,6 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 		fputs(" = ", out);
 	}
 	switch (kind) {
-		case LLHD_INST_BRANCH:
-			// fputs("br ", out);
-			// llhd_value_t cond = llhd_inst_branch_get_condition(I);
-			// if (cond) {
-			// 	llhd_value_t dst0 = llhd_inst_branch_get_dst0(I);
-			// 	llhd_value_t dst1 = llhd_inst_branch_get_dst1(I);
-			// 	write_value_ref(cond, 1, symtbl, out);
-			// 	fputs(", ", out);
-			// 	write_value_ref(dst1, 1, symtbl, out);
-			// 	fputs(", ", out);
-			// 	write_value_ref(dst0, 1, symtbl, out);
-			// } else {
-			// 	llhd_value_t dst = llhd_inst_branch_get_dst(I);
-			// 	write_value_ref(dst, 1, symtbl, out);
-			// }
-			// break;
-			assert(false && "write branch not implemented");
 		case LLHD_INST_UNARY:
 			assert(false && "write unary not implemented");
 			break;
@@ -316,10 +300,37 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 			fputs("sig ", out);
 			write_type(llhd_value_get_type(I), out);
 			break;
+		case LLHD_INST_COMPARE:
+			fputs("cmp ", out);
+			fputs(llhd_inst_compare_get_opname(I), out);
+			fputc(' ', out);
+			write_value_ref(llhd_inst_compare_get_lhs(I), 1, symtbl, out);
+			fputc(' ', out);
+			write_value_ref(llhd_inst_compare_get_rhs(I), 0, symtbl, out);
+			break;
+		case LLHD_INST_BRANCH:
+			fputs("br ", out);
+			cond = llhd_inst_branch_get_condition(I);
+			if (cond) {
+				write_value_ref(cond, 1, symtbl, out);
+				fputs(", ", out);
+				write_value_ref(llhd_inst_branch_get_dst1(I), 1, symtbl, out);
+				fputs(", ", out);
+				write_value_ref(llhd_inst_branch_get_dst0(I), 1, symtbl, out);
+			} else {
+				write_value_ref(llhd_inst_branch_get_dst(I), 1, symtbl, out);
+			}
+			break;
+		case LLHD_INST_DRIVE:
+			fputs("drv ", out);
+			write_value_ref(llhd_inst_drive_get_sig(I), 1, symtbl, out);
+			fputc(' ', out);
+			write_value_ref(llhd_inst_drive_get_val(I), 0, symtbl, out);
+			break;
 		default:
 			assert(0 && "unknown inst kind");
 	}
-	fprintf(out, "  ; [#users = %d]", llhd_value_get_num_users(I));
+	fprintf(out, "  ;[#users = %d]", llhd_value_get_num_users(I));
 }
 
 static void
@@ -337,7 +348,11 @@ write_blocks(llhd_list_t list, struct llhd_symtbl *symtbl, FILE *out) {
 	llhd_value_t BB;
 	pos = llhd_block_first(list);
 	while ((BB = llhd_block_next(list, &pos))) {
-		fputs(llhd_value_get_name(BB), out);
+		symtbl_add_name(symtbl, BB, llhd_value_get_name(BB));
+	}
+	pos = llhd_block_first(list);
+	while ((BB = llhd_block_next(list, &pos))) {
+		fputs(symtbl_lookup_sym(symtbl, BB), out);
 		fputs(":\n", out);
 		write_insts(llhd_block_get_first_inst(BB), symtbl, out);
 	}
