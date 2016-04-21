@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Fabian Schuiki
+/* Copyright (c) 2016 Fabian Schuiki */
 #include "value.h"
 #include "inst.h"
 #include <stdint.h>
@@ -6,7 +6,13 @@
 #include <string.h>
 #include <stdio.h>
 
+/**
+ * @todo Merge inst and const kinds into value kind field and replace
+ * corresponding type checks with easier variant.
+ */
+
 static char *const_int_to_string(void*);
+static void const_int_dispose(void*);
 
 static void entity_add_inst(void*, struct llhd_value*, int);
 static void entity_remove_inst(void*, struct llhd_value*);
@@ -38,6 +44,7 @@ static struct llhd_const_vtbl vtbl_const_int = {
 	.super = {
 		.kind = LLHD_VALUE_CONST,
 		.type_offset = offsetof(struct llhd_const_int, type),
+		.dispose_fn = const_int_dispose,
 	},
 	.kind = LLHD_CONST_INT,
 	.to_string_fn = const_int_to_string,
@@ -105,6 +112,13 @@ const_int_to_string(void *ptr) {
 	char buf[21];
 	snprintf(buf, 21, "%llu", C->value);
 	return strdup(buf);
+}
+
+static void
+const_int_dispose(void *ptr) {
+	struct llhd_const_int *C = ptr;
+	assert(ptr);
+	llhd_type_unref(C->type);
 }
 
 bool
@@ -268,11 +282,20 @@ entity_dispose(void *ptr) {
 	unsigned i;
 	assert(ptr);
 	struct llhd_entity *E = ptr;
-	struct llhd_list *link = E->insts.next;
+	struct llhd_list *link;
+	link = E->insts.next;
 	while (link != &E->insts) {
 		struct llhd_inst *I;
 		I = llhd_container_of(link, I, link);
 		link = link->next;
+		llhd_value_unlink_uses((struct llhd_value *)I);
+	}
+	link = E->insts.next;
+	while (link != &E->insts) {
+		struct llhd_inst *I;
+		I = llhd_container_of(link, I, link);
+		link = link->next;
+		I->parent = NULL;
 		llhd_value_unref((struct llhd_value *)I);
 	}
 	llhd_free(E->name);

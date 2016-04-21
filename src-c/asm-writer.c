@@ -275,7 +275,8 @@ static void
 write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 	int kind = llhd_inst_get_kind(I);
 	const char *name = llhd_value_get_name(I);
-	llhd_value_t cond;
+	llhd_value_t cond, comp;
+	unsigned i, num;
 	if (name || llhd_value_has_users(I)) {
 		const char *an = symtbl_add_name(symtbl, I, name);
 		fputc('%', out);
@@ -326,6 +327,26 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 			write_value_ref(llhd_inst_drive_get_sig(I), 1, symtbl, out);
 			fputc(' ', out);
 			write_value_ref(llhd_inst_drive_get_val(I), 0, symtbl, out);
+			break;
+		case LLHD_INST_INST:
+			fputs("inst ", out);
+			comp = llhd_inst_inst_get_comp(I);
+			write_type(llhd_value_get_type(comp), out);
+			fputs(" @", out);
+			fputs(llhd_value_get_name(comp), out);
+			fputs(" (", out);
+			num = llhd_inst_inst_get_num_inputs(I);
+			for (i = 0; i < num; ++i) {
+				if (i != 0) fputs(", ", out);
+				write_value_ref(llhd_inst_inst_get_input(I,i), 0, symtbl, out);
+			}
+			fputs(") (", out);
+			num = llhd_inst_inst_get_num_outputs(I);
+			for (i = 0; i < num; ++i) {
+				if (i != 0) fputs(", ", out);
+				write_value_ref(llhd_inst_inst_get_output(I,i), 0, symtbl, out);
+			}
+			fputs(")", out);
 			break;
 		case LLHD_INST_RET:
 			fputs("ret", out);

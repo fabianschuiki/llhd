@@ -3,7 +3,15 @@
  * Guidelines:
  * - insts ref/unref their arguments
  * - insts use/unuse their arguments
- *
+ */
+
+#include "value.h"
+#include "inst.h"
+#include <llhd.h>
+#include <assert.h>
+#include <string.h>
+
+/**
  * @todo Delete all but one instance of unlink_from_parent.
  * @todo Automate handling of uses: automatically ref/unref and use/unuse args,
  *       have one generic substitute and unlink_uses function.
@@ -11,11 +19,6 @@
  *       dispose_inst helper functions.
  * @todo Add ret instruction that takes one or more arguments.
  */
-#include "value.h"
-#include "inst.h"
-#include <llhd.h>
-#include <assert.h>
-#include <string.h>
 
 static void binary_dispose(void*);
 static void binary_substitute(void*,void*,void*);
@@ -41,6 +44,11 @@ static void signal_dispose(void*);
 static void signal_unlink_from_parent(void*);
 
 static void ret_unlink_from_parent(void*);
+
+static void inst_dispose(void*);
+static void inst_substitute(void*,void*,void*);
+static void inst_unlink_from_parent(void*);
+static void inst_unlink_uses(void*);
 
 static struct llhd_inst_vtbl vtbl_binary_inst = {
 	.super = {
@@ -109,6 +117,18 @@ static struct llhd_inst_vtbl vtbl_ret_inst = {
 		.unlink_from_parent_fn = ret_unlink_from_parent,
 	},
 	.kind = LLHD_INST_RET,
+};
+
+static struct llhd_inst_vtbl vtbl_inst_inst = {
+	.super = {
+		.kind = LLHD_VALUE_INST,
+		.name_offset = offsetof(struct llhd_inst, name),
+		.dispose_fn = inst_dispose,
+		.substitute_fn = inst_substitute,
+		.unlink_from_parent_fn = inst_unlink_from_parent,
+		.unlink_uses_fn = inst_unlink_uses,
+	},
+	.kind = LLHD_INST_INST,
 };
 
 static const char *binary_opnames[] = {
@@ -312,8 +332,9 @@ llhd_inst_sig_new(struct llhd_type *T, const char *name) {
 
 static void
 signal_dispose(void *ptr) {
-	assert(ptr);
 	struct llhd_inst *I = ptr;
+	assert(ptr);
+	assert(!I->parent);
 	llhd_type_unref(I->type);
 	if (I->name)
 		llhd_free(I->name);
@@ -652,4 +673,145 @@ ret_unlink_from_parent(void *ptr) {
 	I->parent = NULL;
 	if (P->vtbl->remove_inst_fn)
 		P->vtbl->remove_inst_fn(P, ptr);
+}
+
+struct llhd_value *
+llhd_inst_instance_new(
+	struct llhd_value *comp,
+	struct llhd_value **inputs,
+	unsigned num_inputs,
+	struct llhd_value **outputs,
+	unsigned num_outputs,
+	const char *name
+) {
+	unsigned i;
+	struct llhd_inst_inst *I;
+	void *ptr;
+	size_t sz_uses, sz_in, sz_out;
+	assert(comp);
+	assert(num_inputs == 0 || inputs);
+	assert(num_outputs == 0 || outputs);
+	sz_uses = sizeof(struct llhd_value_use) * (1+num_inputs+num_outputs);
+	sz_in   = sizeof(struct llhd_value *) * num_inputs;
+	sz_out  = sizeof(struct llhd_value *) * num_outputs;
+	ptr = llhd_alloc_value(sizeof(*I) + sz_uses + sz_in + sz_out, &vtbl_inst_inst);
+	I = ptr;
+	I->super.name = strdup(name);
+	I->comp = comp;
+	I->num_inputs = num_inputs;
+	I->num_outputs = num_outputs;
+	I->uses = ptr + sizeof(*I);
+	I->params = ptr + sizeof(*I) + sz_uses;
+	memcpy(I->params, inputs, sz_in);
+	memcpy(I->params+num_inputs, outputs, sz_out);
+	llhd_value_ref(comp);
+	llhd_value_use(comp, I->uses);
+	for (i = 0; i < num_inputs+num_outputs; ++i) {
+		llhd_value_ref(I->params[i]);
+		llhd_value_use(I->params[i], &I->uses[1+i]);
+	}
+	return (struct llhd_value *)I;
+}
+
+static void
+inst_dispose(void *ptr) {
+	unsigned i;
+	struct llhd_inst_inst *I = ptr;
+	assert(ptr);
+	assert(!I->super.parent);
+	llhd_value_unref(I->comp);
+	for (i = 0; i < I->num_inputs + I->num_outputs; ++i)
+		llhd_value_unref(I->params[i]);
+	llhd_free(I->super.name);
+}
+
+static void
+inst_substitute(void *ptr, void *ref, void *sub) {
+	unsigned i;
+	struct llhd_inst_inst *I = ptr;
+	assert(ptr);
+	if (I->comp == ref) {
+		llhd_value_ref(sub);
+		llhd_value_unuse(&I->uses[0]);
+		llhd_value_use(sub, &I->uses[0]);
+		llhd_value_unref(ref);
+	}
+	for (i = 0; i < I->num_inputs + I->num_outputs; ++i) {
+		if (I->params[i] == ref) {
+			llhd_value_ref(sub);
+			llhd_value_unuse(&I->uses[1+i]);
+			llhd_value_use(sub, &I->uses[1+i]);
+			llhd_value_unref(ref);
+		}
+	}
+}
+
+static void
+inst_unlink_from_parent(void *ptr) {
+	struct llhd_inst *I = ptr;
+	struct llhd_value *P = I->parent;
+	assert(P && P->vtbl);
+	// Must go before remove_inst_fn, since that might dispose and free the
+	// inst, which triggers an assert on parent == NULL in the dispose function.
+	I->parent = NULL;
+	if (P->vtbl->remove_inst_fn)
+		P->vtbl->remove_inst_fn(P, ptr);
+}
+
+static void
+inst_unlink_uses(void *ptr) {
+	unsigned i;
+	struct llhd_inst_inst *I = ptr;
+	assert(ptr);
+	llhd_value_unuse(&I->uses[0]);
+	for (i = 0; i < I->num_inputs + I->num_outputs; ++i) {
+		llhd_value_unuse(&I->uses[1+i]);
+	}
+}
+
+struct llhd_value *
+llhd_inst_inst_get_comp(struct llhd_value *V) {
+	struct llhd_inst_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_INST);
+	return I->comp;
+}
+
+unsigned
+llhd_inst_inst_get_num_inputs(struct llhd_value *V) {
+	struct llhd_inst_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_INST);
+	return I->num_inputs;
+}
+
+unsigned
+llhd_inst_inst_get_num_outputs(struct llhd_value *V) {
+	struct llhd_inst_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_INST);
+	return I->num_outputs;
+}
+
+struct llhd_value *
+llhd_inst_inst_get_input(struct llhd_value *V, unsigned idx) {
+	struct llhd_inst_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_INST);
+	assert(idx < I->num_inputs);
+	return I->params[idx];
+}
+
+struct llhd_value *
+llhd_inst_inst_get_output(struct llhd_value *V, unsigned idx) {
+	struct llhd_inst_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_INST);
+	assert(idx < I->num_outputs);
+	return I->params[I->num_inputs+idx];
 }

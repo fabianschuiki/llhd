@@ -49,3 +49,12 @@ struct llhd_drive_inst {
 struct llhd_ret_inst {
 	struct llhd_inst super;
 };
+
+struct llhd_inst_inst {
+	struct llhd_inst super;
+	struct llhd_value *comp;
+	unsigned num_inputs;
+	unsigned num_outputs;
+	struct llhd_value **params;
+	struct llhd_value_use *uses;
+};

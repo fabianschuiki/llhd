@@ -9,7 +9,6 @@ void llhd_asm_write_unit(llhd_value_t,FILE*);
 void llhd_value_set_name(llhd_value_t,const char*);
 llhd_value_t llhd_proc_new(llhd_type_t,const char*);
 llhd_value_t llhd_inst_sig_new(llhd_type_t,const char*);
-llhd_value_t llhd_inst_instance_new(llhd_value_t,llhd_value_t*,unsigned,llhd_value_t*,unsigned);
 llhd_value_t llhd_block_new(const char*);
 void llhd_block_append_to(llhd_value_t,llhd_value_t);
 void llhd_block_prepend_to(llhd_value_t,llhd_value_t);
@@ -41,19 +40,20 @@ int main() {
 	Q = llhd_inst_sig_new(i1ty, "Q");
 	llhd_inst_append_to(Q, E);
 	llhd_value_unref(Q);
-	// I = llhd_inst_instance_new(P,
-	// 	(llhd_value_t[]){
-	// 		llhd_unit_get_input(E,0),
-	// 		llhd_unit_get_input(E,1),
-	// 		Q
-	// 	}, 3,
-	// 	(llhd_value_t[]){
-	// 		llhd_unit_get_output(E,0),
-	// 		Q
-	// 	}, 2
-	// );
-	// llhd_inst_append_to(I, E);
-	// llhd_value_unref(I);
+	I = llhd_inst_instance_new(P,
+		(llhd_value_t[]){
+			llhd_unit_get_input(E,0),
+			llhd_unit_get_input(E,1),
+			Q
+		}, 3,
+		(llhd_value_t[]){
+			llhd_unit_get_output(E,0),
+			Q
+		}, 2,
+		"p"
+	);
+	llhd_inst_append_to(I, E);
+	llhd_value_unref(I);
 
 	BBentry = llhd_block_new("entry");
 	BBckl = llhd_block_new("ckl");
