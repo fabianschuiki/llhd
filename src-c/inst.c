@@ -3,6 +3,13 @@
  * Guidelines:
  * - insts ref/unref their arguments
  * - insts use/unuse their arguments
+ *
+ * @todo Delete all but one instance of unlink_from_parent.
+ * @todo Automate handling of uses: automatically ref/unref and use/unuse args,
+ *       have one generic substitute and unlink_uses function.
+ * @todo Factor handling of inst->type and inst->name out into alloc_inst and
+ *       dispose_inst helper functions.
+ * @todo Add ret instruction that takes one or more arguments.
  */
 #include "value.h"
 #include "inst.h"
@@ -32,6 +39,8 @@ static void drive_unlink_uses(void*);
 
 static void signal_dispose(void*);
 static void signal_unlink_from_parent(void*);
+
+static void ret_unlink_from_parent(void*);
 
 static struct llhd_inst_vtbl vtbl_binary_inst = {
 	.super = {
@@ -92,6 +101,14 @@ static struct llhd_inst_vtbl vtbl_drive_inst = {
 		.unlink_uses_fn = drive_unlink_uses,
 	},
 	.kind = LLHD_INST_DRIVE,
+};
+
+static struct llhd_inst_vtbl vtbl_ret_inst = {
+	.super = {
+		.kind = LLHD_VALUE_INST,
+		.unlink_from_parent_fn = ret_unlink_from_parent,
+	},
+	.kind = LLHD_INST_RET,
 };
 
 static const char *binary_opnames[] = {
@@ -618,10 +635,21 @@ llhd_inst_drive_get_val(struct llhd_value *V) {
 	return I->val;
 }
 
-/**
- * @todo Delete all but one instance of unlink_from_parent.
- * @todo Automate handling of uses: automatically ref/unref and use/unuse args,
- *       have one generic substitute and unlink_uses function.
- * @todo Factor handling of inst->type and inst->name out into alloc_inst and
- *       dispose_inst helper functions.
- */
+struct llhd_value *
+llhd_inst_ret_new() {
+	struct llhd_ret_inst *I;
+	I = llhd_alloc_value(sizeof(*I), &vtbl_ret_inst);
+	return (struct llhd_value *)I;
+}
+
+static void
+ret_unlink_from_parent(void *ptr) {
+	struct llhd_inst *I = ptr;
+	struct llhd_value *P = I->parent;
+	assert(P && P->vtbl);
+	// Must go before remove_inst_fn, since that might dispose and free the
+	// inst, which triggers an assert on parent == NULL in the dispose function.
+	I->parent = NULL;
+	if (P->vtbl->remove_inst_fn)
+		P->vtbl->remove_inst_fn(P, ptr);
+}

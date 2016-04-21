@@ -10,8 +10,6 @@ void llhd_value_set_name(llhd_value_t,const char*);
 llhd_value_t llhd_proc_new(llhd_type_t,const char*);
 llhd_value_t llhd_inst_sig_new(llhd_type_t,const char*);
 llhd_value_t llhd_inst_instance_new(llhd_value_t,llhd_value_t*,unsigned,llhd_value_t*,unsigned);
-llhd_value_t llhd_inst_drive_new(llhd_value_t,llhd_value_t);
-llhd_value_t llhd_inst_ret_new();
 llhd_value_t llhd_block_new(const char*);
 void llhd_block_append_to(llhd_value_t,llhd_value_t);
 void llhd_block_prepend_to(llhd_value_t,llhd_value_t);
@@ -84,16 +82,16 @@ int main() {
 	llhd_value_unref(k0);
 	llhd_inst_append_to(I, BBckl);
 	llhd_value_unref(I);
-	// I = llhd_inst_ret_new();
-	// llhd_inst_append_to(I, BBckl);
-	// llhd_value_unref(I);
+	I = llhd_inst_ret_new();
+	llhd_inst_append_to(I, BBckl);
+	llhd_value_unref(I);
 
 	I = llhd_inst_drive_new(llhd_unit_get_output(P,0), llhd_unit_get_input(P,2));
 	llhd_inst_append_to(I, BBckh);
 	llhd_value_unref(I);
-	// I = llhd_inst_ret_new();
-	// llhd_inst_append_to(I, BBckh);
-	// llhd_value_unref(I);
+	I = llhd_inst_ret_new();
+	llhd_inst_append_to(I, BBckh);
+	llhd_value_unref(I);
 
 	llhd_asm_write_unit(E, stdout);
 	llhd_asm_write_unit(P, stdout);

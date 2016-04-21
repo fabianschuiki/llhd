@@ -47,6 +47,7 @@ enum llhd_inst_kind {
 	LLHD_INST_SIGNAL  = 4,
 	LLHD_INST_COMPARE = 5,
 	LLHD_INST_DRIVE   = 6,
+	LLHD_INST_RET     = 7,
 };
 
 enum llhd_unary_op {
@@ -161,8 +162,11 @@ const char *llhd_inst_compare_get_opname(llhd_value_t);
 llhd_value_t llhd_inst_compare_get_lhs(llhd_value_t);
 llhd_value_t llhd_inst_compare_get_rhs(llhd_value_t);
 
+llhd_value_t llhd_inst_drive_new(llhd_value_t,llhd_value_t);
 llhd_value_t llhd_inst_drive_get_sig(llhd_value_t);
 llhd_value_t llhd_inst_drive_get_val(llhd_value_t);
+
+llhd_value_t llhd_inst_ret_new();
 
 llhd_value_t llhd_const_int_new(llhd_apint_t);
 bool llhd_const_is_null(llhd_value_t);

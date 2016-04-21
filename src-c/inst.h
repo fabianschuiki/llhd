@@ -45,3 +45,7 @@ struct llhd_drive_inst {
 	struct llhd_value *val;
 	struct llhd_value_use uses[2];
 };
+
+struct llhd_ret_inst {
+	struct llhd_inst super;
+};

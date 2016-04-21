@@ -327,6 +327,9 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 			fputc(' ', out);
 			write_value_ref(llhd_inst_drive_get_val(I), 0, symtbl, out);
 			break;
+		case LLHD_INST_RET:
+			fputs("ret", out);
+			break;
 		default:
 			assert(0 && "unknown inst kind");
 	}
