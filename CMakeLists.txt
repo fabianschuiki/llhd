@@ -107,8 +107,9 @@ add_library(llhd
 	src-c/type.c
 	src-c/asm-writer.c
 	src-c/apint.c
+	src-c/module.c
 )
-add_library(llhd-linker src-c/linker.c)
+# add_library(llhd-linker src-c/linker.c)
 add_library(llhd-opt
 	# src-c/opt-cbre.c
 	# src-c/opt-ubd.c

@@ -2,7 +2,7 @@
 #pragma once
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdio.h>
+#include <stdio.h> // remove later
 #include <stdint.h> // remove later
 
 typedef struct llhd_module * llhd_module_t;
@@ -89,15 +89,18 @@ enum llhd_const_kind {
 	LLHD_CONST_INT = 1,
 };
 
-llhd_module_t llhd_module_new(const char *name);
+llhd_module_t llhd_module_new(const char*);
 void llhd_module_free(llhd_module_t);
 llhd_value_t llhd_module_get_first_unit(llhd_module_t);
 llhd_value_t llhd_module_get_last_unit(llhd_module_t);
+llhd_list_t llhd_module_get_units(llhd_module_t);
 void llhd_verify_module_selfcontained(llhd_module_t);
 const char *llhd_module_get_name(llhd_module_t);
 
-llhd_value_t llhd_unit_next(llhd_value_t);
-llhd_value_t llhd_unit_prev(llhd_value_t);
+llhd_list_t llhd_unit_first(llhd_list_t);
+llhd_list_t llhd_unit_last(llhd_list_t);
+llhd_value_t llhd_unit_next(llhd_list_t,llhd_list_t*);
+llhd_value_t llhd_unit_prev(llhd_list_t,llhd_list_t*);
 void llhd_unit_append_to(llhd_value_t,llhd_module_t);
 void llhd_unit_prepend_to(llhd_value_t,llhd_module_t);
 void llhd_unit_insert_after(llhd_value_t,llhd_value_t);
@@ -230,4 +233,5 @@ void *llhd_realloc(void*,size_t);
 void llhd_free(void*);
 
 void llhd_fold_constants(llhd_value_t);
+void llhd_asm_write_module(llhd_module_t,FILE*);
 void llhd_asm_write_unit(llhd_value_t,FILE*);

@@ -7,10 +7,12 @@
 
 
 int main() {
+	llhd_module_t M;
 	llhd_value_t E, P, I, Q, BBentry, BBckl, BBckh, k0;
 	llhd_type_t Ety, Pty, i1ty;
 
 	i1ty = llhd_type_new_int(1);
+	M = llhd_module_new("debug3");
 
 	Ety = llhd_type_new_comp((llhd_type_t[]){i1ty,i1ty}, 2, (llhd_type_t[]){i1ty}, 1);
 	E = llhd_entity_new(Ety, "LAGCE");
@@ -18,6 +20,7 @@ int main() {
 	llhd_value_set_name(llhd_unit_get_input(E,1), "E");
 	llhd_value_set_name(llhd_unit_get_output(E,0), "GCK");
 	llhd_type_unref(Ety);
+	llhd_unit_append_to(E,M);
 
 	Pty = llhd_type_new_comp((llhd_type_t[]){i1ty,i1ty,i1ty}, 3, (llhd_type_t[]){i1ty,i1ty}, 2);
 	P = llhd_proc_new(Pty, "LAGCE_proc");
@@ -27,6 +30,7 @@ int main() {
 	llhd_value_set_name(llhd_unit_get_output(P,0), "GCK");
 	llhd_value_set_name(llhd_unit_get_output(P,1), "Q");
 	llhd_type_unref(Pty);
+	llhd_unit_append_to(P,M);
 
 	Q = llhd_inst_sig_new(i1ty, "Q");
 	llhd_inst_append_to(Q, E);
@@ -84,12 +88,14 @@ int main() {
 	llhd_inst_append_to(I, BBckh);
 	llhd_value_unref(I);
 
-	llhd_asm_write_unit(E, stdout);
-	llhd_asm_write_unit(P, stdout);
+	// llhd_asm_write_unit(E, stdout);
+	// llhd_asm_write_unit(P, stdout);
+	llhd_asm_write_module(M, stdout);
 	llhd_value_unref(E);
 	llhd_value_unref(P);
 
 	llhd_type_unref(i1ty);
+	llhd_module_free(M);
 
 	return 0;
 }

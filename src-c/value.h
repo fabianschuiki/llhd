@@ -29,6 +29,8 @@ struct llhd_unit {
 	unsigned num_inputs;
 	unsigned num_outputs;
 	struct llhd_param **params;
+	struct llhd_list link;
+	struct llhd_module *module;
 };
 
 struct llhd_entity {

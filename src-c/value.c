@@ -1,6 +1,8 @@
 /* Copyright (c) 2016 Fabian Schuiki */
 #include "value.h"
 #include "inst.h"
+#include "module.h"
+
 #include <stdint.h>
 #include <assert.h>
 #include <string.h>
@@ -671,4 +673,84 @@ llhd_unit_get_blocks(struct llhd_value *V) {
 	vtbl = (struct llhd_unit_vtbl *)V->vtbl;
 	assert(vtbl->block_list_offset);
 	return (void*)V + vtbl->block_list_offset;
+}
+
+struct llhd_list *
+llhd_unit_first(struct llhd_list *head) {
+	assert(head);
+	return head->next;
+}
+
+struct llhd_list *
+llhd_unit_last(struct llhd_list *head) {
+	assert(head);
+	return head->prev;
+}
+
+struct llhd_value *
+llhd_unit_next(struct llhd_list *head, struct llhd_list **pos) {
+	assert(head && pos);
+	if (*pos != head) {
+		void *ptr = llhd_container_of2(*pos, struct llhd_unit, link);
+		*pos = (*pos)->next;
+		return ptr;
+	} else {
+		return NULL;
+	}
+}
+
+struct llhd_value *
+llhd_unit_prev(struct llhd_list *head, struct llhd_list **pos) {
+	assert(head && pos);
+	if (*pos != head) {
+		void *ptr = llhd_container_of2(*pos, struct llhd_unit, link);
+		*pos = (*pos)->prev;
+		return ptr;
+	} else {
+		return NULL;
+	}
+}
+
+void
+llhd_unit_append_to(struct llhd_value *V, struct llhd_module *M) {
+	struct llhd_unit *U = (void*)V;
+	assert(V && M);
+	assert(V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(!U->module);
+	U->module = M;
+	llhd_value_ref(V);
+	llhd_list_insert(M->units.prev, &U->link);
+}
+
+void
+llhd_unit_prepend_to(struct llhd_value *V, struct llhd_module *M) {
+	struct llhd_unit *U = (void*)V;
+	assert(V && M);
+	assert(V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(!U->module);
+	U->module = M;
+	llhd_value_ref(V);
+	llhd_list_insert(&M->units, &U->link);
+}
+
+void
+llhd_unit_insert_after(struct llhd_value *V, struct llhd_value *Vother) {
+	struct llhd_unit *U = (void*)V, *other = (void*)Vother;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(Vother && Vother->vtbl && Vother->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(!U->module);
+	U->module = other->module;
+	llhd_value_ref(V);
+	llhd_list_insert(&other->link, &U->link);
+}
+
+void
+llhd_unit_insert_before(struct llhd_value *V, struct llhd_value *Vother) {
+	struct llhd_unit *U = (void*)V, *other = (void*)Vother;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(Vother && Vother->vtbl && Vother->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(!U->module);
+	U->module = other->module;
+	llhd_value_ref(V);
+	llhd_list_insert(other->link.prev, &U->link);
 }
