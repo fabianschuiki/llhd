@@ -5,15 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-void llhd_asm_write_unit(llhd_value_t,FILE*);
-void llhd_value_set_name(llhd_value_t,const char*);
-llhd_value_t llhd_proc_new(llhd_type_t,const char*);
-llhd_value_t llhd_inst_sig_new(llhd_type_t,const char*);
-llhd_value_t llhd_block_new(const char*);
-void llhd_block_append_to(llhd_value_t,llhd_value_t);
-void llhd_block_prepend_to(llhd_value_t,llhd_value_t);
-void llhd_block_insert_after(llhd_value_t,llhd_value_t);
-void llhd_block_insert_before(llhd_value_t,llhd_value_t);
 
 int main() {
 	llhd_value_t E, P, I, Q, BBentry, BBckl, BBckh, k0;

@@ -2,6 +2,7 @@
 #pragma once
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdint.h> // remove later
 
 typedef struct llhd_module * llhd_module_t;
@@ -118,12 +119,17 @@ llhd_value_t llhd_entity_get_first_inst(llhd_value_t);
 llhd_value_t llhd_entity_get_last_inst(llhd_value_t);
 unsigned llhd_entity_get_num_insts(llhd_value_t);
 
-// llhd_value_t llhd_block_next(llhd_value_t);
-// llhd_value_t llhd_block_prev(llhd_value_t);
+llhd_value_t llhd_proc_new(llhd_type_t,const char*);
+
+llhd_value_t llhd_block_new(const char*);
 llhd_list_t llhd_block_first(llhd_list_t);
 llhd_list_t llhd_block_last(llhd_list_t);
 llhd_value_t llhd_block_next(llhd_list_t,llhd_list_t*);
 llhd_value_t llhd_block_prev(llhd_list_t,llhd_list_t*);
+void llhd_block_append_to(llhd_value_t,llhd_value_t);
+void llhd_block_prepend_to(llhd_value_t,llhd_value_t);
+void llhd_block_insert_after(llhd_value_t,llhd_value_t);
+void llhd_block_insert_before(llhd_value_t,llhd_value_t);
 llhd_value_t llhd_block_get_first_inst(llhd_value_t);
 llhd_value_t llhd_block_get_last_inst(llhd_value_t);
 bool llhd_block_is_entry(llhd_value_t);
@@ -176,6 +182,8 @@ unsigned llhd_inst_inst_get_num_outputs(llhd_value_t);
 llhd_value_t llhd_inst_inst_get_input(llhd_value_t,unsigned);
 llhd_value_t llhd_inst_inst_get_output(llhd_value_t,unsigned);
 
+llhd_value_t llhd_inst_sig_new(llhd_type_t,const char*);
+
 llhd_value_t llhd_const_int_new(llhd_apint_t);
 bool llhd_const_is_null(llhd_value_t);
 bool llhd_const_is(llhd_value_t,int);
@@ -186,6 +194,7 @@ char *llhd_const_to_string(llhd_value_t);
 bool llhd_value_is(llhd_value_t,int);
 int llhd_value_get_kind(llhd_value_t);
 bool llhd_value_is_const(llhd_value_t);
+void llhd_value_set_name(llhd_value_t,const char*);
 const char *llhd_value_get_name(llhd_value_t);
 llhd_type_t llhd_value_get_type(llhd_value_t);
 bool llhd_value_has_users(llhd_value_t);
@@ -221,3 +230,4 @@ void *llhd_realloc(void*,size_t);
 void llhd_free(void*);
 
 void llhd_fold_constants(llhd_value_t);
+void llhd_asm_write_unit(llhd_value_t,FILE*);
