@@ -149,7 +149,9 @@ void llhd_inst_insert_after(llhd_value_t,llhd_value_t);
 void llhd_inst_insert_before(llhd_value_t,llhd_value_t);
 bool llhd_inst_is(llhd_value_t,int);
 int llhd_inst_get_kind(llhd_value_t);
+llhd_value_t llhd_inst_get_parent(llhd_value_t);
 
+llhd_value_t llhd_inst_unary_new(int,llhd_value_t,const char*);
 int llhd_inst_unary_get_op(llhd_value_t);
 llhd_value_t llhd_inst_unary_get_arg(llhd_value_t);
 

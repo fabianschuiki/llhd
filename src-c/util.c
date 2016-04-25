@@ -98,3 +98,38 @@ llhd_list_empty(struct llhd_list *list) {
 	assert(list);
 	return list->next == list;
 }
+
+void
+llhd_buffer_init(struct llhd_buffer *buf, size_t cap) {
+	memset(buf, 0, sizeof(struct llhd_buffer));
+	if (cap < 16)
+		cap = 16;
+	buf->cap = cap;
+	buf->data = llhd_alloc(cap);
+}
+
+void
+llhd_buffer_free(struct llhd_buffer *buf) {
+	if (buf->data)
+		llhd_free(buf->data);
+	memset(buf, 0, sizeof(struct llhd_buffer));
+}
+
+void *
+llhd_buffer_append(struct llhd_buffer *buf, size_t size, void *data) {
+	void *ptr = buf->data + buf->size;
+	size_t req = buf->size + size;
+
+	if (req > buf->cap) {
+		buf->cap *= 2;
+		if (buf->cap < req)
+			buf->cap = req;
+		buf->data = llhd_realloc(buf->data, buf->cap);
+	}
+
+	buf->size += size;
+	if (data) {
+		memcpy(ptr, data, size);
+	}
+	return ptr;
+}

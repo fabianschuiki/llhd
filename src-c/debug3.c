@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
+void llhd_desequentialize(llhd_value_t proc);
 
 int main() {
 	llhd_module_t M;
@@ -88,13 +89,16 @@ int main() {
 	llhd_inst_append_to(I, BBckh);
 	llhd_value_unref(I);
 
-	// llhd_asm_write_unit(E, stdout);
-	// llhd_asm_write_unit(P, stdout);
-	llhd_asm_write_module(M, stdout);
 	llhd_value_unref(E);
 	llhd_value_unref(P);
-
 	llhd_type_unref(i1ty);
+
+	llhd_asm_write_module(M, stdout);
+	printf("\n===== DESEQUENTIALIZE =====\n");
+	llhd_desequentialize(P);
+	printf("===== DONE =====\n\n");
+	llhd_asm_write_module(M, stdout);
+
 	llhd_module_free(M);
 
 	return 0;

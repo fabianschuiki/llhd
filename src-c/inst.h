@@ -58,3 +58,10 @@ struct llhd_inst_inst {
 	struct llhd_value **params;
 	struct llhd_value_use *uses;
 };
+
+struct llhd_unary_inst {
+	struct llhd_inst super;
+	enum llhd_unary_op op;
+	struct llhd_value *arg;
+	struct llhd_value_use use;
+};

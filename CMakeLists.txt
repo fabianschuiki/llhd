@@ -114,6 +114,7 @@ add_library(llhd-opt
 	# src-c/opt-cbre.c
 	# src-c/opt-ubd.c
 	src-c/opt-cf.c
+	src-c/desequentialize.c
 )
 
 # Build the programs.
@@ -122,7 +123,7 @@ add_executable(cdebug2 src-c/debug2.c)
 add_executable(cdebug3 src-c/debug3.c)
 target_link_libraries(cdebug1 llhd)
 target_link_libraries(cdebug2 llhd-opt llhd)
-target_link_libraries(cdebug3 llhd)
+target_link_libraries(cdebug3 llhd-opt llhd)
 
 
 # Build the tests if so requested.

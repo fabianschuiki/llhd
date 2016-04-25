@@ -50,6 +50,11 @@ static void inst_substitute(void*,void*,void*);
 static void inst_unlink_from_parent(void*);
 static void inst_unlink_uses(void*);
 
+static void unary_dispose(void*);
+static void unary_substitute(void*,void*,void*);
+static void unary_unlink_from_parent(void*);
+static void unary_unlink_uses(void*);
+
 static struct llhd_inst_vtbl vtbl_binary_inst = {
 	.super = {
 		.kind = LLHD_VALUE_INST,
@@ -131,6 +136,19 @@ static struct llhd_inst_vtbl vtbl_inst_inst = {
 	.kind = LLHD_INST_INST,
 };
 
+static struct llhd_inst_vtbl vtbl_unary_inst = {
+	.super = {
+		.kind = LLHD_VALUE_INST,
+		.name_offset = offsetof(struct llhd_inst, name),
+		.type_offset = offsetof(struct llhd_inst, type),
+		.dispose_fn = unary_dispose,
+		.substitute_fn = unary_substitute,
+		.unlink_from_parent_fn = unary_unlink_from_parent,
+		.unlink_uses_fn = unary_unlink_uses,
+	},
+	.kind = LLHD_INST_UNARY,
+};
+
 static const char *binary_opnames[] = {
 	[LLHD_BINARY_ADD]  = "add",
 	[LLHD_BINARY_SUB]  = "sub",
@@ -185,6 +203,8 @@ static void
 binary_dispose(void *ptr) {
 	struct llhd_binary_inst *I = ptr;
 	assert(!I->super.parent);
+	llhd_value_unuse(&I->uses[0]);
+	llhd_value_unuse(&I->uses[1]);
 	llhd_value_unref(I->lhs);
 	llhd_value_unref(I->rhs);
 	llhd_type_unref(I->super.type);
@@ -814,4 +834,87 @@ llhd_inst_inst_get_output(struct llhd_value *V, unsigned idx) {
 	assert(vtbl->kind == LLHD_INST_INST);
 	assert(idx < I->num_outputs);
 	return I->params[I->num_inputs+idx];
+}
+
+struct llhd_value *
+llhd_inst_get_parent(struct llhd_value *V) {
+	struct llhd_inst *I = (void*)V;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	return I->parent;
+}
+
+struct llhd_value *
+llhd_inst_unary_new(int op, struct llhd_value *arg, const char *name) {
+	struct llhd_unary_inst *I;
+	struct llhd_type *T;
+	assert(arg);
+	T = llhd_value_get_type(arg);
+	llhd_type_ref(T);
+	I = llhd_alloc_value(sizeof(*I), &vtbl_unary_inst);
+	I->super.name = name ? strdup(name) : NULL;
+	I->super.type = T;
+	I->op = op;
+	I->arg = arg;
+	llhd_value_use(arg, &I->use);
+	return (struct llhd_value *)I;
+}
+
+static void
+unary_dispose(void *ptr) {
+	struct llhd_unary_inst *I = ptr;
+	assert(!I->super.parent);
+	llhd_value_unuse(&I->use);
+	llhd_value_unref(I->arg);
+	llhd_type_unref(I->super.type);
+	llhd_free(I->super.name);
+}
+
+static void
+unary_substitute(void *ptr, void *ref, void *sub) {
+	struct llhd_unary_inst *I = ptr;
+	if (I->arg == ref && I->arg != sub) {
+		llhd_value_ref(sub);
+		llhd_value_unuse(&I->use);
+		llhd_value_use(sub, &I->use);
+		llhd_value_unref(I->arg);
+		I->arg = sub;
+	}
+}
+
+static void
+unary_unlink_from_parent(void *ptr) {
+	struct llhd_inst *I = (struct llhd_inst*)ptr;
+	struct llhd_value *P = I->parent;
+	assert(P && P->vtbl);
+	// Must go before remove_inst_fn, since that might dispose and free the
+	// inst, which triggers an assert on parent == NULL in the dispose function.
+	I->parent = NULL;
+	if (P->vtbl->remove_inst_fn)
+		P->vtbl->remove_inst_fn(P, ptr);
+}
+
+static void
+unary_unlink_uses(void *ptr) {
+	struct llhd_unary_inst *I = ptr;
+	llhd_value_unuse(&I->use);
+}
+
+int
+llhd_inst_unary_get_op(struct llhd_value *V) {
+	struct llhd_unary_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	vtbl = (void*)V->vtbl;
+	assert(vtbl->kind == LLHD_INST_UNARY);
+	return I->op;
+}
+
+struct llhd_value *
+llhd_inst_unary_get_arg(struct llhd_value *V) {
+	struct llhd_unary_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	vtbl = (void*)V->vtbl;
+	assert(vtbl->kind == LLHD_INST_UNARY);
+	return I->arg;
 }
