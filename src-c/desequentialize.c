@@ -151,6 +151,53 @@ bail:
 	fprintf(out, "$%zx", x);
 }
 
+static bool
+values_equal(llhd_value_t a, llhd_value_t b) {
+	int k;
+
+	if (!a || !b)
+		return false;
+	if (a == b)
+		return true;
+
+	k = llhd_value_get_kind(a);
+	if (k != llhd_value_get_kind(b))
+		return false;
+
+	if (k == LLHD_VALUE_CONST) {
+		int k2;
+
+		k2 = llhd_const_get_kind(a);
+		if (k2 != llhd_const_get_kind(b))
+			return false;
+
+		if (k2 == LLHD_CONST_INT) {
+			return llhd_const_int_get_value(a) == llhd_const_int_get_value(b);
+		}
+	}
+
+	else if (k == LLHD_VALUE_INST) {
+		int k2;
+
+		k2 = llhd_inst_get_kind(a);
+		if (k2 != llhd_inst_get_kind(b))
+			return false;
+
+		if (k2 == LLHD_INST_UNARY) {
+			return llhd_inst_unary_get_op(a) == llhd_inst_unary_get_op(b) &&
+			       values_equal(llhd_inst_unary_get_arg(a), llhd_inst_unary_get_arg(b));
+		}
+
+		else if (k2 == LLHD_INST_BINARY) {
+			return llhd_inst_binary_get_op(a) == llhd_inst_binary_get_op(b) &&
+			       values_equal(llhd_inst_binary_get_lhs(a), llhd_inst_binary_get_lhs(b)) &&
+			       values_equal(llhd_inst_binary_get_rhs(a), llhd_inst_binary_get_rhs(b));
+		}
+	}
+
+	return false;
+}
+
 static llhd_value_t
 simplify(llhd_value_t V) {
 	int kind;
@@ -165,6 +212,45 @@ simplify(llhd_value_t V) {
 
 		arg = simplify(llhd_inst_unary_get_arg(V));
 
+		if (llhd_value_is(arg, LLHD_VALUE_INST)) {
+
+			/* Apply DeMorgan's rule */
+			if (op == LLHD_UNARY_NOT && llhd_inst_is(arg, LLHD_INST_BINARY)) {
+				int opi = llhd_inst_binary_get_op(arg), opn = opi;
+
+				if (opi == LLHD_BINARY_AND)
+					opn = LLHD_BINARY_OR;
+				else if (opi == LLHD_BINARY_OR)
+					opn = LLHD_BINARY_AND;
+
+				if (opn != opi) {
+					llhd_value_t tmp, I, lhs, rhs;
+
+					tmp = llhd_inst_unary_new(LLHD_UNARY_NOT, llhd_inst_binary_get_lhs(arg), NULL);
+					lhs = simplify(tmp);
+					llhd_value_unref(tmp);
+
+					tmp = llhd_inst_unary_new(LLHD_UNARY_NOT, llhd_inst_binary_get_rhs(arg), NULL);
+					rhs = simplify(tmp);
+					llhd_value_unref(tmp);
+
+					tmp = llhd_inst_binary_new(opn, lhs, rhs, llhd_value_get_name(V));
+					llhd_value_unref(lhs);
+					llhd_value_unref(rhs);
+					I = simplify(tmp);
+					llhd_value_unref(tmp);
+					return I;
+				}
+			}
+
+			else if (op == LLHD_UNARY_NOT && llhd_inst_is(arg, LLHD_INST_UNARY) && llhd_inst_unary_get_op(arg) == LLHD_UNARY_NOT) {
+				llhd_value_t argi = llhd_inst_unary_get_arg(arg);
+				llhd_value_ref(argi);
+				llhd_value_unref(arg);
+				return argi;
+			}
+		}
+
 		if (arg != llhd_inst_unary_get_arg(V)) {
 			llhd_value_t I = llhd_inst_unary_new(op, arg, llhd_value_get_name(V));
 			llhd_value_unref(arg);
@@ -174,6 +260,7 @@ simplify(llhd_value_t V) {
 	} else if (kind == LLHD_INST_BINARY) {
 		int op = llhd_inst_binary_get_op(V);
 		llhd_value_t lhs, rhs, not_lhs = NULL, not_rhs = NULL, k = NULL, nk = NULL;
+		llhd_value_t extract_binop = NULL, extract_factor = NULL;
 
 		lhs = simplify(llhd_inst_binary_get_lhs(V));
 		rhs = simplify(llhd_inst_binary_get_rhs(V));
@@ -204,12 +291,12 @@ simplify(llhd_value_t V) {
 				}
 			}
 
-			if (lhs == rhs) {
+			if (values_equal(lhs, rhs)) {
 				llhd_value_unref(rhs);
 				return lhs;
 			}
 
-			if ((not_lhs == rhs && !not_rhs) || (not_rhs == lhs && !not_lhs)) {
+			if ((values_equal(not_lhs, rhs) && !not_rhs) || (values_equal(not_rhs, lhs) && !not_lhs)) {
 				llhd_value_unref(lhs);
 				llhd_value_unref(rhs);
 				return llhd_const_int_new(0);
@@ -227,16 +314,61 @@ simplify(llhd_value_t V) {
 				}
 			}
 
-			if (lhs == rhs) {
+			if (values_equal(lhs, rhs)) {
 				llhd_value_unref(rhs);
 				return lhs;
 			}
 
-			if ((not_lhs == rhs && !not_rhs) || (not_rhs == lhs && !not_lhs)) {
+			if ((values_equal(not_lhs, rhs) && !not_rhs) || (values_equal(not_rhs, lhs) && !not_lhs)) {
 				llhd_value_unref(lhs);
 				llhd_value_unref(rhs);
 				return llhd_const_int_new(1);
 			}
+		}
+
+
+		if (op == LLHD_BINARY_AND) {
+			if (llhd_value_is(lhs, LLHD_VALUE_INST) && llhd_inst_is(lhs, LLHD_INST_BINARY) && llhd_inst_binary_get_op(lhs) == LLHD_BINARY_OR) {
+				extract_binop = lhs;
+				extract_factor = rhs;
+			} else if (llhd_value_is(rhs, LLHD_VALUE_INST) && llhd_inst_is(rhs, LLHD_INST_BINARY) && llhd_inst_binary_get_op(rhs) == LLHD_BINARY_OR) {
+				extract_binop = rhs;
+				extract_factor = lhs;
+			}
+		}
+
+		if (extract_binop && extract_factor) {
+			llhd_value_t lhs_new, rhs_new, tmp, I;
+
+			lhs_new = llhd_inst_binary_new(LLHD_BINARY_AND, llhd_inst_binary_get_lhs(extract_binop), extract_factor, llhd_value_get_name(V));
+			rhs_new = llhd_inst_binary_new(LLHD_BINARY_AND, llhd_inst_binary_get_rhs(extract_binop), extract_factor, llhd_value_get_name(V));
+			llhd_value_unref(extract_binop);
+			llhd_value_unref(extract_factor);
+
+			tmp = llhd_inst_binary_new(LLHD_BINARY_OR, lhs_new, rhs_new, llhd_value_get_name(extract_binop));
+			llhd_value_unref(lhs_new);
+			llhd_value_unref(rhs_new);
+			I = simplify(tmp);
+			llhd_value_unref(tmp);
+
+			return I;
+		}
+
+		if (llhd_value_is(lhs, LLHD_VALUE_INST) && llhd_inst_is(lhs, LLHD_INST_BINARY) && (!llhd_value_is(rhs, LLHD_VALUE_INST) || !llhd_inst_is(rhs, LLHD_INST_BINARY))) {
+			llhd_value_t tmp = lhs;
+			lhs = rhs;
+			rhs = tmp;
+		}
+
+		if (llhd_value_is(lhs, LLHD_VALUE_INST) && llhd_inst_is(lhs, LLHD_INST_BINARY) && llhd_inst_binary_get_op(lhs) == op) {
+			llhd_value_t Il, Ir;
+			Ir = llhd_inst_binary_new(op, llhd_inst_binary_get_rhs(lhs), rhs, NULL);
+			Il = llhd_inst_binary_get_lhs(lhs);
+			llhd_value_ref(Il);
+			llhd_value_unref(lhs);
+			llhd_value_unref(rhs);
+			lhs = Il;
+			rhs = Ir;
 		}
 
 		if (lhs != llhd_inst_binary_get_lhs(V) || rhs != llhd_inst_binary_get_rhs(V)) {
@@ -289,10 +421,9 @@ void llhd_desequentialize(llhd_value_t proc) {
 		llhd_value_t cond = NULL, tmp;
 
 		recbase = rec;
-		printf("inspecting signal %p\n", recbase->sig);
+		printf("signal %s (%p)\n", llhd_value_get_name(recbase->sig), recbase->sig);
 		while (rec != recend && rec->sig == recbase->sig) {
 			llhd_value_t BB;
-			printf("- inst %p\n", rec->inst);
 			BB = llhd_inst_get_parent(rec->inst);
 			rec->cond = get_block_condition(BB);
 			if (cond) {
@@ -306,20 +437,30 @@ void llhd_desequentialize(llhd_value_t proc) {
 			++rec;
 		}
 
-		printf("pre-simplify: ");
-		dump_bool_ops(cond, stdout);
-		printf("\n");
+		printf("- pre-simplify\n  "); dump_bool_ops(cond, stdout); printf("\n");
 		tmp = simplify(cond);
 		llhd_value_unref(cond);
 		cond = tmp;
-		printf("post-simplify: ");
-		dump_bool_ops(cond, stdout);
-		printf("\n");
+		printf("- post-simplify\n  "); dump_bool_ops(cond, stdout); printf("\n");
 
 		if (llhd_value_is(cond, LLHD_VALUE_CONST) && llhd_const_int_get_value(cond) == 1) {
-			printf("signal %p is always driven\n", recbase->sig);
+			printf("- combinatorial\n");
 		} else {
-			printf("signal %p describes a storage element\n", recbase->sig);
+			llhd_value_t ncond;
+			printf("- sequential\n");
+			ncond = llhd_inst_unary_new(LLHD_UNARY_NOT, cond, NULL);
+			rec = recbase;
+			while (rec != recend && rec->sig == recbase->sig) {
+				llhd_value_t drive_cond;
+				tmp = llhd_inst_binary_new(LLHD_BINARY_OR, rec->cond, ncond, NULL);
+				printf("- drive %p condition pre-simplify\n  ", rec->inst); dump_bool_ops(tmp, stdout); printf("\n");
+				drive_cond = simplify(tmp);
+				llhd_value_unref(tmp);
+				printf("- drive %p condition post-simplify\n  ", rec->inst); dump_bool_ops(drive_cond, stdout); printf("\n");
+				llhd_value_unref(drive_cond);
+				++rec;
+			}
+			llhd_value_unref(ncond);
 		}
 
 		llhd_value_unref(cond);
