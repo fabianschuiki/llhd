@@ -848,6 +848,7 @@ llhd_inst_unary_new(int op, struct llhd_value *arg, const char *name) {
 	struct llhd_unary_inst *I;
 	struct llhd_type *T;
 	assert(arg);
+	llhd_value_ref(arg);
 	T = llhd_value_get_type(arg);
 	llhd_type_ref(T);
 	I = llhd_alloc_value(sizeof(*I), &vtbl_unary_inst);

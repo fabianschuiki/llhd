@@ -198,6 +198,30 @@ values_equal(llhd_value_t a, llhd_value_t b) {
 	return false;
 }
 
+static unsigned
+complexity(llhd_value_t V) {
+	int k = llhd_value_get_kind(V);
+
+	if (k == LLHD_VALUE_CONST) {
+		return 1;
+	}
+
+	if (k == LLHD_VALUE_INST) {
+		int k2 = llhd_inst_get_kind(V);
+
+		if (k2 == LLHD_INST_UNARY) {
+			return 1 + complexity(llhd_inst_unary_get_arg(V));
+		}
+
+		if (k2 == LLHD_INST_BINARY) {
+			return 1 + complexity(llhd_inst_binary_get_lhs(V))
+			         + complexity(llhd_inst_binary_get_rhs(V));
+		}
+	}
+
+	return 2;
+}
+
 static llhd_value_t
 simplify(llhd_value_t V) {
 	int kind;
@@ -342,14 +366,15 @@ simplify(llhd_value_t V) {
 
 			lhs_new = llhd_inst_binary_new(LLHD_BINARY_AND, llhd_inst_binary_get_lhs(extract_binop), extract_factor, llhd_value_get_name(V));
 			rhs_new = llhd_inst_binary_new(LLHD_BINARY_AND, llhd_inst_binary_get_rhs(extract_binop), extract_factor, llhd_value_get_name(V));
-			llhd_value_unref(extract_binop);
-			llhd_value_unref(extract_factor);
 
 			tmp = llhd_inst_binary_new(LLHD_BINARY_OR, lhs_new, rhs_new, llhd_value_get_name(extract_binop));
 			llhd_value_unref(lhs_new);
 			llhd_value_unref(rhs_new);
 			I = simplify(tmp);
 			llhd_value_unref(tmp);
+
+			llhd_value_unref(extract_binop);
+			llhd_value_unref(extract_factor);
 
 			return I;
 		}
@@ -369,6 +394,56 @@ simplify(llhd_value_t V) {
 			llhd_value_unref(rhs);
 			lhs = Il;
 			rhs = Ir;
+		}
+
+		if (op == LLHD_BINARY_OR) {
+			llhd_value_t tmp, lnot, rnot, ltry, rtry;
+			unsigned kl, kr, ktryl, ktryr;
+
+			kl = complexity(lhs);
+			kr = complexity(rhs);
+
+			lnot = llhd_inst_unary_new(LLHD_UNARY_NOT, lhs, NULL);
+			tmp = llhd_inst_binary_new(LLHD_BINARY_AND, lnot, rhs, NULL);
+			llhd_value_unref(lnot);
+			ltry = simplify(tmp);
+			llhd_value_unref(tmp);
+
+			rnot = llhd_inst_unary_new(LLHD_UNARY_NOT, rhs, NULL);
+			tmp = llhd_inst_binary_new(LLHD_BINARY_AND, rnot, lhs, NULL);
+			llhd_value_unref(rnot);
+			rtry = simplify(tmp);
+			llhd_value_unref(tmp);
+
+			ktryl = complexity(ltry);
+			ktryr = complexity(rtry);
+
+			if (ktryl >= kl) {
+				llhd_value_unref(ltry);
+				ltry = NULL;
+			}
+			if (ktryr >= kr) {
+				llhd_value_unref(rtry);
+				rtry = NULL;
+			}
+
+			if (ltry && rtry) {
+				if (ktryl > ktryr) {
+					llhd_value_unref(ltry);
+					ltry = NULL;
+				} else {
+					llhd_value_unref(rtry);
+					rtry = NULL;
+				}
+			}
+
+			if (ltry) {
+				llhd_value_unref(lhs);
+				lhs = ltry;
+			} else if (rtry) {
+				llhd_value_unref(rhs);
+				rhs = rtry;
+			}
 		}
 
 		if (lhs != llhd_inst_binary_get_lhs(V) || rhs != llhd_inst_binary_get_rhs(V)) {
@@ -437,11 +512,11 @@ void llhd_desequentialize(llhd_value_t proc) {
 			++rec;
 		}
 
-		printf("- pre-simplify\n  "); dump_bool_ops(cond, stdout); printf("\n");
+		printf("- pre-simplify\n  "); dump_bool_ops(cond, stdout); printf(" [k=%u]\n", complexity(cond));
 		tmp = simplify(cond);
 		llhd_value_unref(cond);
 		cond = tmp;
-		printf("- post-simplify\n  "); dump_bool_ops(cond, stdout); printf("\n");
+		printf("- post-simplify\n  "); dump_bool_ops(cond, stdout); printf(" [k=%u]\n", complexity(cond));
 
 		if (llhd_value_is(cond, LLHD_VALUE_CONST) && llhd_const_int_get_value(cond) == 1) {
 			printf("- combinatorial\n");
@@ -453,10 +528,10 @@ void llhd_desequentialize(llhd_value_t proc) {
 			while (rec != recend && rec->sig == recbase->sig) {
 				llhd_value_t drive_cond;
 				tmp = llhd_inst_binary_new(LLHD_BINARY_OR, rec->cond, ncond, NULL);
-				printf("- drive %p condition pre-simplify\n  ", rec->inst); dump_bool_ops(tmp, stdout); printf("\n");
+				printf("- drive %p condition pre-simplify\n  ", rec->inst); dump_bool_ops(tmp, stdout); printf(" [k=%u]\n", complexity(tmp));
 				drive_cond = simplify(tmp);
 				llhd_value_unref(tmp);
-				printf("- drive %p condition post-simplify\n  ", rec->inst); dump_bool_ops(drive_cond, stdout); printf("\n");
+				printf("- drive %p condition post-simplify\n  ", rec->inst); dump_bool_ops(drive_cond, stdout); printf(" [k=%u]\n", complexity(drive_cond));
 				llhd_value_unref(drive_cond);
 				++rec;
 			}
