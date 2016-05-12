@@ -108,6 +108,7 @@ add_library(llhd
 	src-c/asm-writer.c
 	src-c/apint.c
 	src-c/module.c
+	src-c/boolexpr.c
 )
 # add_library(llhd-linker src-c/linker.c)
 add_library(llhd-opt

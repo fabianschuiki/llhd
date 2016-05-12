@@ -2,6 +2,7 @@
 #include <llhd.h>
 #include "util.h"
 #include "value.h"
+#include "boolexpr.h"
 #include <stdlib.h>
 #include <assert.h>
 
@@ -32,6 +33,7 @@ struct record {
 	llhd_value_t sig;
 	llhd_value_t inst;
 	llhd_value_t cond;
+	struct llhd_boolexpr *cond_expr;
 };
 
 static int
@@ -396,55 +398,55 @@ simplify(llhd_value_t V) {
 			rhs = Ir;
 		}
 
-		if (op == LLHD_BINARY_OR) {
-			llhd_value_t tmp, lnot, rnot, ltry, rtry;
-			unsigned kl, kr, ktryl, ktryr;
+		// if (op == LLHD_BINARY_OR) {
+		// 	llhd_value_t tmp, lnot, rnot, ltry, rtry;
+		// 	unsigned kl, kr, ktryl, ktryr;
 
-			kl = complexity(lhs);
-			kr = complexity(rhs);
+		// 	kl = complexity(lhs);
+		// 	kr = complexity(rhs);
 
-			lnot = llhd_inst_unary_new(LLHD_UNARY_NOT, lhs, NULL);
-			tmp = llhd_inst_binary_new(LLHD_BINARY_AND, lnot, rhs, NULL);
-			llhd_value_unref(lnot);
-			ltry = simplify(tmp);
-			llhd_value_unref(tmp);
+		// 	lnot = llhd_inst_unary_new(LLHD_UNARY_NOT, lhs, NULL);
+		// 	tmp = llhd_inst_binary_new(LLHD_BINARY_AND, lnot, rhs, NULL);
+		// 	llhd_value_unref(lnot);
+		// 	ltry = simplify(tmp);
+		// 	llhd_value_unref(tmp);
 
-			rnot = llhd_inst_unary_new(LLHD_UNARY_NOT, rhs, NULL);
-			tmp = llhd_inst_binary_new(LLHD_BINARY_AND, rnot, lhs, NULL);
-			llhd_value_unref(rnot);
-			rtry = simplify(tmp);
-			llhd_value_unref(tmp);
+		// 	rnot = llhd_inst_unary_new(LLHD_UNARY_NOT, rhs, NULL);
+		// 	tmp = llhd_inst_binary_new(LLHD_BINARY_AND, rnot, lhs, NULL);
+		// 	llhd_value_unref(rnot);
+		// 	rtry = simplify(tmp);
+		// 	llhd_value_unref(tmp);
 
-			ktryl = complexity(ltry);
-			ktryr = complexity(rtry);
+		// 	ktryl = complexity(ltry);
+		// 	ktryr = complexity(rtry);
 
-			if (ktryl >= kl) {
-				llhd_value_unref(ltry);
-				ltry = NULL;
-			}
-			if (ktryr >= kr) {
-				llhd_value_unref(rtry);
-				rtry = NULL;
-			}
+		// 	if (ktryl >= kl) {
+		// 		llhd_value_unref(ltry);
+		// 		ltry = NULL;
+		// 	}
+		// 	if (ktryr >= kr) {
+		// 		llhd_value_unref(rtry);
+		// 		rtry = NULL;
+		// 	}
 
-			if (ltry && rtry) {
-				if (ktryl > ktryr) {
-					llhd_value_unref(ltry);
-					ltry = NULL;
-				} else {
-					llhd_value_unref(rtry);
-					rtry = NULL;
-				}
-			}
+		// 	if (ltry && rtry) {
+		// 		if (ktryl > ktryr) {
+		// 			llhd_value_unref(ltry);
+		// 			ltry = NULL;
+		// 		} else {
+		// 			llhd_value_unref(rtry);
+		// 			rtry = NULL;
+		// 		}
+		// 	}
 
-			if (ltry) {
-				llhd_value_unref(lhs);
-				lhs = ltry;
-			} else if (rtry) {
-				llhd_value_unref(rhs);
-				rhs = rtry;
-			}
-		}
+		// 	if (ltry) {
+		// 		llhd_value_unref(lhs);
+		// 		lhs = ltry;
+		// 	} else if (rtry) {
+		// 		llhd_value_unref(rhs);
+		// 		rhs = rtry;
+		// 	}
+		// }
 
 		if (lhs != llhd_inst_binary_get_lhs(V) || rhs != llhd_inst_binary_get_rhs(V)) {
 			llhd_value_t I = llhd_inst_binary_new(op, lhs, rhs, llhd_value_get_name(V));
@@ -457,6 +459,52 @@ simplify(llhd_value_t V) {
 bail:
 	llhd_value_ref(V);
 	return V;
+}
+
+static struct llhd_boolexpr *
+get_boolexpr(llhd_value_t V) {
+	int k = llhd_value_get_kind(V);
+
+	if (k == LLHD_VALUE_CONST) {
+		int k2 = llhd_const_get_kind(V);
+		if (k2 == LLHD_CONST_INT) {
+			if (llhd_const_int_get_value(V) == 0)
+				return llhd_boolexpr_new_const_0();
+			if (llhd_const_int_get_value(V) == 1)
+				return llhd_boolexpr_new_const_1();
+		}
+	}
+
+	else if (k == LLHD_VALUE_INST) {
+		int k2 = llhd_inst_get_kind(V);
+
+		if (k2 == LLHD_INST_UNARY) {
+			int op = llhd_inst_unary_get_op(V);
+			if (op == LLHD_UNARY_NOT) {
+				struct llhd_boolexpr *expr = get_boolexpr(llhd_inst_unary_get_arg(V));
+				llhd_boolexpr_negate(expr);
+				return expr;
+			}
+		}
+
+		else if (k2 == LLHD_INST_BINARY) {
+			int op = llhd_inst_binary_get_op(V);
+			struct llhd_boolexpr *args[2] = {
+				get_boolexpr(llhd_inst_binary_get_lhs(V)),
+				get_boolexpr(llhd_inst_binary_get_rhs(V)),
+			};
+
+			if (op == LLHD_BINARY_AND)
+				return llhd_boolexpr_new_and(args,2);
+			if (op == LLHD_BINARY_OR)
+				return llhd_boolexpr_new_or(args,2);
+
+			llhd_boolexpr_free(args[0]);
+			llhd_boolexpr_free(args[1]);
+		}
+	}
+
+	return llhd_boolexpr_new_symbol(V);
 }
 
 void llhd_desequentialize(llhd_value_t proc) {
@@ -494,6 +542,7 @@ void llhd_desequentialize(llhd_value_t proc) {
 	recend = rec+num_records;
 	while (rec != recend) {
 		llhd_value_t cond = NULL, tmp;
+		struct llhd_boolexpr *cond_expr = NULL;
 
 		recbase = rec;
 		printf("signal %s (%p)\n", llhd_value_get_name(recbase->sig), recbase->sig);
@@ -501,6 +550,7 @@ void llhd_desequentialize(llhd_value_t proc) {
 			llhd_value_t BB;
 			BB = llhd_inst_get_parent(rec->inst);
 			rec->cond = get_block_condition(BB);
+			rec->cond_expr = get_boolexpr(rec->cond);
 			if (cond) {
 				llhd_value_t I = llhd_inst_binary_new(LLHD_BINARY_OR, cond, rec->cond, NULL);
 				llhd_value_unref(cond);
@@ -509,14 +559,22 @@ void llhd_desequentialize(llhd_value_t proc) {
 				llhd_value_ref(rec->cond);
 				cond = rec->cond;
 			}
+			if (cond_expr) {
+				cond_expr = llhd_boolexpr_new_or((struct llhd_boolexpr *[]){cond_expr, llhd_boolexpr_copy(rec->cond_expr)}, 2);
+			} else {
+				cond_expr = llhd_boolexpr_copy(rec->cond_expr);
+			}
 			++rec;
 		}
 
 		printf("- pre-simplify\n  "); dump_bool_ops(cond, stdout); printf(" [k=%u]\n", complexity(cond));
+		printf("  "); llhd_boolexpr_write(cond_expr, NULL, stdout); printf("\n");
 		tmp = simplify(cond);
 		llhd_value_unref(cond);
 		cond = tmp;
+		llhd_boolexpr_disjunctive_cnf(&cond_expr);
 		printf("- post-simplify\n  "); dump_bool_ops(cond, stdout); printf(" [k=%u]\n", complexity(cond));
+		printf("  "); llhd_boolexpr_write(cond_expr, NULL, stdout); printf("\n");
 
 		if (llhd_value_is(cond, LLHD_VALUE_CONST) && llhd_const_int_get_value(cond) == 1) {
 			printf("- combinatorial\n");
