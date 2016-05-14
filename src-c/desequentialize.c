@@ -28,13 +28,36 @@
 // 7) Optimize the combinatorial process and the replacement entity.
 // 8) Replace all uses of the original process with the replacement entity,
 //    which has an identical interface.
+//
+// Left to do:
+// 1) Determine whether sequential or combinatorial. Ignore if combinatorial.
+// 2) Find drive condition for individual values.
+// 3) Create function that calculates next value and store strobe.
+// 4) Create entity with process' signature, call above function and instantiate
+//    storage instructions based on the function's return values.
+// 5) Create process without the sequential output signals and migrate all basic
+//    blocks. Be sure to replace the parameters. Remove the drive instructions
+//    for the sequential signals.
+// 6) Instantiate new process in entity and replace uses of old process with new
+//    entity.
+
 
 struct record {
 	llhd_value_t sig;
 	llhd_value_t inst;
-	llhd_value_t cond;
 	struct llhd_boolexpr *cond_expr;
 };
+
+struct signal_record {
+	llhd_value_t sig;
+	struct record *records;
+	unsigned num_records;
+	struct llhd_boolexpr *cond;
+};
+
+
+static struct llhd_boolexpr *get_boolexpr(llhd_value_t V);
+
 
 static int
 compare_records(const void *pa, const void *pb) {
@@ -53,10 +76,10 @@ dump_records(struct record *records, unsigned num_records) {
 	}
 }
 
-static llhd_value_t
+static struct llhd_boolexpr *
 get_block_condition(llhd_value_t BB) {
 	struct llhd_list *pos;
-	llhd_value_t result = NULL;
+	struct llhd_boolexpr *result = NULL;
 
 	/*
 	 * 1) get predecessors
@@ -67,40 +90,46 @@ get_block_condition(llhd_value_t BB) {
 
 	for (pos = BB->users.next; pos != &BB->users; pos = pos->next) {
 		struct llhd_value_use *use;
-		llhd_value_t cond, precond, I;
+		llhd_value_t V;
+		struct llhd_boolexpr *precond, *cond;
 
 		use = llhd_container_of(pos, use, link);
-		cond = llhd_inst_branch_get_condition(use->user);
+		V = llhd_inst_branch_get_condition(use->user);
 		precond = get_block_condition(llhd_inst_get_parent(use->user));
 		// printf("- user %p (arg %d)\n", use->user, use->arg);
 
-		if (cond) {
+		if (V) {
 			// printf("  merging branch condition with predecessor condition\n");
+			cond = get_boolexpr(V); /// TODO: make use of get_boolexpr here
 			if (use->arg == 2) {
-				cond = llhd_inst_unary_new(LLHD_UNARY_NOT, cond, NULL);
-			} else {
-				llhd_value_ref(cond);
+				// V = llhd_inst_unary_new(LLHD_UNARY_NOT, V, NULL);
+				llhd_boolexpr_negate(cond);
+			// } else {
+				// llhd_value_ref(V);
 			}
-			I = llhd_inst_binary_new(LLHD_BINARY_AND, cond, precond, NULL);
-			llhd_value_unref(cond);
-			llhd_value_unref(precond);
-			cond = I;
+			// I = llhd_inst_binary_new(LLHD_BINARY_AND, V, precond, NULL);
+			// llhd_value_unref(V);
+			// llhd_value_unref(precond);
+			// V = I;
+			cond = llhd_boolexpr_new_and((struct llhd_boolexpr*[]){cond,precond}, 2);
 		} else {
 			// printf("  unconditional branch, reusing predecessor condition\n");
 			cond = precond;
 		}
 
 		if (result) {
-			I = llhd_inst_binary_new(LLHD_BINARY_OR, result, cond, NULL);
-			llhd_value_unref(result);
-			llhd_value_unref(cond);
-			result = I;
+			// I = llhd_inst_binary_new(LLHD_BINARY_OR, result, V, NULL);
+			// llhd_value_unref(result);
+			// llhd_value_unref(V);
+			// result = I;
+			result = llhd_boolexpr_new_or((struct llhd_boolexpr*[]){result,cond}, 2);
 		} else {
 			result = cond;
 		}
 	}
 
-	return result ? result : llhd_const_int_new(1);
+	// return result ? result : llhd_const_int_new(1);
+	return result ? result : llhd_boolexpr_new_const_1();
 }
 
 static void
@@ -507,12 +536,17 @@ get_boolexpr(llhd_value_t V) {
 	return llhd_boolexpr_new_symbol(V);
 }
 
-void llhd_desequentialize(llhd_value_t proc) {
+
+void
+llhd_desequentialize(llhd_value_t proc) {
 	llhd_value_t BB;
 	llhd_list_t blocks, pos;
 	unsigned num_records;
+	unsigned num_signal_records;
+	unsigned num_sequential;
 	struct llhd_buffer records;
 	struct record *recbase, *rec, *recend;
+	struct signal_record *signal_records, *sigrec, *sigrecend;
 
 	llhd_buffer_init(&records, 16*sizeof(struct record));
 	num_records = 0;
@@ -538,72 +572,115 @@ void llhd_desequentialize(llhd_value_t proc) {
 	qsort(records.data, num_records, sizeof(struct record), compare_records);
 	dump_records(records.data, num_records);
 
+	// Allocate one record for each driven signal.
+	num_signal_records = 0;
 	rec = records.data;
 	recend = rec+num_records;
 	while (rec != recend) {
-		llhd_value_t cond = NULL, tmp;
-		struct llhd_boolexpr *cond_expr = NULL;
+		struct record *prev = rec;
+		++num_signal_records;
+		while (rec != recend && rec->sig == prev->sig)
+			++rec;
+	}
+	signal_records = llhd_zalloc(num_signal_records * sizeof(struct signal_record));
+
+	rec = records.data;
+	recend = rec+num_records;
+	sigrec = signal_records;
+	sigrecend = sigrec+num_signal_records;
+	num_sequential = 0;
+
+	while (rec != recend) {
+		sigrec->sig = rec->sig;
+		sigrec->records = rec;
 
 		recbase = rec;
 		printf("signal %s (%p)\n", llhd_value_get_name(recbase->sig), recbase->sig);
 		while (rec != recend && rec->sig == recbase->sig) {
-			llhd_value_t BB;
-			BB = llhd_inst_get_parent(rec->inst);
-			rec->cond = get_block_condition(BB);
-			rec->cond_expr = get_boolexpr(rec->cond);
-			if (cond) {
-				llhd_value_t I = llhd_inst_binary_new(LLHD_BINARY_OR, cond, rec->cond, NULL);
-				llhd_value_unref(cond);
-				cond = I;
+			++sigrec->num_records;
+			rec->cond_expr = get_block_condition(llhd_inst_get_parent(rec->inst));
+			if (sigrec->cond) {
+				sigrec->cond = llhd_boolexpr_new_or((struct llhd_boolexpr *[]){sigrec->cond, llhd_boolexpr_copy(rec->cond_expr)}, 2);
 			} else {
-				llhd_value_ref(rec->cond);
-				cond = rec->cond;
-			}
-			if (cond_expr) {
-				cond_expr = llhd_boolexpr_new_or((struct llhd_boolexpr *[]){cond_expr, llhd_boolexpr_copy(rec->cond_expr)}, 2);
-			} else {
-				cond_expr = llhd_boolexpr_copy(rec->cond_expr);
+				sigrec->cond = llhd_boolexpr_copy(rec->cond_expr);
 			}
 			++rec;
 		}
 
-		printf("- pre-simplify\n  "); dump_bool_ops(cond, stdout); printf(" [k=%u]\n", complexity(cond));
-		printf("  "); llhd_boolexpr_write(cond_expr, NULL, stdout); printf("\n");
-		tmp = simplify(cond);
-		llhd_value_unref(cond);
-		cond = tmp;
-		llhd_boolexpr_disjunctive_cnf(&cond_expr);
-		printf("- post-simplify\n  "); dump_bool_ops(cond, stdout); printf(" [k=%u]\n", complexity(cond));
-		printf("  "); llhd_boolexpr_write(cond_expr, NULL, stdout); printf("\n");
+		printf("- driven if ");
+		llhd_boolexpr_write(sigrec->cond, NULL, stdout);
+		llhd_boolexpr_disjunctive_cnf(&sigrec->cond);
+		printf(" = ");
+		llhd_boolexpr_write(sigrec->cond, NULL, stdout);
+		printf("\n");
 
-		if (llhd_value_is(cond, LLHD_VALUE_CONST) && llhd_const_int_get_value(cond) == 1) {
-			printf("- combinatorial\n");
-		} else {
-			llhd_value_t ncond;
+		if (!llhd_boolexpr_is(sigrec->cond, LLHD_BOOLEXPR_CONST_1)) {
 			printf("- sequential\n");
-			ncond = llhd_inst_unary_new(LLHD_UNARY_NOT, cond, NULL);
+			++num_sequential;
 			rec = recbase;
 			while (rec != recend && rec->sig == recbase->sig) {
-				llhd_value_t drive_cond;
-				tmp = llhd_inst_binary_new(LLHD_BINARY_OR, rec->cond, ncond, NULL);
-				printf("- drive %p condition pre-simplify\n  ", rec->inst); dump_bool_ops(tmp, stdout); printf(" [k=%u]\n", complexity(tmp));
-				drive_cond = simplify(tmp);
-				llhd_value_unref(tmp);
-				printf("- drive %p condition post-simplify\n  ", rec->inst); dump_bool_ops(drive_cond, stdout); printf(" [k=%u]\n", complexity(drive_cond));
-				llhd_value_unref(drive_cond);
+				struct llhd_boolexpr *ncond = llhd_boolexpr_copy(sigrec->cond);
+				llhd_boolexpr_negate(ncond);
+				rec->cond_expr = llhd_boolexpr_new_or((struct llhd_boolexpr*[]){rec->cond_expr, ncond}, 2);
+				printf("- drive %p if ", rec->inst);
+				llhd_boolexpr_write(rec->cond_expr, NULL, stdout);
+				llhd_boolexpr_disjunctive_cnf(&rec->cond_expr);
+				printf(" = ");
+				llhd_boolexpr_write(rec->cond_expr, NULL, stdout);
+				printf("\n");
 				++rec;
 			}
-			llhd_value_unref(ncond);
 		}
 
-		llhd_value_unref(cond);
-		rec = recbase;
-		while (rec != recend && rec->sig == recbase->sig) {
-			llhd_value_unref(rec->cond);
-			rec->cond = NULL;
-			++rec;
-		}
+		++sigrec;
 	}
 
+	printf("%d sequential signals\n", num_sequential);
+
+	// Assemble a function that calculates the drive condition and driven value
+	// for each sequential signal.
+	unsigned i, num_inputs, num_outputs;
+	llhd_type_t *inputs, *outputs, proc_type, i1ty, func_type;
+
+	i1ty = llhd_type_new_int(1);
+	proc_type = llhd_value_get_type(proc);
+	num_inputs = llhd_type_get_num_inputs(proc_type);
+	num_outputs = 2*num_sequential;
+	inputs = llhd_zalloc(num_inputs * sizeof(llhd_type_t));
+	outputs = llhd_zalloc(num_outputs * sizeof(llhd_type_t));
+
+	for (i = 0; i < num_inputs; ++i) {
+		inputs[i] = llhd_type_get_input(proc_type, i);
+	}
+	for (i = 0; i < num_sequential; ++i) {
+		sigrec = signal_records + i;
+		outputs[i*2+0] = i1ty;
+		outputs[i*2+1] = llhd_value_get_type(sigrec->sig);
+	}
+
+	func_type = llhd_type_new_func(inputs, num_inputs, outputs, num_outputs);
+	llhd_type_unref(i1ty);
+
+	// do stuff with it
+	printf("func_type = ");
+	llhd_asm_write_type(func_type, stdout);
+	printf("\n");
+
+	llhd_type_unref(func_type);
+
+	// Clean up.
+	sigrec = signal_records;
+	while (sigrec != sigrecend) {
+		llhd_boolexpr_free(sigrec->cond);
+		++sigrec;
+	}
+
+	rec = records.data;
+	while (rec != recend) {
+		llhd_boolexpr_free(rec->cond_expr);
+		++rec;
+	}
+
+	llhd_free(signal_records);
 	llhd_buffer_free(&records);
 }

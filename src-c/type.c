@@ -20,8 +20,9 @@ llhd_alloc_type(int kind, unsigned num_subtypes) {
 	return T;
 }
 
-struct llhd_type *
-llhd_type_new_comp(
+static struct llhd_type *
+alloc_func_or_comp(
+	int kind,
 	struct llhd_type **in,
 	unsigned num_in,
 	struct llhd_type **out,
@@ -31,7 +32,7 @@ llhd_type_new_comp(
 	struct llhd_type *T;
 	assert(!num_in || in);
 	assert(!num_out || out);
-	T = llhd_alloc_type(LLHD_TYPE_COMP, num_in+num_out);
+	T = llhd_alloc_type(kind, num_in+num_out);
 	T->num_in = num_in;
 	T->num_out = num_out;
 	memcpy(T->subtypes, in, num_in*sizeof(T));
@@ -39,6 +40,26 @@ llhd_type_new_comp(
 	for (i = 0; i < num_in+num_out; ++i)
 		llhd_type_ref(T->subtypes[i]);
 	return T;
+}
+
+struct llhd_type *
+llhd_type_new_comp(
+	struct llhd_type **in,
+	unsigned num_in,
+	struct llhd_type **out,
+	unsigned num_out
+) {
+	return alloc_func_or_comp(LLHD_TYPE_COMP, in, num_in, out, num_out);
+}
+
+struct llhd_type *
+llhd_type_new_func(
+	struct llhd_type **in,
+	unsigned num_in,
+	struct llhd_type **out,
+	unsigned num_out
+) {
+	return alloc_func_or_comp(LLHD_TYPE_FUNC, in, num_in, out, num_out);
 }
 
 struct llhd_type *

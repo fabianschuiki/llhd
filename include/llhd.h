@@ -213,6 +213,7 @@ void llhd_value_unref(llhd_value_t);
 void llhd_value_free(llhd_value_t);
 
 llhd_type_t llhd_type_new_comp(llhd_type_t*,unsigned,llhd_type_t*,unsigned);
+llhd_type_t llhd_type_new_func(llhd_type_t*,unsigned,llhd_type_t*,unsigned);
 llhd_type_t llhd_type_new_int(unsigned);
 llhd_type_t llhd_type_new_void();
 llhd_type_t llhd_type_new_label();
@@ -237,3 +238,4 @@ void llhd_free(void*);
 void llhd_fold_constants(llhd_value_t);
 void llhd_asm_write_module(llhd_module_t,FILE*);
 void llhd_asm_write_unit(llhd_value_t,FILE*);
+void llhd_asm_write_type(llhd_type_t,FILE*);

@@ -5,8 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-static void
-write_type (llhd_type_t T, FILE *out) {
+void
+llhd_asm_write_type (llhd_type_t T, FILE *out) {
 	unsigned i,N;
 	int kind = llhd_type_get_kind(T);
 	switch (kind) {
@@ -20,21 +20,21 @@ write_type (llhd_type_t T, FILE *out) {
 			N = llhd_type_get_num_fields(T);
 			for (i = 0; i < N; ++i) {
 				if (i > 0) fputs(", ", out);
-				write_type(llhd_type_get_field(T,i), out);
+				llhd_asm_write_type(llhd_type_get_field(T,i), out);
 			}
 			fputc('}', out);
 			break;
 		case LLHD_TYPE_ARRAY:
 			fprintf(out, "[%d x ", llhd_type_get_length(T));
-			write_type(llhd_type_get_subtype(T), out);
+			llhd_asm_write_type(llhd_type_get_subtype(T), out);
 			fputc(']', out);
 			break;
 		case LLHD_TYPE_PTR:
-			write_type(llhd_type_get_subtype(T), out);
+			llhd_asm_write_type(llhd_type_get_subtype(T), out);
 			fputc('*', out);
 			break;
 		case LLHD_TYPE_SIGNAL:
-			write_type(llhd_type_get_subtype(T), out);
+			llhd_asm_write_type(llhd_type_get_subtype(T), out);
 			fputc('$', out);
 			break;
 		case LLHD_TYPE_FUNC:
@@ -42,13 +42,13 @@ write_type (llhd_type_t T, FILE *out) {
 			N = llhd_type_get_num_inputs(T);
 			for (i = 0; i < N; ++i) {
 				if (i > 0) fputs(", ", out);
-				write_type(llhd_type_get_input(T,i), out);
+				llhd_asm_write_type(llhd_type_get_input(T,i), out);
 			}
 			fputs(")(", out);
 			N = llhd_type_get_num_outputs(T);
 			for (i = 0; i < N; ++i) {
 				if (i > 0) fputs(", ", out);
-				write_type(llhd_type_get_output(T,i), out);
+				llhd_asm_write_type(llhd_type_get_output(T,i), out);
 			}
 			fputs(")", out);
 			break;
@@ -57,13 +57,13 @@ write_type (llhd_type_t T, FILE *out) {
 			N = llhd_type_get_num_inputs(T);
 			for (i = 0; i < N; ++i) {
 				if (i > 0) fputs(", ", out);
-				write_type(llhd_type_get_input(T,i), out);
+				llhd_asm_write_type(llhd_type_get_input(T,i), out);
 			}
 			fputs(")(", out);
 			N = llhd_type_get_num_outputs(T);
 			for (i = 0; i < N; ++i) {
 				if (i > 0) fputs(", ", out);
-				write_type(llhd_type_get_output(T,i), out);
+				llhd_asm_write_type(llhd_type_get_output(T,i), out);
 			}
 			fputs(")", out);
 			break;
@@ -75,7 +75,7 @@ write_type (llhd_type_t T, FILE *out) {
 static void
 write_decl (llhd_value_t D, FILE *out) {
 	fprintf(out, "declare @%s ", llhd_value_get_name(D));
-	write_type(llhd_value_get_type(D), out);
+	llhd_asm_write_type(llhd_value_get_type(D), out);
 	fputc('\n', out);
 }
 
@@ -234,7 +234,7 @@ symtbl_add_name (struct llhd_symtbl *tbl, void *sym, const char *name) {
 
 static void
 write_param (llhd_value_t P, struct llhd_symtbl *symtbl, FILE *out) {
-	write_type(llhd_value_get_type(P), out);
+	llhd_asm_write_type(llhd_value_get_type(P), out);
 	const char *name = llhd_value_get_name(P);
 	if (name || llhd_value_has_users(P)) {
 		const char *an = symtbl_add_name(symtbl, P, name);
@@ -252,7 +252,7 @@ write_value_ref(llhd_value_t V, int withType, struct llhd_symtbl *symtbl, FILE *
 
 	if (withType) {
 		llhd_type_t T = llhd_value_get_type(V);
-		write_type(T, out);
+		llhd_asm_write_type(T, out);
 		fputc(' ', out);
 	}
 
@@ -291,7 +291,7 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 			// fprintf(out, "bin%d ", llhd_inst_binary_get_op(I));
 			fputs(llhd_inst_binary_get_opname(I), out);
 			fputc(' ', out);
-			write_type(llhd_value_get_type(I), out);
+			llhd_asm_write_type(llhd_value_get_type(I), out);
 			fputc(' ', out);
 			write_value_ref(llhd_inst_binary_get_lhs(I), 0, symtbl, out);
 			fputc(' ', out);
@@ -299,7 +299,7 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 			break;
 		case LLHD_INST_SIGNAL:
 			fputs("sig ", out);
-			write_type(llhd_value_get_type(I), out);
+			llhd_asm_write_type(llhd_value_get_type(I), out);
 			break;
 		case LLHD_INST_COMPARE:
 			fputs("cmp ", out);
@@ -331,7 +331,7 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 		case LLHD_INST_INST:
 			fputs("inst ", out);
 			comp = llhd_inst_inst_get_comp(I);
-			write_type(llhd_value_get_type(comp), out);
+			llhd_asm_write_type(llhd_value_get_type(comp), out);
 			fputs(" @", out);
 			fputs(llhd_value_get_name(comp), out);
 			fputs(" (", out);

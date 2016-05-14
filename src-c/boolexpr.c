@@ -5,14 +5,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-enum llhd_boolexpr_kind {
-	LLHD_BOOLEXPR_CONST_0 = 1,
-	LLHD_BOOLEXPR_CONST_1 = 2,
-	LLHD_BOOLEXPR_SYMBOL  = 3,
-	LLHD_BOOLEXPR_OR      = 4,
-	LLHD_BOOLEXPR_AND     = 5,
-};
-
 struct llhd_boolexpr {
 	unsigned kind:3;
 	unsigned negate:1;
@@ -183,7 +175,6 @@ simplify_children(
 			llhd_boolexpr_free(expr->children[o]);
 			expr->children[o] = NULL;
 		} else if (o > 0 && cmp_expr_ineg(&expr->children[o-1], &expr->children[o]) == 0) {
-			printf("blahrg!\n");
 			llhd_boolexpr_free(expr);
 			expr = alloc_boolexpr(0);
 			expr->kind = mask_child;
@@ -317,4 +308,17 @@ llhd_boolexpr_write(struct llhd_boolexpr *expr, void(*write_fn)(void*,FILE*), FI
 			assert(0 && "write not implemented for kind");
 			break;
 	}
+}
+
+
+enum llhd_boolexpr_kind
+llhd_boolexpr_get_kind(struct llhd_boolexpr *expr) {
+	assert(expr);
+	return expr->kind;
+}
+
+enum llhd_boolexpr_kind
+llhd_boolexpr_is(struct llhd_boolexpr *expr, enum llhd_boolexpr_kind kind) {
+	assert(expr);
+	return expr->kind == kind;
 }
