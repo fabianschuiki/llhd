@@ -400,16 +400,16 @@ write_unit_params (llhd_value_t U, struct llhd_symtbl *symtbl, FILE *out) {
 	fputc(')', out);
 }
 
-// static void
-// write_func_def (llhd_value_t D, FILE *out) {
-// 	fprintf(out, "func @%s ", llhd_value_get_name(D));
-// 	struct llhd_symtbl *symtbl = symtbl_new();
-// 	write_unit_params(D, symtbl, out);
-// 	fputs(" {\n", out);
-// 	write_blocks(llhd_unit_get_first_block(D), symtbl, out);
-// 	fputs("}\n", out);
-// 	symtbl_free(symtbl);
-// }
+static void
+write_func_def (llhd_value_t D, FILE *out) {
+	fprintf(out, "func @%s ", llhd_value_get_name(D));
+	struct llhd_symtbl *symtbl = symtbl_new();
+	write_unit_params(D, symtbl, out);
+	fputs(" {\n", out);
+	write_blocks(llhd_unit_get_blocks(D), symtbl, out);
+	fputs("}\n", out);
+	symtbl_free(symtbl);
+}
 
 static void
 write_entity_def (llhd_value_t D, FILE *out) {
@@ -438,7 +438,7 @@ llhd_asm_write_unit (llhd_value_t U, FILE *out) {
 	int kind = llhd_unit_get_kind(U);
 	switch (kind) {
 		case LLHD_UNIT_DECL: write_decl(U, out); break;
-		// case LLHD_UNIT_DEF_FUNC: write_func_def(U, out); break;
+		case LLHD_UNIT_DEF_FUNC: write_func_def(U, out); break;
 		case LLHD_UNIT_DEF_ENTITY: write_entity_def(U, out); break;
 		case LLHD_UNIT_DEF_PROC: write_proc_def(U, out); break;
 		default:

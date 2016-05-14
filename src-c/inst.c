@@ -66,6 +66,8 @@ static struct llhd_inst_vtbl vtbl_binary_inst = {
 		.unlink_uses_fn = binary_unlink_uses,
 	},
 	.kind = LLHD_INST_BINARY,
+	.num_uses = 2,
+	.uses_offset = offsetof(struct llhd_binary_inst, uses),
 };
 
 static struct llhd_inst_vtbl vtbl_compare_inst = {
@@ -79,6 +81,8 @@ static struct llhd_inst_vtbl vtbl_compare_inst = {
 		.unlink_uses_fn = compare_unlink_uses,
 	},
 	.kind = LLHD_INST_COMPARE,
+	.num_uses = 2,
+	.uses_offset = offsetof(struct llhd_compare_inst, uses),
 };
 
 static struct llhd_inst_vtbl vtbl_sig_inst = {
@@ -103,6 +107,8 @@ static struct llhd_inst_vtbl vtbl_branch_inst = {
 		.unlink_uses_fn = branch_unlink_uses,
 	},
 	.kind = LLHD_INST_BRANCH,
+	.num_uses = 3,
+	.uses_offset = offsetof(struct llhd_branch_inst, uses),
 };
 
 static struct llhd_inst_vtbl vtbl_drive_inst = {
@@ -114,6 +120,8 @@ static struct llhd_inst_vtbl vtbl_drive_inst = {
 		.unlink_uses_fn = drive_unlink_uses,
 	},
 	.kind = LLHD_INST_DRIVE,
+	.num_uses = 2,
+	.uses_offset = offsetof(struct llhd_drive_inst, uses),
 };
 
 static struct llhd_inst_vtbl vtbl_ret_inst = {
@@ -147,6 +155,8 @@ static struct llhd_inst_vtbl vtbl_unary_inst = {
 		.unlink_uses_fn = unary_unlink_uses,
 	},
 	.kind = LLHD_INST_UNARY,
+	.num_uses = 1,
+	.uses_offset = offsetof(struct llhd_unary_inst, use),
 };
 
 static const char *binary_opnames[] = {
@@ -918,4 +928,24 @@ llhd_inst_unary_get_arg(struct llhd_value *V) {
 	vtbl = (void*)V->vtbl;
 	assert(vtbl->kind == LLHD_INST_UNARY);
 	return I->arg;
+}
+
+unsigned
+llhd_inst_get_num_params(llhd_value_t V) {
+	struct llhd_inst_vtbl *vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	vtbl = (void*)V->vtbl;
+	return vtbl->num_uses;
+}
+
+llhd_value_t
+llhd_inst_get_param(llhd_value_t V, unsigned idx) {
+	struct llhd_inst_vtbl *vtbl;
+	struct llhd_value_use *uses;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	vtbl = (void*)V->vtbl;
+	assert(vtbl->num_uses > 0);
+	assert(idx < vtbl->num_uses);
+	uses = (void*)V + vtbl->uses_offset;
+	return uses[idx].value;
 }

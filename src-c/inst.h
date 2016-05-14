@@ -13,6 +13,8 @@ struct llhd_inst {
 struct llhd_inst_vtbl {
 	struct llhd_value_vtbl super;
 	int kind;
+	unsigned num_uses;
+	size_t uses_offset;
 };
 
 struct llhd_binary_inst {

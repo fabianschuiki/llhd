@@ -5,6 +5,7 @@
 #include "boolexpr.h"
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 // Algorithm:
 // 1) Iterate over all basic blocks. For each drive instruction, calculate the
@@ -537,13 +538,45 @@ get_boolexpr(llhd_value_t V) {
 }
 
 
+static void
+gather_dependencies(llhd_value_t V, struct llhd_ptrset *deps) {
+	unsigned num, i;
+	printf("gather_dependencies(%p, %d deps)\n", V, deps->num);
+
+	if (!llhd_ptrset_insert(deps, V)) {
+		return;
+	}
+
+	if (!llhd_value_is(V, LLHD_VALUE_INST)) {
+		return;
+	}
+
+	num = llhd_inst_get_num_params(V);
+	for (i = 0; i < num; ++i) {
+		gather_dependencies(llhd_inst_get_param(V,i), deps);
+	}
+}
+
+
+static void
+gather_boolexpr_dependencies(struct llhd_boolexpr *expr, struct llhd_ptrset *deps) {
+	if (llhd_boolexpr_is(expr, LLHD_BOOLEXPR_SYMBOL)) {
+		gather_dependencies(llhd_boolexpr_get_symbol(expr), deps);
+	} else {
+		unsigned i, num = llhd_boolexpr_get_num_children(expr);
+		struct llhd_boolexpr **children = llhd_boolexpr_get_children(expr);
+		for (i = 0; i < num; ++i)
+			gather_boolexpr_dependencies(children[i], deps);
+	}
+}
+
+
 void
 llhd_desequentialize(llhd_value_t proc) {
 	llhd_value_t BB;
 	llhd_list_t blocks, pos;
 	unsigned num_records;
 	unsigned num_signal_records;
-	unsigned num_sequential;
 	struct llhd_buffer records;
 	struct record *recbase, *rec, *recend;
 	struct signal_record *signal_records, *sigrec, *sigrecend;
@@ -582,15 +615,14 @@ llhd_desequentialize(llhd_value_t proc) {
 		while (rec != recend && rec->sig == prev->sig)
 			++rec;
 	}
-	signal_records = llhd_zalloc(num_signal_records * sizeof(struct signal_record));
+	signal_records = llhd_alloc(num_signal_records * sizeof(struct signal_record));
 
 	rec = records.data;
 	recend = rec+num_records;
 	sigrec = signal_records;
-	sigrecend = sigrec+num_signal_records;
-	num_sequential = 0;
-
+	num_signal_records = 0;
 	while (rec != recend) {
+		memset(sigrec, 0, sizeof(*sigrec));
 		sigrec->sig = rec->sig;
 		sigrec->records = rec;
 
@@ -616,7 +648,7 @@ llhd_desequentialize(llhd_value_t proc) {
 
 		if (!llhd_boolexpr_is(sigrec->cond, LLHD_BOOLEXPR_CONST_1)) {
 			printf("- sequential\n");
-			++num_sequential;
+			++num_signal_records;
 			rec = recbase;
 			while (rec != recend && rec->sig == recbase->sig) {
 				struct llhd_boolexpr *ncond = llhd_boolexpr_copy(sigrec->cond);
@@ -630,46 +662,86 @@ llhd_desequentialize(llhd_value_t proc) {
 				printf("\n");
 				++rec;
 			}
+			++sigrec;
+		} else {
+			llhd_boolexpr_free(sigrec->cond);
 		}
-
-		++sigrec;
 	}
 
-	printf("%d sequential signals\n", num_sequential);
+	printf("%d sequential signals\n", num_signal_records);
+
+	struct llhd_ptrset used;
+	llhd_ptrset_init(&used, 16);
+	sigrec = signal_records;
+	sigrecend = sigrec + num_signal_records;
+	while (sigrec != sigrecend) {
+		rec = sigrec->records;
+		recend = rec + sigrec->num_records;
+		gather_boolexpr_dependencies(sigrec->cond, &used);
+		while (rec != recend) {
+			gather_boolexpr_dependencies(rec->cond_expr, &used);
+			gather_dependencies(llhd_inst_drive_get_val(rec->inst), &used);
+			++rec;
+		}
+		++sigrec;
+	}
+	printf("used.num = %d\n", used.num);
+
+
 
 	// Assemble a function that calculates the drive condition and driven value
 	// for each sequential signal.
-	unsigned i, num_inputs, num_outputs;
+	unsigned i, n, num_inputs, num_outputs;
 	llhd_type_t *inputs, *outputs, proc_type, i1ty, func_type;
+	llhd_value_t func;
 
 	i1ty = llhd_type_new_int(1);
 	proc_type = llhd_value_get_type(proc);
 	num_inputs = llhd_type_get_num_inputs(proc_type);
-	num_outputs = 2*num_sequential;
+	num_outputs = 2*num_signal_records;
 	inputs = llhd_zalloc(num_inputs * sizeof(llhd_type_t));
 	outputs = llhd_zalloc(num_outputs * sizeof(llhd_type_t));
 
-	for (i = 0; i < num_inputs; ++i) {
-		inputs[i] = llhd_type_get_input(proc_type, i);
+	for (i = 0, n = 0; i < num_inputs; ++i) {
+		llhd_value_t P = llhd_unit_get_input(proc, i);
+		if (llhd_ptrset_has(&used, P)) {
+			inputs[n] = llhd_type_get_input(proc_type, i);
+			printf("uses input %s %p\n", llhd_value_get_name(P), P);
+			++n;
+		} else {
+			printf("ignores input %s %p\n", llhd_value_get_name(P), P);
+		}
 	}
-	for (i = 0; i < num_sequential; ++i) {
+	num_inputs = n;
+
+	for (i = 0; i < num_signal_records; ++i) {
 		sigrec = signal_records + i;
 		outputs[i*2+0] = i1ty;
 		outputs[i*2+1] = llhd_value_get_type(sigrec->sig);
 	}
 
 	func_type = llhd_type_new_func(inputs, num_inputs, outputs, num_outputs);
+	func = llhd_func_new(func_type, llhd_value_get_name(proc));
+	llhd_type_unref(func_type);
 	llhd_type_unref(i1ty);
 
 	// do stuff with it
 	printf("func_type = ");
 	llhd_asm_write_type(func_type, stdout);
 	printf("\n");
+	llhd_asm_write_unit(func, stdout);
 
-	llhd_type_unref(func_type);
+	/// @todo: Verify that the created function and entity are self-contained.
+	///        That is, they should only refer to globals and values embedded
+	///        within themselves. This catches bugs where certain instructions
+	///        have not been unlinked from the old process properly.
+
+	llhd_value_unref(func);
+	llhd_ptrset_dispose(&used);
 
 	// Clean up.
 	sigrec = signal_records;
+	sigrecend = signal_records + num_signal_records;
 	while (sigrec != sigrecend) {
 		llhd_boolexpr_free(sigrec->cond);
 		++sigrec;
@@ -682,5 +754,5 @@ llhd_desequentialize(llhd_value_t proc) {
 	}
 
 	llhd_free(signal_records);
-	llhd_buffer_free(&records);
+	llhd_buffer_dispose(&records);
 }

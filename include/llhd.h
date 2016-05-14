@@ -123,6 +123,7 @@ llhd_value_t llhd_entity_get_last_inst(llhd_value_t);
 unsigned llhd_entity_get_num_insts(llhd_value_t);
 
 llhd_value_t llhd_proc_new(llhd_type_t,const char*);
+llhd_value_t llhd_func_new(llhd_type_t,const char*);
 
 llhd_value_t llhd_block_new(const char*);
 llhd_list_t llhd_block_first(llhd_list_t);
@@ -150,6 +151,8 @@ void llhd_inst_insert_before(llhd_value_t,llhd_value_t);
 bool llhd_inst_is(llhd_value_t,int);
 int llhd_inst_get_kind(llhd_value_t);
 llhd_value_t llhd_inst_get_parent(llhd_value_t);
+unsigned llhd_inst_get_num_params(llhd_value_t);
+llhd_value_t llhd_inst_get_param(llhd_value_t,unsigned);
 
 llhd_value_t llhd_inst_unary_new(int,llhd_value_t,const char*);
 int llhd_inst_unary_get_op(llhd_value_t);

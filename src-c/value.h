@@ -7,6 +7,7 @@
 struct llhd_value_use {
 	struct llhd_list link;
 	struct llhd_value *user;
+	struct llhd_value *value; /// @todo Remove and add proper param array to insts.
 	int arg;
 };
 
@@ -41,6 +42,13 @@ struct llhd_entity {
 };
 
 struct llhd_proc {
+	struct llhd_unit super;
+	char *name;
+	struct llhd_type *type;
+	struct llhd_list blocks;
+};
+
+struct llhd_func {
 	struct llhd_unit super;
 	char *name;
 	struct llhd_type *type;

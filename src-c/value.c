@@ -25,6 +25,10 @@ static void proc_add_block(void*, struct llhd_block*, int);
 static void proc_remove_block(void*, struct llhd_block*);
 static void proc_dispose(void*);
 
+static void func_add_block(void*, struct llhd_block*, int);
+static void func_remove_block(void*, struct llhd_block*);
+static void func_dispose(void*);
+
 static void block_add_inst(void*, struct llhd_value*, int);
 static void block_remove_inst(void*, struct llhd_value*);
 static void block_dispose(void*);
@@ -75,6 +79,19 @@ static struct llhd_unit_vtbl vtbl_proc = {
 	},
 	.kind = LLHD_UNIT_DEF_PROC,
 	.block_list_offset = offsetof(struct llhd_proc, blocks),
+};
+
+static struct llhd_unit_vtbl vtbl_func = {
+	.super = {
+		.kind = LLHD_VALUE_UNIT,
+		.name_offset = offsetof(struct llhd_func, name),
+		.type_offset = offsetof(struct llhd_func, type),
+		.add_block_fn = func_add_block,
+		.remove_block_fn = func_remove_block,
+		.dispose_fn = func_dispose,
+	},
+	.kind = LLHD_UNIT_DEF_FUNC,
+	.block_list_offset = offsetof(struct llhd_func, blocks),
 };
 
 static struct llhd_value_vtbl vtbl_block = {
@@ -213,6 +230,7 @@ void
 llhd_value_use(struct llhd_value *V, struct llhd_value_use *U) {
 	assert(V && U);
 	llhd_list_insert(&V->users, &U->link);
+	U->value = V;
 }
 
 void
@@ -754,4 +772,59 @@ llhd_unit_insert_before(struct llhd_value *V, struct llhd_value *Vother) {
 	U->module = other->module;
 	llhd_value_ref(V);
 	llhd_list_insert(other->link.prev, &U->link);
+}
+
+struct llhd_value *
+llhd_func_new(struct llhd_type *T, const char *name) {
+	struct llhd_func *F;
+	unsigned i, num_inputs, num_outputs;
+	assert(T && name && llhd_type_is(T, LLHD_TYPE_FUNC));
+	llhd_type_ref(T);
+	num_inputs = llhd_type_get_num_inputs(T);
+	num_outputs = llhd_type_get_num_outputs(T);
+	F = llhd_alloc_unit(sizeof(*F), &vtbl_func, num_inputs+num_outputs);
+	F->name = strdup(name);
+	F->type = T;
+	F->super.num_inputs = num_inputs;
+	F->super.num_outputs = num_outputs;
+	for (i = 0; i < num_inputs; ++i)
+		F->super.params[i] = param_new(llhd_type_get_input(T,i));
+	for (i = 0; i < num_outputs; ++i)
+		F->super.params[i+num_inputs] = param_new(llhd_type_get_output(T,i));
+	llhd_list_init(&F->blocks);
+	return (struct llhd_value *)F;
+}
+
+static void
+func_dispose(void *ptr) {
+	unsigned i;
+	struct llhd_func *F;
+	struct llhd_list *pos;
+	struct llhd_value *BB;
+	assert(ptr);
+	F = ptr;
+	pos = llhd_block_first(&F->blocks);
+	while ((BB = llhd_block_next(&F->blocks, &pos))) {
+		llhd_value_unlink(BB);
+		llhd_value_unref(BB);
+	}
+	llhd_free(F->name);
+	llhd_type_unref(F->type);
+	for (i = 0; i < F->super.num_inputs + F->super.num_outputs; ++i)
+		llhd_value_unref((struct llhd_value *)F->super.params[i]);
+}
+
+static void
+func_add_block(void *ptr, struct llhd_block *BB, int append) {
+	struct llhd_func *F = ptr;
+	assert(ptr);
+	assert(BB && BB->super.vtbl && BB->super.vtbl->kind == LLHD_VALUE_BLOCK);
+	llhd_value_ref((struct llhd_value *)BB);
+	llhd_list_insert(append ? F->blocks.prev : &F->blocks, &BB->link);
+}
+
+static void
+func_remove_block(void *ptr, struct llhd_block *BB) {
+	/// @todo Implement
+	assert(0 && "not implemented");
 }

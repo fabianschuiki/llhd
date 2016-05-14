@@ -21,6 +21,12 @@ struct llhd_buffer {
 	size_t cap;
 };
 
+struct llhd_ptrset {
+	void **data;
+	unsigned num;
+	unsigned cap;
+};
+
 void llhd_list_init(struct llhd_list*);
 void llhd_list_insert(struct llhd_list*, struct llhd_list*);
 void llhd_list_insert_list(struct llhd_list*, struct llhd_list*);
@@ -34,5 +40,11 @@ bool llhd_list_empty(struct llhd_list*);
 	(type*)((void*)(ptr) - offsetof(type, member))
 
 void llhd_buffer_init(struct llhd_buffer*, size_t);
-void llhd_buffer_free(struct llhd_buffer*);
+void llhd_buffer_dispose(struct llhd_buffer*);
 void *llhd_buffer_append(struct llhd_buffer*, size_t, void*);
+
+void llhd_ptrset_init(struct llhd_ptrset*, size_t);
+void llhd_ptrset_dispose(struct llhd_ptrset*);
+bool llhd_ptrset_insert(struct llhd_ptrset*, void*);
+bool llhd_ptrset_remove(struct llhd_ptrset*, void*);
+bool llhd_ptrset_has(struct llhd_ptrset*, void*);

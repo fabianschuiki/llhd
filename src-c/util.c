@@ -109,7 +109,7 @@ llhd_buffer_init(struct llhd_buffer *buf, size_t cap) {
 }
 
 void
-llhd_buffer_free(struct llhd_buffer *buf) {
+llhd_buffer_dispose(struct llhd_buffer *buf) {
 	if (buf->data)
 		llhd_free(buf->data);
 	memset(buf, 0, sizeof(struct llhd_buffer));
@@ -132,4 +132,95 @@ llhd_buffer_append(struct llhd_buffer *buf, size_t size, void *data) {
 		memcpy(ptr, data, size);
 	}
 	return ptr;
+}
+
+
+
+void
+llhd_ptrset_init(struct llhd_ptrset *ps, size_t cap) {
+	assert(ps);
+	memset(ps, 0, sizeof(*ps));
+	ps->cap = cap;
+	if (cap > 0) {
+		ps->data = llhd_alloc(ps->cap * sizeof(void*));
+	}
+}
+
+void
+llhd_ptrset_dispose(struct llhd_ptrset *ps) {
+	assert(ps);
+	if (ps->data) {
+		llhd_free(ps->data);
+	}
+	memset(ps, 0, sizeof(*ps));
+}
+
+/**
+ * Based on Linux' implementation of bsearch, see [1].
+ *
+ * [1]: http://lxr.free-electrons.com/source/lib/bsearch.c
+ */
+static unsigned
+ptrset_locate(struct llhd_ptrset *ps, void *ptr) {
+	unsigned start = 0, end = ps->num;
+	while (start < end) {
+		unsigned mid = start + (end - start) / 2;
+		if (ptr < ps->data[mid]) {
+			end = mid;
+		} else if (ptr > ps->data[mid]) {
+			start = mid + 1;
+		} else {
+			return mid;
+		}
+	}
+	return start;
+}
+
+bool
+llhd_ptrset_insert(struct llhd_ptrset *ps, void *ptr) {
+	unsigned idx, i;
+	assert(ps);
+
+	idx = ptrset_locate(ps, ptr);
+	if (idx < ps->num && ps->data[idx] == ptr) {
+		return false;
+	}
+
+	if (ps->num > ps->cap) {
+		ps->cap *= 2;
+		ps->data = llhd_realloc(ps->data, ps->cap * sizeof(void*));
+	}
+
+	for (i = ps->num; i > idx; --i) {
+		ps->data[i] = ps->data[i-1];
+	}
+	ps->data[idx] = ptr;
+	++ps->num;
+	return true;
+}
+
+bool
+llhd_ptrset_remove(struct llhd_ptrset *ps, void *ptr) {
+	unsigned idx, i;
+	assert(ps);
+
+	idx = ptrset_locate(ps, ptr);
+	if (idx < ps->num && ps->data[idx] != ptr) {
+		return false;
+	}
+
+	--ps->num;
+	for (i = idx; i < ps->num; ++i) {
+		ps->data[i] = ps->data[i+1];
+	}
+	return true;
+}
+
+bool
+llhd_ptrset_has(struct llhd_ptrset *ps, void *ptr) {
+	unsigned idx;
+	assert(ps);
+
+	idx = ptrset_locate(ps, ptr);
+	return idx < ps->num && ps->data[idx] == ptr;
 }

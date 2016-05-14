@@ -12,18 +12,6 @@ struct llhd_boolexpr {
 	struct llhd_boolexpr *children[];
 };
 
-inline struct llhd_boolexpr *
-get_child(struct llhd_boolexpr *expr, unsigned idx) {
-	assert(idx < expr->num_children);
-	return expr->children[idx];
-}
-
-inline void *
-get_symbol(struct llhd_boolexpr *expr) {
-	assert(expr->kind == LLHD_BOOLEXPR_SYMBOL && expr->num_children == 1);
-	return expr->children[0];
-}
-
 struct llhd_boolexpr *
 alloc_boolexpr(unsigned num_children) {
 	struct llhd_boolexpr *expr;
@@ -321,4 +309,25 @@ enum llhd_boolexpr_kind
 llhd_boolexpr_is(struct llhd_boolexpr *expr, enum llhd_boolexpr_kind kind) {
 	assert(expr);
 	return expr->kind == kind;
+}
+
+void *
+llhd_boolexpr_get_symbol(struct llhd_boolexpr *expr) {
+	assert(expr && expr->kind == LLHD_BOOLEXPR_SYMBOL);
+	return expr->children[0];
+}
+
+unsigned
+llhd_boolexpr_get_num_children(struct llhd_boolexpr *expr) {
+	assert(expr);
+	if (expr->kind == LLHD_BOOLEXPR_SYMBOL)
+		return 0;
+	else
+		return expr->num_children;
+}
+
+struct llhd_boolexpr **
+llhd_boolexpr_get_children(struct llhd_boolexpr *expr) {
+	assert(expr && expr->kind != LLHD_BOOLEXPR_SYMBOL);
+	return expr->children;
 }
