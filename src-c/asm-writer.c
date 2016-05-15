@@ -280,7 +280,7 @@ static void
 write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 	int kind = llhd_inst_get_kind(I);
 	const char *name = llhd_value_get_name(I);
-	llhd_value_t cond, comp;
+	llhd_value_t cond, comp, func;
 	unsigned i, num;
 	if (name || llhd_value_has_users(I)) {
 		const char *an = symtbl_add_name(symtbl, I, name);
@@ -353,6 +353,20 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 			}
 			fputs(")", out);
 			break;
+		case LLHD_INST_CALL:
+			fputs("call ", out);
+			func = llhd_inst_call_get_func(I);
+			llhd_asm_write_type(llhd_value_get_type(func), out);
+			fputs(" @", out);
+			fputs(llhd_value_get_name(func), out);
+			fputs(" (", out);
+			num = llhd_inst_call_get_num_args(I);
+			for (i = 0; i < num; ++i) {
+				if (i != 0) fputs(", ", out);
+				write_value_ref(llhd_inst_call_get_arg(I,i), 0, symtbl, out);
+			}
+			fputs(")", out);
+			break;
 		case LLHD_INST_RET:
 			fputs("ret", out);
 			num = llhd_inst_ret_get_num_args(I);
@@ -360,6 +374,23 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 				fputs(i == 0 ? " " : ", ", out);
 				write_value_ref(llhd_inst_ret_get_arg(I,i), 0, symtbl, out);
 			}
+			break;
+		case LLHD_INST_EXTRACT:
+			fputs("extract ", out);
+			write_value_ref(llhd_inst_extract_get_target(I), 1, symtbl, out);
+			fprintf(out, " %u", llhd_inst_extract_get_index(I));
+			break;
+		case LLHD_INST_INSERT:
+			fputs("insert ", out);
+			write_value_ref(llhd_inst_insert_get_target(I), 1, symtbl, out);
+			fprintf(out, " %u ", llhd_inst_insert_get_index(I));
+			write_value_ref(llhd_inst_insert_get_value(I), 0, symtbl, out);
+			break;
+		case LLHD_INST_REG:
+			fputs("reg ", out);
+			write_value_ref(llhd_inst_reg_get_value(I), 1, symtbl, out);
+			fputs(", ", out);
+			write_value_ref(llhd_inst_reg_get_strobe(I), 0, symtbl, out);
 			break;
 		default:
 			assert(0 && "unknown inst kind");

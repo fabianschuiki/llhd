@@ -64,9 +64,38 @@ struct llhd_inst_inst {
 	struct llhd_value_use *uses;
 };
 
+struct llhd_call_inst {
+	struct llhd_inst super;
+	struct llhd_value *func;
+	unsigned num_args;
+	struct llhd_value **args;
+	struct llhd_value_use *uses;
+};
+
 struct llhd_unary_inst {
 	struct llhd_inst super;
 	enum llhd_unary_op op;
 	struct llhd_value *arg;
 	struct llhd_value_use use;
+};
+
+struct llhd_extract_inst {
+	struct llhd_inst super;
+	struct llhd_value *target;
+	unsigned index;
+	struct llhd_value_use use;
+};
+
+struct llhd_insert_inst {
+	struct llhd_inst super;
+	struct llhd_value *target;
+	unsigned index;
+	struct llhd_value *value;
+	struct llhd_value_use uses[2];
+};
+
+struct llhd_reg_inst {
+	struct llhd_inst super;
+	struct llhd_value *value, *strobe;
+	struct llhd_value_use uses[2];
 };

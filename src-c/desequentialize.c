@@ -60,6 +60,7 @@ struct record {
 	llhd_value_t sig;
 	llhd_value_t inst;
 	struct llhd_boolexpr *cond_expr;
+	int is_sequential;
 };
 
 struct signal_record {
@@ -664,11 +665,13 @@ void
 llhd_desequentialize(llhd_value_t proc) {
 	llhd_value_t BB;
 	llhd_list_t blocks, pos;
-	unsigned num_records;
+	unsigned num_records, num;
 	unsigned num_signal_records;
 	struct llhd_buffer records;
 	struct record *recbase, *rec, *recend;
 	struct signal_record *signal_records, *sigrec, *sigrecend;
+	llhd_type_t new_proc_type;
+	llhd_value_t new_proc, *input_values, *output_values;
 
 	llhd_buffer_init(&records, 16*sizeof(struct record));
 	num_records = 0;
@@ -741,6 +744,7 @@ llhd_desequentialize(llhd_value_t proc) {
 			rec = recbase;
 			while (rec != recend && rec->sig == recbase->sig) {
 				struct llhd_boolexpr *ncond = llhd_boolexpr_copy(sigrec->cond);
+				rec->is_sequential = 1;
 				llhd_boolexpr_negate(ncond);
 				rec->cond_expr = llhd_boolexpr_new_or((struct llhd_boolexpr*[]){rec->cond_expr, ncond}, 2);
 				printf("- drive %p if ", rec->inst);
@@ -782,9 +786,11 @@ llhd_desequentialize(llhd_value_t proc) {
 
 	// Assemble a function that calculates the drive condition and driven value
 	// for each sequential signal.
-	unsigned i, n, num_inputs, num_outputs, *input_mapping;
+	unsigned i, n, num_inputs, num_outputs, *input_mapping, *output_mapping;
 	llhd_type_t *inputs, *outputs, proc_type, i1ty, func_type;
-	llhd_value_t func, *func_returns, I;
+	llhd_value_t func, *func_returns, I, entity, call;
+	const char *name;
+	char *name_buffer;
 
 	i1ty = llhd_type_new_int(1);
 	proc_type = llhd_value_get_type(proc);
@@ -793,7 +799,7 @@ llhd_desequentialize(llhd_value_t proc) {
 	inputs = llhd_zalloc(num_inputs * sizeof(llhd_type_t));
 	outputs = llhd_zalloc(num_outputs * sizeof(llhd_type_t));
 	func_returns = llhd_zalloc(num_outputs * sizeof(llhd_value_t));
-	input_mapping = llhd_zalloc(num_inputs * sizeof(int));
+	input_mapping = llhd_zalloc(num_inputs * sizeof(unsigned));
 
 	for (i = 0, n = 0; i < num_inputs; ++i) {
 		llhd_value_t P = llhd_unit_get_input(proc, i);
@@ -807,6 +813,7 @@ llhd_desequentialize(llhd_value_t proc) {
 		}
 	}
 	num_inputs = n;
+	llhd_ptrset_dispose(&used);
 
 	for (i = 0; i < num_signal_records; ++i) {
 		sigrec = signal_records + i;
@@ -814,15 +821,52 @@ llhd_desequentialize(llhd_value_t proc) {
 		outputs[i*2+1] = llhd_value_get_type(sigrec->sig);
 	}
 
+	name = llhd_value_get_name(proc);
+	name_buffer = llhd_alloc(strlen(name) + 6);
+
+	entity = llhd_entity_new(proc_type, name);
+	n = llhd_unit_get_num_inputs(proc);
+	for (i = 0; i < n; ++i) {
+		llhd_value_set_name(llhd_unit_get_input(entity,i), llhd_value_get_name(llhd_unit_get_input(proc,i)));
+	}
+	n = llhd_unit_get_num_outputs(proc);
+	for (i = 0; i < n; ++i) {
+		llhd_value_set_name(llhd_unit_get_output(entity,i), llhd_value_get_name(llhd_unit_get_output(proc,i)));
+	}
+	llhd_value_replace_uses(proc, entity);
+	llhd_unit_insert_before(entity, proc);
+
+	strcpy(name_buffer, name);
+	strcat(name_buffer, "_seq");
 	func_type = llhd_type_new_func(inputs, num_inputs, outputs, num_outputs);
-	func = llhd_func_new(func_type, llhd_value_get_name(proc));
+	func = llhd_func_new(func_type, name_buffer);
+	llhd_unit_insert_after(func, proc);
 	llhd_type_unref(func_type);
 	llhd_type_unref(i1ty);
+	llhd_free(inputs);
+	llhd_free(outputs);
+
+	strcpy(name_buffer, name);
+	strcat(name_buffer, "_comb");
+	llhd_value_set_name(proc, name_buffer);
+
+	llhd_free(name_buffer);
+
+	input_values = llhd_zalloc(num_inputs * sizeof(llhd_value_t));
+	for (i = 0; i < num_inputs; ++i) {
+		input_values[i] = llhd_unit_get_input(entity, input_mapping[i]);
+	}
+	call = llhd_inst_call_new(func, input_values, num_inputs, NULL);
+	llhd_inst_append_to(call, entity);
+	llhd_value_unref(call);
+	llhd_free(input_values);
 
 	for (i = 0; i < num_signal_records; ++i) {
 		const char *signame;
 		char *buffer;
 		unsigned signamelen;
+		llhd_value_t ret_cond, ret_val;
+
 		sigrec = signal_records + i;
 
 		signame = llhd_value_get_name(sigrec->sig);
@@ -832,12 +876,33 @@ llhd_desequentialize(llhd_value_t proc) {
 		strcpy(buffer, signame);
 		strcat(buffer, "_strb");
 		llhd_value_set_name(llhd_unit_get_output(func, i*2+0), buffer);
+		ret_cond = llhd_inst_extract_new(call, i*2+0, buffer);
 
 		strcpy(buffer, signame);
 		strcat(buffer, "_val");
 		llhd_value_set_name(llhd_unit_get_output(func, i*2+1), buffer);
+		ret_val = llhd_inst_extract_new(call, i*2+1, buffer);
 
 		llhd_free(buffer);
+
+		llhd_inst_append_to(ret_cond, entity);
+		llhd_inst_append_to(ret_val, entity);
+		llhd_value_unref(ret_cond);
+		llhd_value_unref(ret_val);
+
+		I = llhd_inst_reg_new(ret_val, ret_cond, signame);
+		llhd_inst_append_to(I, entity);
+		llhd_value_unref(I);
+
+		num = llhd_unit_get_num_outputs(proc);
+		for (n = 0; n < num; ++n) {
+			if (sigrec->sig == llhd_unit_get_output(proc,n)) {
+				I = llhd_inst_drive_new(llhd_unit_get_output(entity,n), I);
+				llhd_inst_append_to(I, entity);
+				llhd_value_unref(I);
+				break;
+			}
+		}
 	}
 
 
@@ -887,12 +952,124 @@ llhd_desequentialize(llhd_value_t proc) {
 	}
 	llhd_free(input_mapping);
 
-
-	// do stuff with it
 	printf("func_type = ");
 	llhd_asm_write_type(func_type, stdout);
 	printf("\n");
 	llhd_asm_write_unit(func, stdout);
+
+
+	// Remove the instructions that drive sequential signals, and create a new,
+	// stripped-down version of the process that only has combinatorial signals
+	// as outputs.
+	for (rec = records.data, recend = rec + num_records; rec != recend; ++rec) {
+		if (rec->is_sequential) {
+			llhd_value_unlink(rec->inst);
+			rec->inst = NULL;
+		}
+	}
+
+	/// @todo Simplify proc in case certain instructions are now obsolete and
+	///       certain parameters are no longer used. However, this step is
+	///       optional.
+
+	num_inputs = llhd_unit_get_num_inputs(proc);
+	num_outputs = llhd_unit_get_num_outputs(proc);
+	input_mapping = llhd_zalloc(num_inputs * sizeof(unsigned));
+	output_mapping = llhd_zalloc(num_outputs * sizeof(unsigned));
+
+	for (i = 0, n = 0; i < num_inputs; ++i) {
+		if (llhd_value_has_users(llhd_unit_get_input(proc, i))) {
+			input_mapping[n++] = i;
+		}
+	}
+	num_inputs = n;
+
+	for (i = 0, n = 0; i < num_outputs; ++i) {
+		if (llhd_value_has_users(llhd_unit_get_output(proc, i))) {
+			output_mapping[n++] = i;
+		}
+	}
+	num_outputs = n;
+
+	printf("reduced comb uses %d inputs and %d outputs\n", num_inputs, num_outputs);
+
+	inputs = llhd_alloc(num_inputs * sizeof(llhd_type_t));
+	outputs = llhd_alloc(num_outputs * sizeof(llhd_type_t));
+	for (i = 0; i < num_inputs; ++i) {
+		inputs[i] = llhd_type_get_input(proc_type, input_mapping[i]);
+	}
+	for (i = 0; i < num_outputs; ++i) {
+		outputs[i] = llhd_type_get_output(proc_type, output_mapping[i]);
+	}
+	new_proc_type = llhd_type_new_comp(inputs, num_inputs, outputs, num_outputs);
+	llhd_free(inputs);
+	llhd_free(outputs);
+
+	printf("new_proc_type = ");
+	llhd_asm_write_type(new_proc_type, stdout);
+	printf("\n");
+
+	new_proc = llhd_proc_new(new_proc_type, llhd_value_get_name(proc));
+	llhd_type_unref(new_proc_type);
+	llhd_unit_insert_after(new_proc, proc);
+	llhd_value_unref(new_proc);
+
+	input_values = llhd_alloc(num_inputs * sizeof(llhd_value_t));
+	output_values = llhd_alloc(num_outputs * sizeof(llhd_value_t));
+
+	for (i = 0; i < num_inputs; ++i) {
+		input_values[i] = llhd_unit_get_input(entity, input_mapping[i]);
+	}
+	for (i = 0; i < num_outputs; ++i) {
+		output_values[i] = llhd_unit_get_output(entity, output_mapping[i]);
+	}
+
+	I = llhd_inst_instance_new(new_proc, input_values, num_inputs, output_values, num_outputs, NULL);
+	llhd_inst_append_to(I, entity);
+	llhd_value_unref(I);
+
+	llhd_free(input_values);
+	llhd_free(output_values);
+
+	// Move the blocks from the old process over to the new process, and replace
+	// the old process' parameters with the new process' parameters.
+	blocks = llhd_unit_get_blocks(proc);
+	for (pos = llhd_block_first(blocks); (BB = llhd_block_next(blocks, &pos));) {
+		llhd_value_ref(BB);
+		llhd_value_unlink_from_parent(BB);
+		llhd_block_append_to(BB, new_proc);
+		llhd_value_unref(BB);
+	}
+
+	for (i = 0; i < num_inputs; ++i) {
+		llhd_value_t old, new;
+		old = llhd_unit_get_input(proc, input_mapping[i]);
+		new = llhd_unit_get_input(new_proc, i);
+		llhd_value_set_name(new, llhd_value_get_name(old));
+		llhd_value_substitute(new_proc, old, new);
+	}
+
+	for (i = 0; i < num_outputs; ++i) {
+		llhd_value_t old, new;
+		old = llhd_unit_get_output(proc, output_mapping[i]);
+		new = llhd_unit_get_output(new_proc, i);
+		llhd_value_set_name(new, llhd_value_get_name(old));
+		llhd_value_substitute(new_proc, old, new);
+	}
+
+	llhd_free(input_mapping);
+	llhd_free(output_mapping);
+	llhd_value_unlink(proc);
+
+
+
+	/// @todo Call the above function with the appropriate parameters. Then
+	//        instantiate the required storage instructions and do some magic.
+
+
+	llhd_asm_write_unit(entity, stdout);
+	llhd_value_unref(entity);
+
 
 	/// @todo: Verify that the created function and entity are self-contained.
 	///        That is, they should only refer to globals and values embedded
@@ -900,7 +1077,6 @@ llhd_desequentialize(llhd_value_t proc) {
 	///        have not been unlinked from the old process properly.
 
 	llhd_value_unref(func);
-	llhd_ptrset_dispose(&used);
 
 	// Clean up.
 	sigrec = signal_records;

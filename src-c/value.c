@@ -9,12 +9,22 @@
 #include <stdio.h>
 
 /**
+ * @file
+ * @author Fabian Schuiki <fabian@schuiki.ch
+ *
  * @todo Merge inst and const kinds into value kind field and replace
- * corresponding type checks with easier variant.
+ *       corresponding type checks with easier variant.
+ *
+ * @todo Remove llhd_unit_get_blocks and replace it with the corresponding first
+ *       and last block accessor. This makes the API much easier to use, as the
+ *       llhd_list approach requires the user to properly calculate the offset
+ *       from the list link to the start of the containing structure. Yuck.
  */
 
 static char *const_int_to_string(void*);
 static void const_int_dispose(void*);
+
+static void unit_unlink_from_parent(void*);
 
 static void entity_add_inst(void*, struct llhd_value*, int);
 static void entity_remove_inst(void*, struct llhd_value*);
@@ -24,6 +34,7 @@ static void param_dispose(void*);
 static void proc_add_block(void*, struct llhd_block*, int);
 static void proc_remove_block(void*, struct llhd_block*);
 static void proc_dispose(void*);
+static void proc_substitute(void*,void*,void*);
 
 static void func_add_block(void*, struct llhd_block*, int);
 static void func_remove_block(void*, struct llhd_block*);
@@ -33,6 +44,7 @@ static void block_add_inst(void*, struct llhd_value*, int);
 static void block_remove_inst(void*, struct llhd_value*);
 static void block_dispose(void*);
 static void block_substitute(void*,void*,void*);
+static void block_unlink_from_parent(void*);
 
 struct llhd_param {
 	struct llhd_value super;
@@ -65,6 +77,7 @@ static struct llhd_unit_vtbl vtbl_entity = {
 		.add_inst_fn = entity_add_inst,
 		.remove_inst_fn = entity_remove_inst,
 		.dispose_fn = entity_dispose,
+		.unlink_from_parent_fn = unit_unlink_from_parent,
 	},
 	.kind = LLHD_UNIT_DEF_ENTITY,
 };
@@ -77,6 +90,8 @@ static struct llhd_unit_vtbl vtbl_proc = {
 		.add_block_fn = proc_add_block,
 		.remove_block_fn = proc_remove_block,
 		.dispose_fn = proc_dispose,
+		.unlink_from_parent_fn = unit_unlink_from_parent,
+		.substitute_fn = proc_substitute,
 	},
 	.kind = LLHD_UNIT_DEF_PROC,
 	.block_list_offset = offsetof(struct llhd_proc, blocks),
@@ -90,6 +105,7 @@ static struct llhd_unit_vtbl vtbl_func = {
 		.add_block_fn = func_add_block,
 		.remove_block_fn = func_remove_block,
 		.dispose_fn = func_dispose,
+		.unlink_from_parent_fn = unit_unlink_from_parent,
 	},
 	.kind = LLHD_UNIT_DEF_FUNC,
 	.block_list_offset = offsetof(struct llhd_func, blocks),
@@ -103,6 +119,7 @@ static struct llhd_value_vtbl vtbl_block = {
 	.remove_inst_fn = block_remove_inst,
 	.dispose_fn = block_dispose,
 	.substitute_fn = block_substitute,
+	.unlink_from_parent_fn = block_unlink_from_parent,
 };
 
 
@@ -244,17 +261,13 @@ llhd_value_unuse(struct llhd_value_use *U) {
 
 void
 llhd_value_replace_uses(struct llhd_value *V, struct llhd_value *R) {
-	struct llhd_list *u, *uz;
-	unsigned count;
-
+	struct llhd_list *u;
+	assert(V && V->users.next);
 	u = V->users.next;
-	uz = &V->users;
-	count = 0;
-	while (u != uz) {
+	while (u != &V->users) {
 		struct llhd_value_use *U;
 		U = llhd_container_of(u, U, link);
 		u = u->next;
-		++count;
 		llhd_value_substitute(U->user, V, R);
 	}
 }
@@ -527,7 +540,6 @@ proc_dispose(void *ptr) {
 	pos = llhd_block_first(&P->blocks);
 	while ((BB = llhd_block_next(&P->blocks, &pos))) {
 		llhd_value_unlink(BB);
-		llhd_value_unref(BB);
 	}
 	llhd_free(P->name);
 	llhd_type_unref(P->type);
@@ -546,8 +558,31 @@ proc_add_block(void *ptr, struct llhd_block *BB, int append) {
 
 static void
 proc_remove_block(void *ptr, struct llhd_block *BB) {
-	/// @todo Implement
-	assert(0 && "not implemented");
+	assert(BB);
+	llhd_list_remove(&BB->link);
+	llhd_value_unref((struct llhd_value *)BB);
+}
+
+static void
+proc_substitute(void *ptr, void *ref, void *sub) {
+	struct llhd_proc *P = ptr;
+	struct llhd_list *link;
+
+	link = P->blocks.next;
+	while (link != &P->blocks) {
+		void *BB = llhd_container_of2(link, struct llhd_block, link);
+		link = link->next;
+		llhd_value_substitute(BB, ref, sub);
+	}
+}
+
+static void
+unit_unlink_from_parent(void *ptr) {
+	struct llhd_unit *U = ptr;
+	assert(U->module);
+	llhd_list_remove(&U->link);
+	U->module = NULL;
+	llhd_value_unref(ptr);
 }
 
 struct llhd_value *
@@ -606,17 +641,16 @@ block_add_inst(void *ptr, struct llhd_value *I, int append) {
 
 static void
 block_remove_inst(void *ptr, struct llhd_value *I) {
-	/// @todo Implement
-	assert(0 && "not implemented");
+	assert(I && I->vtbl && I->vtbl->kind == LLHD_VALUE_INST);
+	llhd_list_remove(&((struct llhd_inst *)I)->link);
+	llhd_value_unref(I);
 }
 
 static void
 block_dispose(void *ptr) {
-	struct llhd_block *BB;
+	struct llhd_block *BB = ptr;
 	struct llhd_list *link;
 
-	assert(ptr);
-	BB = ptr;
 	link = BB->insts.next;
 	while (link != &BB->insts) {
 		struct llhd_inst *I;
@@ -634,6 +668,18 @@ block_dispose(void *ptr) {
 	}
 	llhd_free(BB->name);
 	llhd_type_unref(BB->type);
+}
+
+static void
+block_unlink_from_parent(void *ptr) {
+	struct llhd_block *BB = ptr;
+	struct llhd_value *P = BB->parent;
+	assert(P && P->vtbl);
+	// Must go before remove_block_fn, since that might dispose and free the
+	// block, which triggers an assert on parent == NULL in the dispose function.
+	BB->parent = NULL;
+	if (P->vtbl->remove_block_fn)
+		P->vtbl->remove_block_fn(P, ptr);
 }
 
 struct llhd_list *
@@ -813,7 +859,6 @@ func_dispose(void *ptr) {
 	pos = llhd_block_first(&F->blocks);
 	while ((BB = llhd_block_next(&F->blocks, &pos))) {
 		llhd_value_unlink(BB);
-		llhd_value_unref(BB);
 	}
 	llhd_free(F->name);
 	llhd_type_unref(F->type);
@@ -832,8 +877,9 @@ func_add_block(void *ptr, struct llhd_block *BB, int append) {
 
 static void
 func_remove_block(void *ptr, struct llhd_block *BB) {
-	/// @todo Implement
-	assert(0 && "not implemented");
+	assert(BB);
+	llhd_list_remove(&BB->link);
+	llhd_value_unref((struct llhd_value *)BB);
 }
 
 struct llhd_value *

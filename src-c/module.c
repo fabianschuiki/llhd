@@ -23,7 +23,7 @@ llhd_module_free(struct llhd_module *M) {
 	assert(M);
 	pos = llhd_unit_first(&M->units);
 	while ((U = llhd_unit_next(&M->units, &pos))) {
-		llhd_value_unlink(U);
+		llhd_value_unlink_uses(U);
 		llhd_value_unref(U);
 	}
 	llhd_free(M->name);

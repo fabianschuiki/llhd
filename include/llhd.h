@@ -50,6 +50,10 @@ enum llhd_inst_kind {
 	LLHD_INST_DRIVE   = 6,
 	LLHD_INST_RET     = 7,
 	LLHD_INST_INST    = 8,
+	LLHD_INST_CALL    = 9,
+	LLHD_INST_EXTRACT = 10,
+	LLHD_INST_INSERT  = 11,
+	LLHD_INST_REG     = 12,
 };
 
 enum llhd_unary_op {
@@ -194,7 +198,25 @@ unsigned llhd_inst_inst_get_num_outputs(llhd_value_t);
 llhd_value_t llhd_inst_inst_get_input(llhd_value_t,unsigned);
 llhd_value_t llhd_inst_inst_get_output(llhd_value_t,unsigned);
 
+llhd_value_t llhd_inst_call_new(llhd_value_t,llhd_value_t*,unsigned,const char*);
+llhd_value_t llhd_inst_call_get_func(llhd_value_t);
+unsigned llhd_inst_call_get_num_args(llhd_value_t);
+llhd_value_t llhd_inst_call_get_arg(llhd_value_t,unsigned);
+
 llhd_value_t llhd_inst_sig_new(llhd_type_t,const char*);
+
+llhd_value_t llhd_inst_extract_new(llhd_value_t,unsigned,const char*);
+unsigned llhd_inst_extract_get_index(llhd_value_t);
+llhd_value_t llhd_inst_extract_get_target(llhd_value_t);
+
+llhd_value_t llhd_inst_insert_new(llhd_value_t,unsigned,llhd_value_t,const char*);
+unsigned llhd_inst_insert_get_index(llhd_value_t);
+llhd_value_t llhd_inst_insert_get_target(llhd_value_t);
+llhd_value_t llhd_inst_insert_get_value(llhd_value_t);
+
+llhd_value_t llhd_inst_reg_new(llhd_value_t,llhd_value_t,const char*);
+llhd_value_t llhd_inst_reg_get_value(llhd_value_t);
+llhd_value_t llhd_inst_reg_get_strobe(llhd_value_t);
 
 llhd_value_t llhd_const_int_new(llhd_apint_t);
 bool llhd_const_is_null(llhd_value_t);
@@ -226,6 +248,8 @@ llhd_type_t llhd_type_new_func(llhd_type_t*,unsigned,llhd_type_t*,unsigned);
 llhd_type_t llhd_type_new_int(unsigned);
 llhd_type_t llhd_type_new_void();
 llhd_type_t llhd_type_new_label();
+llhd_type_t llhd_type_new_struct(llhd_type_t*,unsigned);
+llhd_type_t llhd_type_new_array(llhd_type_t,unsigned);
 bool llhd_type_is(llhd_type_t,int);
 int llhd_type_get_kind(llhd_type_t);
 unsigned llhd_type_get_length(llhd_type_t);

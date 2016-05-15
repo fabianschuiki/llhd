@@ -54,10 +54,30 @@ static void inst_substitute(void*,void*,void*);
 static void inst_unlink_from_parent(void*);
 static void inst_unlink_uses(void*);
 
+static void call_dispose(void*);
+static void call_substitute(void*,void*,void*);
+static void call_unlink_from_parent(void*);
+static void call_unlink_uses(void*);
+
 static void unary_dispose(void*);
 static void unary_substitute(void*,void*,void*);
 static void unary_unlink_from_parent(void*);
 static void unary_unlink_uses(void*);
+
+static void extract_dispose(void*);
+static void extract_substitute(void*,void*,void*);
+static void extract_unlink_from_parent(void*);
+static void extract_unlink_uses(void*);
+
+static void insert_dispose(void*);
+static void insert_substitute(void*,void*,void*);
+static void insert_unlink_from_parent(void*);
+static void insert_unlink_uses(void*);
+
+static void reg_dispose(void*);
+static void reg_substitute(void*,void*,void*);
+static void reg_unlink_from_parent(void*);
+static void reg_unlink_uses(void*);
 
 static struct llhd_inst_vtbl vtbl_binary_inst = {
 	.super = {
@@ -150,6 +170,21 @@ static struct llhd_inst_vtbl vtbl_inst_inst = {
 		.unlink_uses_fn = inst_unlink_uses,
 	},
 	.kind = LLHD_INST_INST,
+	/// @todo add uses
+};
+
+static struct llhd_inst_vtbl vtbl_call_inst = {
+	.super = {
+		.kind = LLHD_VALUE_INST,
+		.name_offset = offsetof(struct llhd_inst, name),
+		.type_offset = offsetof(struct llhd_inst, type),
+		.dispose_fn = call_dispose,
+		.substitute_fn = call_substitute,
+		.unlink_from_parent_fn = call_unlink_from_parent,
+		.unlink_uses_fn = call_unlink_uses,
+	},
+	.kind = LLHD_INST_CALL,
+	/// @todo add uses
 };
 
 static struct llhd_inst_vtbl vtbl_unary_inst = {
@@ -165,6 +200,51 @@ static struct llhd_inst_vtbl vtbl_unary_inst = {
 	.kind = LLHD_INST_UNARY,
 	.num_uses = 1,
 	.uses_offset = offsetof(struct llhd_unary_inst, use),
+};
+
+static struct llhd_inst_vtbl vtbl_extract_inst = {
+	.super = {
+		.kind = LLHD_VALUE_INST,
+		.name_offset = offsetof(struct llhd_inst, name),
+		.type_offset = offsetof(struct llhd_inst, type),
+		.dispose_fn = extract_dispose,
+		.substitute_fn = extract_substitute,
+		.unlink_from_parent_fn = extract_unlink_from_parent,
+		.unlink_uses_fn = extract_unlink_uses,
+	},
+	.kind = LLHD_INST_EXTRACT,
+	.num_uses = 1,
+	.uses_offset = offsetof(struct llhd_extract_inst, use),
+};
+
+static struct llhd_inst_vtbl vtbl_insert_inst = {
+	.super = {
+		.kind = LLHD_VALUE_INST,
+		.name_offset = offsetof(struct llhd_inst, name),
+		.type_offset = offsetof(struct llhd_inst, type),
+		.dispose_fn = insert_dispose,
+		.substitute_fn = insert_substitute,
+		.unlink_from_parent_fn = insert_unlink_from_parent,
+		.unlink_uses_fn = insert_unlink_uses,
+	},
+	.kind = LLHD_INST_INSERT,
+	.num_uses = 2,
+	.uses_offset = offsetof(struct llhd_insert_inst, uses),
+};
+
+static struct llhd_inst_vtbl vtbl_reg_inst = {
+	.super = {
+		.kind = LLHD_VALUE_INST,
+		.name_offset = offsetof(struct llhd_inst, name),
+		.type_offset = offsetof(struct llhd_inst, type),
+		.dispose_fn = reg_dispose,
+		.substitute_fn = reg_substitute,
+		.unlink_from_parent_fn = reg_unlink_from_parent,
+		.unlink_uses_fn = reg_unlink_uses,
+	},
+	.kind = LLHD_INST_REG,
+	.num_uses = 2,
+	.uses_offset = offsetof(struct llhd_reg_inst, uses),
 };
 
 static const char *binary_opnames[] = {
@@ -631,6 +711,8 @@ llhd_inst_drive_new(struct llhd_value *sig, struct llhd_value *val) {
 	I = llhd_alloc_value(sizeof(*I), &vtbl_drive_inst);
 	I->sig = sig;
 	I->val = val;
+	I->uses[0] = (struct llhd_value_use){ .user = (struct llhd_value*)I, .arg = 0 };
+	I->uses[1] = (struct llhd_value_use){ .user = (struct llhd_value*)I, .arg = 1 };
 	llhd_value_use(sig, &I->uses[0]);
 	llhd_value_use(val, &I->uses[1]);
 	return (struct llhd_value *)I;
@@ -726,6 +808,7 @@ llhd_inst_ret_new_many(struct llhd_value **args, unsigned num_args) {
 		I->uses = ptr + sizeof(*I) + num_args * sizeof(struct llhd_value*);
 		for (i = 0; i < num_args; ++i) {
 			I->args[i] = args[i];
+			I->uses[i] = (struct llhd_value_use){ .user = (struct llhd_value*)I, .arg = i };
 			llhd_value_ref(args[i]);
 			llhd_value_use(args[i], &I->uses[i]);
 		}
@@ -767,7 +850,7 @@ ret_substitute(void *ptr, void *ref, void *sub) {
 	unsigned i;
 	struct llhd_ret_inst *I = ptr;
 	for (i = 0; i < I->num_args; ++i) {
-		if (I->args[i] == ref) {
+		if (I->args[i] == ref && I->args[i] != sub) {
 			I->args[i] = sub;
 			llhd_value_ref(sub);
 			llhd_value_unuse(&I->uses[i]);
@@ -819,7 +902,7 @@ llhd_inst_instance_new(
 	sz_out  = sizeof(struct llhd_value *) * num_outputs;
 	ptr = llhd_alloc_value(sizeof(*I) + sz_uses + sz_in + sz_out, &vtbl_inst_inst);
 	I = ptr;
-	I->super.name = strdup(name);
+	I->super.name = name ? strdup(name) : NULL;
 	I->comp = comp;
 	I->num_inputs = num_inputs;
 	I->num_outputs = num_outputs;
@@ -827,9 +910,11 @@ llhd_inst_instance_new(
 	I->params = ptr + sizeof(*I) + sz_uses;
 	memcpy(I->params, inputs, sz_in);
 	memcpy(I->params+num_inputs, outputs, sz_out);
+	I->uses[0] = (struct llhd_value_use){ .user = (struct llhd_value*)I, .arg = 0 };
 	llhd_value_ref(comp);
-	llhd_value_use(comp, I->uses);
+	llhd_value_use(comp, &I->uses[0]);
 	for (i = 0; i < num_inputs+num_outputs; ++i) {
+		I->uses[1+i] = (struct llhd_value_use){ .user = (struct llhd_value*)I, .arg = 1+i };
 		llhd_value_ref(I->params[i]);
 		llhd_value_use(I->params[i], &I->uses[1+i]);
 	}
@@ -853,7 +938,7 @@ inst_substitute(void *ptr, void *ref, void *sub) {
 	unsigned i;
 	struct llhd_inst_inst *I = ptr;
 	assert(ptr);
-	if (I->comp == ref) {
+	if (I->comp == ref && I->comp != sub) {
 		I->comp = sub;
 		llhd_value_ref(sub);
 		llhd_value_unuse(&I->uses[0]);
@@ -861,7 +946,7 @@ inst_substitute(void *ptr, void *ref, void *sub) {
 		llhd_value_unref(ref);
 	}
 	for (i = 0; i < I->num_inputs + I->num_outputs; ++i) {
-		if (I->params[i] == ref) {
+		if (I->params[i] == ref && I->params[i] != sub) {
 			I->params[i] = sub;
 			llhd_value_ref(sub);
 			llhd_value_unuse(&I->uses[1+i]);
@@ -1043,4 +1128,413 @@ llhd_inst_get_param(llhd_value_t V, unsigned idx) {
 	assert(idx < vtbl->num_uses);
 	uses = (void*)V + vtbl->uses_offset;
 	return uses[idx].value;
+}
+
+struct llhd_value *
+llhd_inst_call_new(struct llhd_value *func, struct llhd_value **args, unsigned num_args, const char *name) {
+	struct llhd_call_inst *I;
+	void *ptr;
+	size_t sz_args;
+	unsigned i, num_outputs;
+	llhd_type_t func_type, T, *types;
+	assert(func);
+	assert(num_args == 0 || args);
+
+	func_type = llhd_value_get_type(func);
+	assert(func_type);
+	num_outputs = llhd_type_get_num_outputs(func_type);
+	types = llhd_zalloc(num_outputs * sizeof(llhd_type_t));
+	for (i = 0; i < num_outputs; ++i) {
+		types[i] = llhd_type_get_output(func_type, i);
+	}
+	T = llhd_type_new_struct(types, num_outputs);
+	llhd_free(types);
+
+	sz_args = num_args * sizeof(struct llhd_value *);
+	ptr = llhd_alloc_value(sizeof(*I) + sz_args + (1+num_args)*sizeof(struct llhd_value_use), &vtbl_call_inst);
+	I = ptr;
+	I->args = ptr + sizeof(*I);
+	I->uses = ptr + sizeof(*I) + sz_args;
+	I->num_args = num_args;
+
+	I->super.name = name ? strdup(name) : NULL;
+	I->super.type = T;
+	I->func = func;
+	I->uses[0] = (struct llhd_value_use){ .user = (struct llhd_value*)I, .arg = 0 };
+	llhd_value_ref(func);
+	llhd_value_use(func, &I->uses[0]);
+
+	for (i = 0; i < num_args; ++i) {
+		I->args[i] = args[i];
+		I->uses[1+i] = (struct llhd_value_use){ .user = (struct llhd_value*)I, .arg = 1+i };
+		llhd_value_ref(args[i]);
+		llhd_value_use(I->args[i], &I->uses[1+i]);
+	}
+
+	return (struct llhd_value *)I;
+}
+
+static void
+call_dispose(void *ptr) {
+	unsigned i;
+	struct llhd_call_inst *I = ptr;
+	assert(ptr);
+	assert(!I->super.parent);
+	llhd_value_unref(I->func);
+	for (i = 0; i < I->num_args; ++i)
+		llhd_value_unref(I->args[i]);
+	llhd_type_unref(I->super.type);
+	llhd_free(I->super.name);
+}
+
+static void
+call_substitute(void *ptr, void *ref, void *sub) {
+	unsigned i;
+	struct llhd_call_inst *I = ptr;
+	assert(ptr);
+	if (I->func == ref && I->func != sub) {
+		I->func = sub;
+		llhd_value_ref(sub);
+		llhd_value_unuse(&I->uses[0]);
+		llhd_value_use(sub, &I->uses[0]);
+		llhd_value_unref(ref);
+	}
+	for (i = 0; i < I->num_args; ++i) {
+		if (I->args[i] == ref && I->args[i] != sub) {
+			I->args[i] = sub;
+			llhd_value_ref(sub);
+			llhd_value_unuse(&I->uses[1+i]);
+			llhd_value_use(sub, &I->uses[1+i]);
+			llhd_value_unref(ref);
+		}
+	}
+}
+
+static void
+call_unlink_from_parent(void *ptr) {
+	struct llhd_inst *I = ptr;
+	struct llhd_value *P = I->parent;
+	assert(P && P->vtbl);
+	// Must go before remove_inst_fn, since that might dispose and free the
+	// inst, which triggers an assert on parent == NULL in the dispose function.
+	I->parent = NULL;
+	if (P->vtbl->remove_inst_fn)
+		P->vtbl->remove_inst_fn(P, ptr);
+}
+
+static void
+call_unlink_uses(void *ptr) {
+	unsigned i;
+	struct llhd_call_inst *I = ptr;
+	assert(ptr);
+	llhd_value_unuse(&I->uses[0]);
+	for (i = 0; i < I->num_args; ++i) {
+		llhd_value_unuse(&I->uses[1+i]);
+	}
+}
+
+struct llhd_value *
+llhd_inst_call_get_func(struct llhd_value *V) {
+	struct llhd_call_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_CALL);
+	return I->func;
+}
+
+unsigned
+llhd_inst_call_get_num_args(struct llhd_value *V) {
+	struct llhd_call_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_CALL);
+	return I->num_args;
+}
+
+struct llhd_value *
+llhd_inst_call_get_arg(struct llhd_value *V, unsigned idx) {
+	struct llhd_call_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_CALL);
+	assert(idx < I->num_args);
+	return I->args[idx];
+}
+
+
+struct llhd_value *
+llhd_inst_extract_new(struct llhd_value *target, unsigned index, const char *name) {
+	struct llhd_extract_inst *I;
+	struct llhd_type *T;
+	assert(target);
+	T = llhd_value_get_type(target);
+	assert(T);
+	if (llhd_type_is(T, LLHD_TYPE_STRUCT)) {
+		assert(index < llhd_type_get_num_fields(T));
+		T = llhd_type_get_field(T, index);
+	} else {
+		T = llhd_type_get_subtype(T);
+	}
+	I = llhd_alloc_value(sizeof(*I), &vtbl_extract_inst);
+	I->super.type = T;
+	I->super.name = name ? strdup(name) : NULL;
+	I->target = target;
+	I->index = index;
+	I->use = (struct llhd_value_use){ .user = (void*)I, .arg = 0 };
+	llhd_type_ref(T);
+	llhd_value_ref(target);
+	llhd_value_use(target, &I->use);
+	return (void*)I;
+}
+
+
+static void
+extract_dispose(void *ptr) {
+	struct llhd_extract_inst *I = ptr;
+	assert(!I->super.parent);
+	llhd_value_unref(I->target);
+	llhd_type_unref(I->super.type);
+	llhd_free(I->super.name);
+}
+
+static void
+extract_substitute(void *ptr, void *ref, void *sub) {
+	struct llhd_extract_inst *I = ptr;
+	if (I->target == ref && I->target != sub) {
+		llhd_value_ref(sub);
+		llhd_value_unuse(&I->use);
+		llhd_value_use(sub, &I->use);
+		llhd_value_unref(I->target);
+		I->target = sub;
+	}
+}
+
+static void
+extract_unlink_from_parent(void *ptr) {
+	struct llhd_inst *I = (struct llhd_inst*)ptr;
+	struct llhd_value *P = I->parent;
+	assert(P && P->vtbl);
+	// Must go before remove_inst_fn, since that might dispose and free the
+	// inst, which triggers an assert on parent == NULL in the dispose function.
+	I->parent = NULL;
+	if (P->vtbl->remove_inst_fn)
+		P->vtbl->remove_inst_fn(P, ptr);
+}
+
+static void
+extract_unlink_uses(void *ptr) {
+	struct llhd_extract_inst *I = ptr;
+	llhd_value_unuse(&I->use);
+}
+
+unsigned
+llhd_inst_extract_get_index(struct llhd_value *V) {
+	struct llhd_extract_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_EXTRACT);
+	return I->index;
+}
+
+struct llhd_value *
+llhd_inst_extract_get_target(struct llhd_value *V) {
+	struct llhd_extract_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_EXTRACT);
+	return I->target;
+}
+
+
+struct llhd_value *
+llhd_inst_insert_new(struct llhd_value *target, unsigned index, struct llhd_value *value, const char *name) {
+	struct llhd_insert_inst *I;
+	struct llhd_type *T;
+	assert(target);
+	T = llhd_value_get_type(target);
+	assert(index < llhd_type_get_num_fields(T));
+	// assert(llhd_type_equal(llhd_type_get_field(T, index), llhd_value_get_type(value)));
+	I = llhd_alloc_value(sizeof(*I), &vtbl_insert_inst);
+	I->super.type = T;
+	I->super.name = name ? strdup(name) : NULL;
+	I->target = target;
+	I->index = index;
+	I->value = value;
+	I->uses[0] = (struct llhd_value_use){ .user = (void*)I, .arg = 0 };
+	I->uses[1] = (struct llhd_value_use){ .user = (void*)I, .arg = 1 };
+	llhd_type_ref(T);
+	llhd_value_ref(target);
+	llhd_value_ref(value);
+	llhd_value_use(target, &I->uses[0]);
+	llhd_value_use(value, &I->uses[1]);
+	return (void*)I;
+}
+
+static void
+insert_dispose(void *ptr) {
+	struct llhd_insert_inst *I = ptr;
+	assert(!I->super.parent);
+	llhd_value_unref(I->target);
+	llhd_value_unref(I->value);
+	llhd_type_unref(I->super.type);
+	llhd_free(I->super.name);
+}
+
+static void
+insert_substitute(void *ptr, void *ref, void *sub) {
+	struct llhd_insert_inst *I = ptr;
+	if (I->target == ref && I->target != sub) {
+		llhd_value_ref(sub);
+		llhd_value_unuse(&I->uses[0]);
+		llhd_value_use(sub, &I->uses[0]);
+		llhd_value_unref(I->target);
+		I->target = sub;
+	}
+	if (I->value == ref && I->value != sub) {
+		llhd_value_ref(sub);
+		llhd_value_unuse(&I->uses[1]);
+		llhd_value_use(sub, &I->uses[1]);
+		llhd_value_unref(I->value);
+		I->value = sub;
+	}
+}
+
+static void
+insert_unlink_from_parent(void *ptr) {
+	struct llhd_inst *I = (struct llhd_inst*)ptr;
+	struct llhd_value *P = I->parent;
+	assert(P && P->vtbl);
+	// Must go before remove_inst_fn, since that might dispose and free the
+	// inst, which triggers an assert on parent == NULL in the dispose function.
+	I->parent = NULL;
+	if (P->vtbl->remove_inst_fn)
+		P->vtbl->remove_inst_fn(P, ptr);
+}
+
+static void
+insert_unlink_uses(void *ptr) {
+	struct llhd_insert_inst *I = ptr;
+	llhd_value_unuse(&I->uses[0]);
+	llhd_value_unuse(&I->uses[1]);
+}
+
+unsigned
+llhd_inst_insert_get_index(struct llhd_value *V) {
+	struct llhd_insert_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_INSERT);
+	return I->index;
+}
+
+struct llhd_value *
+llhd_inst_insert_get_target(struct llhd_value *V) {
+	struct llhd_insert_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_INSERT);
+	return I->target;
+}
+
+struct llhd_value *
+llhd_inst_insert_get_value(struct llhd_value *V) {
+	struct llhd_insert_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_INSERT);
+	return I->value;
+}
+
+
+struct llhd_value *
+llhd_inst_reg_new(struct llhd_value *value, struct llhd_value *strobe, const char *name) {
+	struct llhd_reg_inst *I;
+	struct llhd_type *T, *Ts;
+
+	assert(value && strobe);
+	T = llhd_value_get_type(value);
+	Ts = llhd_value_get_type(strobe);
+	assert(T && Ts);
+	assert(llhd_type_is(Ts, LLHD_TYPE_INT) && llhd_type_get_length(Ts) == 1); /// @todo Make this more elegant
+
+	I = llhd_alloc_value(sizeof(*I), &vtbl_reg_inst);
+	I->super.name = name ? strdup(name) : NULL;
+	I->super.type = T;
+	I->value = value;
+	I->strobe = strobe;
+	I->uses[0] = (struct llhd_value_use){ .user = (void*)I, .arg = 0 };
+	I->uses[1] = (struct llhd_value_use){ .user = (void*)I, .arg = 1 };
+	llhd_type_ref(T);
+	llhd_value_ref(value);
+	llhd_value_ref(strobe);
+	llhd_value_use(value, &I->uses[0]);
+	llhd_value_use(strobe, &I->uses[1]);
+
+	return (void*)I;
+}
+
+static void
+reg_dispose(void *ptr) {
+	struct llhd_reg_inst *I = ptr;
+	assert(!I->super.parent);
+	llhd_value_unref(I->value);
+	llhd_value_unref(I->strobe);
+	llhd_type_unref(I->super.type);
+	llhd_free(I->super.name);
+}
+
+static void
+reg_substitute(void *ptr, void *ref, void *sub) {
+	struct llhd_reg_inst *I = ptr;
+	if (I->value == ref && I->value != sub) {
+		llhd_value_ref(sub);
+		llhd_value_unuse(&I->uses[0]);
+		llhd_value_use(sub, &I->uses[0]);
+		llhd_value_unref(I->value);
+		I->value = sub;
+	}
+	if (I->strobe == ref && I->strobe != sub) {
+		llhd_value_ref(sub);
+		llhd_value_unuse(&I->uses[1]);
+		llhd_value_use(sub, &I->uses[1]);
+		llhd_value_unref(I->strobe);
+		I->strobe = sub;
+	}
+}
+
+static void
+reg_unlink_from_parent(void *ptr) {
+	struct llhd_inst *I = (struct llhd_inst*)ptr;
+	struct llhd_value *P = I->parent;
+	assert(P && P->vtbl);
+	// Must go before remove_inst_fn, since that might dispose and free the
+	// inst, which triggers an assert on parent == NULL in the dispose function.
+	I->parent = NULL;
+	if (P->vtbl->remove_inst_fn)
+		P->vtbl->remove_inst_fn(P, ptr);
+}
+
+static void
+reg_unlink_uses(void *ptr) {
+	struct llhd_reg_inst *I = ptr;
+	llhd_value_unuse(&I->uses[0]);
+	llhd_value_unuse(&I->uses[1]);
+}
+
+struct llhd_value *
+llhd_inst_reg_get_value(struct llhd_value *V) {
+	struct llhd_reg_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_REG);
+	return I->value;
+}
+
+struct llhd_value *
+llhd_inst_reg_get_strobe(struct llhd_value *V) {
+	struct llhd_reg_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_REG);
+	return I->strobe;
 }

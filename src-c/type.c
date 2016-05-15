@@ -81,6 +81,30 @@ llhd_type_new_label() {
 	return llhd_alloc_type(LLHD_TYPE_LABEL,0);
 }
 
+struct llhd_type *
+llhd_type_new_struct(struct llhd_type **fields, unsigned num_fields) {
+	unsigned i;
+	struct llhd_type *T;
+	assert(num_fields == 0 || fields);
+	T = llhd_alloc_type(LLHD_TYPE_STRUCT,num_fields);
+	T->num_in = num_fields;
+	memcpy(T->subtypes, fields, num_fields*sizeof(T));
+	for (i = 0; i < num_fields; ++i)
+		llhd_type_ref(T->subtypes[i]);
+	return T;
+}
+
+struct llhd_type *
+llhd_type_new_array(struct llhd_type *subtype, unsigned length) {
+	struct llhd_type *T;
+	assert(subtype);
+	T = llhd_alloc_type(LLHD_TYPE_STRUCT,1);
+	T->num_in = length;
+	T->subtypes[0] = subtype;
+	llhd_type_ref(subtype);
+	return T;
+}
+
 void
 llhd_type_ref(struct llhd_type *T) {
 	assert(T->rc > 0);
