@@ -69,6 +69,7 @@ struct llhd_value_vtbl {
 	int kind;
 	size_t name_offset;
 	size_t type_offset;
+	void *(*copy_fn)(void*);
 	void (*dispose_fn)(void*);
 	void (*substitute_fn)(void*, void*, void*);
 	void (*add_inst_fn)(void*, struct llhd_value*, int);

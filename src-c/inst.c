@@ -25,6 +25,7 @@ static void binary_substitute(void*,void*,void*);
 static void binary_unlink_from_parent(void*);
 static void binary_unlink_uses(void*);
 
+static void *compare_copy(void*);
 static void compare_dispose(void*);
 static void compare_substitute(void*,void*,void*);
 static void compare_unlink_from_parent(void*);
@@ -43,7 +44,10 @@ static void drive_unlink_uses(void*);
 static void signal_dispose(void*);
 static void signal_unlink_from_parent(void*);
 
+static void ret_dispose(void*);
+static void ret_substitute(void*,void*,void*);
 static void ret_unlink_from_parent(void*);
+static void ret_unlink_uses(void*);
 
 static void inst_dispose(void*);
 static void inst_substitute(void*,void*,void*);
@@ -75,6 +79,7 @@ static struct llhd_inst_vtbl vtbl_compare_inst = {
 		.kind = LLHD_VALUE_INST,
 		.type_offset = offsetof(struct llhd_inst, type),
 		.name_offset = offsetof(struct llhd_inst, name),
+		.copy_fn = compare_copy,
 		.dispose_fn = compare_dispose,
 		.substitute_fn = compare_substitute,
 		.unlink_from_parent_fn = compare_unlink_from_parent,
@@ -127,7 +132,10 @@ static struct llhd_inst_vtbl vtbl_drive_inst = {
 static struct llhd_inst_vtbl vtbl_ret_inst = {
 	.super = {
 		.kind = LLHD_VALUE_INST,
+		.dispose_fn = ret_dispose,
+		.substitute_fn = ret_substitute,
 		.unlink_from_parent_fn = ret_unlink_from_parent,
+		.unlink_uses_fn = ret_unlink_uses,
 	},
 	.kind = LLHD_INST_RET,
 };
@@ -398,6 +406,12 @@ llhd_inst_compare_new(int op, struct llhd_value *lhs, struct llhd_value *rhs, co
 	llhd_value_use(lhs, &I->uses[0]);
 	llhd_value_use(rhs, &I->uses[1]);
 	return (struct llhd_value*)I;
+}
+
+static void *
+compare_copy(void *ptr) {
+	struct llhd_compare_inst *I = ptr;
+	return llhd_inst_compare_new(I->op, I->lhs, I->rhs, I->super.name);
 }
 
 static void
@@ -693,6 +707,76 @@ llhd_inst_ret_new() {
 	return (struct llhd_value *)I;
 }
 
+struct llhd_value *
+llhd_inst_ret_new_one(struct llhd_value *arg) {
+	return llhd_inst_ret_new_many(&arg, 1);
+}
+
+struct llhd_value *
+llhd_inst_ret_new_many(struct llhd_value **args, unsigned num_args) {
+	struct llhd_ret_inst *I;
+	void *ptr;
+	unsigned i;
+	assert(num_args == 0 || args);
+	ptr = llhd_alloc_value(sizeof(*I) + num_args * (sizeof(struct llhd_value*) + sizeof(struct llhd_value_use)), &vtbl_ret_inst);
+	I = ptr;
+	I->num_args = num_args;
+	if (num_args > 0) {
+		I->args = ptr + sizeof(*I);
+		I->uses = ptr + sizeof(*I) + num_args * sizeof(struct llhd_value*);
+		for (i = 0; i < num_args; ++i) {
+			I->args[i] = args[i];
+			llhd_value_ref(args[i]);
+			llhd_value_use(args[i], &I->uses[i]);
+		}
+	}
+	return (struct llhd_value *)I;
+}
+
+unsigned
+llhd_inst_ret_get_num_args(struct llhd_value *V) {
+	struct llhd_ret_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_RET);
+	return I->num_args;
+}
+
+struct llhd_value *
+llhd_inst_ret_get_arg(struct llhd_value *V, unsigned idx) {
+	struct llhd_ret_inst *I = (void*)V;
+	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(vtbl->kind == LLHD_INST_RET);
+	assert(idx < I->num_args);
+	return I->args[idx];
+}
+
+static void
+ret_dispose(void *ptr) {
+	unsigned i;
+	struct llhd_ret_inst *I = ptr;
+	assert(!I->super.parent);
+	for (i = 0; i < I->num_args; ++i) {
+		llhd_value_unref(I->args[i]);
+	}
+}
+
+static void
+ret_substitute(void *ptr, void *ref, void *sub) {
+	unsigned i;
+	struct llhd_ret_inst *I = ptr;
+	for (i = 0; i < I->num_args; ++i) {
+		if (I->args[i] == ref) {
+			I->args[i] = sub;
+			llhd_value_ref(sub);
+			llhd_value_unuse(&I->uses[i]);
+			llhd_value_use(sub, &I->uses[i]);
+			llhd_value_unref(ref);
+		}
+	}
+}
+
 static void
 ret_unlink_from_parent(void *ptr) {
 	struct llhd_inst *I = ptr;
@@ -703,6 +787,15 @@ ret_unlink_from_parent(void *ptr) {
 	I->parent = NULL;
 	if (P->vtbl->remove_inst_fn)
 		P->vtbl->remove_inst_fn(P, ptr);
+}
+
+static void
+ret_unlink_uses(void *ptr) {
+	unsigned i;
+	struct llhd_ret_inst *I = ptr;
+	for (i = 0; i < I->num_args; ++i) {
+		llhd_value_unuse(&I->uses[i]);
+	}
 }
 
 struct llhd_value *
@@ -761,6 +854,7 @@ inst_substitute(void *ptr, void *ref, void *sub) {
 	struct llhd_inst_inst *I = ptr;
 	assert(ptr);
 	if (I->comp == ref) {
+		I->comp = sub;
 		llhd_value_ref(sub);
 		llhd_value_unuse(&I->uses[0]);
 		llhd_value_use(sub, &I->uses[0]);
@@ -768,6 +862,7 @@ inst_substitute(void *ptr, void *ref, void *sub) {
 	}
 	for (i = 0; i < I->num_inputs + I->num_outputs; ++i) {
 		if (I->params[i] == ref) {
+			I->params[i] = sub;
 			llhd_value_ref(sub);
 			llhd_value_unuse(&I->uses[1+i]);
 			llhd_value_use(sub, &I->uses[1+i]);

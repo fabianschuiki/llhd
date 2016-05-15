@@ -7,6 +7,19 @@
 #include <assert.h>
 #include <string.h>
 
+/**
+ * @file
+ *
+ * The desequentialization algorithm.
+ *
+ * @author Fabian Schuiki <fabian@schuiki.ch>
+ *
+ * @todo Implement the desequentialization algorithm for signals that have
+ * multiple possible driven values. This requires a piece of code to be
+ * generated that selects between these values. Such code would require either
+ * branches and variables, branches and a phi instruction, or a mux instruction.
+ */
+
 // Algorithm:
 // 1) Iterate over all basic blocks. For each drive instruction, calculate the
 //    conditions along the control path that lead to the instruction, and gather
@@ -571,6 +584,82 @@ gather_boolexpr_dependencies(struct llhd_boolexpr *expr, struct llhd_ptrset *dep
 }
 
 
+static llhd_value_t
+migrate(llhd_value_t V, llhd_value_t dst, struct llhd_ptrmap *migrated) {
+	llhd_value_t *slot, *migrated_params = NULL;
+	unsigned i, num_params;
+
+	slot = (llhd_value_t*)llhd_ptrmap_expand(migrated, V);
+	if (*slot) {
+		llhd_value_ref(*slot);
+		return *slot;
+	}
+
+	if (!llhd_value_is(V, LLHD_VALUE_INST)) {
+		*slot = V;
+		llhd_value_ref(V);
+		return V;
+	}
+
+	num_params = llhd_inst_get_num_params(V);
+	migrated_params = llhd_zalloc(num_params * sizeof(llhd_value_t));
+	for (i = 0; i < num_params; ++i) {
+		migrated_params[i] = migrate(llhd_inst_get_param(V,i), dst, migrated);
+	}
+
+	*slot = llhd_value_copy(V);
+	llhd_inst_append_to(*slot, dst);
+
+	for (i = 0; i < num_params; ++i) {
+		llhd_value_substitute(*slot, llhd_inst_get_param(V,i), migrated_params[i]);
+		llhd_value_unref(migrated_params[i]);
+	}
+	llhd_free(migrated_params);
+
+	return *slot;
+}
+
+static llhd_value_t build_boolexpr_binary(int, struct llhd_boolexpr*, llhd_value_t, struct llhd_ptrmap*);
+
+static llhd_value_t
+build_boolexpr(struct llhd_boolexpr *expr, llhd_value_t dst, struct llhd_ptrmap *migrated) {
+	enum llhd_boolexpr_kind kind = llhd_boolexpr_get_kind(expr);
+	assert(expr && dst);
+	switch (kind) {
+		case LLHD_BOOLEXPR_CONST_0: return llhd_const_int_new(0);
+		case LLHD_BOOLEXPR_CONST_1: return llhd_const_int_new(1);
+		case LLHD_BOOLEXPR_SYMBOL: return migrate(llhd_boolexpr_get_symbol(expr), dst, migrated);
+		case LLHD_BOOLEXPR_OR: return build_boolexpr_binary(LLHD_BINARY_OR, expr, dst, migrated);
+		case LLHD_BOOLEXPR_AND: return build_boolexpr_binary(LLHD_BINARY_AND, expr, dst, migrated);
+	}
+	assert(0 && "should not arrive here");
+	return NULL;
+}
+
+static llhd_value_t
+build_boolexpr_binary(int kind, struct llhd_boolexpr *expr, llhd_value_t dst, struct llhd_ptrmap *migrated) {
+	unsigned i,num;
+	llhd_value_t V, Vp, Vn;
+	struct llhd_boolexpr **children;
+
+	num = llhd_boolexpr_get_num_children(expr);
+	children = llhd_boolexpr_get_children(expr);
+	Vp = NULL;
+	for (i = 0; i < num; ++i) {
+		V = build_boolexpr(children[i], dst, migrated);
+		if (Vp) {
+			Vn = llhd_inst_binary_new(kind, Vp, V, "");
+			llhd_value_unref(Vp);
+			llhd_value_unref(V);
+			Vp = Vn;
+		} else {
+			Vp = V;
+		}
+	}
+	return Vp;
+}
+
+
 void
 llhd_desequentialize(llhd_value_t proc) {
 	llhd_value_t BB;
@@ -670,6 +759,9 @@ llhd_desequentialize(llhd_value_t proc) {
 
 	printf("%d sequential signals\n", num_signal_records);
 
+
+	// Find the set of instructions and values required to determine the driven
+	// values and drive conditions of each sequential signal.
 	struct llhd_ptrset used;
 	llhd_ptrset_init(&used, 16);
 	sigrec = signal_records;
@@ -688,12 +780,11 @@ llhd_desequentialize(llhd_value_t proc) {
 	printf("used.num = %d\n", used.num);
 
 
-
 	// Assemble a function that calculates the drive condition and driven value
 	// for each sequential signal.
-	unsigned i, n, num_inputs, num_outputs;
+	unsigned i, n, num_inputs, num_outputs, *input_mapping;
 	llhd_type_t *inputs, *outputs, proc_type, i1ty, func_type;
-	llhd_value_t func;
+	llhd_value_t func, *func_returns, I;
 
 	i1ty = llhd_type_new_int(1);
 	proc_type = llhd_value_get_type(proc);
@@ -701,11 +792,14 @@ llhd_desequentialize(llhd_value_t proc) {
 	num_outputs = 2*num_signal_records;
 	inputs = llhd_zalloc(num_inputs * sizeof(llhd_type_t));
 	outputs = llhd_zalloc(num_outputs * sizeof(llhd_type_t));
+	func_returns = llhd_zalloc(num_outputs * sizeof(llhd_value_t));
+	input_mapping = llhd_zalloc(num_inputs * sizeof(int));
 
 	for (i = 0, n = 0; i < num_inputs; ++i) {
 		llhd_value_t P = llhd_unit_get_input(proc, i);
 		if (llhd_ptrset_has(&used, P)) {
 			inputs[n] = llhd_type_get_input(proc_type, i);
+			input_mapping[n] = i;
 			printf("uses input %s %p\n", llhd_value_get_name(P), P);
 			++n;
 		} else {
@@ -724,6 +818,75 @@ llhd_desequentialize(llhd_value_t proc) {
 	func = llhd_func_new(func_type, llhd_value_get_name(proc));
 	llhd_type_unref(func_type);
 	llhd_type_unref(i1ty);
+
+	for (i = 0; i < num_signal_records; ++i) {
+		const char *signame;
+		char *buffer;
+		unsigned signamelen;
+		sigrec = signal_records + i;
+
+		signame = llhd_value_get_name(sigrec->sig);
+		signamelen = signame ? strlen(signame) : 0;
+		buffer = llhd_alloc(signamelen + 6);
+
+		strcpy(buffer, signame);
+		strcat(buffer, "_strb");
+		llhd_value_set_name(llhd_unit_get_output(func, i*2+0), buffer);
+
+		strcpy(buffer, signame);
+		strcat(buffer, "_val");
+		llhd_value_set_name(llhd_unit_get_output(func, i*2+1), buffer);
+
+		llhd_free(buffer);
+	}
+
+
+	// Create a basic block with the instructions required to calculate the
+	// drive condition as well as the driven value for every sequential signal.
+	struct llhd_ptrmap migrated;
+	llhd_value_t func_block;
+
+	func_block = llhd_block_new("entry");
+	llhd_block_append_to(func_block, func);
+	llhd_value_unref(func_block);
+
+	llhd_ptrmap_init(&migrated, 16);
+	for (i = 0; i < num_signal_records; ++i) {
+		sigrec = signal_records+i;
+		func_returns[2*i+0] = build_boolexpr(sigrec->cond, func_block, &migrated);
+
+		if (sigrec->num_records == 1) {
+			func_returns[2*i+1] = migrate(llhd_inst_drive_get_val(sigrec->records->inst), func_block, &migrated);
+		} else {
+			assert(0 && "not implemented");
+			for (rec = sigrec->records, recend = rec + sigrec->num_records; rec != recend; ++rec) {
+				/// @todo Generate code that selects the appropriate driven value.
+			}
+		}
+	}
+	llhd_ptrmap_dispose(&migrated);
+
+	I = llhd_inst_ret_new_many(func_returns, num_outputs);
+	for (i = 0; i < num_outputs; ++i) {
+		llhd_value_unref(func_returns[i]);
+	}
+	llhd_free(func_returns);
+	llhd_inst_append_to(I, func_block);
+	llhd_value_unref(I);
+
+
+	// Substitute the old process' input parameters with the new function's
+	// input parameters, since the above basic block still refers to the old
+	// inputs.
+	for (i = 0; i < num_inputs; ++i) {
+		llhd_value_t new, old;
+		new = llhd_unit_get_input(func, i);
+		old = llhd_unit_get_input(proc, input_mapping[i]);
+		llhd_value_set_name(new, llhd_value_get_name(old));
+		llhd_value_substitute(func_block, old, new);
+	}
+	llhd_free(input_mapping);
+
 
 	// do stuff with it
 	printf("func_type = ");

@@ -32,6 +32,7 @@ static void func_dispose(void*);
 static void block_add_inst(void*, struct llhd_value*, int);
 static void block_remove_inst(void*, struct llhd_value*);
 static void block_dispose(void*);
+static void block_substitute(void*,void*,void*);
 
 struct llhd_param {
 	struct llhd_value super;
@@ -101,6 +102,7 @@ static struct llhd_value_vtbl vtbl_block = {
 	.add_inst_fn = block_add_inst,
 	.remove_inst_fn = block_remove_inst,
 	.dispose_fn = block_dispose,
+	.substitute_fn = block_substitute,
 };
 
 
@@ -129,7 +131,7 @@ static char *
 const_int_to_string(void *ptr) {
 	struct llhd_const_int *C = ptr;
 	char buf[21];
-	snprintf(buf, 21, "%llu", C->value);
+	snprintf(buf, 21, "%lu", C->value);
 	return strdup(buf);
 }
 
@@ -253,9 +255,14 @@ llhd_value_replace_uses(struct llhd_value *V, struct llhd_value *R) {
 		U = llhd_container_of(u, U, link);
 		u = u->next;
 		++count;
-		assert(U->user && U->user->vtbl && U->user->vtbl->substitute_fn);
-		U->user->vtbl->substitute_fn(U->user, V, R);
+		llhd_value_substitute(U->user, V, R);
 	}
+}
+
+void
+llhd_value_substitute(struct llhd_value *V, struct llhd_value *ref, struct llhd_value *sub) {
+	assert(V && V->vtbl && V->vtbl->substitute_fn);
+	V->vtbl->substitute_fn(V, ref, sub);
 }
 
 static struct llhd_param *
@@ -827,4 +834,23 @@ static void
 func_remove_block(void *ptr, struct llhd_block *BB) {
 	/// @todo Implement
 	assert(0 && "not implemented");
+}
+
+struct llhd_value *
+llhd_value_copy(struct llhd_value *V) {
+	assert(V && V->vtbl && V->vtbl->copy_fn);
+	return V->vtbl->copy_fn(V);
+}
+
+static void
+block_substitute(void *ptr, void *ref, void *sub) {
+	struct llhd_block *BB = ptr;
+	struct llhd_list *link;
+
+	link = BB->insts.next;
+	while (link != &BB->insts) {
+		void *I = llhd_container_of2(link, struct llhd_inst, link);
+		link = link->next;
+		llhd_value_substitute(I, ref, sub);
+	}
 }

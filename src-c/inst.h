@@ -50,6 +50,9 @@ struct llhd_drive_inst {
 
 struct llhd_ret_inst {
 	struct llhd_inst super;
+	unsigned num_args;
+	struct llhd_value **args;
+	struct llhd_value_use *uses;
 };
 
 struct llhd_inst_inst {

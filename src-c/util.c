@@ -161,13 +161,13 @@ llhd_ptrset_dispose(struct llhd_ptrset *ps) {
  * [1]: http://lxr.free-electrons.com/source/lib/bsearch.c
  */
 static unsigned
-ptrset_locate(struct llhd_ptrset *ps, void *ptr) {
-	unsigned start = 0, end = ps->num;
+bsearch_ptr(void **haystack, unsigned num, void *needle) {
+	unsigned start = 0, end = num;
 	while (start < end) {
 		unsigned mid = start + (end - start) / 2;
-		if (ptr < ps->data[mid]) {
+		if (needle < haystack[mid]) {
 			end = mid;
-		} else if (ptr > ps->data[mid]) {
+		} else if (needle > haystack[mid]) {
 			start = mid + 1;
 		} else {
 			return mid;
@@ -181,12 +181,12 @@ llhd_ptrset_insert(struct llhd_ptrset *ps, void *ptr) {
 	unsigned idx, i;
 	assert(ps);
 
-	idx = ptrset_locate(ps, ptr);
+	idx = bsearch_ptr(ps->data, ps->num, ptr);
 	if (idx < ps->num && ps->data[idx] == ptr) {
 		return false;
 	}
 
-	if (ps->num > ps->cap) {
+	if (ps->num == ps->cap) {
 		ps->cap *= 2;
 		ps->data = llhd_realloc(ps->data, ps->cap * sizeof(void*));
 	}
@@ -204,8 +204,8 @@ llhd_ptrset_remove(struct llhd_ptrset *ps, void *ptr) {
 	unsigned idx, i;
 	assert(ps);
 
-	idx = ptrset_locate(ps, ptr);
-	if (idx < ps->num && ps->data[idx] != ptr) {
+	idx = bsearch_ptr(ps->data, ps->num, ptr);
+	if (idx == ps->num || ps->data[idx] != ptr) {
 		return false;
 	}
 
@@ -221,6 +221,124 @@ llhd_ptrset_has(struct llhd_ptrset *ps, void *ptr) {
 	unsigned idx;
 	assert(ps);
 
-	idx = ptrset_locate(ps, ptr);
+	idx = bsearch_ptr(ps->data, ps->num, ptr);
 	return idx < ps->num && ps->data[idx] == ptr;
+}
+
+
+void
+llhd_ptrmap_init(struct llhd_ptrmap *pm, size_t cap) {
+	assert(pm);
+	memset(pm, 0, sizeof(*pm));
+	pm->cap = cap;
+	if (pm->cap) {
+		size_t sz = pm->cap * sizeof(void*);
+		pm->keys = llhd_alloc(sz);
+		pm->values = llhd_alloc(sz);
+	}
+}
+
+void
+llhd_ptrmap_dispose(struct llhd_ptrmap *pm) {
+	assert(pm);
+	if (pm->keys) {
+		llhd_free(pm->keys);
+	}
+	if (pm->values) {
+		llhd_free(pm->values);
+	}
+	memset(pm, 0, sizeof(*pm));
+}
+
+/**
+ * Get a pointer to a value with a given key. If no such key exists in the map,
+ * one is created and its value set to @c NULL.
+ *
+ * @warning The returned pointer is only valid until the next call to
+ *          llhd_ptrmap_expand, llhd_ptrmap_set, or llhd_ptrmap_remove.
+ *
+ * @return A pointer to the value for the given key. The pointed-to value is
+ *         @c NULL if the key did not exist in the map prior to calling this
+ *         function, or its value was set to @c NULL explicitly.
+ */
+void **
+llhd_ptrmap_expand(struct llhd_ptrmap *pm, void *key) {
+	unsigned idx, i;
+	assert(pm);
+
+	idx = bsearch_ptr(pm->keys, pm->num, key);
+	if (idx < pm->num && pm->keys[idx] == key) {
+		return pm->values + idx;
+	}
+
+	if (pm->num == pm->cap) {
+		size_t sz;
+		pm->cap *= 2;
+		sz = pm->cap * sizeof(void*);
+		pm->keys = llhd_realloc(pm->keys, sz);
+		pm->values = llhd_realloc(pm->values, sz);
+	}
+
+	for (i = pm->num; i > idx; --i) {
+		pm->keys[i] = pm->keys[i-1];
+		pm->values[i] = pm->values[i-1];
+	}
+	pm->keys[idx] = key;
+	pm->values[idx] = NULL;
+	++pm->num;
+	return pm->values + idx;
+}
+
+/**
+ * Insert a value into a ptrmap.
+ *
+ * @return The value that was replaced, or @c NULL if no value existed for the
+ *         given key.
+ */
+void *
+llhd_ptrmap_set(struct llhd_ptrmap *pm, void *key, void *value) {
+	void **slot, *rem;
+	slot = llhd_ptrmap_expand(pm, key);
+	rem = *slot;
+	*slot = value;
+	return rem;
+}
+
+/**
+ * Lookup the value for a given key in a ptrmap.
+ *
+ * @return The value for the given key if it exists, or @c NULL otherwise.
+ */
+void *
+llhd_ptrmap_get(struct llhd_ptrmap *pm, void *key) {
+	unsigned idx;
+	assert(pm);
+	idx = bsearch_ptr(pm->keys, pm->num, key);
+	return (idx < pm->num && pm->keys[idx] == key) ? pm->values[idx] : NULL;
+}
+
+/**
+ * Remove a value from a ptrmap.
+ *
+ * @return The value that was removed, or @c NULL if no value existed for the
+ *         given key.
+ */
+void *
+llhd_ptrmap_remove(struct llhd_ptrmap *pm, void *key) {
+	unsigned idx, i;
+	void *rem;
+	assert(pm);
+
+	idx = bsearch_ptr(pm->keys, pm->num, key);
+	if (idx == pm->num || pm->keys[idx] != key) {
+		return NULL;
+	}
+
+	rem = pm->values[idx];
+	--pm->num;
+	for (i = idx; i < pm->num; ++i) {
+		pm->keys[i] = pm->keys[i+1];
+		pm->values[i] = pm->values[i+1];
+	}
+	return rem;
 }

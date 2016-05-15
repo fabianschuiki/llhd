@@ -182,6 +182,10 @@ llhd_value_t llhd_inst_drive_get_sig(llhd_value_t);
 llhd_value_t llhd_inst_drive_get_val(llhd_value_t);
 
 llhd_value_t llhd_inst_ret_new();
+llhd_value_t llhd_inst_ret_new_one(llhd_value_t);
+llhd_value_t llhd_inst_ret_new_many(llhd_value_t*,unsigned);
+unsigned llhd_inst_ret_get_num_args(llhd_value_t);
+llhd_value_t llhd_inst_ret_get_arg(llhd_value_t,unsigned);
 
 llhd_value_t llhd_inst_instance_new(llhd_value_t,llhd_value_t*,unsigned,llhd_value_t*,unsigned,const char*);
 llhd_value_t llhd_inst_inst_get_comp(llhd_value_t);
@@ -199,6 +203,7 @@ int llhd_const_get_kind(llhd_value_t);
 llhd_apint_t llhd_const_int_get_value(llhd_value_t);
 char *llhd_const_to_string(llhd_value_t);
 
+llhd_value_t llhd_value_copy(llhd_value_t);
 bool llhd_value_is(llhd_value_t,int);
 int llhd_value_get_kind(llhd_value_t);
 bool llhd_value_is_const(llhd_value_t);
@@ -208,6 +213,7 @@ llhd_type_t llhd_value_get_type(llhd_value_t);
 bool llhd_value_has_users(llhd_value_t);
 unsigned llhd_value_get_num_users(llhd_value_t);
 void llhd_value_replace_uses(llhd_value_t,llhd_value_t);
+void llhd_value_substitute(llhd_value_t,llhd_value_t,llhd_value_t);
 void llhd_value_unlink_from_parent(llhd_value_t);
 void llhd_value_unlink_uses(llhd_value_t);
 void llhd_value_unlink(llhd_value_t);

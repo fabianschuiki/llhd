@@ -266,8 +266,13 @@ write_value_ref(llhd_value_t V, int withType, struct llhd_symtbl *symtbl, FILE *
 		fputs(llhd_value_get_name(V), out);
 	}
 	else {
-		fputc('%', out);
-		fputs(symtbl_lookup_sym(symtbl, V), out);
+		const char *name = symtbl_lookup_sym(symtbl, V);
+		if (name) {
+			fputc('%', out);
+			fputs(name, out);
+		} else {
+			fprintf(out, "<?%p>", V);
+		}
 	}
 }
 
@@ -350,6 +355,11 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 			break;
 		case LLHD_INST_RET:
 			fputs("ret", out);
+			num = llhd_inst_ret_get_num_args(I);
+			for (i = 0; i < num; ++i) {
+				fputs(i == 0 ? " " : ", ", out);
+				write_value_ref(llhd_inst_ret_get_arg(I,i), 0, symtbl, out);
+			}
 			break;
 		default:
 			assert(0 && "unknown inst kind");

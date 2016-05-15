@@ -27,6 +27,12 @@ struct llhd_ptrset {
 	unsigned cap;
 };
 
+struct llhd_ptrmap {
+	void **keys, **values;
+	unsigned num;
+	unsigned cap;
+};
+
 void llhd_list_init(struct llhd_list*);
 void llhd_list_insert(struct llhd_list*, struct llhd_list*);
 void llhd_list_insert_list(struct llhd_list*, struct llhd_list*);
@@ -48,3 +54,10 @@ void llhd_ptrset_dispose(struct llhd_ptrset*);
 bool llhd_ptrset_insert(struct llhd_ptrset*, void*);
 bool llhd_ptrset_remove(struct llhd_ptrset*, void*);
 bool llhd_ptrset_has(struct llhd_ptrset*, void*);
+
+void llhd_ptrmap_init(struct llhd_ptrmap*, size_t);
+void llhd_ptrmap_dispose(struct llhd_ptrmap*);
+void **llhd_ptrmap_expand(struct llhd_ptrmap*, void*);
+void *llhd_ptrmap_set(struct llhd_ptrmap*, void*, void*);
+void *llhd_ptrmap_get(struct llhd_ptrmap*, void*);
+void *llhd_ptrmap_remove(struct llhd_ptrmap*, void*);
