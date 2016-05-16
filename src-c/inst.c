@@ -79,7 +79,6 @@ static struct llhd_inst_vtbl vtbl_binary_inst = {
 		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = binary_unlink_uses,
 	},
-	// .kind = LLHD_INST_BINARY,
 	.num_uses = 2,
 	.uses_offset = offsetof(struct llhd_binary_inst, uses),
 };
@@ -96,7 +95,6 @@ static struct llhd_inst_vtbl vtbl_compare_inst = {
 		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = compare_unlink_uses,
 	},
-	// .kind = LLHD_INST_COMPARE,
 	.num_uses = 2,
 	.uses_offset = offsetof(struct llhd_compare_inst, uses),
 };
@@ -109,7 +107,6 @@ static struct llhd_inst_vtbl vtbl_sig_inst = {
 		.dispose_fn = signal_dispose,
 		.unlink_from_parent_fn = unlink_from_parent,
 	},
-	// .kind = LLHD_INST_SIGNAL,
 };
 
 static struct llhd_inst_vtbl vtbl_branch_inst = {
@@ -122,7 +119,6 @@ static struct llhd_inst_vtbl vtbl_branch_inst = {
 		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = branch_unlink_uses,
 	},
-	// .kind = LLHD_INST_BRANCH,
 	.num_uses = 3,
 	.uses_offset = offsetof(struct llhd_branch_inst, uses),
 };
@@ -135,7 +131,6 @@ static struct llhd_inst_vtbl vtbl_drive_inst = {
 		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = drive_unlink_uses,
 	},
-	// .kind = LLHD_INST_DRIVE,
 	.num_uses = 2,
 	.uses_offset = offsetof(struct llhd_drive_inst, uses),
 };
@@ -148,7 +143,6 @@ static struct llhd_inst_vtbl vtbl_ret_inst = {
 		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = ret_unlink_uses,
 	},
-	// .kind = LLHD_INST_RET,
 };
 
 static struct llhd_inst_vtbl vtbl_inst_inst = {
@@ -160,7 +154,6 @@ static struct llhd_inst_vtbl vtbl_inst_inst = {
 		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = inst_unlink_uses,
 	},
-	// .kind = LLHD_INST_INST,
 	/// @todo add uses
 };
 
@@ -174,7 +167,6 @@ static struct llhd_inst_vtbl vtbl_call_inst = {
 		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = call_unlink_uses,
 	},
-	// .kind = LLHD_INST_CALL,
 	/// @todo add uses
 };
 
@@ -189,7 +181,6 @@ static struct llhd_inst_vtbl vtbl_unary_inst = {
 		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = unary_unlink_uses,
 	},
-	// .kind = LLHD_INST_UNARY,
 	.num_uses = 1,
 	.uses_offset = offsetof(struct llhd_unary_inst, use),
 };
@@ -204,7 +195,6 @@ static struct llhd_inst_vtbl vtbl_extract_inst = {
 		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = extract_unlink_uses,
 	},
-	// .kind = LLHD_INST_EXTRACT,
 	.num_uses = 1,
 	.uses_offset = offsetof(struct llhd_extract_inst, use),
 };
@@ -219,7 +209,6 @@ static struct llhd_inst_vtbl vtbl_insert_inst = {
 		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = insert_unlink_uses,
 	},
-	// .kind = LLHD_INST_INSERT,
 	.num_uses = 2,
 	.uses_offset = offsetof(struct llhd_insert_inst, uses),
 };
@@ -234,7 +223,6 @@ static struct llhd_inst_vtbl vtbl_reg_inst = {
 		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = reg_unlink_uses,
 	},
-	// .kind = LLHD_INST_REG,
 	.num_uses = 2,
 	.uses_offset = offsetof(struct llhd_reg_inst, uses),
 };
