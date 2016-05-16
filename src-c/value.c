@@ -10,10 +10,7 @@
 
 /**
  * @file
- * @author Fabian Schuiki <fabian@schuiki.ch
- *
- * @todo Merge inst and const kinds into value kind field and replace
- *       corresponding type checks with easier variant.
+ * @author Fabian Schuiki <fabian@schuiki.ch>
  *
  * @todo Remove llhd_unit_get_blocks and replace it with the corresponding first
  *       and last block accessor. This makes the API much easier to use, as the
@@ -61,17 +58,16 @@ static struct llhd_value_vtbl vtbl_param = {
 
 static struct llhd_const_vtbl vtbl_const_int = {
 	.super = {
-		.kind = LLHD_VALUE_CONST,
+		.kind = LLHD_CONST_INT,
 		.type_offset = offsetof(struct llhd_const_int, type),
 		.dispose_fn = const_int_dispose,
 	},
-	.kind = LLHD_CONST_INT,
 	.to_string_fn = const_int_to_string,
 };
 
 static struct llhd_unit_vtbl vtbl_entity = {
 	.super = {
-		.kind = LLHD_VALUE_UNIT,
+		.kind = LLHD_UNIT_DEF_ENTITY,
 		.name_offset = offsetof(struct llhd_entity, name),
 		.type_offset = offsetof(struct llhd_entity, type),
 		.add_inst_fn = entity_add_inst,
@@ -79,12 +75,11 @@ static struct llhd_unit_vtbl vtbl_entity = {
 		.dispose_fn = entity_dispose,
 		.unlink_from_parent_fn = unit_unlink_from_parent,
 	},
-	.kind = LLHD_UNIT_DEF_ENTITY,
 };
 
 static struct llhd_unit_vtbl vtbl_proc = {
 	.super = {
-		.kind = LLHD_VALUE_UNIT,
+		.kind = LLHD_UNIT_DEF_PROC,
 		.name_offset = offsetof(struct llhd_proc, name),
 		.type_offset = offsetof(struct llhd_proc, type),
 		.add_block_fn = proc_add_block,
@@ -93,13 +88,12 @@ static struct llhd_unit_vtbl vtbl_proc = {
 		.unlink_from_parent_fn = unit_unlink_from_parent,
 		.substitute_fn = proc_substitute,
 	},
-	.kind = LLHD_UNIT_DEF_PROC,
 	.block_list_offset = offsetof(struct llhd_proc, blocks),
 };
 
 static struct llhd_unit_vtbl vtbl_func = {
 	.super = {
-		.kind = LLHD_VALUE_UNIT,
+		.kind = LLHD_UNIT_DEF_FUNC,
 		.name_offset = offsetof(struct llhd_func, name),
 		.type_offset = offsetof(struct llhd_func, type),
 		.add_block_fn = func_add_block,
@@ -107,7 +101,6 @@ static struct llhd_unit_vtbl vtbl_func = {
 		.dispose_fn = func_dispose,
 		.unlink_from_parent_fn = unit_unlink_from_parent,
 	},
-	.kind = LLHD_UNIT_DEF_FUNC,
 	.block_list_offset = offsetof(struct llhd_func, blocks),
 };
 
@@ -159,47 +152,37 @@ const_int_dispose(void *ptr) {
 	llhd_type_unref(C->type);
 }
 
-bool
-llhd_const_is(struct llhd_value *V, int kind) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_CONST);
-	return ((struct llhd_const_vtbl *)V->vtbl)->kind == kind;
-}
-
-int
-llhd_const_get_kind(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_CONST);
-	return ((struct llhd_const_vtbl *)V->vtbl)->kind;
-}
-
 uint64_t
 llhd_const_int_get_value(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_CONST);
-	struct llhd_const_vtbl *vtbl = (void*)V->vtbl;
 	struct llhd_const_int *C = (void*)V;
-	assert(vtbl->kind == LLHD_CONST_INT);
+	assert(V && V->vtbl && LLHD_ISA(V->vtbl->kind, LLHD_CONST_INT));
 	return C->value;
 }
 
 char *
 llhd_const_to_string(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_CONST);
-	struct llhd_const_vtbl *vtbl = (void*)V->vtbl;
+	struct llhd_const_vtbl *vtbl;
+	assert(V && V->vtbl && LLHD_ISA(V->vtbl->kind, LLHD_VALUE_CONST));
+	vtbl = (void*)V->vtbl;
 	assert(vtbl->to_string_fn);
 	return vtbl->to_string_fn(V);
 }
 
 bool
 llhd_value_is(struct llhd_value *V, int kind) {
-	assert(V);
-	assert(V->vtbl);
-	return V->vtbl->kind == kind;
+	int k = llhd_value_get_kind(V);
+	return LLHD_ISA(k, kind);
 }
 
 int
 llhd_value_get_kind(struct llhd_value *V) {
-	assert(V);
-	assert(V->vtbl);
-	return V->vtbl->kind;
+	size_t offset;
+	assert(V && V->vtbl);
+	offset = V->vtbl->kind_offset;
+	if (offset)
+		return *(int*)((void*)V + offset);
+	else
+		return V->vtbl->kind;
 }
 
 bool
@@ -347,7 +330,7 @@ entity_dispose(void *ptr) {
 
 static void
 entity_add_inst(void *ptr, struct llhd_value *I, int append) {
-	assert(I && I->vtbl && I->vtbl->kind == LLHD_VALUE_INST);
+	assert(llhd_value_is(I, LLHD_VALUE_INST));
 	struct llhd_entity *E = ptr;
 	llhd_value_ref(I);
 	llhd_list_insert(append ? E->insts.prev : &E->insts, &((struct llhd_inst *)I)->link);
@@ -355,7 +338,7 @@ entity_add_inst(void *ptr, struct llhd_value *I, int append) {
 
 static void
 entity_remove_inst(void *ptr, struct llhd_value *I) {
-	assert(I && I->vtbl && I->vtbl->kind == LLHD_VALUE_INST);
+	assert(llhd_value_is(I, LLHD_VALUE_INST));
 	llhd_list_remove(&((struct llhd_inst *)I)->link);
 	llhd_value_unref(I);
 }
@@ -423,36 +406,34 @@ llhd_alloc_unit(size_t sz, void *vtbl, unsigned num_params) {
 
 bool
 llhd_unit_is(struct llhd_value *V, int kind) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
-	return ((struct llhd_unit_vtbl *)V->vtbl)->kind == kind;
+	return llhd_value_is(V, kind);
 }
 
 int
 llhd_unit_get_kind(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
-	return ((struct llhd_unit_vtbl *)V->vtbl)->kind;
+	return llhd_value_get_kind(V);
 }
 
 bool
 llhd_unit_is_def(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
-	int k = ((struct llhd_unit_vtbl *)V->vtbl)->kind;
-	return k == LLHD_UNIT_DEF_FUNC || k == LLHD_UNIT_DEF_ENTITY || k == LLHD_UNIT_DEF_PROC;
+	int k = llhd_value_get_kind(V);
+	assert(LLHD_ISA(k, LLHD_VALUE_UNIT));
+	return LLHD_ISA(k, LLHD_UNIT_DEF_FUNC) ||
+	       LLHD_ISA(k, LLHD_UNIT_DEF_ENTITY) ||
+	       LLHD_ISA(k, LLHD_UNIT_DEF_PROC);
 }
 
 bool
 llhd_unit_is_decl(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
-	int k = ((struct llhd_unit_vtbl *)V->vtbl)->kind;
-	return k == LLHD_UNIT_DECL;
+	int k = llhd_value_get_kind(V);
+	assert(LLHD_ISA(k, LLHD_VALUE_UNIT));
+	return LLHD_ISA(k, LLHD_UNIT_DECL);
 }
 
 struct llhd_value *
 llhd_entity_get_first_inst(struct llhd_value *V) {
-	assert(V && V->vtbl);
 	struct llhd_entity *E = (void*)V;
-	struct llhd_unit_vtbl *vtbl = (void*)V->vtbl;
-	assert(V->vtbl->kind == LLHD_VALUE_UNIT && vtbl->kind == LLHD_UNIT_DEF_ENTITY);
+	assert(llhd_value_is(V, LLHD_UNIT_DEF_ENTITY));
 	if (E->insts.next == &E->insts)
 		return NULL;
 	return (struct llhd_value*)llhd_container_of2(E->insts.next, struct llhd_inst, link);
@@ -460,10 +441,8 @@ llhd_entity_get_first_inst(struct llhd_value *V) {
 
 struct llhd_value *
 llhd_entity_get_last_inst(struct llhd_value *V) {
-	assert(V && V->vtbl);
 	struct llhd_entity *E = (void*)V;
-	struct llhd_unit_vtbl *vtbl = (void*)V->vtbl;
-	assert(V->vtbl->kind == LLHD_VALUE_UNIT && vtbl->kind == LLHD_UNIT_DEF_ENTITY);
+	assert(llhd_value_is(V, LLHD_UNIT_DEF_ENTITY));
 	if (E->insts.prev == &E->insts)
 		return NULL;
 	return (struct llhd_value*)llhd_container_of2(E->insts.prev, struct llhd_inst, link);
@@ -471,28 +450,26 @@ llhd_entity_get_last_inst(struct llhd_value *V) {
 
 unsigned
 llhd_entity_get_num_insts(struct llhd_value *V) {
-	assert(V && V->vtbl);
 	struct llhd_entity *E = (void*)V;
-	struct llhd_unit_vtbl *vtbl = (void*)V->vtbl;
-	assert(V->vtbl->kind == LLHD_VALUE_UNIT && vtbl->kind == LLHD_UNIT_DEF_ENTITY);
+	assert(llhd_value_is(V, LLHD_UNIT_DEF_ENTITY));
 	return llhd_list_length(&E->insts);
 }
 
 unsigned
 llhd_unit_get_num_inputs(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(llhd_value_is(V, LLHD_VALUE_UNIT));
 	return ((struct llhd_unit*)V)->num_inputs;
 }
 
 unsigned
 llhd_unit_get_num_outputs(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(llhd_value_is(V, LLHD_VALUE_UNIT));
 	return ((struct llhd_unit*)V)->num_outputs;
 }
 
 struct llhd_value *
 llhd_unit_get_input(struct llhd_value *V, unsigned idx) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(llhd_value_is(V, LLHD_VALUE_UNIT));
 	struct llhd_unit *U = (void*)V;
 	assert(idx < U->num_inputs);
 	return (struct llhd_value*)U->params[idx];
@@ -500,7 +477,7 @@ llhd_unit_get_input(struct llhd_value *V, unsigned idx) {
 
 struct llhd_value *
 llhd_unit_get_output(struct llhd_value *V, unsigned idx) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(llhd_value_is(V, LLHD_VALUE_UNIT));
 	struct llhd_unit *U = (void*)V;
 	assert(idx < U->num_outputs);
 	return (struct llhd_value*)U->params[U->num_inputs + idx];
@@ -550,8 +527,7 @@ proc_dispose(void *ptr) {
 static void
 proc_add_block(void *ptr, struct llhd_block *BB, int append) {
 	struct llhd_proc *P = ptr;
-	assert(ptr);
-	assert(BB && BB->super.vtbl && BB->super.vtbl->kind == LLHD_VALUE_BLOCK);
+	assert(BB);
 	llhd_value_ref((struct llhd_value *)BB);
 	llhd_list_insert(append ? P->blocks.prev : &P->blocks, &BB->link);
 }
@@ -598,9 +574,8 @@ llhd_block_new(const char *name) {
 
 void
 llhd_block_append_to(struct llhd_value *V, struct llhd_value *to) {
-	struct llhd_block *BB;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_BLOCK && to);
-	BB = (struct llhd_block *)V;
+	struct llhd_block *BB = (void*)V;
+	assert(llhd_value_is(V, LLHD_VALUE_BLOCK));
 	assert(!BB->parent);
 	assert(to && to->vtbl && to->vtbl->add_block_fn);
 	BB->parent = to;
@@ -608,40 +583,46 @@ llhd_block_append_to(struct llhd_value *V, struct llhd_value *to) {
 }
 
 void
-llhd_block_prepend_to(struct llhd_value *BB, struct llhd_value *to) {
-	/// @todo Implement
-	assert(0 && "not implemented");
+llhd_block_prepend_to(struct llhd_value *V, struct llhd_value *to) {
+	struct llhd_block *BB = (void*)V;
+	assert(llhd_value_is(V, LLHD_VALUE_BLOCK));
+	assert(!BB->parent);
+	assert(to && to->vtbl && to->vtbl->add_block_fn);
+	BB->parent = to;
+	to->vtbl->add_block_fn(to,BB,0);
 }
 
 void
 llhd_block_insert_after(struct llhd_value *V, struct llhd_value *Vpos) {
-	struct llhd_block *BB, *BBpos;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_BLOCK);
-	BB = (struct llhd_block *)V;
+	struct llhd_block *BB = (void*)V, *BBpos = (void*)Vpos;
+	assert(llhd_value_is(V, LLHD_VALUE_BLOCK));
+	assert(llhd_value_is(Vpos, LLHD_VALUE_BLOCK));
 	assert(!BB->parent);
-	assert(Vpos && Vpos->vtbl && Vpos->vtbl->kind == LLHD_VALUE_BLOCK);
-	BBpos = (struct llhd_block *)Vpos;
 	BB->parent = BBpos->parent;
 	llhd_list_insert(&BBpos->link, &BB->link);
 }
 
 void
 llhd_block_insert_before(struct llhd_value *V, struct llhd_value *Vpos) {
-	/// @todo Implement
-	assert(0 && "not implemented");
+	struct llhd_block *BB = (void*)V, *BBpos = (void*)Vpos;
+	assert(llhd_value_is(V, LLHD_VALUE_BLOCK));
+	assert(llhd_value_is(Vpos, LLHD_VALUE_BLOCK));
+	assert(!BB->parent);
+	BB->parent = BBpos->parent;
+	llhd_list_insert(BBpos->link.prev, &BB->link);
 }
 
 static void
 block_add_inst(void *ptr, struct llhd_value *I, int append) {
 	struct llhd_block *BB = ptr;
-	assert(I && I->vtbl && I->vtbl->kind == LLHD_VALUE_INST);
+	assert(llhd_value_is(I, LLHD_VALUE_INST));
 	llhd_value_ref(I);
 	llhd_list_insert(append ? BB->insts.prev : &BB->insts, &((struct llhd_inst *)I)->link);
 }
 
 static void
 block_remove_inst(void *ptr, struct llhd_value *I) {
-	assert(I && I->vtbl && I->vtbl->kind == LLHD_VALUE_INST);
+	assert(llhd_value_is(I, LLHD_VALUE_INST));
 	llhd_list_remove(&((struct llhd_inst *)I)->link);
 	llhd_value_unref(I);
 }
@@ -720,9 +701,8 @@ llhd_block_prev(struct llhd_list *head, struct llhd_list **pos) {
 
 struct llhd_value *
 llhd_block_get_first_inst(struct llhd_value *V) {
-	struct llhd_block *BB;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_BLOCK);
-	BB = (struct llhd_block *)V;
+	struct llhd_block *BB = (void*)V;
+	assert(llhd_value_is(V, LLHD_VALUE_BLOCK));
 	if (BB->insts.next == &BB->insts)
 		return NULL;
 	return (struct llhd_value *)llhd_container_of2(BB->insts.next, struct llhd_inst, link);
@@ -730,9 +710,8 @@ llhd_block_get_first_inst(struct llhd_value *V) {
 
 struct llhd_value *
 llhd_block_get_last_inst(struct llhd_value *V) {
-	struct llhd_block *BB;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_BLOCK);
-	BB = (struct llhd_block *)V;
+	struct llhd_block *BB = (void*)V;
+	assert(llhd_value_is(V, LLHD_VALUE_BLOCK));
 	if (BB->insts.prev == &BB->insts)
 		return NULL;
 	return (struct llhd_value *)llhd_container_of2(BB->insts.prev, struct llhd_inst, link);
@@ -741,7 +720,7 @@ llhd_block_get_last_inst(struct llhd_value *V) {
 struct llhd_list *
 llhd_unit_get_blocks(struct llhd_value *V) {
 	struct llhd_unit_vtbl *vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(llhd_value_is(V, LLHD_VALUE_UNIT));
 	vtbl = (struct llhd_unit_vtbl *)V->vtbl;
 	assert(vtbl->block_list_offset);
 	return (void*)V + vtbl->block_list_offset;
@@ -786,8 +765,8 @@ llhd_unit_prev(struct llhd_list *head, struct llhd_list **pos) {
 void
 llhd_unit_append_to(struct llhd_value *V, struct llhd_module *M) {
 	struct llhd_unit *U = (void*)V;
-	assert(V && M);
-	assert(V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(llhd_value_is(V, LLHD_VALUE_UNIT));
+	assert(M);
 	assert(!U->module);
 	U->module = M;
 	llhd_value_ref(V);
@@ -797,8 +776,8 @@ llhd_unit_append_to(struct llhd_value *V, struct llhd_module *M) {
 void
 llhd_unit_prepend_to(struct llhd_value *V, struct llhd_module *M) {
 	struct llhd_unit *U = (void*)V;
-	assert(V && M);
-	assert(V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(llhd_value_is(V, LLHD_VALUE_UNIT));
+	assert(M);
 	assert(!U->module);
 	U->module = M;
 	llhd_value_ref(V);
@@ -808,8 +787,8 @@ llhd_unit_prepend_to(struct llhd_value *V, struct llhd_module *M) {
 void
 llhd_unit_insert_after(struct llhd_value *V, struct llhd_value *Vother) {
 	struct llhd_unit *U = (void*)V, *other = (void*)Vother;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
-	assert(Vother && Vother->vtbl && Vother->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(llhd_value_is(V, LLHD_VALUE_UNIT));
+	assert(llhd_value_is(Vother, LLHD_VALUE_UNIT));
 	assert(!U->module);
 	U->module = other->module;
 	llhd_value_ref(V);
@@ -819,8 +798,8 @@ llhd_unit_insert_after(struct llhd_value *V, struct llhd_value *Vother) {
 void
 llhd_unit_insert_before(struct llhd_value *V, struct llhd_value *Vother) {
 	struct llhd_unit *U = (void*)V, *other = (void*)Vother;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_UNIT);
-	assert(Vother && Vother->vtbl && Vother->vtbl->kind == LLHD_VALUE_UNIT);
+	assert(llhd_value_is(V, LLHD_VALUE_UNIT));
+	assert(llhd_value_is(Vother, LLHD_VALUE_UNIT));
 	assert(!U->module);
 	U->module = other->module;
 	llhd_value_ref(V);
@@ -869,8 +848,7 @@ func_dispose(void *ptr) {
 static void
 func_add_block(void *ptr, struct llhd_block *BB, int append) {
 	struct llhd_func *F = ptr;
-	assert(ptr);
-	assert(BB && BB->super.vtbl && BB->super.vtbl->kind == LLHD_VALUE_BLOCK);
+	assert(BB);
 	llhd_value_ref((struct llhd_value *)BB);
 	llhd_list_insert(append ? F->blocks.prev : &F->blocks, &BB->link);
 }

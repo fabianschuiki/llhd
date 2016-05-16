@@ -83,49 +83,51 @@ static void reg_unlink_uses(void*);
 
 static struct llhd_inst_vtbl vtbl_binary_inst = {
 	.super = {
-		.kind = LLHD_VALUE_INST,
+		.kind = LLHD_INST_BINARY,
 		.type_offset = offsetof(struct llhd_inst, type),
 		.name_offset = offsetof(struct llhd_inst, name),
+		.kind_offset = offsetof(struct llhd_binary_inst, op),
 		.dispose_fn = binary_dispose,
 		.substitute_fn = binary_substitute,
 		.unlink_from_parent_fn = binary_unlink_from_parent,
 		.unlink_uses_fn = binary_unlink_uses,
 	},
-	.kind = LLHD_INST_BINARY,
+	// .kind = LLHD_INST_BINARY,
 	.num_uses = 2,
 	.uses_offset = offsetof(struct llhd_binary_inst, uses),
 };
 
 static struct llhd_inst_vtbl vtbl_compare_inst = {
 	.super = {
-		.kind = LLHD_VALUE_INST,
+		.kind = LLHD_INST_COMPARE,
 		.type_offset = offsetof(struct llhd_inst, type),
 		.name_offset = offsetof(struct llhd_inst, name),
+		.kind_offset = offsetof(struct llhd_compare_inst, op),
 		.copy_fn = compare_copy,
 		.dispose_fn = compare_dispose,
 		.substitute_fn = compare_substitute,
 		.unlink_from_parent_fn = compare_unlink_from_parent,
 		.unlink_uses_fn = compare_unlink_uses,
 	},
-	.kind = LLHD_INST_COMPARE,
+	// .kind = LLHD_INST_COMPARE,
 	.num_uses = 2,
 	.uses_offset = offsetof(struct llhd_compare_inst, uses),
 };
 
 static struct llhd_inst_vtbl vtbl_sig_inst = {
 	.super = {
-		.kind = LLHD_VALUE_INST,
+		.kind = LLHD_INST_SIGNAL,
 		.type_offset = offsetof(struct llhd_inst, type),
 		.name_offset = offsetof(struct llhd_inst, name),
 		.dispose_fn = signal_dispose,
 		.unlink_from_parent_fn = signal_unlink_from_parent,
 	},
-	.kind = LLHD_INST_SIGNAL,
+	// .kind = LLHD_INST_SIGNAL,
 };
 
 static struct llhd_inst_vtbl vtbl_branch_inst = {
 	.super = {
-		.kind = LLHD_VALUE_INST,
+		.kind = LLHD_INST_BRANCH,
 		.type_offset = offsetof(struct llhd_inst, type),
 		.name_offset = offsetof(struct llhd_inst, name),
 		.dispose_fn = branch_dispose,
@@ -133,51 +135,51 @@ static struct llhd_inst_vtbl vtbl_branch_inst = {
 		.unlink_from_parent_fn = branch_unlink_from_parent,
 		.unlink_uses_fn = branch_unlink_uses,
 	},
-	.kind = LLHD_INST_BRANCH,
+	// .kind = LLHD_INST_BRANCH,
 	.num_uses = 3,
 	.uses_offset = offsetof(struct llhd_branch_inst, uses),
 };
 
 static struct llhd_inst_vtbl vtbl_drive_inst = {
 	.super = {
-		.kind = LLHD_VALUE_INST,
+		.kind = LLHD_INST_DRIVE,
 		.dispose_fn = drive_dispose,
 		.substitute_fn = drive_substitute,
 		.unlink_from_parent_fn = drive_unlink_from_parent,
 		.unlink_uses_fn = drive_unlink_uses,
 	},
-	.kind = LLHD_INST_DRIVE,
+	// .kind = LLHD_INST_DRIVE,
 	.num_uses = 2,
 	.uses_offset = offsetof(struct llhd_drive_inst, uses),
 };
 
 static struct llhd_inst_vtbl vtbl_ret_inst = {
 	.super = {
-		.kind = LLHD_VALUE_INST,
+		.kind = LLHD_INST_RET,
 		.dispose_fn = ret_dispose,
 		.substitute_fn = ret_substitute,
 		.unlink_from_parent_fn = ret_unlink_from_parent,
 		.unlink_uses_fn = ret_unlink_uses,
 	},
-	.kind = LLHD_INST_RET,
+	// .kind = LLHD_INST_RET,
 };
 
 static struct llhd_inst_vtbl vtbl_inst_inst = {
 	.super = {
-		.kind = LLHD_VALUE_INST,
+		.kind = LLHD_INST_INST,
 		.name_offset = offsetof(struct llhd_inst, name),
 		.dispose_fn = inst_dispose,
 		.substitute_fn = inst_substitute,
 		.unlink_from_parent_fn = inst_unlink_from_parent,
 		.unlink_uses_fn = inst_unlink_uses,
 	},
-	.kind = LLHD_INST_INST,
+	// .kind = LLHD_INST_INST,
 	/// @todo add uses
 };
 
 static struct llhd_inst_vtbl vtbl_call_inst = {
 	.super = {
-		.kind = LLHD_VALUE_INST,
+		.kind = LLHD_INST_CALL,
 		.name_offset = offsetof(struct llhd_inst, name),
 		.type_offset = offsetof(struct llhd_inst, type),
 		.dispose_fn = call_dispose,
@@ -185,28 +187,29 @@ static struct llhd_inst_vtbl vtbl_call_inst = {
 		.unlink_from_parent_fn = call_unlink_from_parent,
 		.unlink_uses_fn = call_unlink_uses,
 	},
-	.kind = LLHD_INST_CALL,
+	// .kind = LLHD_INST_CALL,
 	/// @todo add uses
 };
 
 static struct llhd_inst_vtbl vtbl_unary_inst = {
 	.super = {
-		.kind = LLHD_VALUE_INST,
+		.kind = LLHD_INST_UNARY,
 		.name_offset = offsetof(struct llhd_inst, name),
 		.type_offset = offsetof(struct llhd_inst, type),
+		.kind_offset = offsetof(struct llhd_unary_inst, op),
 		.dispose_fn = unary_dispose,
 		.substitute_fn = unary_substitute,
 		.unlink_from_parent_fn = unary_unlink_from_parent,
 		.unlink_uses_fn = unary_unlink_uses,
 	},
-	.kind = LLHD_INST_UNARY,
+	// .kind = LLHD_INST_UNARY,
 	.num_uses = 1,
 	.uses_offset = offsetof(struct llhd_unary_inst, use),
 };
 
 static struct llhd_inst_vtbl vtbl_extract_inst = {
 	.super = {
-		.kind = LLHD_VALUE_INST,
+		.kind = LLHD_INST_EXTRACT,
 		.name_offset = offsetof(struct llhd_inst, name),
 		.type_offset = offsetof(struct llhd_inst, type),
 		.dispose_fn = extract_dispose,
@@ -214,14 +217,14 @@ static struct llhd_inst_vtbl vtbl_extract_inst = {
 		.unlink_from_parent_fn = extract_unlink_from_parent,
 		.unlink_uses_fn = extract_unlink_uses,
 	},
-	.kind = LLHD_INST_EXTRACT,
+	// .kind = LLHD_INST_EXTRACT,
 	.num_uses = 1,
 	.uses_offset = offsetof(struct llhd_extract_inst, use),
 };
 
 static struct llhd_inst_vtbl vtbl_insert_inst = {
 	.super = {
-		.kind = LLHD_VALUE_INST,
+		.kind = LLHD_INST_INSERT,
 		.name_offset = offsetof(struct llhd_inst, name),
 		.type_offset = offsetof(struct llhd_inst, type),
 		.dispose_fn = insert_dispose,
@@ -229,14 +232,14 @@ static struct llhd_inst_vtbl vtbl_insert_inst = {
 		.unlink_from_parent_fn = insert_unlink_from_parent,
 		.unlink_uses_fn = insert_unlink_uses,
 	},
-	.kind = LLHD_INST_INSERT,
+	// .kind = LLHD_INST_INSERT,
 	.num_uses = 2,
 	.uses_offset = offsetof(struct llhd_insert_inst, uses),
 };
 
 static struct llhd_inst_vtbl vtbl_reg_inst = {
 	.super = {
-		.kind = LLHD_VALUE_INST,
+		.kind = LLHD_INST_REG,
 		.name_offset = offsetof(struct llhd_inst, name),
 		.type_offset = offsetof(struct llhd_inst, type),
 		.dispose_fn = reg_dispose,
@@ -244,38 +247,38 @@ static struct llhd_inst_vtbl vtbl_reg_inst = {
 		.unlink_from_parent_fn = reg_unlink_from_parent,
 		.unlink_uses_fn = reg_unlink_uses,
 	},
-	.kind = LLHD_INST_REG,
+	// .kind = LLHD_INST_REG,
 	.num_uses = 2,
 	.uses_offset = offsetof(struct llhd_reg_inst, uses),
 };
 
 static const char *binary_opnames[] = {
-	[LLHD_BINARY_ADD  >> 8 & 0xFF] = "add",
-	[LLHD_BINARY_SUB  >> 8 & 0xFF] = "sub",
-	[LLHD_BINARY_MUL  >> 8 & 0xFF] = "mul",
-	[LLHD_BINARY_UDIV >> 8 & 0xFF] = "udiv",
-	[LLHD_BINARY_UREM >> 8 & 0xFF] = "urem",
-	[LLHD_BINARY_SDIV >> 8 & 0xFF] = "sdiv",
-	[LLHD_BINARY_SREM >> 8 & 0xFF] = "srem",
-	[LLHD_BINARY_LSL  >> 8 & 0xFF] = "lsl",
-	[LLHD_BINARY_LSR  >> 8 & 0xFF] = "lsr",
-	[LLHD_BINARY_ASR  >> 8 & 0xFF] = "asr",
-	[LLHD_BINARY_AND  >> 8 & 0xFF] = "and",
-	[LLHD_BINARY_OR   >> 8 & 0xFF] = "or",
-	[LLHD_BINARY_XOR  >> 8 & 0xFF] = "xor",
+	[LLHD_KIND_BINARY(LLHD_BINARY_ADD )] = "add",
+	[LLHD_KIND_BINARY(LLHD_BINARY_SUB )] = "sub",
+	[LLHD_KIND_BINARY(LLHD_BINARY_MUL )] = "mul",
+	[LLHD_KIND_BINARY(LLHD_BINARY_UDIV)] = "udiv",
+	[LLHD_KIND_BINARY(LLHD_BINARY_UREM)] = "urem",
+	[LLHD_KIND_BINARY(LLHD_BINARY_SDIV)] = "sdiv",
+	[LLHD_KIND_BINARY(LLHD_BINARY_SREM)] = "srem",
+	[LLHD_KIND_BINARY(LLHD_BINARY_LSL )] = "lsl",
+	[LLHD_KIND_BINARY(LLHD_BINARY_LSR )] = "lsr",
+	[LLHD_KIND_BINARY(LLHD_BINARY_ASR )] = "asr",
+	[LLHD_KIND_BINARY(LLHD_BINARY_AND )] = "and",
+	[LLHD_KIND_BINARY(LLHD_BINARY_OR  )] = "or",
+	[LLHD_KIND_BINARY(LLHD_BINARY_XOR )] = "xor",
 };
 
 static const char *compare_opnames[] = {
-	[LLHD_CMP_EQ  >> 8 & 0xFF] = "eq",
-	[LLHD_CMP_NE  >> 8 & 0xFF] = "ne",
-	[LLHD_CMP_ULT >> 8 & 0xFF] = "ult",
-	[LLHD_CMP_UGT >> 8 & 0xFF] = "ugt",
-	[LLHD_CMP_ULE >> 8 & 0xFF] = "ule",
-	[LLHD_CMP_UGE >> 8 & 0xFF] = "uge",
-	[LLHD_CMP_SLT >> 8 & 0xFF] = "slt",
-	[LLHD_CMP_SGT >> 8 & 0xFF] = "sgt",
-	[LLHD_CMP_SLE >> 8 & 0xFF] = "sle",
-	[LLHD_CMP_SGE >> 8 & 0xFF] = "sge",
+	[LLHD_KIND_COMPARE(LLHD_CMP_EQ )] = "eq",
+	[LLHD_KIND_COMPARE(LLHD_CMP_NE )] = "ne",
+	[LLHD_KIND_COMPARE(LLHD_CMP_ULT)] = "ult",
+	[LLHD_KIND_COMPARE(LLHD_CMP_UGT)] = "ugt",
+	[LLHD_KIND_COMPARE(LLHD_CMP_ULE)] = "ule",
+	[LLHD_KIND_COMPARE(LLHD_CMP_UGE)] = "uge",
+	[LLHD_KIND_COMPARE(LLHD_CMP_SLT)] = "slt",
+	[LLHD_KIND_COMPARE(LLHD_CMP_SGT)] = "sgt",
+	[LLHD_KIND_COMPARE(LLHD_CMP_SLE)] = "sle",
+	[LLHD_KIND_COMPARE(LLHD_CMP_SGE)] = "sge",
 };
 
 struct llhd_value *
@@ -332,52 +335,44 @@ binary_substitute(void *ptr, void *ref, void *sub) {
 
 int
 llhd_inst_binary_get_op(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(llhd_value_is(V, LLHD_INST_BINARY));
 	struct llhd_binary_inst *I = (void*)V;
-	assert(vtbl->kind == LLHD_INST_BINARY);
 	return I->op;
 }
 
 const char *
 llhd_inst_binary_get_opname(struct llhd_value *V) {
-	return binary_opnames[llhd_inst_binary_get_op(V) >> 8 & 0xFF];
+	return binary_opnames[LLHD_KIND_BINARY(llhd_inst_binary_get_op(V))];
 }
 
 struct llhd_value *
 llhd_inst_binary_get_lhs(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(llhd_value_is(V, LLHD_INST_BINARY));
 	struct llhd_binary_inst *I = (void*)V;
-	assert(vtbl->kind == LLHD_INST_BINARY);
 	return I->lhs;
 }
 
 struct llhd_value *
 llhd_inst_binary_get_rhs(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
+	assert(llhd_value_is(V, LLHD_INST_BINARY));
 	struct llhd_binary_inst *I = (void*)V;
-	assert(vtbl->kind == LLHD_INST_BINARY);
 	return I->rhs;
 }
 
 
 bool
 llhd_inst_is(struct llhd_value *V, int kind) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	return ((struct llhd_inst_vtbl *)V->vtbl)->kind == kind;
+	return llhd_value_is(V, kind);
 }
 
 int
 llhd_inst_get_kind(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	return ((struct llhd_inst_vtbl *)V->vtbl)->kind;
+	return llhd_value_get_kind(V);
 }
 
 void
 llhd_inst_append_to(struct llhd_value *V, struct llhd_value *to) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(llhd_value_is(V, LLHD_VALUE_INST));
 	struct llhd_inst *I = (void*)V;
 	assert(!I->parent);
 	assert(to && to->vtbl && to->vtbl->add_inst_fn);
@@ -387,7 +382,7 @@ llhd_inst_append_to(struct llhd_value *V, struct llhd_value *to) {
 
 void
 llhd_inst_prepend_to(struct llhd_value *V, struct llhd_value *to) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(llhd_value_is(V, LLHD_VALUE_INST));
 	struct llhd_inst *I = (void*)V;
 	assert(!I->parent);
 	assert(to && to->vtbl && to->vtbl->add_inst_fn);
@@ -397,11 +392,11 @@ llhd_inst_prepend_to(struct llhd_value *V, struct llhd_value *to) {
 
 struct llhd_value *
 llhd_inst_next(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(llhd_value_is(V, LLHD_VALUE_INST));
 	struct llhd_inst *I = (void*)V;
 	if (!I->parent)
 		return NULL;
-	if (I->parent->vtbl->kind == LLHD_VALUE_BLOCK) {
+	if (llhd_value_is(I->parent, LLHD_VALUE_BLOCK)) {
 		if (llhd_block_get_last_inst(I->parent) == V)
 			return NULL;
 	} else {
@@ -413,7 +408,7 @@ llhd_inst_next(struct llhd_value *V) {
 
 struct llhd_value *
 llhd_inst_prev(struct llhd_value *V) {
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(llhd_value_is(V, LLHD_VALUE_INST));
 	struct llhd_inst *I = (void*)V;
 	if (llhd_entity_get_first_inst(I->parent) == V)
 		return NULL;
@@ -548,8 +543,8 @@ struct llhd_value *
 llhd_inst_branch_new_cond(struct llhd_value *cond, struct llhd_value *dst1, struct llhd_value *dst0) {
 	struct llhd_branch_inst *I;
 	assert(cond && dst1 && dst0);
-	assert(dst1->vtbl && dst1->vtbl->kind == LLHD_VALUE_BLOCK);
-	assert(dst0->vtbl && dst0->vtbl->kind == LLHD_VALUE_BLOCK);
+	assert(llhd_value_is(dst1, LLHD_VALUE_BLOCK));
+	assert(llhd_value_is(dst0, LLHD_VALUE_BLOCK));
 	llhd_value_ref(cond);
 	llhd_value_ref(dst1);
 	llhd_value_ref(dst0);
@@ -635,72 +630,56 @@ branch_unlink_uses(void *ptr) {
 struct llhd_value *
 llhd_inst_branch_get_condition(struct llhd_value *V) {
 	struct llhd_branch_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_BRANCH);
+	assert(llhd_value_is(V, LLHD_INST_BRANCH));
 	return I->cond;
 }
 
 struct llhd_value *
 llhd_inst_branch_get_dst(struct llhd_value *V) {
 	struct llhd_branch_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_BRANCH);
+	assert(llhd_value_is(V, LLHD_INST_BRANCH));
 	return (struct llhd_value *)I->dst0;
 }
 
 struct llhd_value *
 llhd_inst_branch_get_dst0(struct llhd_value *V) {
 	struct llhd_branch_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_BRANCH);
+	assert(llhd_value_is(V, LLHD_INST_BRANCH));
 	return (struct llhd_value *)I->dst0;
 }
 
 struct llhd_value *
 llhd_inst_branch_get_dst1(struct llhd_value *V) {
 	struct llhd_branch_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_BRANCH);
+	assert(llhd_value_is(V, LLHD_INST_BRANCH));
 	return (struct llhd_value *)I->dst1;
 }
 
 int
 llhd_inst_compare_get_op(struct llhd_value *V) {
 	struct llhd_compare_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_COMPARE);
+	assert(llhd_value_is(V, LLHD_INST_COMPARE));
 	return I->op;
 }
 
 const char *
 llhd_inst_compare_get_opname(struct llhd_value *V) {
 	struct llhd_compare_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_COMPARE);
-	return compare_opnames[I->op >> 8 & 0xFF];
+	assert(llhd_value_is(V, LLHD_INST_COMPARE));
+	return compare_opnames[LLHD_KIND_COMPARE(I->op)];
 }
 
 struct llhd_value *
 llhd_inst_compare_get_lhs(struct llhd_value *V) {
 	struct llhd_compare_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_COMPARE);
+	assert(llhd_value_is(V, LLHD_INST_COMPARE));
 	return I->lhs;
 }
 
 struct llhd_value *
 llhd_inst_compare_get_rhs(struct llhd_value *V) {
 	struct llhd_compare_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_COMPARE);
+	assert(llhd_value_is(V, LLHD_INST_COMPARE));
 	return I->rhs;
 }
 
@@ -768,19 +747,15 @@ drive_unlink_uses(void *ptr) {
 
 struct llhd_value *
 llhd_inst_drive_get_sig(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_DRIVE));
 	struct llhd_drive_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_DRIVE);
 	return I->sig;
 }
 
 struct llhd_value *
 llhd_inst_drive_get_val(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_DRIVE));
 	struct llhd_drive_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_DRIVE);
 	return I->val;
 }
 
@@ -820,19 +795,15 @@ llhd_inst_ret_new_many(struct llhd_value **args, unsigned num_args) {
 
 unsigned
 llhd_inst_ret_get_num_args(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_RET));
 	struct llhd_ret_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_RET);
 	return I->num_args;
 }
 
 struct llhd_value *
 llhd_inst_ret_get_arg(struct llhd_value *V, unsigned idx) {
+	assert(llhd_value_is(V, LLHD_INST_RET));
 	struct llhd_ret_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_RET);
 	assert(idx < I->num_args);
 	return I->args[idx];
 }
@@ -983,47 +954,37 @@ inst_unlink_uses(void *ptr) {
 
 struct llhd_value *
 llhd_inst_inst_get_comp(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_INST));
 	struct llhd_inst_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_INST);
 	return I->comp;
 }
 
 unsigned
 llhd_inst_inst_get_num_inputs(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_INST));
 	struct llhd_inst_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_INST);
 	return I->num_inputs;
 }
 
 unsigned
 llhd_inst_inst_get_num_outputs(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_INST));
 	struct llhd_inst_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_INST);
 	return I->num_outputs;
 }
 
 struct llhd_value *
 llhd_inst_inst_get_input(struct llhd_value *V, unsigned idx) {
+	assert(llhd_value_is(V, LLHD_INST_INST));
 	struct llhd_inst_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_INST);
 	assert(idx < I->num_inputs);
 	return I->params[idx];
 }
 
 struct llhd_value *
 llhd_inst_inst_get_output(struct llhd_value *V, unsigned idx) {
+	assert(llhd_value_is(V, LLHD_INST_INST));
 	struct llhd_inst_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_INST);
 	assert(idx < I->num_outputs);
 	return I->params[I->num_inputs+idx];
 }
@@ -1031,7 +992,7 @@ llhd_inst_inst_get_output(struct llhd_value *V, unsigned idx) {
 struct llhd_value *
 llhd_inst_get_parent(struct llhd_value *V) {
 	struct llhd_inst *I = (void*)V;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(llhd_value_is(V, LLHD_VALUE_INST));
 	return I->parent;
 }
 
@@ -1094,28 +1055,22 @@ unary_unlink_uses(void *ptr) {
 
 int
 llhd_inst_unary_get_op(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_UNARY));
 	struct llhd_unary_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	vtbl = (void*)V->vtbl;
-	assert(vtbl->kind == LLHD_INST_UNARY);
 	return I->op;
 }
 
 struct llhd_value *
 llhd_inst_unary_get_arg(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_UNARY));
 	struct llhd_unary_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	vtbl = (void*)V->vtbl;
-	assert(vtbl->kind == LLHD_INST_UNARY);
 	return I->arg;
 }
 
 unsigned
 llhd_inst_get_num_params(llhd_value_t V) {
 	struct llhd_inst_vtbl *vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(llhd_value_is(V, LLHD_VALUE_INST));
 	vtbl = (void*)V->vtbl;
 	return vtbl->num_uses;
 }
@@ -1124,7 +1079,7 @@ llhd_value_t
 llhd_inst_get_param(llhd_value_t V, unsigned idx) {
 	struct llhd_inst_vtbl *vtbl;
 	struct llhd_value_use *uses;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
+	assert(llhd_value_is(V, LLHD_VALUE_INST));
 	vtbl = (void*)V->vtbl;
 	assert(vtbl->num_uses > 0);
 	assert(idx < vtbl->num_uses);
@@ -1237,28 +1192,22 @@ call_unlink_uses(void *ptr) {
 
 struct llhd_value *
 llhd_inst_call_get_func(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_CALL));
 	struct llhd_call_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_CALL);
 	return I->func;
 }
 
 unsigned
 llhd_inst_call_get_num_args(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_CALL));
 	struct llhd_call_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_CALL);
 	return I->num_args;
 }
 
 struct llhd_value *
 llhd_inst_call_get_arg(struct llhd_value *V, unsigned idx) {
+	assert(llhd_value_is(V, LLHD_INST_CALL));
 	struct llhd_call_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_CALL);
 	assert(idx < I->num_args);
 	return I->args[idx];
 }
@@ -1331,19 +1280,15 @@ extract_unlink_uses(void *ptr) {
 
 unsigned
 llhd_inst_extract_get_index(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_EXTRACT));
 	struct llhd_extract_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_EXTRACT);
 	return I->index;
 }
 
 struct llhd_value *
 llhd_inst_extract_get_target(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_EXTRACT));
 	struct llhd_extract_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_EXTRACT);
 	return I->target;
 }
 
@@ -1422,28 +1367,22 @@ insert_unlink_uses(void *ptr) {
 
 unsigned
 llhd_inst_insert_get_index(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_INSERT));
 	struct llhd_insert_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_INSERT);
 	return I->index;
 }
 
 struct llhd_value *
 llhd_inst_insert_get_target(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_INSERT));
 	struct llhd_insert_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_INSERT);
 	return I->target;
 }
 
 struct llhd_value *
 llhd_inst_insert_get_value(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_INSERT));
 	struct llhd_insert_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_INSERT);
 	return I->value;
 }
 
@@ -1525,18 +1464,14 @@ reg_unlink_uses(void *ptr) {
 
 struct llhd_value *
 llhd_inst_reg_get_value(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_REG));
 	struct llhd_reg_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_REG);
 	return I->value;
 }
 
 struct llhd_value *
 llhd_inst_reg_get_strobe(struct llhd_value *V) {
+	assert(llhd_value_is(V, LLHD_INST_REG));
 	struct llhd_reg_inst *I = (void*)V;
-	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
-	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
-	assert(vtbl->kind == LLHD_INST_REG);
 	return I->strobe;
 }

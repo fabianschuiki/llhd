@@ -278,7 +278,7 @@ write_value_ref(llhd_value_t V, int withType, struct llhd_symtbl *symtbl, FILE *
 
 static void
 write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
-	int kind = llhd_inst_get_kind(I);
+	int kind = llhd_value_get_kind(I);
 	const char *name = llhd_value_get_name(I);
 	llhd_value_t cond, comp, func;
 	unsigned i, num;
@@ -288,7 +288,7 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 		fputs(an, out);
 		fputs(" = ", out);
 	}
-	switch (kind) {
+	switch (LLHD_AS(kind, LLHD_MASK_INST)) {
 		case LLHD_INST_UNARY:
 			assert(false && "write unary not implemented");
 			break;
@@ -476,8 +476,8 @@ write_proc_def (llhd_value_t D, FILE *out) {
 
 void
 llhd_asm_write_unit (llhd_value_t U, FILE *out) {
-	int kind = llhd_unit_get_kind(U);
-	switch (kind) {
+	int kind = llhd_value_get_kind(U);
+	switch (LLHD_AS(kind, LLHD_MASK_UNIT)) {
 		case LLHD_UNIT_DECL: write_decl(U, out); break;
 		case LLHD_UNIT_DEF_FUNC: write_func_def(U, out); break;
 		case LLHD_UNIT_DEF_ENTITY: write_entity_def(U, out); break;

@@ -68,6 +68,7 @@ struct llhd_value_vtbl {
 	int kind;
 	size_t name_offset;
 	size_t type_offset;
+	size_t kind_offset;
 	void *(*copy_fn)(void*);
 	void (*dispose_fn)(void*);
 	void (*substitute_fn)(void*, void*, void*);
@@ -81,13 +82,11 @@ struct llhd_value_vtbl {
 
 struct llhd_unit_vtbl {
 	struct llhd_value_vtbl super;
-	int kind;
 	size_t block_list_offset;
 };
 
 struct llhd_const_vtbl {
 	struct llhd_value_vtbl super;
-	int kind;
 	char *(*to_string_fn)(void*);
 };
 

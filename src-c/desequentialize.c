@@ -141,43 +141,36 @@ static struct llhd_boolexpr *
 get_boolexpr(llhd_value_t V) {
 	int k = llhd_value_get_kind(V);
 
-	if (k == LLHD_VALUE_CONST) {
-		int k2 = llhd_const_get_kind(V);
-		if (k2 == LLHD_CONST_INT) {
-			if (llhd_const_int_get_value(V) == 0)
-				return llhd_boolexpr_new_const_0();
-			if (llhd_const_int_get_value(V) == 1)
-				return llhd_boolexpr_new_const_1();
+	if (LLHD_ISA(k, LLHD_CONST_INT)) {
+		if (llhd_const_int_get_value(V) == 0)
+			return llhd_boolexpr_new_const_0();
+		if (llhd_const_int_get_value(V) == 1)
+			return llhd_boolexpr_new_const_1();
+	}
+
+	else if (LLHD_ISA(k, LLHD_INST_UNARY)) {
+		int op = llhd_inst_unary_get_op(V);
+		if (op == LLHD_UNARY_NOT) {
+			struct llhd_boolexpr *expr = get_boolexpr(llhd_inst_unary_get_arg(V));
+			llhd_boolexpr_negate(expr);
+			return expr;
 		}
 	}
 
-	else if (k == LLHD_VALUE_INST) {
-		int k2 = llhd_inst_get_kind(V);
+	else if (LLHD_ISA(k, LLHD_INST_BINARY)) {
+		int op = llhd_inst_binary_get_op(V);
+		struct llhd_boolexpr *args[2] = {
+			get_boolexpr(llhd_inst_binary_get_lhs(V)),
+			get_boolexpr(llhd_inst_binary_get_rhs(V)),
+		};
 
-		if (k2 == LLHD_INST_UNARY) {
-			int op = llhd_inst_unary_get_op(V);
-			if (op == LLHD_UNARY_NOT) {
-				struct llhd_boolexpr *expr = get_boolexpr(llhd_inst_unary_get_arg(V));
-				llhd_boolexpr_negate(expr);
-				return expr;
-			}
-		}
+		if (op == LLHD_BINARY_AND)
+			return llhd_boolexpr_new_and(args,2);
+		if (op == LLHD_BINARY_OR)
+			return llhd_boolexpr_new_or(args,2);
 
-		else if (k2 == LLHD_INST_BINARY) {
-			int op = llhd_inst_binary_get_op(V);
-			struct llhd_boolexpr *args[2] = {
-				get_boolexpr(llhd_inst_binary_get_lhs(V)),
-				get_boolexpr(llhd_inst_binary_get_rhs(V)),
-			};
-
-			if (op == LLHD_BINARY_AND)
-				return llhd_boolexpr_new_and(args,2);
-			if (op == LLHD_BINARY_OR)
-				return llhd_boolexpr_new_or(args,2);
-
-			llhd_boolexpr_free(args[0]);
-			llhd_boolexpr_free(args[1]);
-		}
+		llhd_boolexpr_free(args[0]);
+		llhd_boolexpr_free(args[1]);
 	}
 
 	return llhd_boolexpr_new_symbol(V);
@@ -336,7 +329,7 @@ llhd_desequentialize(llhd_value_t proc) {
 	while ((BB = llhd_block_next(blocks, &pos))) {
 		llhd_value_t I;
 		for (I = llhd_block_get_first_inst(BB); I; I = llhd_inst_next(I)) {
-			if (llhd_inst_is(I, LLHD_INST_DRIVE)) {
+			if (llhd_value_is(I, LLHD_INST_DRIVE)) {
 				struct record rec = {
 					.sig = llhd_inst_drive_get_sig(I),
 					.inst = I,
