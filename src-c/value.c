@@ -239,7 +239,7 @@ void
 llhd_value_unuse(struct llhd_value_use *U) {
 	assert(U);
 	llhd_list_remove(&U->link);
-	memset(U, 0, sizeof(*U));
+	U->value = NULL;
 }
 
 void

@@ -7,18 +7,22 @@
 
 /**
  * @file
- * @author Fabian Schuiki <fabian@schuiki.ch>
+ *
+ * This file implements the various instructions of the LLHD assembly.
  *
  * Guidelines:
  * - insts ref/unref their arguments
  * - insts use/unuse their arguments
  *
+ * @author Fabian Schuiki <fabian@schuiki.ch>
+ *
  * @todo Automate handling of uses: automatically ref/unref and use/unuse args,
  *       have one generic substitute and unlink_uses function.
- * @todo Factor handling of inst->type and inst->name out into alloc_inst and
- *       dispose_inst helper functions.
  */
 
+
+static void *alloc_inst(size_t, void*, struct llhd_type*, const char*);
+static void dispose_inst(void*);
 static void unlink_from_parent(void*);
 
 static void binary_dispose(void*);
@@ -37,8 +41,6 @@ static void branch_unlink_uses(void*);
 static void drive_dispose(void*);
 static void drive_substitute(void*,void*,void*);
 static void drive_unlink_uses(void*);
-
-static void signal_dispose(void*);
 
 static void ret_dispose(void*);
 static void ret_substitute(void*,void*,void*);
@@ -104,7 +106,7 @@ static struct llhd_inst_vtbl vtbl_sig_inst = {
 		.kind = LLHD_INST_SIGNAL,
 		.type_offset = offsetof(struct llhd_inst, type),
 		.name_offset = offsetof(struct llhd_inst, name),
-		.dispose_fn = signal_dispose,
+		.dispose_fn = dispose_inst,
 		.unlink_from_parent_fn = unlink_from_parent,
 	},
 };
@@ -258,6 +260,45 @@ static const char *compare_opnames[] = {
 };
 
 
+/**
+ * Allocate a new instruction. Allocates the instruction's underlying value and
+ * initializes the type and name fields. All other fields are zero-initialized.
+ *
+ * @param sz    Number of bytes to be allocated. Must be large enough to hold at
+ *              least a struct llhd_inst.
+ * @param vtbl  Pointer to the llhd_inst_vtbl for the instruction to be created.
+ * @param type  The return type of the instruction to be created. If NULL is
+ *              passed as @a type, the resulting instruction will have `void` as
+ *              its return type.
+ * @param name  The name of the instruction, or NULL. If NULL, the instruction
+ *              will be given a temporary name when it is written out as
+ *              assembly.
+ *
+ * @return Pointer to a newly allocated and partially initialized instruction.
+ */
+static void *
+alloc_inst(size_t sz, void *vtbl, struct llhd_type *type, const char *name) {
+	struct llhd_inst *I;
+	assert(sz >= sizeof(*I));
+	I = llhd_alloc_value(sz, vtbl);
+	I->name = name ? strdup(name) : NULL;
+	if (type) {
+		llhd_type_ref(type);
+		I->type = type;
+	} else {
+		I->type = llhd_type_new_void();
+	}
+	return I;
+}
+
+static void
+dispose_inst(void *ptr) {
+	struct llhd_inst *I = ptr;
+	assert(!I->parent);
+	llhd_type_unref(I->type);
+	llhd_free(I->name);
+}
+
 static void
 unlink_from_parent(void *ptr) {
 	struct llhd_inst *I = ptr;
@@ -274,14 +315,13 @@ unlink_from_parent(void *ptr) {
 struct llhd_value *
 llhd_inst_binary_new(int op, struct llhd_value *lhs, struct llhd_value *rhs, const char *name) {
 	struct llhd_binary_inst *I;
+	struct llhd_type *T;
+	assert(LLHD_ISA(op, LLHD_INST_BINARY) && lhs && rhs);
+	T = llhd_value_get_type(lhs);
+	assert(T);
+	I = alloc_inst(sizeof(*I), &vtbl_binary_inst, T, name);
 	llhd_value_ref(lhs);
 	llhd_value_ref(rhs);
-	I = llhd_alloc_value(sizeof(*I), &vtbl_binary_inst);
-	struct llhd_type *T = llhd_value_get_type(lhs);
-	assert(T);
-	llhd_type_ref(T);
-	I->super.type = T;
-	I->super.name = name ? strdup(name) : NULL;
 	I->op = op;
 	I->lhs = lhs;
 	I->rhs = rhs;
@@ -295,13 +335,11 @@ llhd_inst_binary_new(int op, struct llhd_value *lhs, struct llhd_value *rhs, con
 static void
 binary_dispose(void *ptr) {
 	struct llhd_binary_inst *I = ptr;
-	assert(!I->super.parent);
 	llhd_value_unuse(&I->uses[0]);
 	llhd_value_unuse(&I->uses[1]);
 	llhd_value_unref(I->lhs);
 	llhd_value_unref(I->rhs);
-	llhd_type_unref(I->super.type);
-	llhd_free(I->super.name);
+	dispose_inst(ptr);
 }
 
 static void
@@ -347,17 +385,6 @@ llhd_inst_binary_get_rhs(struct llhd_value *V) {
 	assert(llhd_value_is(V, LLHD_INST_BINARY));
 	struct llhd_binary_inst *I = (void*)V;
 	return I->rhs;
-}
-
-
-bool
-llhd_inst_is(struct llhd_value *V, int kind) {
-	return llhd_value_is(V, kind);
-}
-
-int
-llhd_inst_get_kind(struct llhd_value *V) {
-	return llhd_value_get_kind(V);
 }
 
 void
@@ -414,33 +441,18 @@ binary_unlink_uses(void *ptr) {
 
 struct llhd_value *
 llhd_inst_sig_new(struct llhd_type *T, const char *name) {
-	struct llhd_inst *I;
-	I = llhd_alloc_value(sizeof(*I), &vtbl_sig_inst);
 	assert(T);
-	llhd_type_ref(T);
-	I->type = T;
-	I->name = name ? strdup(name) : NULL;
-	return (struct llhd_value *)I;
-}
-
-static void
-signal_dispose(void *ptr) {
-	struct llhd_inst *I = ptr;
-	assert(ptr);
-	assert(!I->parent);
-	llhd_type_unref(I->type);
-	if (I->name)
-		llhd_free(I->name);
+	return alloc_inst(sizeof(struct llhd_inst), &vtbl_sig_inst, T, name);
 }
 
 struct llhd_value *
 llhd_inst_compare_new(int op, struct llhd_value *lhs, struct llhd_value *rhs, const char *name) {
 	struct llhd_compare_inst *I;
-	llhd_value_ref(lhs);
-	llhd_value_ref(rhs);
-	I = llhd_alloc_value(sizeof(*I), &vtbl_compare_inst);
-	I->super.type = llhd_type_new_int(1);
-	I->super.name = name ? strdup(name) : NULL;
+	struct llhd_type *T;
+	assert(LLHD_ISA(op, LLHD_INST_COMPARE) && lhs && rhs);
+	T = llhd_type_new_int(1);
+	I = alloc_inst(sizeof(*I), &vtbl_compare_inst, T, name);
+	llhd_type_unref(T);
 	I->op = op;
 	I->lhs = lhs;
 	I->rhs = rhs;
@@ -448,7 +460,9 @@ llhd_inst_compare_new(int op, struct llhd_value *lhs, struct llhd_value *rhs, co
 	I->uses[1] = (struct llhd_value_use){ .user = (struct llhd_value*)I, .arg = 1 };
 	llhd_value_use(lhs, &I->uses[0]);
 	llhd_value_use(rhs, &I->uses[1]);
-	return (struct llhd_value*)I;
+	llhd_value_ref(lhs);
+	llhd_value_ref(rhs);
+	return (void*)I;
 }
 
 static void *
@@ -460,11 +474,9 @@ compare_copy(void *ptr) {
 static void
 compare_dispose(void *ptr) {
 	struct llhd_compare_inst *I = ptr;
-	assert(!I->super.parent);
 	llhd_value_unref(I->lhs);
 	llhd_value_unref(I->rhs);
-	llhd_type_unref(I->super.type);
-	llhd_free(I->super.name);
+	dispose_inst(ptr);
 }
 
 static void
@@ -499,11 +511,7 @@ llhd_inst_branch_new_cond(struct llhd_value *cond, struct llhd_value *dst1, stru
 	assert(cond && dst1 && dst0);
 	assert(llhd_value_is(dst1, LLHD_VALUE_BLOCK));
 	assert(llhd_value_is(dst0, LLHD_VALUE_BLOCK));
-	llhd_value_ref(cond);
-	llhd_value_ref(dst1);
-	llhd_value_ref(dst0);
-	I = llhd_alloc_value(sizeof(*I), &vtbl_branch_inst);
-	I->super.type = llhd_type_new_void();
+	I = alloc_inst(sizeof(*I), &vtbl_branch_inst, NULL, NULL);
 	I->cond = cond;
 	I->dst1 = (struct llhd_block *)dst1;
 	I->dst0 = (struct llhd_block *)dst0;
@@ -513,25 +521,32 @@ llhd_inst_branch_new_cond(struct llhd_value *cond, struct llhd_value *dst1, stru
 	llhd_value_use(cond, &I->uses[0]);
 	llhd_value_use(dst1, &I->uses[1]);
 	llhd_value_use(dst0, &I->uses[2]);
-	return (struct llhd_value *)I;
+	llhd_value_ref(cond);
+	llhd_value_ref(dst1);
+	llhd_value_ref(dst0);
+	return (void*)I;
 }
 
 struct llhd_value *
 llhd_inst_branch_new_uncond(struct llhd_value *dst) {
-	/// @todo Implement.
-	assert(0 && "Not implemented");
-	return NULL;
+	struct llhd_branch_inst *I;
+	assert(dst);
+	I = alloc_inst(sizeof(*I), &vtbl_branch_inst, NULL, NULL);
+	assert(llhd_value_is(dst, LLHD_VALUE_BLOCK));
+	I->dst0 = (struct llhd_block *)dst;
+	I->uses[2] = (struct llhd_value_use){ .user = (struct llhd_value*)I, .arg = 2 };
+	llhd_value_use(dst, &I->uses[2]);
+	llhd_value_ref(dst);
+	return (void*)I;
 }
 
 static void
 branch_dispose(void *ptr) {
 	struct llhd_branch_inst *I = ptr;
-	assert(!I->super.parent);
 	llhd_value_unref(I->cond);
 	llhd_value_unref((struct llhd_value*)I->dst1);
 	llhd_value_unref((struct llhd_value*)I->dst0);
-	llhd_type_unref(I->super.type);
-	llhd_free(I->super.name);
+	dispose_inst(ptr);
 }
 
 static void
@@ -629,24 +644,24 @@ struct llhd_value *
 llhd_inst_drive_new(struct llhd_value *sig, struct llhd_value *val) {
 	struct llhd_drive_inst *I;
 	assert(sig && val);
-	llhd_value_ref(sig);
-	llhd_value_ref(val);
-	I = llhd_alloc_value(sizeof(*I), &vtbl_drive_inst);
+	I = alloc_inst(sizeof(*I), &vtbl_drive_inst, NULL, NULL);
 	I->sig = sig;
 	I->val = val;
 	I->uses[0] = (struct llhd_value_use){ .user = (struct llhd_value*)I, .arg = 0 };
 	I->uses[1] = (struct llhd_value_use){ .user = (struct llhd_value*)I, .arg = 1 };
 	llhd_value_use(sig, &I->uses[0]);
 	llhd_value_use(val, &I->uses[1]);
-	return (struct llhd_value *)I;
+	llhd_value_ref(sig);
+	llhd_value_ref(val);
+	return (void*)I;
 }
 
 static void
 drive_dispose(void *ptr) {
 	struct llhd_drive_inst *I = ptr;
-	assert(!I->super.parent);
 	llhd_value_unref(I->sig);
 	llhd_value_unref(I->val);
+	dispose_inst(ptr);
 }
 
 static void
@@ -691,9 +706,7 @@ llhd_inst_drive_get_val(struct llhd_value *V) {
 
 struct llhd_value *
 llhd_inst_ret_new() {
-	struct llhd_ret_inst *I;
-	I = llhd_alloc_value(sizeof(*I), &vtbl_ret_inst);
-	return (struct llhd_value *)I;
+	return alloc_inst(sizeof(struct llhd_ret_inst), &vtbl_ret_inst, NULL, NULL);
 }
 
 struct llhd_value *
@@ -707,7 +720,7 @@ llhd_inst_ret_new_many(struct llhd_value **args, unsigned num_args) {
 	void *ptr;
 	unsigned i;
 	assert(num_args == 0 || args);
-	ptr = llhd_alloc_value(sizeof(*I) + num_args * (sizeof(struct llhd_value*) + sizeof(struct llhd_value_use)), &vtbl_ret_inst);
+	ptr = alloc_inst(sizeof(*I) + num_args * (sizeof(struct llhd_value*) + sizeof(struct llhd_value_use)), &vtbl_ret_inst, NULL, NULL);
 	I = ptr;
 	I->num_args = num_args;
 	if (num_args > 0) {
@@ -720,7 +733,7 @@ llhd_inst_ret_new_many(struct llhd_value **args, unsigned num_args) {
 			llhd_value_use(args[i], &I->uses[i]);
 		}
 	}
-	return (struct llhd_value *)I;
+	return (void*)I;
 }
 
 unsigned
@@ -742,10 +755,10 @@ static void
 ret_dispose(void *ptr) {
 	unsigned i;
 	struct llhd_ret_inst *I = ptr;
-	assert(!I->super.parent);
 	for (i = 0; i < I->num_args; ++i) {
 		llhd_value_unref(I->args[i]);
 	}
+	dispose_inst(ptr);
 }
 
 static void
@@ -791,9 +804,8 @@ llhd_inst_instance_new(
 	sz_uses = sizeof(struct llhd_value_use) * (1+num_inputs+num_outputs);
 	sz_in   = sizeof(struct llhd_value *) * num_inputs;
 	sz_out  = sizeof(struct llhd_value *) * num_outputs;
-	ptr = llhd_alloc_value(sizeof(*I) + sz_uses + sz_in + sz_out, &vtbl_inst_inst);
+	ptr = alloc_inst(sizeof(*I) + sz_uses + sz_in + sz_out, &vtbl_inst_inst, NULL, name);
 	I = ptr;
-	I->super.name = name ? strdup(name) : NULL;
 	I->comp = comp;
 	I->num_inputs = num_inputs;
 	I->num_outputs = num_outputs;
@@ -809,19 +821,17 @@ llhd_inst_instance_new(
 		llhd_value_ref(I->params[i]);
 		llhd_value_use(I->params[i], &I->uses[1+i]);
 	}
-	return (struct llhd_value *)I;
+	return (void*)I;
 }
 
 static void
 inst_dispose(void *ptr) {
 	unsigned i;
 	struct llhd_inst_inst *I = ptr;
-	assert(ptr);
-	assert(!I->super.parent);
 	llhd_value_unref(I->comp);
 	for (i = 0; i < I->num_inputs + I->num_outputs; ++i)
 		llhd_value_unref(I->params[i]);
-	llhd_free(I->super.name);
+	dispose_inst(ptr);
 }
 
 static void
@@ -906,27 +916,23 @@ struct llhd_value *
 llhd_inst_unary_new(int op, struct llhd_value *arg, const char *name) {
 	struct llhd_unary_inst *I;
 	struct llhd_type *T;
-	assert(arg);
-	llhd_value_ref(arg);
+	assert(LLHD_ISA(op, LLHD_INST_UNARY) && arg);
 	T = llhd_value_get_type(arg);
-	llhd_type_ref(T);
-	I = llhd_alloc_value(sizeof(*I), &vtbl_unary_inst);
-	I->super.name = name ? strdup(name) : NULL;
-	I->super.type = T;
+	assert(T);
+	I = alloc_inst(sizeof(*I), &vtbl_unary_inst, T, name);
 	I->op = op;
 	I->arg = arg;
 	llhd_value_use(arg, &I->use);
+	llhd_value_ref(arg);
 	return (struct llhd_value *)I;
 }
 
 static void
 unary_dispose(void *ptr) {
 	struct llhd_unary_inst *I = ptr;
-	assert(!I->super.parent);
 	llhd_value_unuse(&I->use);
 	llhd_value_unref(I->arg);
-	llhd_type_unref(I->super.type);
-	llhd_free(I->super.name);
+	dispose_inst(ptr);
 }
 
 static void
@@ -1002,14 +1008,13 @@ llhd_inst_call_new(struct llhd_value *func, struct llhd_value **args, unsigned n
 	llhd_free(types);
 
 	sz_args = num_args * sizeof(struct llhd_value *);
-	ptr = llhd_alloc_value(sizeof(*I) + sz_args + (1+num_args)*sizeof(struct llhd_value_use), &vtbl_call_inst);
+	ptr = alloc_inst(sizeof(*I) + sz_args + (1+num_args)*sizeof(struct llhd_value_use), &vtbl_call_inst, T, name);
+	llhd_type_unref(T);
 	I = ptr;
 	I->args = ptr + sizeof(*I);
 	I->uses = ptr + sizeof(*I) + sz_args;
 	I->num_args = num_args;
 
-	I->super.name = name ? strdup(name) : NULL;
-	I->super.type = T;
 	I->func = func;
 	I->uses[0] = (struct llhd_value_use){ .user = (struct llhd_value*)I, .arg = 0 };
 	llhd_value_ref(func);
@@ -1022,20 +1027,17 @@ llhd_inst_call_new(struct llhd_value *func, struct llhd_value **args, unsigned n
 		llhd_value_use(I->args[i], &I->uses[1+i]);
 	}
 
-	return (struct llhd_value *)I;
+	return (void*)I;
 }
 
 static void
 call_dispose(void *ptr) {
 	unsigned i;
 	struct llhd_call_inst *I = ptr;
-	assert(ptr);
-	assert(!I->super.parent);
 	llhd_value_unref(I->func);
 	for (i = 0; i < I->num_args; ++i)
 		llhd_value_unref(I->args[i]);
-	llhd_type_unref(I->super.type);
-	llhd_free(I->super.name);
+	dispose_inst(ptr);
 }
 
 static void
@@ -1108,13 +1110,10 @@ llhd_inst_extract_new(struct llhd_value *target, unsigned index, const char *nam
 	} else {
 		T = llhd_type_get_subtype(T);
 	}
-	I = llhd_alloc_value(sizeof(*I), &vtbl_extract_inst);
-	I->super.type = T;
-	I->super.name = name ? strdup(name) : NULL;
+	I = alloc_inst(sizeof(*I), &vtbl_extract_inst, T, name);
 	I->target = target;
 	I->index = index;
 	I->use = (struct llhd_value_use){ .user = (void*)I, .arg = 0 };
-	llhd_type_ref(T);
 	llhd_value_ref(target);
 	llhd_value_use(target, &I->use);
 	return (void*)I;
@@ -1124,10 +1123,8 @@ llhd_inst_extract_new(struct llhd_value *target, unsigned index, const char *nam
 static void
 extract_dispose(void *ptr) {
 	struct llhd_extract_inst *I = ptr;
-	assert(!I->super.parent);
 	llhd_value_unref(I->target);
-	llhd_type_unref(I->super.type);
-	llhd_free(I->super.name);
+	dispose_inst(ptr);
 }
 
 static void
@@ -1167,19 +1164,16 @@ struct llhd_value *
 llhd_inst_insert_new(struct llhd_value *target, unsigned index, struct llhd_value *value, const char *name) {
 	struct llhd_insert_inst *I;
 	struct llhd_type *T;
-	assert(target);
+	assert(target && value);
 	T = llhd_value_get_type(target);
-	assert(index < llhd_type_get_num_fields(T));
+	assert(T && index < llhd_type_get_num_fields(T));
 	// assert(llhd_type_equal(llhd_type_get_field(T, index), llhd_value_get_type(value)));
-	I = llhd_alloc_value(sizeof(*I), &vtbl_insert_inst);
-	I->super.type = T;
-	I->super.name = name ? strdup(name) : NULL;
+	I = alloc_inst(sizeof(*I), &vtbl_insert_inst, T, name);
 	I->target = target;
 	I->index = index;
 	I->value = value;
 	I->uses[0] = (struct llhd_value_use){ .user = (void*)I, .arg = 0 };
 	I->uses[1] = (struct llhd_value_use){ .user = (void*)I, .arg = 1 };
-	llhd_type_ref(T);
 	llhd_value_ref(target);
 	llhd_value_ref(value);
 	llhd_value_use(target, &I->uses[0]);
@@ -1190,11 +1184,9 @@ llhd_inst_insert_new(struct llhd_value *target, unsigned index, struct llhd_valu
 static void
 insert_dispose(void *ptr) {
 	struct llhd_insert_inst *I = ptr;
-	assert(!I->super.parent);
 	llhd_value_unref(I->target);
 	llhd_value_unref(I->value);
-	llhd_type_unref(I->super.type);
-	llhd_free(I->super.name);
+	dispose_inst(ptr);
 }
 
 static void
@@ -1256,9 +1248,7 @@ llhd_inst_reg_new(struct llhd_value *value, struct llhd_value *strobe, const cha
 	assert(T && Ts);
 	assert(llhd_type_is(Ts, LLHD_TYPE_INT) && llhd_type_get_length(Ts) == 1); /// @todo Make this more elegant
 
-	I = llhd_alloc_value(sizeof(*I), &vtbl_reg_inst);
-	I->super.name = name ? strdup(name) : NULL;
-	I->super.type = T;
+	I = alloc_inst(sizeof(*I), &vtbl_reg_inst, T, name);
 	I->value = value;
 	I->strobe = strobe;
 	I->uses[0] = (struct llhd_value_use){ .user = (void*)I, .arg = 0 };
@@ -1275,11 +1265,9 @@ llhd_inst_reg_new(struct llhd_value *value, struct llhd_value *strobe, const cha
 static void
 reg_dispose(void *ptr) {
 	struct llhd_reg_inst *I = ptr;
-	assert(!I->super.parent);
 	llhd_value_unref(I->value);
 	llhd_value_unref(I->strobe);
-	llhd_type_unref(I->super.type);
-	llhd_free(I->super.name);
+	dispose_inst(ptr);
 }
 
 static void
