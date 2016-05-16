@@ -12,6 +12,7 @@ typedef struct llhd_value * llhd_value_t;
 typedef struct llhd_list * llhd_list_t;
 typedef uint64_t llhd_apint_t;
 
+
 enum llhd_type_kind {
 	LLHD_TYPE_VOID   = 1,
 	LLHD_TYPE_LABEL  = 2,
@@ -26,72 +27,94 @@ enum llhd_type_kind {
 	LLHD_TYPE_COMP   = 11,
 };
 
+
 enum llhd_value_kind {
-	LLHD_VALUE_UNIT  = 1,
-	LLHD_VALUE_CONST = 2,
-	LLHD_VALUE_INST  = 3,
-	LLHD_VALUE_PARAM = 4,
-	LLHD_VALUE_BLOCK = 5,
+	LLHD_MASK_VALUE          = 0xFF << 24,
+	LLHD_MASK_UNIT           = 0xFF << 16 | LLHD_MASK_VALUE,
+	LLHD_MASK_CONST          = 0xFF << 16 | LLHD_MASK_VALUE,
+	LLHD_MASK_INST           = 0xFF << 16 | LLHD_MASK_VALUE,
+	LLHD_MASK_UNARY          = 0xFF <<  8 | LLHD_MASK_INST,
+	LLHD_MASK_BINARY         = 0xFF <<  8 | LLHD_MASK_INST,
+	LLHD_MASK_COMPARE        = 0xFF <<  8 | LLHD_MASK_INST,
+
+	/* values */
+	LLHD_VALUE_UNIT          =   1 << 24,
+	LLHD_VALUE_CONST         =   2 << 24,
+	LLHD_VALUE_INST          =   3 << 24,
+	LLHD_VALUE_PARAM         =   4 << 24,
+	LLHD_VALUE_BLOCK         =   5 << 24,
+
+	/* units */
+	LLHD_UNIT_DECL           =   1 << 16 | LLHD_VALUE_UNIT,
+	LLHD_UNIT_DEF_FUNC       =   2 << 16 | LLHD_VALUE_UNIT,
+	LLHD_UNIT_DEF_ENTITY     =   3 << 16 | LLHD_VALUE_UNIT,
+	LLHD_UNIT_DEF_PROC       =   4 << 16 | LLHD_VALUE_UNIT,
+
+	/* constants */
+	LLHD_CONST_INT           =   1 << 16 | LLHD_VALUE_CONST,
+
+	/* instructions */
+	LLHD_INST_BRANCH         =   1 << 16 | LLHD_VALUE_INST,
+	LLHD_INST_UNARY          =   2 << 16 | LLHD_VALUE_INST,
+	LLHD_INST_BINARY         =   3 << 16 | LLHD_VALUE_INST,
+	LLHD_INST_SIGNAL         =   4 << 16 | LLHD_VALUE_INST,
+	LLHD_INST_COMPARE        =   5 << 16 | LLHD_VALUE_INST,
+	LLHD_INST_DRIVE          =   6 << 16 | LLHD_VALUE_INST,
+	LLHD_INST_RET            =   7 << 16 | LLHD_VALUE_INST,
+	LLHD_INST_INST           =   8 << 16 | LLHD_VALUE_INST,
+	LLHD_INST_CALL           =   9 << 16 | LLHD_VALUE_INST,
+	LLHD_INST_EXTRACT        =  10 << 16 | LLHD_VALUE_INST,
+	LLHD_INST_INSERT         =  11 << 16 | LLHD_VALUE_INST,
+	LLHD_INST_REG            =  12 << 16 | LLHD_VALUE_INST,
+
+	/* unary instructions */
+	LLHD_UNARY_NOT           =   1 << 8 | LLHD_INST_UNARY,
+
+	/* binary instructions */
+	LLHD_BINARY_ADD          =   1 << 8 | LLHD_INST_BINARY,
+	LLHD_BINARY_SUB          =   2 << 8 | LLHD_INST_BINARY,
+	LLHD_BINARY_MUL          =   3 << 8 | LLHD_INST_BINARY,
+	LLHD_BINARY_UDIV         =   4 << 8 | LLHD_INST_BINARY,
+	LLHD_BINARY_UREM         =   5 << 8 | LLHD_INST_BINARY,
+	LLHD_BINARY_SDIV         =   6 << 8 | LLHD_INST_BINARY,
+	LLHD_BINARY_SREM         =   7 << 8 | LLHD_INST_BINARY,
+	LLHD_BINARY_LSL          =   8 << 8 | LLHD_INST_BINARY,
+	LLHD_BINARY_LSR          =   9 << 8 | LLHD_INST_BINARY,
+	LLHD_BINARY_ASR          =  10 << 8 | LLHD_INST_BINARY,
+	LLHD_BINARY_AND          =  11 << 8 | LLHD_INST_BINARY,
+	LLHD_BINARY_OR           =  12 << 8 | LLHD_INST_BINARY,
+	LLHD_BINARY_XOR          =  13 << 8 | LLHD_INST_BINARY,
+
+	/* compare instructions */
+	LLHD_CMP_EQ              =   1 << 8 | LLHD_INST_COMPARE,
+	LLHD_CMP_NE              =   2 << 8 | LLHD_INST_COMPARE,
+	LLHD_CMP_ULT             =   3 << 8 | LLHD_INST_COMPARE,
+	LLHD_CMP_UGT             =   4 << 8 | LLHD_INST_COMPARE,
+	LLHD_CMP_ULE             =   5 << 8 | LLHD_INST_COMPARE,
+	LLHD_CMP_UGE             =   6 << 8 | LLHD_INST_COMPARE,
+	LLHD_CMP_SLT             =   7 << 8 | LLHD_INST_COMPARE,
+	LLHD_CMP_SGT             =   8 << 8 | LLHD_INST_COMPARE,
+	LLHD_CMP_SLE             =   9 << 8 | LLHD_INST_COMPARE,
+	LLHD_CMP_SGE             =  10 << 8 | LLHD_INST_COMPARE,
 };
 
-enum llhd_unit_kind {
-	LLHD_UNIT_DECL       = 1,
-	LLHD_UNIT_DEF_FUNC   = 2,
-	LLHD_UNIT_DEF_ENTITY = 3,
-	LLHD_UNIT_DEF_PROC   = 4,
-};
+#define LLHD_VALUE_KIND(k)   ((k) >> 24 & 0xFF)
+#define LLHD_UNIT_KIND(k)    ((k) >> 16 & 0xFF)
+#define LLHD_CONST_KIND(k)   ((k) >> 16 & 0xFF)
+#define LLHD_INST_KIND(k)    ((k) >> 16 & 0xFF)
+#define LLHD_UNARY_KIND(k)   ((k) >>  8 & 0xFF)
+#define LLHD_BINARY_KIND(k)  ((k) >>  8 & 0xFF)
+#define LLHD_COMPARE_KIND(k) ((k) >>  8 & 0xFF)
 
-enum llhd_inst_kind {
-	LLHD_INST_BRANCH  = 1,
-	LLHD_INST_UNARY   = 2,
-	LLHD_INST_BINARY  = 3,
-	LLHD_INST_SIGNAL  = 4,
-	LLHD_INST_COMPARE = 5,
-	LLHD_INST_DRIVE   = 6,
-	LLHD_INST_RET     = 7,
-	LLHD_INST_INST    = 8,
-	LLHD_INST_CALL    = 9,
-	LLHD_INST_EXTRACT = 10,
-	LLHD_INST_INSERT  = 11,
-	LLHD_INST_REG     = 12,
-};
+#define LLHD_ISA(k,m,a) (((k) & (m)) == (a))
+#define LLHD_ISA_VALUE(k,a)   LLHD_ISA(k, LLHD_MASK_VALUE,   a)
+#define LLHD_ISA_UNIT(k,a)    LLHD_ISA(k, LLHD_MASK_UNIT,    a)
+#define LLHD_ISA_CONST(k,a)   LLHD_ISA(k, LLHD_MASK_CONST,   a)
+#define LLHD_ISA_INST(k,a)    LLHD_ISA(k, LLHD_MASK_INST,    a)
+#define LLHD_ISA_UNARY(k,a)   LLHD_ISA(k, LLHD_MASK_UNARY,   a)
+#define LLHD_ISA_BINARY(k,a)  LLHD_ISA(k, LLHD_MASK_BINARY,  a)
+#define LLHD_ISA_COMPARE(k,a) LLHD_ISA(k, LLHD_MASK_COMPARE, a)
 
-enum llhd_unary_op {
-	LLHD_UNARY_NOT   = 1,
-};
-
-enum llhd_binary_op {
-	LLHD_BINARY_ADD  = 1,
-	LLHD_BINARY_SUB  = 2,
-	LLHD_BINARY_MUL  = 3,
-	LLHD_BINARY_UDIV = 4,
-	LLHD_BINARY_UREM = 5,
-	LLHD_BINARY_SDIV = 6,
-	LLHD_BINARY_SREM = 7,
-	LLHD_BINARY_LSL  = 8,
-	LLHD_BINARY_LSR  = 9,
-	LLHD_BINARY_ASR  = 10,
-	LLHD_BINARY_AND  = 11,
-	LLHD_BINARY_OR   = 12,
-	LLHD_BINARY_XOR  = 13,
-};
-
-enum llhd_compare_op {
-	LLHD_CMP_EQ  = 0x0,
-	LLHD_CMP_NE  = 0x1,
-	LLHD_CMP_ULT = 0x4,
-	LLHD_CMP_UGT = 0x5,
-	LLHD_CMP_ULE = 0x6,
-	LLHD_CMP_UGE = 0x7,
-	LLHD_CMP_SLT = 0x8,
-	LLHD_CMP_SGT = 0x9,
-	LLHD_CMP_SLE = 0xA,
-	LLHD_CMP_SGE = 0xB,
-};
-
-enum llhd_const_kind {
-	LLHD_CONST_INT = 1,
-};
 
 llhd_module_t llhd_module_new(const char*);
 void llhd_module_free(llhd_module_t);

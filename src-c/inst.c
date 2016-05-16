@@ -250,32 +250,32 @@ static struct llhd_inst_vtbl vtbl_reg_inst = {
 };
 
 static const char *binary_opnames[] = {
-	[LLHD_BINARY_ADD]  = "add",
-	[LLHD_BINARY_SUB]  = "sub",
-	[LLHD_BINARY_MUL]  = "mul",
-	[LLHD_BINARY_UDIV] = "udiv",
-	[LLHD_BINARY_UREM] = "urem",
-	[LLHD_BINARY_SDIV] = "sdiv",
-	[LLHD_BINARY_SREM] = "srem",
-	[LLHD_BINARY_LSL]  = "lsl",
-	[LLHD_BINARY_LSR]  = "lsr",
-	[LLHD_BINARY_ASR]  = "asr",
-	[LLHD_BINARY_AND]  = "and",
-	[LLHD_BINARY_OR]   = "or",
-	[LLHD_BINARY_XOR]  = "xor",
+	[LLHD_BINARY_ADD  >> 8 & 0xFF] = "add",
+	[LLHD_BINARY_SUB  >> 8 & 0xFF] = "sub",
+	[LLHD_BINARY_MUL  >> 8 & 0xFF] = "mul",
+	[LLHD_BINARY_UDIV >> 8 & 0xFF] = "udiv",
+	[LLHD_BINARY_UREM >> 8 & 0xFF] = "urem",
+	[LLHD_BINARY_SDIV >> 8 & 0xFF] = "sdiv",
+	[LLHD_BINARY_SREM >> 8 & 0xFF] = "srem",
+	[LLHD_BINARY_LSL  >> 8 & 0xFF] = "lsl",
+	[LLHD_BINARY_LSR  >> 8 & 0xFF] = "lsr",
+	[LLHD_BINARY_ASR  >> 8 & 0xFF] = "asr",
+	[LLHD_BINARY_AND  >> 8 & 0xFF] = "and",
+	[LLHD_BINARY_OR   >> 8 & 0xFF] = "or",
+	[LLHD_BINARY_XOR  >> 8 & 0xFF] = "xor",
 };
 
 static const char *compare_opnames[] = {
-	[LLHD_CMP_EQ]  = "eq",
-	[LLHD_CMP_NE]  = "ne",
-	[LLHD_CMP_ULT] = "ult",
-	[LLHD_CMP_UGT] = "ugt",
-	[LLHD_CMP_ULE] = "ule",
-	[LLHD_CMP_UGE] = "uge",
-	[LLHD_CMP_SLT] = "slt",
-	[LLHD_CMP_SGT] = "sgt",
-	[LLHD_CMP_SLE] = "sle",
-	[LLHD_CMP_SGE] = "sge",
+	[LLHD_CMP_EQ  >> 8 & 0xFF] = "eq",
+	[LLHD_CMP_NE  >> 8 & 0xFF] = "ne",
+	[LLHD_CMP_ULT >> 8 & 0xFF] = "ult",
+	[LLHD_CMP_UGT >> 8 & 0xFF] = "ugt",
+	[LLHD_CMP_ULE >> 8 & 0xFF] = "ule",
+	[LLHD_CMP_UGE >> 8 & 0xFF] = "uge",
+	[LLHD_CMP_SLT >> 8 & 0xFF] = "slt",
+	[LLHD_CMP_SGT >> 8 & 0xFF] = "sgt",
+	[LLHD_CMP_SLE >> 8 & 0xFF] = "sle",
+	[LLHD_CMP_SGE >> 8 & 0xFF] = "sge",
 };
 
 struct llhd_value *
@@ -341,7 +341,7 @@ llhd_inst_binary_get_op(struct llhd_value *V) {
 
 const char *
 llhd_inst_binary_get_opname(struct llhd_value *V) {
-	return binary_opnames[llhd_inst_binary_get_op(V)];
+	return binary_opnames[llhd_inst_binary_get_op(V) >> 8 & 0xFF];
 }
 
 struct llhd_value *
@@ -683,7 +683,7 @@ llhd_inst_compare_get_opname(struct llhd_value *V) {
 	struct llhd_inst_vtbl *vtbl = (void*)V->vtbl;
 	assert(V && V->vtbl && V->vtbl->kind == LLHD_VALUE_INST);
 	assert(vtbl->kind == LLHD_INST_COMPARE);
-	return compare_opnames[I->op];
+	return compare_opnames[I->op >> 8 & 0xFF];
 }
 
 struct llhd_value *

@@ -7,15 +7,14 @@
 struct llhd_value_use {
 	struct llhd_list link;
 	struct llhd_value *user;
-	struct llhd_value *value; /// @todo Remove and add proper param array to insts.
+	struct llhd_value *value; ///< @todo Remove and add proper param array to insts.
 	int arg;
 };
 
 /// @todo Add a type field.
 struct llhd_value {
 	struct llhd_value_vtbl *vtbl;
-	/// @todo Make rc atomic.
-	int rc;
+	int rc; ///< @todo Make rc atomic.
 	struct llhd_list users;
 };
 

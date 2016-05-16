@@ -19,7 +19,7 @@ struct llhd_inst_vtbl {
 
 struct llhd_binary_inst {
 	struct llhd_inst super;
-	enum llhd_binary_op op;
+	int op;
 	struct llhd_value *lhs;
 	struct llhd_value *rhs;
 	struct llhd_value_use uses[2];
@@ -27,7 +27,7 @@ struct llhd_binary_inst {
 
 struct llhd_compare_inst {
 	struct llhd_inst super;
-	enum llhd_compare_op op;
+	int op;
 	struct llhd_value *lhs;
 	struct llhd_value *rhs;
 	struct llhd_value_use uses[2];
@@ -74,7 +74,7 @@ struct llhd_call_inst {
 
 struct llhd_unary_inst {
 	struct llhd_inst super;
-	enum llhd_unary_op op;
+	int op;
 	struct llhd_value *arg;
 	struct llhd_value_use use;
 };
