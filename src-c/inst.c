@@ -1,10 +1,4 @@
-/* Copyright (c) 2016 Fabian Schuiki
- *
- * Guidelines:
- * - insts ref/unref their arguments
- * - insts use/unuse their arguments
- */
-
+/* Copyright (c) 2016 Fabian Schuiki */
 #include "value.h"
 #include "inst.h"
 #include <llhd.h>
@@ -12,6 +6,13 @@
 #include <string.h>
 
 /**
+ * @file
+ * @author Fabian Schuiki <fabian@schuiki.ch>
+ *
+ * Guidelines:
+ * - insts ref/unref their arguments
+ * - insts use/unuse their arguments
+ *
  * @todo Delete all but one instance of unlink_from_parent.
  * @todo Automate handling of uses: automatically ref/unref and use/unuse args,
  *       have one generic substitute and unlink_uses function.
@@ -19,6 +20,7 @@
  *       dispose_inst helper functions.
  * @todo Add ret instruction that takes one or more arguments.
  */
+
 
 static void binary_dispose(void*);
 static void binary_substitute(void*,void*,void*);

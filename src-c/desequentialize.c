@@ -51,7 +51,7 @@
 struct record {
 	llhd_value_t sig;
 	llhd_value_t inst;
-	struct llhd_boolexpr *cond_expr;
+	struct llhd_boolexpr *cond;
 	int is_sequential;
 };
 
@@ -373,11 +373,11 @@ llhd_desequentialize(llhd_value_t proc) {
 		recbase = rec;
 		while (rec != recend && rec->sig == recbase->sig) {
 			++sigrec->num_records;
-			rec->cond_expr = get_block_condition(llhd_inst_get_parent(rec->inst));
+			rec->cond = get_block_condition(llhd_inst_get_parent(rec->inst));
 			if (sigrec->cond) {
-				sigrec->cond = llhd_boolexpr_new_or((struct llhd_boolexpr *[]){sigrec->cond, llhd_boolexpr_copy(rec->cond_expr)}, 2);
+				sigrec->cond = llhd_boolexpr_new_or((struct llhd_boolexpr *[]){sigrec->cond, llhd_boolexpr_copy(rec->cond)}, 2);
 			} else {
-				sigrec->cond = llhd_boolexpr_copy(rec->cond_expr);
+				sigrec->cond = llhd_boolexpr_copy(rec->cond);
 			}
 			++rec;
 		}
@@ -391,8 +391,8 @@ llhd_desequentialize(llhd_value_t proc) {
 				struct llhd_boolexpr *ncond = llhd_boolexpr_copy(sigrec->cond);
 				rec->is_sequential = 1;
 				llhd_boolexpr_negate(ncond);
-				rec->cond_expr = llhd_boolexpr_new_or((struct llhd_boolexpr*[]){rec->cond_expr, ncond}, 2);
-				llhd_boolexpr_disjunctive_cnf(&rec->cond_expr);
+				rec->cond = llhd_boolexpr_new_or((struct llhd_boolexpr*[]){rec->cond, ncond}, 2);
+				llhd_boolexpr_disjunctive_cnf(&rec->cond);
 				++rec;
 			}
 			++sigrec;
@@ -418,7 +418,7 @@ llhd_desequentialize(llhd_value_t proc) {
 		recend = rec + sigrec->num_records;
 		gather_boolexpr_dependencies(sigrec->cond, &used);
 		while (rec != recend) {
-			gather_boolexpr_dependencies(rec->cond_expr, &used);
+			gather_boolexpr_dependencies(rec->cond, &used);
 			gather_dependencies(llhd_inst_drive_get_val(rec->inst), &used);
 			++rec;
 		}
@@ -715,7 +715,7 @@ llhd_desequentialize(llhd_value_t proc) {
 
 	rec = records.data;
 	while (rec != recend) {
-		llhd_boolexpr_free(rec->cond_expr);
+		llhd_boolexpr_free(rec->cond);
 		++rec;
 	}
 
