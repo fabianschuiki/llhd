@@ -13,72 +13,59 @@
  * - insts ref/unref their arguments
  * - insts use/unuse their arguments
  *
- * @todo Delete all but one instance of unlink_from_parent.
  * @todo Automate handling of uses: automatically ref/unref and use/unuse args,
  *       have one generic substitute and unlink_uses function.
  * @todo Factor handling of inst->type and inst->name out into alloc_inst and
  *       dispose_inst helper functions.
- * @todo Add ret instruction that takes one or more arguments.
  */
 
+static void unlink_from_parent(void*);
 
 static void binary_dispose(void*);
 static void binary_substitute(void*,void*,void*);
-static void binary_unlink_from_parent(void*);
 static void binary_unlink_uses(void*);
 
 static void *compare_copy(void*);
 static void compare_dispose(void*);
 static void compare_substitute(void*,void*,void*);
-static void compare_unlink_from_parent(void*);
 static void compare_unlink_uses(void*);
 
 static void branch_dispose(void*);
 static void branch_substitute(void*,void*,void*);
-static void branch_unlink_from_parent(void*);
 static void branch_unlink_uses(void*);
 
 static void drive_dispose(void*);
 static void drive_substitute(void*,void*,void*);
-static void drive_unlink_from_parent(void*);
 static void drive_unlink_uses(void*);
 
 static void signal_dispose(void*);
-static void signal_unlink_from_parent(void*);
 
 static void ret_dispose(void*);
 static void ret_substitute(void*,void*,void*);
-static void ret_unlink_from_parent(void*);
 static void ret_unlink_uses(void*);
 
 static void inst_dispose(void*);
 static void inst_substitute(void*,void*,void*);
-static void inst_unlink_from_parent(void*);
 static void inst_unlink_uses(void*);
 
 static void call_dispose(void*);
 static void call_substitute(void*,void*,void*);
-static void call_unlink_from_parent(void*);
 static void call_unlink_uses(void*);
 
 static void unary_dispose(void*);
 static void unary_substitute(void*,void*,void*);
-static void unary_unlink_from_parent(void*);
 static void unary_unlink_uses(void*);
 
 static void extract_dispose(void*);
 static void extract_substitute(void*,void*,void*);
-static void extract_unlink_from_parent(void*);
 static void extract_unlink_uses(void*);
 
 static void insert_dispose(void*);
 static void insert_substitute(void*,void*,void*);
-static void insert_unlink_from_parent(void*);
 static void insert_unlink_uses(void*);
 
 static void reg_dispose(void*);
 static void reg_substitute(void*,void*,void*);
-static void reg_unlink_from_parent(void*);
 static void reg_unlink_uses(void*);
 
 static struct llhd_inst_vtbl vtbl_binary_inst = {
@@ -89,7 +76,7 @@ static struct llhd_inst_vtbl vtbl_binary_inst = {
 		.kind_offset = offsetof(struct llhd_binary_inst, op),
 		.dispose_fn = binary_dispose,
 		.substitute_fn = binary_substitute,
-		.unlink_from_parent_fn = binary_unlink_from_parent,
+		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = binary_unlink_uses,
 	},
 	// .kind = LLHD_INST_BINARY,
@@ -106,7 +93,7 @@ static struct llhd_inst_vtbl vtbl_compare_inst = {
 		.copy_fn = compare_copy,
 		.dispose_fn = compare_dispose,
 		.substitute_fn = compare_substitute,
-		.unlink_from_parent_fn = compare_unlink_from_parent,
+		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = compare_unlink_uses,
 	},
 	// .kind = LLHD_INST_COMPARE,
@@ -120,7 +107,7 @@ static struct llhd_inst_vtbl vtbl_sig_inst = {
 		.type_offset = offsetof(struct llhd_inst, type),
 		.name_offset = offsetof(struct llhd_inst, name),
 		.dispose_fn = signal_dispose,
-		.unlink_from_parent_fn = signal_unlink_from_parent,
+		.unlink_from_parent_fn = unlink_from_parent,
 	},
 	// .kind = LLHD_INST_SIGNAL,
 };
@@ -132,7 +119,7 @@ static struct llhd_inst_vtbl vtbl_branch_inst = {
 		.name_offset = offsetof(struct llhd_inst, name),
 		.dispose_fn = branch_dispose,
 		.substitute_fn = branch_substitute,
-		.unlink_from_parent_fn = branch_unlink_from_parent,
+		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = branch_unlink_uses,
 	},
 	// .kind = LLHD_INST_BRANCH,
@@ -145,7 +132,7 @@ static struct llhd_inst_vtbl vtbl_drive_inst = {
 		.kind = LLHD_INST_DRIVE,
 		.dispose_fn = drive_dispose,
 		.substitute_fn = drive_substitute,
-		.unlink_from_parent_fn = drive_unlink_from_parent,
+		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = drive_unlink_uses,
 	},
 	// .kind = LLHD_INST_DRIVE,
@@ -158,7 +145,7 @@ static struct llhd_inst_vtbl vtbl_ret_inst = {
 		.kind = LLHD_INST_RET,
 		.dispose_fn = ret_dispose,
 		.substitute_fn = ret_substitute,
-		.unlink_from_parent_fn = ret_unlink_from_parent,
+		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = ret_unlink_uses,
 	},
 	// .kind = LLHD_INST_RET,
@@ -170,7 +157,7 @@ static struct llhd_inst_vtbl vtbl_inst_inst = {
 		.name_offset = offsetof(struct llhd_inst, name),
 		.dispose_fn = inst_dispose,
 		.substitute_fn = inst_substitute,
-		.unlink_from_parent_fn = inst_unlink_from_parent,
+		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = inst_unlink_uses,
 	},
 	// .kind = LLHD_INST_INST,
@@ -184,7 +171,7 @@ static struct llhd_inst_vtbl vtbl_call_inst = {
 		.type_offset = offsetof(struct llhd_inst, type),
 		.dispose_fn = call_dispose,
 		.substitute_fn = call_substitute,
-		.unlink_from_parent_fn = call_unlink_from_parent,
+		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = call_unlink_uses,
 	},
 	// .kind = LLHD_INST_CALL,
@@ -199,7 +186,7 @@ static struct llhd_inst_vtbl vtbl_unary_inst = {
 		.kind_offset = offsetof(struct llhd_unary_inst, op),
 		.dispose_fn = unary_dispose,
 		.substitute_fn = unary_substitute,
-		.unlink_from_parent_fn = unary_unlink_from_parent,
+		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = unary_unlink_uses,
 	},
 	// .kind = LLHD_INST_UNARY,
@@ -214,7 +201,7 @@ static struct llhd_inst_vtbl vtbl_extract_inst = {
 		.type_offset = offsetof(struct llhd_inst, type),
 		.dispose_fn = extract_dispose,
 		.substitute_fn = extract_substitute,
-		.unlink_from_parent_fn = extract_unlink_from_parent,
+		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = extract_unlink_uses,
 	},
 	// .kind = LLHD_INST_EXTRACT,
@@ -229,7 +216,7 @@ static struct llhd_inst_vtbl vtbl_insert_inst = {
 		.type_offset = offsetof(struct llhd_inst, type),
 		.dispose_fn = insert_dispose,
 		.substitute_fn = insert_substitute,
-		.unlink_from_parent_fn = insert_unlink_from_parent,
+		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = insert_unlink_uses,
 	},
 	// .kind = LLHD_INST_INSERT,
@@ -244,13 +231,14 @@ static struct llhd_inst_vtbl vtbl_reg_inst = {
 		.type_offset = offsetof(struct llhd_inst, type),
 		.dispose_fn = reg_dispose,
 		.substitute_fn = reg_substitute,
-		.unlink_from_parent_fn = reg_unlink_from_parent,
+		.unlink_from_parent_fn = unlink_from_parent,
 		.unlink_uses_fn = reg_unlink_uses,
 	},
 	// .kind = LLHD_INST_REG,
 	.num_uses = 2,
 	.uses_offset = offsetof(struct llhd_reg_inst, uses),
 };
+
 
 static const char *binary_opnames[] = {
 	[LLHD_KIND_BINARY(LLHD_BINARY_ADD )] = "add",
@@ -280,6 +268,20 @@ static const char *compare_opnames[] = {
 	[LLHD_KIND_COMPARE(LLHD_CMP_SLE)] = "sle",
 	[LLHD_KIND_COMPARE(LLHD_CMP_SGE)] = "sge",
 };
+
+
+static void
+unlink_from_parent(void *ptr) {
+	struct llhd_inst *I = ptr;
+	struct llhd_value *P = I->parent;
+	assert(P && P->vtbl);
+	// Must go before remove_inst_fn, since that might dispose and free the
+	// inst, which triggers an assert on parent == NULL in the dispose function.
+	I->parent = NULL;
+	if (P->vtbl->remove_inst_fn)
+		P->vtbl->remove_inst_fn(P, ptr);
+}
+
 
 struct llhd_value *
 llhd_inst_binary_new(int op, struct llhd_value *lhs, struct llhd_value *rhs, const char *name) {
@@ -416,18 +418,6 @@ llhd_inst_prev(struct llhd_value *V) {
 }
 
 static void
-binary_unlink_from_parent(void *ptr) {
-	struct llhd_inst *I = (struct llhd_inst*)ptr;
-	struct llhd_value *P = I->parent;
-	assert(P && P->vtbl);
-	// Must go before remove_inst_fn, since that might dispose and free the
-	// inst, which triggers an assert on parent == NULL in the dispose function.
-	I->parent = NULL;
-	if (P->vtbl->remove_inst_fn)
-		P->vtbl->remove_inst_fn(P, ptr);
-}
-
-static void
 binary_unlink_uses(void *ptr) {
 	struct llhd_binary_inst *I = (struct llhd_binary_inst*)ptr;
 	llhd_value_unuse(&I->uses[0]);
@@ -453,18 +443,6 @@ signal_dispose(void *ptr) {
 	llhd_type_unref(I->type);
 	if (I->name)
 		llhd_free(I->name);
-}
-
-static void
-signal_unlink_from_parent(void *ptr) {
-	struct llhd_inst *I = (struct llhd_inst*)ptr;
-	struct llhd_value *P = I->parent;
-	assert(P && P->vtbl);
-	// Must go before remove_inst_fn, since that might dispose and free the
-	// inst, which triggers an assert on parent == NULL in the dispose function.
-	I->parent = NULL;
-	if (P->vtbl->remove_inst_fn)
-		P->vtbl->remove_inst_fn(P, ptr);
 }
 
 struct llhd_value *
@@ -518,18 +496,6 @@ compare_substitute(void *ptr, void *ref, void *sub) {
 		llhd_value_unref(I->rhs);
 		I->rhs = sub;
 	}
-}
-
-static void
-compare_unlink_from_parent(void *ptr) {
-	struct llhd_inst *I = ptr;
-	struct llhd_value *P = I->parent;
-	assert(P && P->vtbl);
-	// Must go before remove_inst_fn, since that might dispose and free the
-	// inst, which triggers an assert on parent == NULL in the dispose function.
-	I->parent = NULL;
-	if (P->vtbl->remove_inst_fn)
-		P->vtbl->remove_inst_fn(P, ptr);
 }
 
 static void
@@ -604,18 +570,6 @@ branch_substitute(void *ptr, void *ref, void *sub) {
 		llhd_value_unref((struct llhd_value*)I->dst0);
 		I->dst0 = sub;
 	}
-}
-
-static void
-branch_unlink_from_parent(void *ptr) {
-	struct llhd_inst *I = ptr;
-	struct llhd_value *P = I->parent;
-	assert(P && P->vtbl);
-	// Must go before remove_inst_fn, since that might dispose and free the
-	// inst, which triggers an assert on parent == NULL in the dispose function.
-	I->parent = NULL;
-	if (P->vtbl->remove_inst_fn)
-		P->vtbl->remove_inst_fn(P, ptr);
 }
 
 static void
@@ -727,18 +681,6 @@ drive_substitute(void *ptr, void *ref, void *sub) {
 }
 
 static void
-drive_unlink_from_parent(void *ptr) {
-	struct llhd_inst *I = ptr;
-	struct llhd_value *P = I->parent;
-	assert(P && P->vtbl);
-	// Must go before remove_inst_fn, since that might dispose and free the
-	// inst, which triggers an assert on parent == NULL in the dispose function.
-	I->parent = NULL;
-	if (P->vtbl->remove_inst_fn)
-		P->vtbl->remove_inst_fn(P, ptr);
-}
-
-static void
 drive_unlink_uses(void *ptr) {
 	struct llhd_drive_inst *I = ptr;
 	llhd_value_unuse(&I->uses[0]);
@@ -834,18 +776,6 @@ ret_substitute(void *ptr, void *ref, void *sub) {
 }
 
 static void
-ret_unlink_from_parent(void *ptr) {
-	struct llhd_inst *I = ptr;
-	struct llhd_value *P = I->parent;
-	assert(P && P->vtbl);
-	// Must go before remove_inst_fn, since that might dispose and free the
-	// inst, which triggers an assert on parent == NULL in the dispose function.
-	I->parent = NULL;
-	if (P->vtbl->remove_inst_fn)
-		P->vtbl->remove_inst_fn(P, ptr);
-}
-
-static void
 ret_unlink_uses(void *ptr) {
 	unsigned i;
 	struct llhd_ret_inst *I = ptr;
@@ -927,18 +857,6 @@ inst_substitute(void *ptr, void *ref, void *sub) {
 			llhd_value_unref(ref);
 		}
 	}
-}
-
-static void
-inst_unlink_from_parent(void *ptr) {
-	struct llhd_inst *I = ptr;
-	struct llhd_value *P = I->parent;
-	assert(P && P->vtbl);
-	// Must go before remove_inst_fn, since that might dispose and free the
-	// inst, which triggers an assert on parent == NULL in the dispose function.
-	I->parent = NULL;
-	if (P->vtbl->remove_inst_fn)
-		P->vtbl->remove_inst_fn(P, ptr);
 }
 
 static void
@@ -1033,18 +951,6 @@ unary_substitute(void *ptr, void *ref, void *sub) {
 		llhd_value_unref(I->arg);
 		I->arg = sub;
 	}
-}
-
-static void
-unary_unlink_from_parent(void *ptr) {
-	struct llhd_inst *I = (struct llhd_inst*)ptr;
-	struct llhd_value *P = I->parent;
-	assert(P && P->vtbl);
-	// Must go before remove_inst_fn, since that might dispose and free the
-	// inst, which triggers an assert on parent == NULL in the dispose function.
-	I->parent = NULL;
-	if (P->vtbl->remove_inst_fn)
-		P->vtbl->remove_inst_fn(P, ptr);
 }
 
 static void
@@ -1168,18 +1074,6 @@ call_substitute(void *ptr, void *ref, void *sub) {
 }
 
 static void
-call_unlink_from_parent(void *ptr) {
-	struct llhd_inst *I = ptr;
-	struct llhd_value *P = I->parent;
-	assert(P && P->vtbl);
-	// Must go before remove_inst_fn, since that might dispose and free the
-	// inst, which triggers an assert on parent == NULL in the dispose function.
-	I->parent = NULL;
-	if (P->vtbl->remove_inst_fn)
-		P->vtbl->remove_inst_fn(P, ptr);
-}
-
-static void
 call_unlink_uses(void *ptr) {
 	unsigned i;
 	struct llhd_call_inst *I = ptr;
@@ -1261,18 +1155,6 @@ extract_substitute(void *ptr, void *ref, void *sub) {
 }
 
 static void
-extract_unlink_from_parent(void *ptr) {
-	struct llhd_inst *I = (struct llhd_inst*)ptr;
-	struct llhd_value *P = I->parent;
-	assert(P && P->vtbl);
-	// Must go before remove_inst_fn, since that might dispose and free the
-	// inst, which triggers an assert on parent == NULL in the dispose function.
-	I->parent = NULL;
-	if (P->vtbl->remove_inst_fn)
-		P->vtbl->remove_inst_fn(P, ptr);
-}
-
-static void
 extract_unlink_uses(void *ptr) {
 	struct llhd_extract_inst *I = ptr;
 	llhd_value_unuse(&I->use);
@@ -1344,18 +1226,6 @@ insert_substitute(void *ptr, void *ref, void *sub) {
 		llhd_value_unref(I->value);
 		I->value = sub;
 	}
-}
-
-static void
-insert_unlink_from_parent(void *ptr) {
-	struct llhd_inst *I = (struct llhd_inst*)ptr;
-	struct llhd_value *P = I->parent;
-	assert(P && P->vtbl);
-	// Must go before remove_inst_fn, since that might dispose and free the
-	// inst, which triggers an assert on parent == NULL in the dispose function.
-	I->parent = NULL;
-	if (P->vtbl->remove_inst_fn)
-		P->vtbl->remove_inst_fn(P, ptr);
 }
 
 static void
@@ -1441,18 +1311,6 @@ reg_substitute(void *ptr, void *ref, void *sub) {
 		llhd_value_unref(I->strobe);
 		I->strobe = sub;
 	}
-}
-
-static void
-reg_unlink_from_parent(void *ptr) {
-	struct llhd_inst *I = (struct llhd_inst*)ptr;
-	struct llhd_value *P = I->parent;
-	assert(P && P->vtbl);
-	// Must go before remove_inst_fn, since that might dispose and free the
-	// inst, which triggers an assert on parent == NULL in the dispose function.
-	I->parent = NULL;
-	if (P->vtbl->remove_inst_fn)
-		P->vtbl->remove_inst_fn(P, ptr);
 }
 
 static void
