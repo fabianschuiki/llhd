@@ -392,6 +392,20 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 			fputs(", ", out);
 			write_value_ref(llhd_inst_reg_get_strobe(I), 0, symtbl, out);
 			break;
+		case LLHD_INST_LOAD:
+			fputs("load ", out);
+			write_value_ref(llhd_inst_load_get_target(I), 1, symtbl, out);
+			break;
+		case LLHD_INST_STORE:
+			fputs("store ", out);
+			write_value_ref(llhd_inst_store_get_target(I), 1, symtbl, out);
+			fputs(", ", out);
+			write_value_ref(llhd_inst_store_get_value(I), 0, symtbl, out);
+			break;
+		case LLHD_INST_VAR:
+			fputs("var ", out);
+			llhd_asm_write_type(llhd_type_get_subtype(llhd_value_get_type(I)), out);
+			break;
 		default:
 			assert(0 && "unknown inst kind");
 	}

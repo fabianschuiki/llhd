@@ -98,3 +98,16 @@ struct llhd_reg_inst {
 	struct llhd_value *value, *strobe;
 	struct llhd_value_use uses[2];
 };
+
+struct llhd_load_inst {
+	struct llhd_inst super;
+	struct llhd_value *target;
+	struct llhd_value_use use;
+};
+
+struct llhd_store_inst {
+	struct llhd_inst super;
+	struct llhd_value *target;
+	struct llhd_value *value;
+	struct llhd_value_use uses[2];
+};

@@ -105,6 +105,26 @@ llhd_type_new_array(struct llhd_type *subtype, unsigned length) {
 	return T;
 }
 
+struct llhd_type *
+llhd_type_new_ptr(struct llhd_type *subtype) {
+	struct llhd_type *T;
+	assert(subtype);
+	T = alloc_type(LLHD_TYPE_PTR,1);
+	T->subtypes[0] = subtype;
+	llhd_type_ref(subtype);
+	return T;
+}
+
+struct llhd_type *
+llhd_type_new_signal(struct llhd_type *subtype) {
+	struct llhd_type *T;
+	assert(subtype);
+	T = alloc_type(LLHD_TYPE_SIGNAL,1);
+	T->subtypes[0] = subtype;
+	llhd_type_ref(subtype);
+	return T;
+}
+
 void
 llhd_type_ref(struct llhd_type *T) {
 	assert(T->rc > 0);

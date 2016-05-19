@@ -77,6 +77,9 @@ enum llhd_value_kind {
 	LLHD_INST_EXTRACT        = LLHD_KIND( 10, 2, LLHD_VALUE_INST),
 	LLHD_INST_INSERT         = LLHD_KIND( 11, 2, LLHD_VALUE_INST),
 	LLHD_INST_REG            = LLHD_KIND( 12, 2, LLHD_VALUE_INST),
+	LLHD_INST_LOAD           = LLHD_KIND( 13, 2, LLHD_VALUE_INST),
+	LLHD_INST_STORE          = LLHD_KIND( 14, 2, LLHD_VALUE_INST),
+	LLHD_INST_VAR            = LLHD_KIND( 15, 2, LLHD_VALUE_INST),
 
 	/* unary instructions */
 	LLHD_UNARY_NOT           = LLHD_KIND(  1, 1, LLHD_INST_UNARY),
@@ -243,6 +246,15 @@ llhd_value_t llhd_inst_reg_new(llhd_value_t,llhd_value_t,const char*);
 llhd_value_t llhd_inst_reg_get_value(llhd_value_t);
 llhd_value_t llhd_inst_reg_get_strobe(llhd_value_t);
 
+llhd_value_t llhd_inst_load_new(llhd_value_t,const char*);
+llhd_value_t llhd_inst_load_get_target(llhd_value_t);
+
+llhd_value_t llhd_inst_store_new(llhd_value_t,llhd_value_t);
+llhd_value_t llhd_inst_store_get_target(llhd_value_t);
+llhd_value_t llhd_inst_store_get_value(llhd_value_t);
+
+llhd_value_t llhd_inst_var_new(llhd_type_t,const char*);
+
 bool llhd_const_is_null(llhd_value_t);
 char *llhd_const_to_string(llhd_value_t);
 llhd_value_t llhd_const_int_new(unsigned,llhd_apint_t);
@@ -273,6 +285,8 @@ llhd_type_t llhd_type_new_void();
 llhd_type_t llhd_type_new_label();
 llhd_type_t llhd_type_new_struct(llhd_type_t*,unsigned);
 llhd_type_t llhd_type_new_array(llhd_type_t,unsigned);
+llhd_type_t llhd_type_new_ptr(llhd_type_t);
+llhd_type_t llhd_type_new_signal(llhd_type_t);
 bool llhd_type_is(llhd_type_t,int);
 int llhd_type_get_kind(llhd_type_t);
 int llhd_type_cmp(llhd_type_t,llhd_type_t);
