@@ -59,13 +59,14 @@ fold_unary_inst (llhd_value_t I) {
 	if (llhd_value_is(arg, LLHD_CONST_INT)) {
 		llhd_apint_t arg_value = llhd_const_int_get_value(arg);
 		llhd_apint_t result;
+		unsigned bits = llhd_type_get_length(llhd_value_get_type(arg));
 		bool changed = fold_unary_inst_int(
 			llhd_inst_unary_get_op(I),
 			arg_value,
 			&result
 		);
 		if (changed) {
-			llhd_value_t C = llhd_const_int_new(result);
+			llhd_value_t C = llhd_const_int_new(bits, result);
 			llhd_value_replace_uses(I,C);
 			llhd_value_unref(C);
 			llhd_value_unlink(I);
@@ -84,6 +85,7 @@ fold_binary_inst (llhd_value_t I) {
 		llhd_apint_t lhs_value = llhd_const_int_get_value(lhs);
 		llhd_apint_t rhs_value = llhd_const_int_get_value(rhs);
 		llhd_apint_t result;
+		unsigned bits = llhd_type_get_length(llhd_value_get_type(lhs));
 		bool changed = fold_binary_inst_int(
 			llhd_inst_binary_get_op(I),
 			lhs_value,
@@ -91,7 +93,7 @@ fold_binary_inst (llhd_value_t I) {
 			&result
 		);
 		if (changed) {
-			llhd_value_t C = llhd_const_int_new(result);
+			llhd_value_t C = llhd_const_int_new(bits, result);
 			llhd_value_replace_uses(I,C);
 			llhd_value_unref(C);
 			llhd_value_unlink(I);

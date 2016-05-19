@@ -11,6 +11,7 @@ const_fold(llhd_value_t V) {
 		llhd_value_t lhs = llhd_inst_binary_get_lhs(V);
 		llhd_value_t rhs = llhd_inst_binary_get_rhs(V);
 		if (llhd_value_is(lhs, LLHD_CONST_INT) && llhd_value_is(rhs, LLHD_CONST_INT)) {
+			unsigned bits = llhd_type_get_length(llhd_value_get_type(lhs));
 			uint64_t lhs_value = llhd_const_int_get_value(lhs);
 			uint64_t rhs_value = llhd_const_int_get_value(rhs);
 			uint64_t result;
@@ -19,7 +20,7 @@ const_fold(llhd_value_t V) {
 				case LLHD_BINARY_SUB: result = lhs_value - rhs_value; break;
 				default: return;
 			}
-			llhd_value_t C = llhd_const_int_new(result);
+			llhd_value_t C = llhd_const_int_new(bits, result);
 			llhd_value_replace_uses(V,C);
 			llhd_value_unref(C);
 		}
@@ -27,8 +28,8 @@ const_fold(llhd_value_t V) {
 }
 
 int main() {
-	llhd_value_t Na = llhd_const_int_new(123);
-	llhd_value_t Nb = llhd_const_int_new(42);
+	llhd_value_t Na = llhd_const_int_new(32, 123);
+	llhd_value_t Nb = llhd_const_int_new(32, 42);
 	assert(Na);
 	assert(Nb);
 	llhd_value_t Iadd = llhd_inst_binary_new(LLHD_BINARY_ADD, Na, Nb, "");

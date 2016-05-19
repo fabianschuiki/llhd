@@ -451,10 +451,7 @@ llhd_inst_compare_new(int op, struct llhd_value *lhs, struct llhd_value *rhs, co
 	struct llhd_compare_inst *I;
 	struct llhd_type *T;
 	assert(LLHD_ISA(op, LLHD_INST_COMPARE) && lhs && rhs);
-	/// @todo Adding the following line breaks debug3.c, since that tries to
-	///       compare a i1 to an i32 number. Fixing this involves adding a bit
-	///       size to the constructor of integer constants.
-	///       `assert(llhd_type_cmp(llhd_value_get_type(lhs), llhd_value_get_type(rhs)) == 0);`
+	assert(llhd_type_cmp(llhd_value_get_type(lhs), llhd_value_get_type(rhs)) == 0);
 	T = llhd_type_new_int(1);
 	I = alloc_inst(sizeof(*I), &vtbl_compare_inst, T, name);
 	llhd_type_unref(T);

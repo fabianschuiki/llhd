@@ -245,7 +245,7 @@ llhd_value_t llhd_inst_reg_get_strobe(llhd_value_t);
 
 bool llhd_const_is_null(llhd_value_t);
 char *llhd_const_to_string(llhd_value_t);
-llhd_value_t llhd_const_int_new(llhd_apint_t);
+llhd_value_t llhd_const_int_new(unsigned,llhd_apint_t);
 llhd_apint_t llhd_const_int_get_value(llhd_value_t);
 
 llhd_value_t llhd_value_copy(llhd_value_t);

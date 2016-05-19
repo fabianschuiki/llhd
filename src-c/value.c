@@ -129,10 +129,11 @@ llhd_alloc_value(size_t sz, void *vtbl) {
 }
 
 struct llhd_value *
-llhd_const_int_new(uint64_t v) {
+llhd_const_int_new(unsigned bits, uint64_t v) {
 	struct llhd_const_int *C;
+	assert(bits > 0);
 	C = llhd_alloc_value(sizeof(*C), &vtbl_const_int);
-	C->type = llhd_type_new_int(32);
+	C->type = llhd_type_new_int(bits);
 	C->value = v;
 	return (struct llhd_value *)C;
 }
@@ -238,8 +239,10 @@ llhd_value_use(struct llhd_value *V, struct llhd_value_use *U) {
 void
 llhd_value_unuse(struct llhd_value_use *U) {
 	assert(U);
-	llhd_list_remove(&U->link);
-	U->value = NULL;
+	if (U->value) {
+		llhd_list_remove(&U->link);
+		U->value = NULL;
+	}
 }
 
 void

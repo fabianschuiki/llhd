@@ -5,12 +5,11 @@
 #include <stdio.h>
 #include <string.h>
 
-void llhd_asm_write_unit(llhd_value_t,FILE*);
 
 int main() {
-	llhd_value_t Na = llhd_const_int_new(123);
-	llhd_value_t Nb = llhd_const_int_new(42);
-	llhd_value_t Nc = llhd_const_int_new(21);
+	llhd_value_t Na = llhd_const_int_new(32, 123);
+	llhd_value_t Nb = llhd_const_int_new(32, 42);
+	llhd_value_t Nc = llhd_const_int_new(32, 21);
 	llhd_value_t Iadd = llhd_inst_binary_new(LLHD_BINARY_ADD, Na, Nb, NULL);
 	llhd_value_t Imul = llhd_inst_binary_new(LLHD_BINARY_MUL, Nc, Iadd, "tmp");
 	llhd_value_unref(Na);

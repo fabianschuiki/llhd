@@ -265,8 +265,8 @@ build_boolexpr(struct llhd_boolexpr *expr, llhd_value_t dst, struct llhd_ptrmap 
 	enum llhd_boolexpr_kind kind = llhd_boolexpr_get_kind(expr);
 	assert(expr && dst);
 	switch (kind) {
-		case LLHD_BOOLEXPR_CONST_0: return llhd_const_int_new(0);
-		case LLHD_BOOLEXPR_CONST_1: return llhd_const_int_new(1);
+		case LLHD_BOOLEXPR_CONST_0: return llhd_const_int_new(1,0);
+		case LLHD_BOOLEXPR_CONST_1: return llhd_const_int_new(1,1);
 		case LLHD_BOOLEXPR_SYMBOL: return migrate(llhd_boolexpr_get_symbol(expr), dst, migrated);
 		case LLHD_BOOLEXPR_OR: return build_boolexpr_binary(LLHD_BINARY_OR, expr, dst, migrated);
 		case LLHD_BOOLEXPR_AND: return build_boolexpr_binary(LLHD_BINARY_AND, expr, dst, migrated);
