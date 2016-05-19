@@ -315,11 +315,12 @@ unlink_from_parent(void *ptr) {
 struct llhd_value *
 llhd_inst_binary_new(int op, struct llhd_value *lhs, struct llhd_value *rhs, const char *name) {
 	struct llhd_binary_inst *I;
-	struct llhd_type *T;
+	struct llhd_type *Tlhs, *Trhs;
 	assert(LLHD_ISA(op, LLHD_INST_BINARY) && lhs && rhs);
-	T = llhd_value_get_type(lhs);
-	assert(T);
-	I = alloc_inst(sizeof(*I), &vtbl_binary_inst, T, name);
+	Tlhs = llhd_value_get_type(lhs);
+	Trhs = llhd_value_get_type(rhs);
+	assert(llhd_type_cmp(Tlhs,Trhs) == 0);
+	I = alloc_inst(sizeof(*I), &vtbl_binary_inst, Tlhs, name);
 	llhd_value_ref(lhs);
 	llhd_value_ref(rhs);
 	I->op = op;
@@ -450,6 +451,10 @@ llhd_inst_compare_new(int op, struct llhd_value *lhs, struct llhd_value *rhs, co
 	struct llhd_compare_inst *I;
 	struct llhd_type *T;
 	assert(LLHD_ISA(op, LLHD_INST_COMPARE) && lhs && rhs);
+	/// @todo Adding the following line breaks debug3.c, since that tries to
+	///       compare a i1 to an i32 number. Fixing this involves adding a bit
+	///       size to the constructor of integer constants.
+	///       `assert(llhd_type_cmp(llhd_value_get_type(lhs), llhd_value_get_type(rhs)) == 0);`
 	T = llhd_type_new_int(1);
 	I = alloc_inst(sizeof(*I), &vtbl_compare_inst, T, name);
 	llhd_type_unref(T);
@@ -511,6 +516,7 @@ llhd_inst_branch_new_cond(struct llhd_value *cond, struct llhd_value *dst1, stru
 	assert(cond && dst1 && dst0);
 	assert(llhd_value_is(dst1, LLHD_VALUE_BLOCK));
 	assert(llhd_value_is(dst0, LLHD_VALUE_BLOCK));
+	/// @todo `assert(llhd_type_is_int(llhd_value_get_type(cond), 1));`
 	I = alloc_inst(sizeof(*I), &vtbl_branch_inst, NULL, NULL);
 	I->cond = cond;
 	I->dst1 = (struct llhd_block *)dst1;
@@ -644,6 +650,7 @@ struct llhd_value *
 llhd_inst_drive_new(struct llhd_value *sig, struct llhd_value *val) {
 	struct llhd_drive_inst *I;
 	assert(sig && val);
+	/// @todo Check types.
 	I = alloc_inst(sizeof(*I), &vtbl_drive_inst, NULL, NULL);
 	I->sig = sig;
 	I->val = val;
@@ -801,6 +808,7 @@ llhd_inst_instance_new(
 	assert(comp);
 	assert(num_inputs == 0 || inputs);
 	assert(num_outputs == 0 || outputs);
+	/// @todo Assert that the inputs and outputs are of the right types.
 	sz_uses = sizeof(struct llhd_value_use) * (1+num_inputs+num_outputs);
 	sz_in   = sizeof(struct llhd_value *) * num_inputs;
 	sz_out  = sizeof(struct llhd_value *) * num_outputs;
@@ -997,6 +1005,7 @@ llhd_inst_call_new(struct llhd_value *func, struct llhd_value **args, unsigned n
 	assert(func);
 	assert(num_args == 0 || args);
 
+	/// @todo Assert that the arguments are of the right type.
 	func_type = llhd_value_get_type(func);
 	assert(func_type);
 	num_outputs = llhd_type_get_num_outputs(func_type);
@@ -1167,7 +1176,7 @@ llhd_inst_insert_new(struct llhd_value *target, unsigned index, struct llhd_valu
 	assert(target && value);
 	T = llhd_value_get_type(target);
 	assert(T && index < llhd_type_get_num_fields(T));
-	// assert(llhd_type_equal(llhd_type_get_field(T, index), llhd_value_get_type(value)));
+	assert(llhd_type_cmp(llhd_type_get_field(T, index), llhd_value_get_type(value)) == 0);
 	I = alloc_inst(sizeof(*I), &vtbl_insert_inst, T, name);
 	I->target = target;
 	I->index = index;
