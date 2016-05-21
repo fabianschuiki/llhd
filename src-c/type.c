@@ -169,6 +169,12 @@ llhd_type_is(struct llhd_type *T, int kind) {
 	return T->kind == kind;
 }
 
+bool
+llhd_type_is_int(struct llhd_type *T, unsigned length) {
+	assert(T);
+	return T->kind == LLHD_TYPE_INT && T->num_in == length;
+}
+
 unsigned
 llhd_type_get_length(struct llhd_type *T) {
 	assert(

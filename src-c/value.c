@@ -15,7 +15,8 @@
  * @todo Remove llhd_unit_get_blocks and replace it with the corresponding first
  *       and last block accessor. This makes the API much easier to use, as the
  *       llhd_list approach requires the user to properly calculate the offset
- *       from the list link to the start of the containing structure. Yuck.
+ *       from the list link to the start of the containing structure. Yuck. Do
+ *       the same for llhd_module_get_units.
  */
 
 static char *const_int_to_string(void*);

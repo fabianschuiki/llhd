@@ -288,6 +288,7 @@ llhd_type_t llhd_type_new_array(llhd_type_t,unsigned);
 llhd_type_t llhd_type_new_ptr(llhd_type_t);
 llhd_type_t llhd_type_new_signal(llhd_type_t);
 bool llhd_type_is(llhd_type_t,int);
+bool llhd_type_is_int(llhd_type_t,unsigned);
 int llhd_type_get_kind(llhd_type_t);
 int llhd_type_cmp(llhd_type_t,llhd_type_t);
 unsigned llhd_type_get_length(llhd_type_t);

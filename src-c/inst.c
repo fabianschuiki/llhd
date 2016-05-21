@@ -564,7 +564,7 @@ llhd_inst_branch_new_cond(struct llhd_value *cond, struct llhd_value *dst1, stru
 	assert(cond && dst1 && dst0);
 	assert(llhd_value_is(dst1, LLHD_VALUE_BLOCK));
 	assert(llhd_value_is(dst0, LLHD_VALUE_BLOCK));
-	/// @todo `assert(llhd_type_is_int(llhd_value_get_type(cond), 1));`
+	assert(llhd_type_is_int(llhd_value_get_type(cond), 1));
 	I = alloc_inst(sizeof(*I), &vtbl_branch_inst, NULL, NULL);
 	I->cond = cond;
 	I->dst1 = (struct llhd_block *)dst1;
@@ -1303,7 +1303,7 @@ llhd_inst_reg_new(struct llhd_value *value, struct llhd_value *strobe, const cha
 	T = llhd_value_get_type(value);
 	Ts = llhd_value_get_type(strobe);
 	assert(T && Ts);
-	assert(llhd_type_is(Ts, LLHD_TYPE_INT) && llhd_type_get_length(Ts) == 1); /// @todo Make this more elegant
+	assert(llhd_type_is_int(Ts, 1));
 
 	I = alloc_inst(sizeof(*I), &vtbl_reg_inst, T, name);
 	I->value = value;
