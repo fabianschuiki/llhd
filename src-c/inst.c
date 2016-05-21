@@ -19,8 +19,6 @@
  * @todo Automate handling of uses: automatically ref/unref and use/unuse args,
  *       have one generic substitute and unlink_uses function.
  *
- * @todo Add `prb` instruction that complements the `drv` instruction.
- *
  * @todo Add a `substitute` function that takes various pointers and performs
  *       common steps of checking one use for substitution.
  */
@@ -82,6 +80,11 @@ static void load_unlink_uses(void*);
 static void store_dispose(void*);
 static void store_substitute(void*,void*,void*);
 static void store_unlink_uses(void*);
+
+static void *probe_copy(void*);
+static void probe_dispose(void*);
+static void probe_substitute(void*,void*,void*);
+static void probe_unlink_uses(void*);
 
 
 static struct llhd_inst_vtbl vtbl_binary_inst = {
@@ -278,6 +281,21 @@ static struct llhd_inst_vtbl vtbl_var_inst = {
 		.type_offset = offsetof(struct llhd_inst, type),
 		.dispose_fn = dispose_inst,
 	},
+};
+
+static struct llhd_inst_vtbl vtbl_probe_inst = {
+	.super = {
+		.kind = LLHD_INST_PROBE,
+		.name_offset = offsetof(struct llhd_inst, name),
+		.type_offset = offsetof(struct llhd_inst, type),
+		.dispose_fn = probe_dispose,
+		.substitute_fn = probe_substitute,
+		.unlink_from_parent_fn = unlink_from_parent,
+		.unlink_uses_fn = probe_unlink_uses,
+		.copy_fn = probe_copy,
+	},
+	.num_uses = 1,
+	.uses_offset = offsetof(struct llhd_probe_inst, use),
 };
 
 
@@ -697,8 +715,12 @@ llhd_inst_compare_get_rhs(struct llhd_value *V) {
 struct llhd_value *
 llhd_inst_drive_new(struct llhd_value *sig, struct llhd_value *val) {
 	struct llhd_drive_inst *I;
+	struct llhd_type *T;
 	assert(sig && val);
-	/// @todo Check types.
+	T = llhd_value_get_type(sig);
+	assert(llhd_type_is(T, LLHD_TYPE_SIGNAL));
+	T = llhd_type_get_subtype(T);
+	assert(llhd_type_cmp(T, llhd_value_get_type(val)) == 0);
 	I = alloc_inst(sizeof(*I), &vtbl_drive_inst, NULL, NULL);
 	I->sig = sig;
 	I->val = val;
@@ -1439,6 +1461,7 @@ llhd_inst_var_new(struct llhd_type *T, const char *name) {
 static void
 load_dispose(void *ptr) {
 	struct llhd_load_inst *I = ptr;
+	llhd_value_unuse(&I->use);
 	llhd_value_unref(I->target);
 	dispose_inst(ptr);
 }
@@ -1464,6 +1487,8 @@ load_unlink_uses(void *ptr) {
 static void
 store_dispose(void *ptr) {
 	struct llhd_store_inst *I = ptr;
+	llhd_value_unuse(&I->uses[0]);
+	llhd_value_unuse(&I->uses[1]);
 	llhd_value_unref(I->target);
 	llhd_value_unref(I->value);
 	dispose_inst(ptr);
@@ -1493,4 +1518,59 @@ store_unlink_uses(void *ptr) {
 	struct llhd_store_inst *I = ptr;
 	llhd_value_unuse(&I->uses[0]);
 	llhd_value_unuse(&I->uses[1]);
+}
+
+struct llhd_value *
+llhd_inst_probe_new(struct llhd_value *signal, const char *name) {
+	struct llhd_probe_inst *I;
+	struct llhd_type *T;
+	assert(signal);
+	T = llhd_value_get_type(signal);
+	assert(llhd_type_is(T, LLHD_TYPE_SIGNAL));
+	T = llhd_type_get_subtype(T);
+	I = alloc_inst(sizeof(*I), &vtbl_probe_inst, T, name);
+	I->signal = signal;
+	I->use = (struct llhd_value_use){ .user = (void*)I, .arg = 0 };
+	llhd_value_ref(signal);
+	llhd_value_use(signal, &I->use);
+	return (void*)I;
+}
+
+struct llhd_value *
+llhd_inst_probe_get_signal(struct llhd_value *V) {
+	struct llhd_probe_inst *I = (void*)V;
+	assert(llhd_value_is(V, LLHD_INST_PROBE));
+	return I->signal;
+}
+
+static void
+probe_dispose(void *ptr) {
+	struct llhd_probe_inst *I = ptr;
+	llhd_value_unuse(&I->use);
+	llhd_value_unref(I->signal);
+	dispose_inst(ptr);
+}
+
+static void
+probe_substitute(void *ptr, void *ref, void *sub) {
+	struct llhd_probe_inst *I = ptr;
+	if (I->signal == ref && I->signal != sub) {
+		llhd_value_ref(sub);
+		llhd_value_unuse(&I->use);
+		llhd_value_use(sub, &I->use);
+		llhd_value_unref(I->signal);
+		I->signal = sub;
+	}
+}
+
+static void
+probe_unlink_uses(void *ptr) {
+	struct llhd_probe_inst *I = ptr;
+	llhd_value_unuse(&I->use);
+}
+
+static void *
+probe_copy(void *ptr) {
+	struct llhd_probe_inst *I = ptr;
+	return llhd_inst_probe_new(I->signal, I->super.name);
 }

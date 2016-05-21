@@ -70,6 +70,7 @@ enum llhd_value_kind {
 	LLHD_INST_BINARY         = LLHD_KIND(  3, 2, LLHD_VALUE_INST),
 	LLHD_INST_SIGNAL         = LLHD_KIND(  4, 2, LLHD_VALUE_INST),
 	LLHD_INST_COMPARE        = LLHD_KIND(  5, 2, LLHD_VALUE_INST),
+	LLHD_INST_PROBE          = LLHD_KIND( 16, 2, LLHD_VALUE_INST),
 	LLHD_INST_DRIVE          = LLHD_KIND(  6, 2, LLHD_VALUE_INST),
 	LLHD_INST_RET            = LLHD_KIND(  7, 2, LLHD_VALUE_INST),
 	LLHD_INST_INST           = LLHD_KIND(  8, 2, LLHD_VALUE_INST),
@@ -254,6 +255,9 @@ llhd_value_t llhd_inst_store_get_target(llhd_value_t);
 llhd_value_t llhd_inst_store_get_value(llhd_value_t);
 
 llhd_value_t llhd_inst_var_new(llhd_type_t,const char*);
+
+llhd_value_t llhd_inst_probe_new(llhd_value_t,const char*);
+llhd_value_t llhd_inst_probe_get_signal(llhd_value_t);
 
 bool llhd_const_is_null(llhd_value_t);
 char *llhd_const_to_string(llhd_value_t);

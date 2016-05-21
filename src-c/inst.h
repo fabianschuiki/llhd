@@ -111,3 +111,9 @@ struct llhd_store_inst {
 	struct llhd_value *value;
 	struct llhd_value_use uses[2];
 };
+
+struct llhd_probe_inst {
+	struct llhd_inst super;
+	struct llhd_value *signal;
+	struct llhd_value_use use;
+};

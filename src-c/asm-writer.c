@@ -327,6 +327,10 @@ write_inst(llhd_value_t I, struct llhd_symtbl *symtbl, FILE *out) {
 				write_value_ref(llhd_inst_branch_get_dst(I), 1, symtbl, out);
 			}
 			break;
+		case LLHD_INST_PROBE:
+			fputs("prb ", out);
+			write_value_ref(llhd_inst_probe_get_signal(I), 1, symtbl, out);
+			break;
 		case LLHD_INST_DRIVE:
 			fputs("drv ", out);
 			write_value_ref(llhd_inst_drive_get_sig(I), 1, symtbl, out);

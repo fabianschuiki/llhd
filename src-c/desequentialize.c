@@ -450,7 +450,7 @@ llhd_desequentialize(llhd_value_t proc) {
 	for (i = 0; i < num_signal_records; ++i) {
 		sigrec = signal_records + i;
 		outputs[i*2+0] = i1ty;
-		outputs[i*2+1] = llhd_value_get_type(sigrec->sig);
+		outputs[i*2+1] = llhd_type_get_subtype(llhd_value_get_type(sigrec->sig));
 	}
 
 	name = llhd_value_get_name(proc);
