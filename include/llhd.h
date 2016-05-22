@@ -1,17 +1,33 @@
 // Copyright (c) 2016 Fabian Schuiki
 #pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h> // remove later
 #include <stdint.h> // remove later
 
+#ifndef LLHD_API
+	#if __GNUC__ >= 4
+		#define LLHD_API __attribute__((visibility("default")))
+	#elif defined(_MSC_VER)
+		#define LLHD_API __declspec(dllexport)
+	#else
+		#define LLHD_API
+	#endif
+#endif
 
-#if defined(__GNUC__)
-	#define LLHD_DEPRECATED __attribute__((deprecated))
-#elif defined(_MSC_VER)
-	#define LLHD_DEPRECATED __declspec(deprecated)
-#elif
-	#define LLHD_DEPRECATED
+#ifndef LLHD_DEPRECATED
+	#if defined(__GNUC__)
+		#define LLHD_DEPRECATED __attribute__((deprecated))
+	#elif defined(_MSC_VER)
+		#define LLHD_DEPRECATED __declspec(deprecated)
+	#else
+		#define LLHD_DEPRECATED
+	#endif
 #endif
 
 
@@ -315,3 +331,8 @@ void llhd_fold_constants(llhd_value_t);
 void llhd_asm_write_module(llhd_module_t,FILE*);
 void llhd_asm_write_unit(llhd_value_t,FILE*);
 void llhd_asm_write_type(llhd_type_t,FILE*);
+
+
+#ifdef __cplusplus
+}
+#endif
