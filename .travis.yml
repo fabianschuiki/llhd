@@ -1,0 +1,27 @@
+sudo: false
+language: rust
+rust:
+  - stable
+  - beta
+  - nightly
+  # minimum supported version
+  - "1.15.0"
+
+matrix:
+  allow_failures:
+    - rust: nightly
+
+script:
+  - cargo build
+  - cargo test --all
+  - cargo doc
+
+after_success:
+  - |
+    [ ! $TRAVIS_BRANCH = rust ] ||
+    [ ! $TRAVIS_RUST_VERSION = stable ] ||
+    ci/doc-upload.sh
+
+env:
+  global:
+    - secure: "BJ6uNVxdlIKjDAIXgN4ACL6eUHmrtXCf14b4nNDW/3SUBafGXWT0EulpUrHTiU0YRlUkyBYIweMdfIpweV7NKlW9Acdygo6QmdMDvht+mWtH4ctlfBXukLoKie7uYp12LkwEP9kRateQ4uXeBt3/JquAu+/+pWzl5t01xAlWQ6o="
