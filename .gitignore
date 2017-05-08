@@ -1,3 +1,5 @@
 .*
 *~
 !.git*
+/Cargo.lock
+/target

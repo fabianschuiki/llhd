@@ -1,0 +1,4 @@
+[package]
+name = "llhd"
+version = "0.1.0"
+authors = ["Fabian Schuiki <fschuiki@iis.ee.ethz.ch>"]
