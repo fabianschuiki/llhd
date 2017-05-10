@@ -5,6 +5,7 @@
 //! control flow graphs.
 
 use ty::*;
+use unit::Function;
 
 pub struct Module {
 
@@ -32,7 +33,6 @@ impl Module {
 	}
 
 	pub fn add_function<N: Into<String>>(&self, name: N, ty: Type) {
-		let (arg_tys, ret_ty) = ty.unwrap_func();
-		println!("would create function with {} arguments, returning {}", arg_tys.len(), ret_ty);
+		Function::new(name.into(), ty);
 	}
 }

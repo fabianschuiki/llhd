@@ -6,11 +6,14 @@
 pub mod module;
 pub mod ty;
 pub mod value;
+pub mod unit;
+pub mod inst;
 // pub mod ins;
 // pub mod bitcode;
 // pub mod assembly;
 
 pub use module::Module;
+pub use value::ValueRef;
 
 #[test]
 fn it_works() {

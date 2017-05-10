@@ -62,7 +62,7 @@ impl std::fmt::Display for TypeKind {
 impl TypeKind {
 	/// Unwrap the type into arguments and return type, or panic if the type is
 	/// not a function.
-	pub fn unwrap_func(&self) -> (&[Type], &Type) {
+	pub fn as_func(&self) -> (&[Type], &Type) {
 		match *self {
 			FuncType(ref args, ref ret) => (args, ret),
 			_ => panic!("unwrap_func called on {}", self)
