@@ -16,6 +16,8 @@ pub enum TypeKind {
 	IntType(usize),
 	/// Pointer types like `i32*`.
 	PointerType(Type),
+	/// Signal types like `i32$`.
+	SignalType(Type),
 	/// Vector types like `<4 x i32>`.
 	VectorType(usize, Type),
 	/// Struct types like `{i8, i32}`.
@@ -33,6 +35,7 @@ impl std::fmt::Display for TypeKind {
 			VoidType => write!(f, "void"),
 			IntType(l) => write!(f, "i{}", l),
 			PointerType(ref ty) => write!(f, "{}*", ty),
+			SignalType(ref ty) => write!(f, "{}$", ty),
 			VectorType(l, ref ty) => write!(f, "<{} x {}>", l, ty),
 			StructType(ref tys) => {
 				write!(f, "{{")?;
