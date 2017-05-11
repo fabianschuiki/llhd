@@ -5,6 +5,7 @@
 use std;
 use std::sync::Arc;
 pub use self::TypeKind::*;
+use util::write_implode;
 
 pub type Type = Arc<TypeKind>;
 
@@ -39,21 +40,21 @@ impl std::fmt::Display for TypeKind {
 			VectorType(l, ref ty) => write!(f, "<{} x {}>", l, ty),
 			StructType(ref tys) => {
 				write!(f, "{{")?;
-				write_commas(f, tys)?;
+				write_implode(f, ", ", tys.iter())?;
 				write!(f, "}}")?;
 				Ok(())
 			},
 			FuncType(ref args, ref ret) => {
 				write!(f, "(")?;
-				write_commas(f, args)?;
+				write_implode(f, ", ", args.iter())?;
 				write!(f, ") {}", ret)?;
 				Ok(())
 			},
 			EntityType(ref ins, ref outs) => {
 				write!(f, "(")?;
-				write_commas(f, ins)?;
+				write_implode(f, ", ", ins.iter())?;
 				write!(f, ";")?;
-				write_commas(f, outs)?;
+				write_implode(f, ", ", outs.iter())?;
 				write!(f, ")")?;
 				Ok(())
 			},
@@ -71,18 +72,4 @@ impl TypeKind {
 			_ => panic!("unwrap_func called on {}", self)
 		}
 	}
-}
-
-
-/// Formats a slice of elements that implement the `std::fmt::Display` trait as
-/// a comma separated list.
-fn write_commas<T: std::fmt::Display>(f: &mut std::fmt::Formatter, v: &[T]) -> std::fmt::Result {
-	let mut it = v.iter();
-	if let Some(x) = it.next() {
-		write!(f, "{}", x)?;
-	}
-	for x in it {
-		write!(f, ", {}", x)?;
-	}
-	Ok(())
 }

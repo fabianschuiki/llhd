@@ -32,7 +32,7 @@ impl Module {
 		Type::new(FuncType(args, ret))
 	}
 
-	pub fn add_function<N: Into<String>>(&self, name: N, ty: Type) {
-		Function::new(name.into(), ty);
+	pub fn add_function<N: Into<String>>(&self, name: N, ty: Type) -> Function {
+		Function::new(name.into(), ty)
 	}
 }

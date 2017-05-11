@@ -64,6 +64,26 @@ impl Function {
 			block_seq: Vec::new(),
 		}
 	}
+
+	/// Get the name of the function.
+	pub fn name(&self) -> &str {
+		&self.name
+	}
+
+	/// Get the return type of the function.
+	pub fn return_ty(&self) -> &Type {
+		self.ty.as_func().1
+	}
+
+	/// Get a reference to the arguments of the function.
+	pub fn args(&self) -> &[Argument] {
+		&self.args
+	}
+
+	/// Get a mutable reference to the arguments of the function.
+	pub fn args_mut(&mut self) -> &mut [Argument] {
+		&mut self.args
+	}
 }
 
 impl Argument {
@@ -73,5 +93,15 @@ impl Argument {
 			ty: ty,
 			name: None,
 		}
+	}
+
+	/// Get the type of the argument.
+	pub fn ty(&self) -> &Type {
+		&self.ty
+	}
+
+	/// Get the optional name of the argument.
+	pub fn name(&self) -> Option<&str> {
+		self.name.as_ref().map(|x| x as &str)
 	}
 }

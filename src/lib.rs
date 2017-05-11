@@ -8,9 +8,10 @@ pub mod ty;
 pub mod value;
 pub mod unit;
 pub mod inst;
-// pub mod ins;
 // pub mod bitcode;
-// pub mod assembly;
+pub mod assembly;
+pub mod visit;
+pub mod util;
 
 pub use module::Module;
 pub use value::ValueRef;
