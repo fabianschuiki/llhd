@@ -15,7 +15,3 @@ pub mod util;
 
 pub use module::Module;
 pub use value::ValueRef;
-
-#[test]
-fn it_works() {
-}

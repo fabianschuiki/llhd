@@ -7,8 +7,9 @@ use std;
 use visit::Visitor;
 use std::io::Write;
 use unit::{Function, Argument};
-use util::write_implode_with;
 
+/// Emits a module as human-readable assembly code that can be parsed again
+/// later.
 pub struct Writer<'twr> {
 	sink: &'twr mut Write,
 }
@@ -24,23 +25,23 @@ impl<'twr> Writer<'twr> {
 
 impl<'twr> Visitor for Writer<'twr> {
 	fn visit_function(&mut self, func: &Function) {
-		write!(self.sink, "func @{} (", func.name());
+		write!(self.sink, "func @{} (", func.name()).unwrap();
 		self.visit_arguments(func.args());
-		write!(self.sink, ") {} {{\n", func.return_ty());
-		write!(self.sink, "}}\n");
+		write!(self.sink, ") {} {{\n", func.return_ty()).unwrap();
+		write!(self.sink, "}}\n").unwrap();
 	}
 
 	fn visit_arguments(&mut self, args: &[Argument]) {
 		for (arg, sep) in args.iter().zip(std::iter::once("").chain(std::iter::repeat(", "))) {
-			write!(self.sink, "{}", sep);
+			write!(self.sink, "{}", sep).unwrap();
 			self.visit_argument(arg);
 		}
 	}
 
 	fn visit_argument(&mut self, arg: &Argument) {
-		write!(self.sink, "{}", arg.ty());
+		write!(self.sink, "{}", arg.ty()).unwrap();
 		if let Some(name) = arg.name() {
-			write!(self.sink, " {}", name);
+			write!(self.sink, " %{}", name).unwrap();
 		}
 	}
 }
