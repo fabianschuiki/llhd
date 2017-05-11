@@ -7,7 +7,9 @@ use llhd::visit::Visitor;
 fn simple_func() {
 	let module = llhd::Module::new();
 	let func_ty = module.func_ty(vec![module.int_ty(32), module.int_ty(32)], module.void_ty());
-	let func = module.add_function("foo", func_ty);
+	let mut func = module.add_function("foo", func_ty);
+	func.args_mut()[0].set_name("a");
+	func.args_mut()[1].set_name("b");
 
 	println!("-----");
 	{

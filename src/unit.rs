@@ -104,4 +104,9 @@ impl Argument {
 	pub fn name(&self) -> Option<&str> {
 		self.name.as_ref().map(|x| x as &str)
 	}
+
+	/// Set the name of the argument.
+	pub fn set_name<S: Into<String>>(&mut self, name: S) {
+		self.name = Some(name.into());
+	}
 }

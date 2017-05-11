@@ -13,7 +13,7 @@ pub trait Visitor {
 		self.walk_arguments(args)
 	}
 
-	fn visit_argument(&mut self, arg: &Argument) {
+	fn visit_argument(&mut self, &Argument) {
 	}
 
 	fn walk_function(&mut self, func: &Function) {
