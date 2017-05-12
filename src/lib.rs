@@ -5,8 +5,10 @@
 
 pub mod module;
 pub mod ty;
+#[macro_use]
 pub mod value;
 pub mod unit;
+pub mod block;
 pub mod inst;
 // pub mod bitcode;
 pub mod assembly;
@@ -15,3 +17,4 @@ pub mod util;
 
 pub use module::Module;
 pub use value::ValueRef;
+pub use ty::*;

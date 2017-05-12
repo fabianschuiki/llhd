@@ -73,3 +73,19 @@ impl TypeKind {
 		}
 	}
 }
+
+
+/// Create a void type.
+pub fn void_ty() -> Type {
+	Type::new(VoidType)
+}
+
+/// Create an integer type of the requested size.
+pub fn int_ty(size: usize) -> Type {
+	Type::new(IntType(size))
+}
+
+/// Create a function type with the given arguments and return type.
+pub fn func_ty(args: Vec<Type>, ret: Type) -> Type {
+	Type::new(FuncType(args, ret))
+}
