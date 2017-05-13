@@ -2,7 +2,7 @@
 
 use std;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
-use unit::ArgumentRef;
+use argument::ArgumentRef;
 use inst::InstRef;
 use block::BlockRef;
 use ty::Type;
@@ -15,6 +15,11 @@ pub trait Value {
 	fn ty(&self) -> Type;
 	/// Get the optional name of the value.
 	fn name(&self) -> Option<&str>;
+	/// Whether this value is global or not. Global values are considered during
+	/// linking, and are visible in a module's symbol table. Local values are
+	/// not, and are only visible within the surrounding context (module or
+	/// unit).
+	fn is_global(&self) -> bool;
 }
 
 
@@ -95,7 +100,7 @@ macro_rules! declare_ref {
 /// Contexts are expected to form a hierarchy, such that a context wrapping e.g.
 /// a function falls back to a parent context wrapping the module if a value
 /// cannot be appropriately resolved.
-pub trait Context {
+pub trait Context : AsContext {
 	/// Try to resolve a `ValueRef` to an actual `&Value` reference. May fail if
 	/// the value is not known to the context.
 	fn try_value(&self, value: &ValueRef) -> Option<&Value>;
@@ -121,4 +126,12 @@ pub trait Context {
 	fn name(&self, value: &ValueRef) -> Option<&str> {
 		self.value(value).name()
 	}
+}
+
+pub trait AsContext {
+	fn as_context(&self) -> &Context;
+}
+
+impl<T: Context> AsContext for T {
+	fn as_context(&self) -> &Context { self }
 }

@@ -10,6 +10,10 @@ use std::io::Write;
 use unit::*;
 use block::*;
 use value::*;
+use inst::*;
+use function::*;
+use argument::*;
+use ty::*;
 use std::rc::Rc;
 use std::collections::HashMap;
 
@@ -43,7 +47,7 @@ impl<'twr> Writer<'twr> {
 		if let Some(name) = self.name_table.get(&id).cloned() {
 			name
 		} else {
-			let name = self.uniquify_name(value.name());
+			let name = self.uniquify_name(value.name(), value.is_global());
 			self.name_table.insert(id, name.clone());
 			name
 		}
@@ -52,14 +56,16 @@ impl<'twr> Writer<'twr> {
 	/// Ensures that a name is unique within the current name stack, extending
 	/// the name with a monotonically increasing number or using a temporary
 	/// name altogether, if need be.
-	fn uniquify_name(&mut self, name: Option<&str>) -> Rc<String> {
+	fn uniquify_name(&mut self, name: Option<&str>, global: bool) -> Rc<String> {
+		let prefix = if global { "@" } else { "%" };
+
 		if let Some(name) = name {
 			// First handle the easy case where the namespace at the top of the
 			// stack already has a uniquification counter for the name. If that
 			// is the case, increment it and append the old count to the
 			// requested name.
 			if let Some(index) = self.name_stack.last_mut().unwrap().1.get_mut(name) {
-				let n = Rc::new(format!("{}{}", name, index));
+				let n = Rc::new(format!("{}{}{}", prefix, name, index));
 				*index += 1;
 				return n;
 			}
@@ -82,14 +88,14 @@ impl<'twr> Writer<'twr> {
 
 			// If we have found a uniquification count, append that to the name.
 			// Otherwise just use the name as it is.
-			Rc::new(index.map(|i| format!("{}{}", name, i)).unwrap_or(name.to_owned()))
+			Rc::new(index.map(|i| format!("{}{}{}", prefix, name, i)).unwrap_or_else(|| format!("{}{}", prefix, name)))
 
 		} else {
 			// We arrive here if `None` was passed as a name. This case is
 			// trivial. We simply increment the index for unnamed values, and
 			// convert the old index to a string to be used as the value's name.
 			let ref mut index = self.name_stack.last_mut().unwrap().0;
-			let name = Rc::new(format!("{}", index));
+			let name = Rc::new(format!("%{}", index));
 			*index += 1;
 			name
 		}
@@ -106,6 +112,22 @@ impl<'twr> Writer<'twr> {
 	fn pop(&mut self) {
 		self.name_stack.pop();
 		assert!(!self.name_stack.is_empty())
+	}
+
+	fn write_value(&mut self, ctx: &Context, value: &ValueRef) -> std::io::Result<()> {
+		// TODO: Handle constant values here.
+		match *value {
+			ValueRef::Constant => write!(self.sink, "<const>"),
+			_ => {
+				let value = ctx.value(value);
+				let name = self.uniquify(value);
+				write!(self.sink, "{}", name)
+			}
+		}
+	}
+
+	fn write_ty(&mut self, ty: &Type) -> std::io::Result<()> {
+		write!(self.sink, "{}", ty)
 	}
 }
 
@@ -132,13 +154,29 @@ impl<'twr> Visitor for Writer<'twr> {
 
 	fn visit_argument(&mut self, arg: &Argument) {
 		write!(self.sink, "{}", arg.ty()).unwrap();
-		if let Some(name) = arg.name() {
-			write!(self.sink, " %{}", name).unwrap();
-		}
+		let name = self.uniquify(arg);
+		write!(self.sink, " {}", name).unwrap();
 	}
 
-	fn visit_block(&mut self, ctx: &Context, block: &Block) {
+	fn visit_block(&mut self, ctx: &SequentialContext, block: &Block) {
 		let name = self.uniquify(block);
-		write!(self.sink, "%{}:\n", name).unwrap();
+		write!(self.sink, "{}:\n", name).unwrap();
+		self.walk_block(ctx, block);
+	}
+
+	fn visit_inst(&mut self, ctx: &UnitContext, inst: &Inst) {
+		let name = self.uniquify(inst);
+		write!(self.sink, "    {} = {}", name, inst.mnemonic().as_str()).unwrap();
+		match *inst.kind() {
+			BinaryInst(op, ref ty, ref lhs, ref rhs) => {
+				write!(self.sink, " ").unwrap();
+				self.write_ty(ty).unwrap();
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), lhs).unwrap();
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), rhs).unwrap();
+			}
+		}
+		write!(self.sink, "\n").unwrap();
 	}
 }

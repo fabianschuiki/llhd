@@ -4,8 +4,12 @@
 //! The visitor pattern implemented for the LLHD graph.
 
 use unit::*;
-use value::*;
+// use value::*;
 use block::Block;
+use inst::Inst;
+use function::{Function, FunctionContext};
+use argument::Argument;
+
 
 /// A trait to implement the visitor pattern on an LLHD graph.
 pub trait Visitor {
@@ -20,8 +24,11 @@ pub trait Visitor {
 	fn visit_argument(&mut self, &Argument) {
 	}
 
-	fn visit_block(&mut self, ctx: &Context, block: &Block) {
+	fn visit_block(&mut self, ctx: &SequentialContext, block: &Block) {
 		self.walk_block(ctx, block)
+	}
+
+	fn visit_inst(&mut self, ctx: &UnitContext, inst: &Inst) {
 	}
 
 	fn walk_function(&mut self, func: &Function) {
@@ -38,6 +45,10 @@ pub trait Visitor {
 		}
 	}
 
-	fn walk_block(&mut self, ctx: &Context, block: &Block) {
+	fn walk_block(&mut self, ctx: &SequentialContext, block: &Block) {
+		let uctx = ctx.as_unit_context();
+		for inst in block.insts(uctx) {
+			self.visit_inst(uctx, inst);
+		}
 	}
 }

@@ -16,9 +16,11 @@ fn simple_func() {
 	let a = func.arg(0);
 	let b = func.arg(1);
 
-	let bb = func.add_block(Block::new(Some("entry")));
+	let bb = func.add_block(Block::new(Some("entry".into())));
 
-	let inst = func.add_inst(Inst::new(Some("x"), BinaryInst(BinaryOp::Add, llhd::int_ty(32), a.into(), b.into())));
+	let inst = func.add_inst(Inst::new(None, BinaryInst(BinaryOp::Add, llhd::int_ty(32), a.into(), b.into())));
+	func.append_inst(inst, bb);
+	let inst = func.add_inst(Inst::new(Some("y".into()), BinaryInst(BinaryOp::Add, llhd::int_ty(32), llhd::ValueRef::Constant, inst.into())));
 	func.append_inst(inst, bb);
 
 	let stdout = std::io::stdout();

@@ -5,6 +5,8 @@
 // use inst::InstRef;
 use value::*;
 use ty::*;
+use unit::*;
+use inst::*;
 use inst::InstRef;
 use std::collections::HashMap;
 
@@ -18,10 +20,10 @@ pub struct Block {
 
 impl Block {
 	/// Create a new empty basic block with an optional name (aka label).
-	pub fn new<T: Into<String>>(name: Option<T>) -> Block {
+	pub fn new(name: Option<String>) -> Block {
 		Block {
 			id: BlockRef(ValueId::alloc()),
-			name: name.map(|x| x.into()),
+			name: name,
 			insts: Vec::new(),
 		}
 	}
@@ -29,6 +31,10 @@ impl Block {
 	/// Obtain a reference to this block.
 	pub fn as_ref(&self) -> BlockRef {
 		self.id
+	}
+
+	pub fn insts<'a>(&'a self, ctx: &'a UnitContext) -> InstIter<'a> {
+		InstIter::new(self.insts.iter(), ctx)
 	}
 
 	pub fn append_inst(&mut self, inst: InstRef) {
@@ -52,6 +58,10 @@ impl Value for Block {
 
 	fn name(&self) -> Option<&str> {
 		self.name.as_ref().map(|x| x as &str)
+	}
+
+	fn is_global(&self) -> bool {
+		false
 	}
 }
 

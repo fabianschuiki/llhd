@@ -5,7 +5,7 @@
 //! control flow graphs.
 
 use ty::*;
-use unit::Function;
+use function::Function;
 
 pub struct Module {
 
