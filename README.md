@@ -11,7 +11,7 @@ LLHD is written in Rust, but is available as a fully-featured C library for use 
 
 - [ ] emit in-memory representation as assembly
 - [ ] parse assembly into in-memory representation
-- [ ] create processes, entities, functions
+- [x] create processes, entities, functions
 - [ ] integer arithmetic instructions
 - [ ] call instruction
 - [ ] return, branch, phi instructions
