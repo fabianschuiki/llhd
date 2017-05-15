@@ -1,5 +1,6 @@
 // Copyright (c) 2017 Fabian Schuiki
 extern crate llhd;
+extern crate num;
 
 use llhd::visit::Visitor;
 use llhd::inst::*;
@@ -20,7 +21,8 @@ fn simple_func() {
 
 	let inst = func.add_inst(Inst::new(None, BinaryInst(BinaryOp::Add, llhd::int_ty(32), a.into(), b.into())));
 	func.append_inst(inst, bb);
-	let inst = func.add_inst(Inst::new(Some("y".into()), BinaryInst(BinaryOp::Add, llhd::int_ty(32), llhd::ValueRef::Constant, inst.into())));
+	let konst = llhd::const_int(32, 42.into());
+	let inst = func.add_inst(Inst::new(Some("y".into()), BinaryInst(BinaryOp::Add, llhd::int_ty(32), inst.into(), konst.into())));
 	func.append_inst(inst, bb);
 
 	let stdout = std::io::stdout();

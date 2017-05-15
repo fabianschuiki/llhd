@@ -14,6 +14,7 @@ use inst::*;
 use function::*;
 use argument::*;
 use ty::*;
+use konst::*;
 use std::rc::Rc;
 use std::collections::HashMap;
 
@@ -114,10 +115,11 @@ impl<'twr> Writer<'twr> {
 		assert!(!self.name_stack.is_empty())
 	}
 
+	/// Write an inline value. This function is used to emit instruction
+	/// arguments and generally values on the right hand side of assignments.
 	fn write_value(&mut self, ctx: &Context, value: &ValueRef) -> std::io::Result<()> {
-		// TODO: Handle constant values here.
 		match *value {
-			ValueRef::Constant => write!(self.sink, "<const>"),
+			ValueRef::Const(ref k) => self.write_const(k),
 			_ => {
 				let value = ctx.value(value);
 				let name = self.uniquify(value);
@@ -126,8 +128,16 @@ impl<'twr> Writer<'twr> {
 		}
 	}
 
+	/// Write a type.
 	fn write_ty(&mut self, ty: &Type) -> std::io::Result<()> {
 		write!(self.sink, "{}", ty)
+	}
+
+	/// Write a constant value.
+	fn write_const(&mut self, konst: &ConstKind) -> std::io::Result<()> {
+		match *konst {
+			ConstKind::Int(ref k) => write!(self.sink, "{}", k.value()),
+		}
 	}
 }
 

@@ -3,6 +3,8 @@
 //! The Low Level Hardware Description language. This library provides tools to
 //! create, modify, store, and load LLHD graphs.
 
+extern crate num;
+
 pub mod module;
 pub mod ty;
 #[macro_use]
@@ -16,8 +18,10 @@ pub mod argument;
 pub mod assembly;
 pub mod visit;
 pub mod util;
+pub mod konst;
 
 pub use module::Module;
 pub use value::ValueRef;
 pub use ty::*;
+pub use konst::*;
 pub use function::Function;

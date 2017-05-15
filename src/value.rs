@@ -6,6 +6,7 @@ use argument::ArgumentRef;
 use inst::InstRef;
 use block::BlockRef;
 use ty::Type;
+use konst::Const;
 
 
 pub trait Value {
@@ -14,12 +15,12 @@ pub trait Value {
 	/// Get the type of the value.
 	fn ty(&self) -> Type;
 	/// Get the optional name of the value.
-	fn name(&self) -> Option<&str>;
+	fn name(&self) -> Option<&str> { None }
 	/// Whether this value is global or not. Global values are considered during
 	/// linking, and are visible in a module's symbol table. Local values are
 	/// not, and are only visible within the surrounding context (module or
 	/// unit).
-	fn is_global(&self) -> bool;
+	fn is_global(&self) -> bool { false }
 }
 
 
@@ -29,7 +30,7 @@ pub enum ValueRef {
 	Block(BlockRef),
 	Argument(ArgumentRef),
 	Global,
-	Constant,
+	Const(Const),
 }
 
 
@@ -41,7 +42,7 @@ pub struct ValueId(usize);
 impl ValueId {
 	/// Allocate a new unique value ID.
 	pub fn alloc() -> ValueId {
-		ValueId(NEXT_VALUE_ID.fetch_add(1, Ordering::SeqCst))
+		ValueId(NEXT_VALUE_ID.fetch_add(1, Ordering::SeqCst) + 1)
 	}
 
 	/// Get the underlying integer ID.
@@ -58,6 +59,12 @@ impl std::fmt::Display for ValueId {
 
 /// The next ID to be allocated in `ValueId::alloc()`. Incremented atomically.
 static NEXT_VALUE_ID: AtomicUsize = ATOMIC_USIZE_INIT;
+
+/// The ID of inline values such as constants.
+pub const INLINE_VALUE_ID: ValueId = ValueId(0);
+// TODO: Maybe we want to get rid of this in favor of removing `id()` from the
+// `Value` trait and adding it to a `HasId` trait. Where the ID is needed, we
+// would use a `Value + HasId` bound.
 
 
 /// Declares a new wrapper type around ValueRef, allowing the target of the
