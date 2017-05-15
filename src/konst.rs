@@ -43,7 +43,7 @@ pub struct ConstInt {
 }
 
 impl ConstInt {
-	/// Create a new constant integer of the given width, with value 0.
+	/// Create a new constant integer.
 	pub fn new(width: usize, value: BigInt) -> ConstInt {
 		ConstInt {
 			width: width,
@@ -74,6 +74,6 @@ pub fn const_zero(ty: &Type) -> Const {
 	use num::Zero;
 	match **ty {
 		IntType(sz) => const_int(sz, BigInt::zero()),
-		ref x => panic!("no const zero value exists for type {}", x),
+		ref x => panic!("no const zero value for type {}", x),
 	}
 }
