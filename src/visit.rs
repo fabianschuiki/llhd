@@ -9,6 +9,7 @@ use block::Block;
 use inst::Inst;
 use function::{Function, FunctionContext};
 use process::{Process, ProcessContext};
+use entity::{Entity, EntityContext};
 use argument::Argument;
 
 
@@ -20,6 +21,10 @@ pub trait Visitor {
 
 	fn visit_process(&mut self, prok: &Process) {
 		self.walk_process(prok)
+	}
+
+	fn visit_entity(&mut self, entity: &Entity) {
+		self.walk_entity(entity)
 	}
 
 	fn visit_arguments(&mut self, args: &[Argument]) {
@@ -50,6 +55,16 @@ pub trait Visitor {
 		self.visit_arguments(prok.outputs());
 		for block in prok.body().blocks() {
 			self.visit_block(&ctx, block);
+		}
+	}
+
+	fn walk_entity(&mut self, entity: &Entity) {
+		let ctx = EntityContext::new(entity);
+		self.visit_arguments(entity.inputs());
+		self.visit_arguments(entity.outputs());
+		let uctx = ctx.as_unit_context();
+		for inst in entity.insts() {
+			self.visit_inst(uctx, inst);
 		}
 	}
 

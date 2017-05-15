@@ -15,6 +15,7 @@ pub mod inst;
 // pub mod bitcode;
 pub mod function;
 pub mod process;
+pub mod entity;
 pub mod argument;
 pub mod assembly;
 pub mod visit;

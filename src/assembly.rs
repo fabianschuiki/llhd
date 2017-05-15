@@ -11,8 +11,9 @@ use unit::*;
 use block::*;
 use value::*;
 use inst::*;
-use function::*;
-use process::*;
+use function::{Function, FunctionContext};
+use process::{Process, ProcessContext};
+use entity::{Entity, EntityContext};
 use argument::*;
 use ty::*;
 use konst::*;
@@ -166,6 +167,22 @@ impl<'twr> Visitor for Writer<'twr> {
 		write!(self.sink, ") {{\n").unwrap();
 		for block in prok.body().blocks() {
 			self.visit_block(&ctx, block);
+		}
+		write!(self.sink, "}}\n").unwrap();
+		self.pop();
+	}
+
+	fn visit_entity(&mut self, entity: &Entity) {
+		let ctx = EntityContext::new(entity);
+		self.push();
+		write!(self.sink, "entity @{} (", entity.name()).unwrap();
+		self.visit_arguments(entity.inputs());
+		write!(self.sink, ") (").unwrap();
+		self.visit_arguments(entity.outputs());
+		write!(self.sink, ") {{\n").unwrap();
+		let uctx = ctx.as_unit_context();
+		for inst in entity.insts() {
+			self.visit_inst(uctx, inst);
 		}
 		write!(self.sink, "}}\n").unwrap();
 		self.pop();

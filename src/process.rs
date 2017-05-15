@@ -24,8 +24,8 @@ pub struct Process {
 impl Process {
 	/// Create a new process with the given name and type signature. Anonymous
 	/// arguments are created for each input and output in the type signature.
-	/// Use the `args_mut` function get a hold of these arguments and assign
-	/// names and additional data to them.
+	/// Use the `inputs_mut` and `outputs_mut` functions get a hold of these
+	/// arguments and assign names and additional data to them.
 	pub fn new(name: String, ty: Type) -> Process {
 		let (ins, outs) = {
 			let (in_tys, out_tys) = ty.as_entity();

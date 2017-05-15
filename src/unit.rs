@@ -1,17 +1,10 @@
 // Copyright (c) 2017 Fabian Schuiki
 #![allow(dead_code)]
 
-use std;
 use block::*;
 use inst::*;
 use value::Context;
 use argument::*;
-
-
-pub struct Entity {
-	// inst_pool: InstPool,
-	inst_seq: Vec<InstRef>,
-}
 
 
 /// A context wrapping a unit.
@@ -36,28 +29,4 @@ impl<T: UnitContext> AsUnitContext for T {
 pub trait SequentialContext: UnitContext {
 	/// Resolve a `BlockRef` to an actual `&Block` reference.
 	fn block(&self, block: BlockRef) -> &Block;
-}
-
-
-pub struct BlockIter<'tf> {
-	refs: std::slice::Iter<'tf, BlockRef>,
-	blocks: &'tf std::collections::HashMap<BlockRef, Block>,
-}
-
-impl<'tf> BlockIter<'tf> {
-	pub fn new(refs: std::slice::Iter<'tf, BlockRef>, blocks: &'tf std::collections::HashMap<BlockRef, Block>) -> BlockIter<'tf> {
-		BlockIter {
-			refs: refs,
-			blocks: blocks,
-		}
-	}
-}
-
-impl<'tf> std::iter::Iterator for BlockIter<'tf> {
-	type Item = &'tf Block;
-
-	fn next(&mut self) -> Option<&'tf Block> {
-		let n = self.refs.next();
-		n.map(|r| self.blocks.get(r).unwrap())
-	}
 }

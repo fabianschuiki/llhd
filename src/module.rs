@@ -7,6 +7,7 @@
 use ty::*;
 use function::Function;
 use process::Process;
+use entity::Entity;
 
 pub struct Module {
 
@@ -26,5 +27,10 @@ impl Module {
 	/// Create a new process in the module.
 	pub fn add_process<N: Into<String>>(&self, name: N, ty: Type) -> Process {
 		Process::new(name.into(), ty)
+	}
+
+	/// Create a new entity in the module.
+	pub fn add_entity<N: Into<String>>(&self, name: N, ty: Type) -> Entity {
+		Entity::new(name.into(), ty)
 	}
 }

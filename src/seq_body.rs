@@ -1,9 +1,10 @@
 // Copyright (c) 2017 Fabian Schuiki
 
+use std;
 use std::collections::HashMap;
-use unit::*;
 use block::*;
 use inst::*;
+use util::IndirectMapIter;
 
 
 /// A sequential body of blocks and instructions. Represents a control flow
@@ -137,8 +138,8 @@ impl SeqBody {
 	}
 
 	/// Obtain an iterator over the blocks in this body.
-	pub fn blocks(&self) -> BlockIter {
-		BlockIter::new(self.block_seq.iter(), &self.blocks)
+	pub fn blocks(&self) -> IndirectMapIter<std::slice::Iter<BlockRef>, Block> {
+		IndirectMapIter::new(self.block_seq.iter(), &self.blocks)
 	}
 
 	/// Get a reference to a block in the body. Panics if the block does not

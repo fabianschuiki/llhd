@@ -28,15 +28,22 @@ fn simple_func() {
 	}
 
 	let proc_ty = llhd::entity_ty(vec![llhd::int_ty(32)], vec![llhd::int_ty(32)]);
-	let mut prok = module.add_process("bar", proc_ty);
+	let mut prok = module.add_process("bar", proc_ty.clone());
 	{
 		let a = prok.inputs()[0].as_ref();
 		let body = prok.body_mut();
 		body.add_block(Block::new(Some("entry".into())), BlockPosition::End);
-		body.add_inst(Inst::new(None, BinaryInst(BinaryOp::Add, llhd::int_ty(32), a.into(), llhd::const_int(23, 21.into()).into())), InstPosition::End);
+		body.add_inst(Inst::new(None, BinaryInst(BinaryOp::Add, llhd::int_ty(32), a.into(), llhd::const_int(32, 21.into()).into())), InstPosition::End);
+	}
+
+	let mut entity = module.add_entity("top", proc_ty);
+	{
+		let a = entity.inputs()[0].as_ref();
+		entity.add_inst(Inst::new(None, BinaryInst(BinaryOp::Add, llhd::int_ty(32), a.into(), llhd::const_int(32, 9000.into()).into())), InstPosition::End);
 	}
 
 	let stdout = std::io::stdout();
 	llhd::assembly::Writer::new(&mut stdout.lock()).visit_function(&func);
 	llhd::assembly::Writer::new(&mut stdout.lock()).visit_process(&prok);
+	llhd::assembly::Writer::new(&mut stdout.lock()).visit_entity(&entity);
 }

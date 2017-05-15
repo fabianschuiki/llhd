@@ -36,18 +36,9 @@ impl Block {
 		InstIter::new(self.insts.iter(), ctx)
 	}
 
-	/// Obtain an iterator over a reference to the instructions in this block.
+	/// Obtain an iterator over references to the instructions in this block.
 	pub fn inst_refs(&self) -> std::slice::Iter<InstRef> {
 		self.insts.iter()
-	}
-
-	pub fn append_inst(&mut self, inst: InstRef) {
-		self.insts.push(inst);
-	}
-
-	pub fn remove_inst(&mut self, inst: InstRef) {
-		let pos = self.inst_pos(inst);
-		self.insts.remove(pos);
 	}
 
 	/// Insert an instruction into this block as dictated by the requested
