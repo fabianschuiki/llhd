@@ -10,7 +10,9 @@ use inst::*;
 use util::IndirectMapIter;
 
 
-/// An entity.
+/// An entity. Describes through its instructions the data dependencies in order
+/// to react to changes in input signals. Implements *data flow* and *timed
+/// execution*.
 pub struct Entity {
 	id: ValueId,
 	global: bool,
@@ -50,6 +52,11 @@ impl Entity {
 		&self.name
 	}
 
+	/// Get a graph reference to one of the inputs of the entity.
+	pub fn input(&self, idx: usize) -> ArgumentRef {
+		self.ins[idx].as_ref()
+	}
+
 	/// Get a reference to the input arguments of the entity.
 	pub fn inputs(&self) -> &[Argument] {
 		&self.ins
@@ -58,6 +65,11 @@ impl Entity {
 	/// Get a mutable reference to the input arguments of the entity.
 	pub fn inputs_mut(&mut self) -> &mut [Argument] {
 		&mut self.ins
+	}
+
+	/// Get a graph reference to one of the outputs of the entity.
+	pub fn output(&self, idx: usize) -> ArgumentRef {
+		self.outs[idx].as_ref()
 	}
 
 	/// Get a reference to the output arguments of the entity.

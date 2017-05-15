@@ -48,6 +48,11 @@ impl Process {
 		&self.name
 	}
 
+	/// Get a graph reference to one of the inputs of the entity.
+	pub fn input(&self, idx: usize) -> ArgumentRef {
+		self.ins[idx].as_ref()
+	}
+
 	/// Get a reference to the input arguments of the process.
 	pub fn inputs(&self) -> &[Argument] {
 		&self.ins
@@ -56,6 +61,11 @@ impl Process {
 	/// Get a mutable reference to the input arguments of the process.
 	pub fn inputs_mut(&mut self) -> &mut [Argument] {
 		&mut self.ins
+	}
+
+	/// Get a graph reference to one of the outputs of the entity.
+	pub fn output(&self, idx: usize) -> ArgumentRef {
+		self.outs[idx].as_ref()
 	}
 
 	/// Get a reference to the output arguments of the process.

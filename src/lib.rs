@@ -28,3 +28,5 @@ pub use value::ValueRef;
 pub use ty::*;
 pub use konst::*;
 pub use function::Function;
+pub use process::Process;
+pub use entity::Entity;

@@ -50,6 +50,7 @@ impl Function {
 		self.ty.as_func().1
 	}
 
+	/// Get a graph reference to one of the arguments of the function.
 	pub fn arg(&self, idx: usize) -> ArgumentRef {
 		self.args[idx].as_ref()
 	}
