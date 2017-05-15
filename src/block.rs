@@ -7,7 +7,6 @@ use value::*;
 use ty::*;
 use unit::*;
 use inst::*;
-use inst::InstRef;
 use std::collections::HashMap;
 
 
