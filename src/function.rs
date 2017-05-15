@@ -1,48 +1,42 @@
 // Copyright (c) 2017 Fabian Schuiki
 
-use std::collections::HashMap;
 use value::*;
 use unit::*;
 use ty::*;
 use argument::*;
 use block::*;
 use inst::*;
+use seq_body::*;
 
 
+/// A function. Sequentially executes instructions to determine a result value
+/// from its inputs. Implements *control flow* and *immediate execution*.
 pub struct Function {
+	id: ValueId,
+	global: bool,
 	name: String,
 	ty: Type,
 	args: Vec<Argument>,
-	blocks: HashMap<BlockRef, Block>,
-	block_seq: Vec<BlockRef>,
-	block_of_inst: HashMap<InstRef, BlockRef>,
-	insts: HashMap<InstRef, Inst>,
-	// inst_pool: InstPool,
-	// block_pool: BlockPool,
-	// block_seq: Vec<BlockRef>,
+	body: SeqBody,
 }
 
 impl Function {
 	/// Create a new function with the given name and type signature. Anonymous
 	/// arguments are created for each argument in the type signature. Use the
-	/// `arg_mut` function to get a hold of these arguments and assign names and
-	/// additional data to them.
+	/// `args_mut` function to get a hold of these arguments and assign names
+	/// and additional data to them.
 	pub fn new(name: String, ty: Type) -> Function {
 		let args = {
 			let (arg_tys, _) = ty.as_func();
 			arg_tys.iter().map(|t| Argument::new(t.clone())).collect()
 		};
 		Function {
-			ty: ty,
+			id: ValueId::alloc(),
+			global: true,
 			name: name,
+			ty: ty,
 			args: args,
-			blocks: HashMap::new(),
-			block_seq: Vec::new(),
-			block_of_inst: HashMap::new(),
-			insts: HashMap::new(),
-			// inst_pool: InstPool(HashMap::new()),
-			// block_pool: BlockPool(HashMap::new()),
-			// block_seq: Vec::new(),
+			body: SeqBody::new(),
 		}
 	}
 
@@ -70,34 +64,32 @@ impl Function {
 		&mut self.args
 	}
 
-	/// Add a basic block to the end of the function.
-	pub fn add_block(&mut self, block: Block) -> BlockRef {
-		let ir = block.as_ref();
-		self.blocks.insert(ir, block);
-		self.block_seq.push(ir);
-		ir
+	/// Get a reference to the sequential body of the function.
+	pub fn body(&self) -> &SeqBody {
+		&self.body
 	}
 
-	pub fn blocks<'a>(&'a self) -> BlockIter<'a> {
-		BlockIter::new(self.block_seq.iter(), &self.blocks)
+	/// Get a mutable reference to the sequential body of the function.
+	pub fn body_mut(&mut self) -> &mut SeqBody {
+		&mut self.body
+	}
+}
+
+impl Value for Function {
+	fn id(&self) -> ValueId {
+		self.id.into()
 	}
 
-	/// Add an instruction to the function. Note that this only associates the
-	/// instruction with this function. You still need to actually insert the
-	/// function into a basic block.
-	pub fn add_inst(&mut self, inst: Inst) -> InstRef {
-		let ir = inst.as_ref();
-		self.insts.insert(ir, inst);
-		ir
+	fn ty(&self) -> Type {
+		self.ty.clone()
 	}
 
-	/// Add an instruction at the end of a basic block.
-	pub fn append_inst(&mut self, inst: InstRef, to: BlockRef) {
-		if let Some(old) = self.block_of_inst.insert(inst, to) {
-			self.blocks.get_mut(&old).unwrap().remove_inst(inst);
-			panic!("inst {} already in basic block {}", inst, to);
-		}
-		self.blocks.get_mut(&to).expect("basic block does not exist").append_inst(inst);
+	fn name(&self) -> Option<&str> {
+		Some(&self.name)
+	}
+
+	fn is_global(&self) -> bool {
+		self.global
 	}
 }
 
@@ -132,7 +124,7 @@ impl<'tctx> Context for FunctionContext<'tctx> {
 
 impl<'tctx> UnitContext for FunctionContext<'tctx> {
 	fn inst(&self, inst: InstRef) -> &Inst {
-		self.function.insts.get(&inst).unwrap()
+		self.function.body.inst(inst)
 	}
 
 	fn argument(&self, argument: ArgumentRef) -> &Argument {
@@ -142,6 +134,6 @@ impl<'tctx> UnitContext for FunctionContext<'tctx> {
 
 impl<'tctx> SequentialContext for FunctionContext<'tctx> {
 	fn block(&self, block: BlockRef) -> &Block {
-		self.function.blocks.get(&block).unwrap()
+		self.function.body.block(block)
 	}
 }

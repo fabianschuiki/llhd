@@ -12,6 +12,7 @@ use block::*;
 use value::*;
 use inst::*;
 use function::*;
+use process::*;
 use argument::*;
 use ty::*;
 use konst::*;
@@ -148,7 +149,22 @@ impl<'twr> Visitor for Writer<'twr> {
 		write!(self.sink, "func @{} (", func.name()).unwrap();
 		self.visit_arguments(func.args());
 		write!(self.sink, ") {} {{\n", func.return_ty()).unwrap();
-		for block in func.blocks() {
+		for block in func.body().blocks() {
+			self.visit_block(&ctx, block);
+		}
+		write!(self.sink, "}}\n").unwrap();
+		self.pop();
+	}
+
+	fn visit_process(&mut self, prok: &Process) {
+		let ctx = ProcessContext::new(prok);
+		self.push();
+		write!(self.sink, "proc @{} (", prok.name()).unwrap();
+		self.visit_arguments(prok.inputs());
+		write!(self.sink, ") (").unwrap();
+		self.visit_arguments(prok.outputs());
+		write!(self.sink, ") {{\n").unwrap();
+		for block in prok.body().blocks() {
 			self.visit_block(&ctx, block);
 		}
 		write!(self.sink, "}}\n").unwrap();

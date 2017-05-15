@@ -69,7 +69,16 @@ impl TypeKind {
 	pub fn as_func(&self) -> (&[Type], &Type) {
 		match *self {
 			FuncType(ref args, ref ret) => (args, ret),
-			_ => panic!("unwrap_func called on {}", self)
+			_ => panic!("as_func called on {}", self)
+		}
+	}
+
+	/// Unwrap the type into input and output arguments, or panic if the type is
+	/// not an entity.
+	pub fn as_entity(&self) -> (&[Type], &[Type]) {
+		match *self {
+			EntityType(ref ins, ref outs) => (ins, outs),
+			_ => panic!("as_entity called on {}", self)
 		}
 	}
 }
@@ -88,4 +97,9 @@ pub fn int_ty(size: usize) -> Type {
 /// Create a function type with the given arguments and return type.
 pub fn func_ty(args: Vec<Type>, ret: Type) -> Type {
 	Type::new(FuncType(args, ret))
+}
+
+/// Create an entity type with the given input and output arguments.
+pub fn entity_ty(ins: Vec<Type>, outs: Vec<Type>) -> Type {
+	Type::new(EntityType(ins, outs))
 }

@@ -14,11 +14,13 @@ pub mod block;
 pub mod inst;
 // pub mod bitcode;
 pub mod function;
+pub mod process;
 pub mod argument;
 pub mod assembly;
 pub mod visit;
 pub mod util;
 pub mod konst;
+pub mod seq_body;
 
 pub use module::Module;
 pub use value::ValueRef;

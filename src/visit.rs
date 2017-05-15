@@ -8,6 +8,7 @@ use unit::*;
 use block::Block;
 use inst::Inst;
 use function::{Function, FunctionContext};
+use process::{Process, ProcessContext};
 use argument::Argument;
 
 
@@ -15,6 +16,10 @@ use argument::Argument;
 pub trait Visitor {
 	fn visit_function(&mut self, func: &Function) {
 		self.walk_function(func)
+	}
+
+	fn visit_process(&mut self, prok: &Process) {
+		self.walk_process(prok)
 	}
 
 	fn visit_arguments(&mut self, args: &[Argument]) {
@@ -34,7 +39,16 @@ pub trait Visitor {
 	fn walk_function(&mut self, func: &Function) {
 		let ctx = FunctionContext::new(func);
 		self.visit_arguments(func.args());
-		for block in func.blocks() {
+		for block in func.body().blocks() {
+			self.visit_block(&ctx, block);
+		}
+	}
+
+	fn walk_process(&mut self, prok: &Process) {
+		let ctx = ProcessContext::new(prok);
+		self.visit_arguments(prok.inputs());
+		self.visit_arguments(prok.outputs());
+		for block in prok.body().blocks() {
 			self.visit_block(&ctx, block);
 		}
 	}

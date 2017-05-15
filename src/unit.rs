@@ -13,12 +13,6 @@ pub struct Entity {
 	inst_seq: Vec<InstRef>,
 }
 
-pub struct Process {
-	// inst_pool: InstPool,
-	block_pool: BlockPool,
-	block_seq: Vec<BlockRef>,
-}
-
 
 /// A context wrapping a unit.
 pub trait UnitContext : Context + AsUnitContext {

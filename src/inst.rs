@@ -4,6 +4,7 @@
 // use std::collections::HashMap;
 use ty::*;
 use value::*;
+use block::BlockRef;
 use unit::UnitContext;
 pub use self::InstKind::*;
 
@@ -85,6 +86,30 @@ impl<'tf> std::iter::Iterator for InstIter<'tf> {
 		let n = self.refs.next();
 		n.map(|r| self.ctx.inst(*r))
 	}
+}
+
+
+/// A relative position of an instruction. Used to insert or move an instruction
+/// to a position relative to the surrounding unit, block, or another
+/// instruction.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum InstPosition {
+	/// The very first position in the entity, or the first position in the
+	/// first block of the function/process.
+	Begin,
+	/// The very last position in the entity, or the last position in the last
+	/// block of the function/process.
+	End,
+	/// The position just before another instruction.
+	Before(InstRef),
+	/// The position just after another instruction.
+	After(InstRef),
+	/// The very first position in the block. Only valid in functions and
+	/// processes.
+	BlockBegin(BlockRef),
+	/// The very last position in the block. Only valid in functions and
+	/// processes.
+	BlockEnd(BlockRef),
 }
 
 
