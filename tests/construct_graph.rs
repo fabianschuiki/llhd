@@ -26,6 +26,7 @@ fn simple_func() {
 		let inst = body.add_inst(Inst::new(None, BinaryInst(BinaryOp::Add, llhd::int_ty(32), a.into(), b.into())), InstPosition::End);
 		let konst = llhd::const_int(32, 42.into());
 		let inst = body.add_inst(Inst::new(Some("y".into()), BinaryInst(BinaryOp::Add, llhd::int_ty(32), inst.into(), konst.into())), InstPosition::End);
+		let inst = body.add_inst(Inst::new(None, CompareInst(CompareOp::Eq, llhd::int_ty(32), inst.into(), a.into())), InstPosition::End);
 	}
 	let func = module.add_function(func);
 

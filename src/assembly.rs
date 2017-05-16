@@ -220,9 +220,27 @@ impl<'twr> Visitor for Writer<'twr> {
 		let name = self.uniquify(inst);
 		write!(self.sink, "    {} = {}", name, inst.mnemonic().as_str()).unwrap();
 		match *inst.kind() {
+			// <op> <ty> <arg>
+			UnaryInst(op, ref ty, ref arg) => {
+				write!(self.sink, " ").unwrap();
+				self.write_ty(ty).unwrap();
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), arg).unwrap();
+			}
+
 			// <op> <ty> <lhs> <rhs>
 			BinaryInst(op, ref ty, ref lhs, ref rhs) => {
 				write!(self.sink, " ").unwrap();
+				self.write_ty(ty).unwrap();
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), lhs).unwrap();
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), rhs).unwrap();
+			}
+
+			// cmp <op> <ty> <lhs> <rhs>
+			CompareInst(op, ref ty, ref lhs, ref rhs) => {
+				write!(self.sink, " {} ", op.to_str()).unwrap();
 				self.write_ty(ty).unwrap();
 				write!(self.sink, " ").unwrap();
 				self.write_value(ctx.as_context(), lhs).unwrap();

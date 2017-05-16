@@ -112,7 +112,9 @@ pub enum InstPosition {
 
 
 pub enum InstKind {
+	UnaryInst(UnaryOp, Type, ValueRef),
 	BinaryInst(BinaryOp, Type, ValueRef, ValueRef),
+	CompareInst(CompareOp, Type, ValueRef, ValueRef),
 	CallInst(Type, ValueRef, Vec<ValueRef>),
 	InstanceInst(Type, ValueRef, Vec<ValueRef>, Vec<ValueRef>),
 }
@@ -121,7 +123,9 @@ impl InstKind {
 	/// Get the result type of the instruction.
 	pub fn ty(&self) -> Type {
 		match *self {
+			UnaryInst(_, ref ty, _) => ty.clone(),
 			BinaryInst(_, ref ty, _, _) => ty.clone(),
+			CompareInst(..) => int_ty(1),
 			CallInst(ref ty, _, _) => ty.as_func().1.clone(),
 			InstanceInst(..) => void_ty(),
 		}
@@ -129,7 +133,9 @@ impl InstKind {
 
 	pub fn mnemonic(&self) -> Mnemonic {
 		match *self {
+			UnaryInst(op, _, _) => Mnemonic::Unary(op.mnemonic()),
 			BinaryInst(op, _, _, _) => Mnemonic::Binary(op.mnemonic()),
+			CompareInst(..) => Mnemonic::Cmp,
 			CallInst(..) => Mnemonic::Call,
 			InstanceInst(..) => Mnemonic::Inst,
 		}
@@ -138,38 +144,148 @@ impl InstKind {
 
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum UnaryOp {
+	Not,
+}
+
+impl UnaryOp {
+	pub fn mnemonic(&self) -> UnaryMnemonic {
+		match *self {
+			UnaryOp::Not => UnaryMnemonic::Not,
+		}
+	}
+}
+
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BinaryOp {
 	Add,
+	Sub,
+	Mul,
+	Div,
+	Mod,
+	Rem,
+	Shl,
+	Shr,
+	And,
+	Or,
+	Xor,
 }
 
 impl BinaryOp {
 	pub fn mnemonic(&self) -> BinaryMnemonic {
 		match *self {
 			BinaryOp::Add => BinaryMnemonic::Add,
+			BinaryOp::Sub => BinaryMnemonic::Sub,
+			BinaryOp::Mul => BinaryMnemonic::Mul,
+			BinaryOp::Div => BinaryMnemonic::Div,
+			BinaryOp::Mod => BinaryMnemonic::Mod,
+			BinaryOp::Rem => BinaryMnemonic::Rem,
+			BinaryOp::Shl => BinaryMnemonic::Shl,
+			BinaryOp::Shr => BinaryMnemonic::Shr,
+			BinaryOp::And => BinaryMnemonic::And,
+			BinaryOp::Or  => BinaryMnemonic::Or,
+			BinaryOp::Xor => BinaryMnemonic::Xor,
 		}
+	}
+}
+
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CompareOp {
+	Eq,
+	Neq,
+	Slt,
+	Sgt,
+	Sle,
+	Sge,
+	Ult,
+	Ugt,
+	Ule,
+	Uge,
+}
+
+impl CompareOp {
+	pub fn to_str(self) -> &'static str {
+		match self {
+			CompareOp::Eq  => "eq",
+			CompareOp::Neq => "neq",
+			CompareOp::Slt => "slt",
+			CompareOp::Sgt => "sgt",
+			CompareOp::Sle => "sle",
+			CompareOp::Sge => "sge",
+			CompareOp::Ult => "ult",
+			CompareOp::Ugt => "ugt",
+			CompareOp::Ule => "ule",
+			CompareOp::Uge => "uge",
+		}
+	}
+
+	pub fn from_str(s: &str) -> Option<CompareOp> {
+		Some(match s {
+			"eq"  => CompareOp::Eq,
+			"neq" => CompareOp::Neq,
+			"slt" => CompareOp::Slt,
+			"sgt" => CompareOp::Sgt,
+			"sle" => CompareOp::Sle,
+			"sge" => CompareOp::Sge,
+			"ult" => CompareOp::Ult,
+			"ugt" => CompareOp::Ugt,
+			"ule" => CompareOp::Ule,
+			"uge" => CompareOp::Uge,
+			_ => return None,
+		})
 	}
 }
 
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Mnemonic {
+	Unary(UnaryMnemonic),
 	Binary(BinaryMnemonic),
 	Call,
 	Inst,
+	Cmp,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum UnaryMnemonic {
+	Not,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum BinaryMnemonic {
 	Add,
+	Sub,
+	Mul,
+	Div,
+	Mod,
+	Rem,
+	Shl,
+	Shr,
+	And,
+	Or,
+	Xor,
 }
 
 impl Mnemonic {
 	/// Convert the mnemonic to its textual representation.
 	pub fn as_str(self) -> &'static str {
 		match self {
+			Mnemonic::Unary(m) => m.as_str(),
 			Mnemonic::Binary(m) => m.as_str(),
 			Mnemonic::Call => "call",
 			Mnemonic::Inst => "inst",
+			Mnemonic::Cmp => "cmp",
+		}
+	}
+}
+
+impl UnaryMnemonic {
+	/// Convert the unary mnemonic to its textual representation.
+	pub fn as_str(self) -> &'static str {
+		match self {
+			UnaryMnemonic::Not => "not",
 		}
 	}
 }
@@ -179,6 +295,16 @@ impl BinaryMnemonic {
 	pub fn as_str(self) -> &'static str {
 		match self {
 			BinaryMnemonic::Add => "add",
+			BinaryMnemonic::Sub => "sub",
+			BinaryMnemonic::Mul => "mul",
+			BinaryMnemonic::Div => "div",
+			BinaryMnemonic::Mod => "mod",
+			BinaryMnemonic::Rem => "rem",
+			BinaryMnemonic::Shl => "shl",
+			BinaryMnemonic::Shr => "shr",
+			BinaryMnemonic::And => "and",
+			BinaryMnemonic::Or  => "or",
+			BinaryMnemonic::Xor => "xor",
 		}
 	}
 }
