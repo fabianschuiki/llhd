@@ -7,6 +7,7 @@ use unit::*;
 use ty::*;
 use argument::*;
 use inst::*;
+use module::ModuleContext;
 use util::IndirectMapIter;
 
 
@@ -179,22 +180,23 @@ impl Value for Entity {
 
 
 pub struct EntityContext<'tctx> {
-	// module: &'tctx ModuleContext,
+	module: &'tctx ModuleContext<'tctx>,
 	entity: &'tctx Entity,
 }
 
 impl<'tctx> EntityContext<'tctx> {
-	pub fn new(entity: &Entity) -> EntityContext {
+	pub fn new(module: &'tctx ModuleContext, entity: &'tctx Entity) -> EntityContext<'tctx> {
 		EntityContext {
+			module: module,
 			entity: entity,
 		}
 	}
 }
 
 impl<'tctx> Context for EntityContext<'tctx> {
-	// fn parent(&self) -> Option<&Context> {
-	// 	Some(self.module)
-	// }
+	fn parent(&self) -> Option<&Context> {
+		Some(self.module.as_context())
+	}
 
 	fn try_value(&self, value: &ValueRef) -> Option<&Value> {
 		match *value {
@@ -212,8 +214,7 @@ impl<'tctx> UnitContext for EntityContext<'tctx> {
 	}
 
 	fn argument(&self, argument: ArgumentRef) -> &Argument {
-		self.entity.ins
-			.iter()
+		self.entity.ins.iter()
 			.chain(self.entity.outs.iter())
 			.find(|x| argument == x.as_ref())
 			.unwrap()

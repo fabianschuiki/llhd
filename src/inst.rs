@@ -113,6 +113,8 @@ pub enum InstPosition {
 
 pub enum InstKind {
 	BinaryInst(BinaryOp, Type, ValueRef, ValueRef),
+	CallInst(Type, ValueRef, Vec<ValueRef>),
+	InstanceInst(Type, ValueRef, Vec<ValueRef>, Vec<ValueRef>),
 }
 
 impl InstKind {
@@ -120,12 +122,16 @@ impl InstKind {
 	pub fn ty(&self) -> Type {
 		match *self {
 			BinaryInst(_, ref ty, _, _) => ty.clone(),
+			CallInst(ref ty, _, _) => ty.as_func().1.clone(),
+			InstanceInst(..) => void_ty(),
 		}
 	}
 
 	pub fn mnemonic(&self) -> Mnemonic {
 		match *self {
 			BinaryInst(op, _, _, _) => Mnemonic::Binary(op.mnemonic()),
+			CallInst(..) => Mnemonic::Call,
+			InstanceInst(..) => Mnemonic::Inst,
 		}
 	}
 }
@@ -148,6 +154,8 @@ impl BinaryOp {
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Mnemonic {
 	Binary(BinaryMnemonic),
+	Call,
+	Inst,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -160,6 +168,8 @@ impl Mnemonic {
 	pub fn as_str(self) -> &'static str {
 		match self {
 			Mnemonic::Binary(m) => m.as_str(),
+			Mnemonic::Call => "call",
+			Mnemonic::Inst => "inst",
 		}
 	}
 }

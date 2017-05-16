@@ -4,9 +4,9 @@
 //! The visitor pattern implemented for the LLHD graph.
 
 use unit::*;
-use module::Module;
 use block::Block;
 use inst::Inst;
+use module::{Module, ModuleContext};
 use function::{Function, FunctionContext};
 use process::{Process, ProcessContext};
 use entity::{Entity, EntityContext};
@@ -20,25 +20,25 @@ pub trait Visitor {
 		self.walk_module(module)
 	}
 
-	fn visit_module_value(&mut self, module: &Module, value: &ValueRef) {
+	fn visit_module_value(&mut self, ctx: &ModuleContext, value: &ValueRef) {
 		match *value {
-			ValueRef::Function(r) => self.visit_function(module.function(r)),
-			ValueRef::Process(r) => self.visit_process(module.process(r)),
-			ValueRef::Entity(r) => self.visit_entity(module.entity(r)),
+			ValueRef::Function(r) => self.visit_function(ctx, ctx.function(r)),
+			ValueRef::Process(r) => self.visit_process(ctx, ctx.process(r)),
+			ValueRef::Entity(r) => self.visit_entity(ctx, ctx.entity(r)),
 			_ => panic!("invalid value in module")
 		}
 	}
 
-	fn visit_function(&mut self, func: &Function) {
-		self.walk_function(func)
+	fn visit_function(&mut self, ctx: &ModuleContext, func: &Function) {
+		self.walk_function(ctx, func)
 	}
 
-	fn visit_process(&mut self, prok: &Process) {
-		self.walk_process(prok)
+	fn visit_process(&mut self, ctx: &ModuleContext, prok: &Process) {
+		self.walk_process(ctx, prok)
 	}
 
-	fn visit_entity(&mut self, entity: &Entity) {
-		self.walk_entity(entity)
+	fn visit_entity(&mut self, ctx: &ModuleContext, entity: &Entity) {
+		self.walk_entity(ctx, entity)
 	}
 
 	fn visit_arguments(&mut self, args: &[Argument]) {
@@ -57,21 +57,22 @@ pub trait Visitor {
 
 
 	fn walk_module(&mut self, module: &Module) {
+		let ctx = ModuleContext::new(module);
 		for value in module.values() {
-			self.visit_module_value(module, value);
+			self.visit_module_value(&ctx, value);
 		}
 	}
 
-	fn walk_function(&mut self, func: &Function) {
-		let ctx = FunctionContext::new(func);
+	fn walk_function(&mut self, ctx: &ModuleContext, func: &Function) {
+		let ctx = FunctionContext::new(ctx, func);
 		self.visit_arguments(func.args());
 		for block in func.body().blocks() {
 			self.visit_block(&ctx, block);
 		}
 	}
 
-	fn walk_process(&mut self, prok: &Process) {
-		let ctx = ProcessContext::new(prok);
+	fn walk_process(&mut self, ctx: &ModuleContext, prok: &Process) {
+		let ctx = ProcessContext::new(ctx, prok);
 		self.visit_arguments(prok.inputs());
 		self.visit_arguments(prok.outputs());
 		for block in prok.body().blocks() {
@@ -79,8 +80,8 @@ pub trait Visitor {
 		}
 	}
 
-	fn walk_entity(&mut self, entity: &Entity) {
-		let ctx = EntityContext::new(entity);
+	fn walk_entity(&mut self, ctx: &ModuleContext, entity: &Entity) {
+		let ctx = EntityContext::new(ctx, entity);
 		self.visit_arguments(entity.inputs());
 		self.visit_arguments(entity.outputs());
 		let uctx = ctx.as_unit_context();

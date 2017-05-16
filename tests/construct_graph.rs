@@ -13,7 +13,7 @@ fn simple_func() {
 	let mut module = llhd::Module::new();
 
 	let func_ty = llhd::func_ty(vec![llhd::int_ty(32), llhd::int_ty(32)], llhd::void_ty());
-	let mut func = llhd::Function::new("foo".into(), func_ty);
+	let mut func = llhd::Function::new("foo".into(), func_ty.clone());
 	{
 		func.args_mut()[0].set_name("a");
 		func.args_mut()[1].set_name("b");
@@ -27,7 +27,7 @@ fn simple_func() {
 		let konst = llhd::const_int(32, 42.into());
 		let inst = body.add_inst(Inst::new(Some("y".into()), BinaryInst(BinaryOp::Add, llhd::int_ty(32), inst.into(), konst.into())), InstPosition::End);
 	}
-	module.add_function(func);
+	let func = module.add_function(func);
 
 	let proc_ty = llhd::entity_ty(vec![llhd::int_ty(32)], vec![llhd::int_ty(32)]);
 	let mut prok = llhd::Process::new("bar".into(), proc_ty.clone());
@@ -36,13 +36,16 @@ fn simple_func() {
 		let body = prok.body_mut();
 		body.add_block(Block::new(Some("entry".into())), BlockPosition::End);
 		body.add_inst(Inst::new(None, BinaryInst(BinaryOp::Add, llhd::int_ty(32), a.into(), llhd::const_int(32, 21.into()).into())), InstPosition::End);
+		body.add_inst(Inst::new(None, CallInst(func_ty.clone(), func.into(), vec![a.into(), a.into()])), InstPosition::End);
 	}
-	module.add_process(prok);
+	let prok = module.add_process(prok);
 
-	let mut entity = llhd::Entity::new("top".into(), proc_ty);
+	let mut entity = llhd::Entity::new("top".into(), proc_ty.clone());
 	{
 		let a = entity.input(0);
+		let b = entity.output(0);
 		entity.add_inst(Inst::new(None, BinaryInst(BinaryOp::Add, llhd::int_ty(32), a.into(), llhd::const_int(32, 9000.into()).into())), InstPosition::End);
+		entity.add_inst(Inst::new(None, InstanceInst(proc_ty.clone(), prok.into(), vec![a.into()], vec![b.into()])), InstPosition::End);
 	}
 	module.add_entity(entity);
 

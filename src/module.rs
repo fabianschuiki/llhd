@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use function::Function;
 use process::Process;
 use entity::Entity;
-use value::{ValueRef, FunctionRef, ProcessRef, EntityRef};
+use value::{Context, Value, ValueRef, FunctionRef, ProcessRef, EntityRef};
 
 
 pub struct Module {
@@ -88,5 +88,42 @@ impl Module {
 	/// functions, processes, and entities.
 	pub fn values(&self) -> std::slice::Iter<ValueRef> {
 		self.values.iter()
+	}
+}
+
+
+
+pub struct ModuleContext<'tctx> {
+	module: &'tctx Module,
+}
+
+impl<'tctx> ModuleContext<'tctx> {
+	pub fn new(module: &Module) -> ModuleContext {
+		ModuleContext {
+			module: module,
+		}
+	}
+
+	pub fn function(&self, func: FunctionRef) -> &Function {
+		self.module.function(func)
+	}
+
+	pub fn process(&self, prok: ProcessRef) -> &Process {
+		self.module.process(prok)
+	}
+
+	pub fn entity(&self, entity: EntityRef) -> &Entity {
+		self.module.entity(entity)
+	}
+}
+
+impl<'tctx> Context for ModuleContext<'tctx> {
+	fn try_value(&self, value: &ValueRef) -> Option<&Value> {
+		match *value {
+			ValueRef::Function(id) => Some(self.function(id)),
+			ValueRef::Process(id) => Some(self.process(id)),
+			ValueRef::Entity(id) => Some(self.entity(id)),
+			_ => None,
+		}
 	}
 }

@@ -11,7 +11,7 @@ use unit::*;
 use block::*;
 use value::*;
 use inst::*;
-use module::Module;
+use module::{Module, ModuleContext};
 use function::{Function, FunctionContext};
 use process::{Process, ProcessContext};
 use entity::{Entity, EntityContext};
@@ -146,14 +146,15 @@ impl<'twr> Writer<'twr> {
 
 impl<'twr> Visitor for Writer<'twr> {
 	fn visit_module(&mut self, module: &Module) {
+		let ctx = ModuleContext::new(module);
 		for (value, sep) in module.values().zip(std::iter::once("").chain(std::iter::repeat("\n"))) {
 			write!(self.sink, "{}", sep).unwrap();
-			self.visit_module_value(module, value);
+			self.visit_module_value(&ctx, value);
 		}
 	}
 
-	fn visit_function(&mut self, func: &Function) {
-		let ctx = FunctionContext::new(func);
+	fn visit_function(&mut self, ctx: &ModuleContext, func: &Function) {
+		let ctx = FunctionContext::new(ctx, func);
 		self.push();
 		write!(self.sink, "func @{} (", func.name()).unwrap();
 		self.visit_arguments(func.args());
@@ -165,8 +166,8 @@ impl<'twr> Visitor for Writer<'twr> {
 		self.pop();
 	}
 
-	fn visit_process(&mut self, prok: &Process) {
-		let ctx = ProcessContext::new(prok);
+	fn visit_process(&mut self, ctx: &ModuleContext, prok: &Process) {
+		let ctx = ProcessContext::new(ctx, prok);
 		self.push();
 		write!(self.sink, "proc @{} (", prok.name()).unwrap();
 		self.visit_arguments(prok.inputs());
@@ -180,8 +181,8 @@ impl<'twr> Visitor for Writer<'twr> {
 		self.pop();
 	}
 
-	fn visit_entity(&mut self, entity: &Entity) {
-		let ctx = EntityContext::new(entity);
+	fn visit_entity(&mut self, ctx: &ModuleContext, entity: &Entity) {
+		let ctx = EntityContext::new(ctx, entity);
 		self.push();
 		write!(self.sink, "entity @{} (", entity.name()).unwrap();
 		self.visit_arguments(entity.inputs());
@@ -219,6 +220,7 @@ impl<'twr> Visitor for Writer<'twr> {
 		let name = self.uniquify(inst);
 		write!(self.sink, "    {} = {}", name, inst.mnemonic().as_str()).unwrap();
 		match *inst.kind() {
+			// <op> <ty> <lhs> <rhs>
 			BinaryInst(op, ref ty, ref lhs, ref rhs) => {
 				write!(self.sink, " ").unwrap();
 				self.write_ty(ty).unwrap();
@@ -226,6 +228,35 @@ impl<'twr> Visitor for Writer<'twr> {
 				self.write_value(ctx.as_context(), lhs).unwrap();
 				write!(self.sink, " ").unwrap();
 				self.write_value(ctx.as_context(), rhs).unwrap();
+			}
+
+			// call <target> (<args...>)
+			CallInst(_, ref target, ref args) => {
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), target).unwrap();
+				write!(self.sink, " (").unwrap();
+				for (arg, sep) in args.iter().zip(std::iter::once("").chain(std::iter::repeat(", "))) {
+					write!(self.sink, "{}", sep).unwrap();
+					self.write_value(ctx.as_context(), arg).unwrap();
+				}
+				write!(self.sink, ")").unwrap();
+			}
+
+			// inst <target> (<inputs...>) (<outputs...>)
+			InstanceInst(_, ref target, ref ins, ref outs) => {
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), target).unwrap();
+				write!(self.sink, " (").unwrap();
+				for (arg, sep) in ins.iter().zip(std::iter::once("").chain(std::iter::repeat(", "))) {
+					write!(self.sink, "{}", sep).unwrap();
+					self.write_value(ctx.as_context(), arg).unwrap();
+				}
+				write!(self.sink, ") (").unwrap();
+				for (arg, sep) in outs.iter().zip(std::iter::once("").chain(std::iter::repeat(", "))) {
+					write!(self.sink, "{}", sep).unwrap();
+					self.write_value(ctx.as_context(), arg).unwrap();
+				}
+				write!(self.sink, ")").unwrap();
 			}
 		}
 		write!(self.sink, "\n").unwrap();

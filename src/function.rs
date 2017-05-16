@@ -7,6 +7,7 @@ use argument::*;
 use block::*;
 use inst::*;
 use seq_body::*;
+use module::ModuleContext;
 
 
 /// A function. Sequentially executes instructions to determine a result value
@@ -102,22 +103,23 @@ impl Value for Function {
 
 
 pub struct FunctionContext<'tctx> {
-	// module: &'tctx ModuleContext,
+	module: &'tctx ModuleContext<'tctx>,
 	function: &'tctx Function,
 }
 
 impl<'tctx> FunctionContext<'tctx> {
-	pub fn new(function: &Function) -> FunctionContext {
+	pub fn new(module: &'tctx ModuleContext, function: &'tctx Function) -> FunctionContext<'tctx> {
 		FunctionContext {
+			module: module,
 			function: function,
 		}
 	}
 }
 
 impl<'tctx> Context for FunctionContext<'tctx> {
-	// fn parent(&self) -> Option<&Context> {
-	// 	Some(self.module)
-	// }
+	fn parent(&self) -> Option<&Context> {
+		Some(self.module.as_context())
+	}
 
 	fn try_value(&self, value: &ValueRef) -> Option<&Value> {
 		match *value {

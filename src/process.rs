@@ -7,6 +7,7 @@ use argument::*;
 use block::*;
 use inst::*;
 use seq_body::*;
+use module::ModuleContext;
 
 
 /// A process. Sequentially executes instructions to react to changes in input
@@ -115,22 +116,23 @@ impl Value for Process {
 
 
 pub struct ProcessContext<'tctx> {
-	// module: &'tctx ModuleContext,
+	module: &'tctx ModuleContext<'tctx>,
 	process: &'tctx Process,
 }
 
 impl<'tctx> ProcessContext<'tctx> {
-	pub fn new(process: &Process) -> ProcessContext {
+	pub fn new(module: &'tctx ModuleContext, process: &'tctx Process) -> ProcessContext<'tctx> {
 		ProcessContext {
+			module: module,
 			process: process,
 		}
 	}
 }
 
 impl<'tctx> Context for ProcessContext<'tctx> {
-	// fn parent(&self) -> Option<&Context> {
-	// 	Some(self.module)
-	// }
+	fn parent(&self) -> Option<&Context> {
+		Some(self.module.as_context())
+	}
 
 	fn try_value(&self, value: &ValueRef) -> Option<&Value> {
 		match *value {
@@ -148,13 +150,10 @@ impl<'tctx> UnitContext for ProcessContext<'tctx> {
 	}
 
 	fn argument(&self, argument: ArgumentRef) -> &Argument {
-		if let Some(arg) = self.process.ins.iter().find(|x| argument == x.as_ref()) {
-			return arg;
-		}
-		if let Some(arg) = self.process.outs.iter().find(|x| argument == x.as_ref()) {
-			return arg;
-		}
-		panic!("unknown argument");
+		self.process.ins.iter()
+			.chain(self.process.outs.iter())
+			.find(|x| argument == x.as_ref())
+			.unwrap()
 	}
 }
 
