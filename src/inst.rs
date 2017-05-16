@@ -1,10 +1,9 @@
 // Copyright (c) 2017 Fabian Schuiki
 #![allow(dead_code)]
 
-// use std::collections::HashMap;
+use std;
 use ty::*;
 use value::*;
-use block::BlockRef;
 use unit::UnitContext;
 pub use self::InstKind::*;
 
@@ -20,7 +19,7 @@ impl Inst {
 	/// Create a new instruction.
 	pub fn new(name: Option<String>, kind: InstKind) -> Inst {
 		Inst {
-			id: InstRef(ValueId::alloc()),
+			id: InstRef::new(ValueId::alloc()),
 			name: name,
 			kind: kind,
 		}
@@ -62,7 +61,6 @@ impl Value for Inst {
 	}
 }
 
-declare_ref!(InstRef, Inst);
 
 
 pub struct InstIter<'tf> {

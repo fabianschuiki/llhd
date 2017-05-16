@@ -14,7 +14,7 @@ impl Argument {
 	/// Create a new argument of the given type.
 	pub fn new(ty: Type) -> Argument {
 		Argument {
-			id: ArgumentRef(ValueId::alloc()),
+			id: ArgumentRef::new(ValueId::alloc()),
 			ty: ty,
 			name: None,
 		}
@@ -48,5 +48,3 @@ impl Value for Argument {
 		false
 	}
 }
-
-declare_ref!(ArgumentRef, Argument);

@@ -4,6 +4,7 @@ use std;
 use std::collections::HashMap;
 use block::*;
 use inst::*;
+use value::{BlockRef, InstRef};
 use util::IndirectMapIter;
 
 

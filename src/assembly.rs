@@ -11,6 +11,7 @@ use unit::*;
 use block::*;
 use value::*;
 use inst::*;
+use module::Module;
 use function::{Function, FunctionContext};
 use process::{Process, ProcessContext};
 use entity::{Entity, EntityContext};
@@ -144,6 +145,13 @@ impl<'twr> Writer<'twr> {
 }
 
 impl<'twr> Visitor for Writer<'twr> {
+	fn visit_module(&mut self, module: &Module) {
+		for (value, sep) in module.values().zip(std::iter::once("").chain(std::iter::repeat("\n"))) {
+			write!(self.sink, "{}", sep).unwrap();
+			self.visit_module_value(module, value);
+		}
+	}
+
 	fn visit_function(&mut self, func: &Function) {
 		let ctx = FunctionContext::new(func);
 		self.push();

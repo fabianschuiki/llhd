@@ -4,33 +4,89 @@
 //! Modules in LLHD encapsulate a design hierarchy and its data dependency and
 //! control flow graphs.
 
-use ty::*;
+use std;
+use std::collections::HashMap;
 use function::Function;
 use process::Process;
 use entity::Entity;
+use value::{ValueRef, FunctionRef, ProcessRef, EntityRef};
+
 
 pub struct Module {
-
+	funcs: HashMap<FunctionRef, Function>,
+	procs: HashMap<ProcessRef, Process>,
+	entities: HashMap<EntityRef, Entity>,
+	values: Vec<ValueRef>,
 }
 
 impl Module {
 	/// Create a new empty module.
 	pub fn new() -> Module {
-		Module {}
+		Module {
+			funcs: HashMap::new(),
+			procs: HashMap::new(),
+			entities: HashMap::new(),
+			values: Vec::new(),
+		}
 	}
 
-	/// Create a new function in the module.
-	pub fn add_function<N: Into<String>>(&self, name: N, ty: Type) -> Function {
-		Function::new(name.into(), ty)
+	/// Add a function to the module.
+	pub fn add_function(&mut self, func: Function) -> FunctionRef {
+		let r = func.as_ref();
+		self.funcs.insert(r, func);
+		self.values.push(r.into());
+		r
 	}
 
-	/// Create a new process in the module.
-	pub fn add_process<N: Into<String>>(&self, name: N, ty: Type) -> Process {
-		Process::new(name.into(), ty)
+	/// Add a process to the module.
+	pub fn add_process(&mut self, prok: Process) -> ProcessRef {
+		let r = prok.as_ref();
+		self.procs.insert(r, prok);
+		self.values.push(r.into());
+		r
 	}
 
-	/// Create a new entity in the module.
-	pub fn add_entity<N: Into<String>>(&self, name: N, ty: Type) -> Entity {
-		Entity::new(name.into(), ty)
+	/// Add a entity to the module.
+	pub fn add_entity(&mut self, entity: Entity) -> EntityRef {
+		let r = entity.as_ref();
+		self.entities.insert(r, entity);
+		self.values.push(r.into());
+		r
+	}
+
+	/// Get a reference to a function in the module.
+	pub fn function(&self, func: FunctionRef) -> &Function {
+		self.funcs.get(&func).unwrap()
+	}
+
+	/// Get a mutable reference to a function in the module.
+	pub fn function_mut(&mut self, func: FunctionRef) -> &mut Function {
+		self.funcs.get_mut(&func).unwrap()
+	}
+
+	/// Get a reference to a process in the module.
+	pub fn process(&self, prok: ProcessRef) -> &Process {
+		self.procs.get(&prok).unwrap()
+	}
+
+	/// Get a mutable reference to a process in the module.
+	pub fn process_mut(&mut self, prok: ProcessRef) -> &mut Process {
+		self.procs.get_mut(&prok).unwrap()
+	}
+
+	/// Get a reference to an entity in the module.
+	pub fn entity(&self, entity: EntityRef) -> &Entity {
+		self.entities.get(&entity).unwrap()
+	}
+
+	/// Get a mutable reference to an entity in the module.
+	pub fn entity_mut(&mut self, entity: EntityRef) -> &mut Entity {
+		self.entities.get_mut(&entity).unwrap()
+	}
+
+	/// Obtain an iterator over the values in the module. This includes globals,
+	/// functions, processes, and entities.
+	pub fn values(&self) -> std::slice::Iter<ValueRef> {
+		self.values.iter()
 	}
 }

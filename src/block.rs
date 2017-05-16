@@ -2,7 +2,7 @@
 
 //! This module implements basic blocks in a function or process body.
 
-// use inst::InstRef;
+use std;
 use value::*;
 use ty::*;
 use unit::*;
@@ -20,7 +20,7 @@ impl Block {
 	/// Create a new empty basic block with an optional name (aka label).
 	pub fn new(name: Option<String>) -> Block {
 		Block {
-			id: BlockRef(ValueId::alloc()),
+			id: BlockRef::new(ValueId::alloc()),
 			name: name,
 			insts: Vec::new(),
 		}
@@ -95,7 +95,6 @@ impl Value for Block {
 	}
 }
 
-declare_ref!(BlockRef, Block);
 
 
 /// A relative position of a block. Used to insert or move a block to a position

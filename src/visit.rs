@@ -4,17 +4,31 @@
 //! The visitor pattern implemented for the LLHD graph.
 
 use unit::*;
-// use value::*;
+use module::Module;
 use block::Block;
 use inst::Inst;
 use function::{Function, FunctionContext};
 use process::{Process, ProcessContext};
 use entity::{Entity, EntityContext};
+use value::ValueRef;
 use argument::Argument;
 
 
 /// A trait to implement the visitor pattern on an LLHD graph.
 pub trait Visitor {
+	fn visit_module(&mut self, module: &Module) {
+		self.walk_module(module)
+	}
+
+	fn visit_module_value(&mut self, module: &Module, value: &ValueRef) {
+		match *value {
+			ValueRef::Function(r) => self.visit_function(module.function(r)),
+			ValueRef::Process(r) => self.visit_process(module.process(r)),
+			ValueRef::Entity(r) => self.visit_entity(module.entity(r)),
+			_ => panic!("invalid value in module")
+		}
+	}
+
 	fn visit_function(&mut self, func: &Function) {
 		self.walk_function(func)
 	}
@@ -39,6 +53,13 @@ pub trait Visitor {
 	}
 
 	fn visit_inst(&mut self, ctx: &UnitContext, inst: &Inst) {
+	}
+
+
+	fn walk_module(&mut self, module: &Module) {
+		for value in module.values() {
+			self.visit_module_value(module, value);
+		}
 	}
 
 	fn walk_function(&mut self, func: &Function) {

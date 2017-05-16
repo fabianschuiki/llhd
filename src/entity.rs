@@ -14,7 +14,7 @@ use util::IndirectMapIter;
 /// to react to changes in input signals. Implements *data flow* and *timed
 /// execution*.
 pub struct Entity {
-	id: ValueId,
+	id: EntityRef,
 	global: bool,
 	name: String,
 	ty: Type,
@@ -36,7 +36,7 @@ impl Entity {
 			(in_tys.iter().map(&to_arg).collect(), out_tys.iter().map(&to_arg).collect())
 		};
 		Entity {
-			id: ValueId::alloc(),
+			id: EntityRef::new(ValueId::alloc()),
 			global: true,
 			name: name,
 			ty: ty,
@@ -45,6 +45,11 @@ impl Entity {
 			insts: HashMap::new(),
 			inst_seq: Vec::new(),
 		}
+	}
+
+	/// Obtain a reference to this entity.
+	pub fn as_ref(&self) -> EntityRef {
+		self.id
 	}
 
 	/// Get the name of the entity.

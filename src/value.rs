@@ -2,9 +2,6 @@
 
 use std;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
-use argument::ArgumentRef;
-use inst::InstRef;
-use block::BlockRef;
 use ty::Type;
 use konst::Const;
 
@@ -29,6 +26,9 @@ pub enum ValueRef {
 	Inst(InstRef),
 	Block(BlockRef),
 	Argument(ArgumentRef),
+	Function(FunctionRef),
+	Process(ProcessRef),
+	Entity(EntityRef),
 	Global,
 	Const(Const),
 }
@@ -71,10 +71,14 @@ pub const INLINE_VALUE_ID: ValueId = ValueId(0);
 /// reference to be encoded in the type, e.g. `ArgumentRef` or `InstRef`.
 macro_rules! declare_ref {
     ($name:ident, $variant:ident) => {
-    	use std;
-
     	#[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 		pub struct $name(ValueId);
+
+		impl $name {
+			pub fn new(id: ValueId) -> $name {
+				$name(id)
+			}
+		}
 
 		impl Into<ValueRef> for $name {
 			fn into(self) -> ValueRef {
@@ -101,6 +105,13 @@ macro_rules! declare_ref {
 		}
     }
 }
+
+declare_ref!(FunctionRef, Function);
+declare_ref!(ProcessRef, Process);
+declare_ref!(EntityRef, Entity);
+declare_ref!(ArgumentRef, Argument);
+declare_ref!(BlockRef, Block);
+declare_ref!(InstRef, Inst);
 
 
 /// A context is anything that can resolve the name and type of a ValueRef.

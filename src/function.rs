@@ -12,7 +12,7 @@ use seq_body::*;
 /// A function. Sequentially executes instructions to determine a result value
 /// from its inputs. Implements *control flow* and *immediate execution*.
 pub struct Function {
-	id: ValueId,
+	id: FunctionRef,
 	global: bool,
 	name: String,
 	ty: Type,
@@ -31,13 +31,18 @@ impl Function {
 			arg_tys.iter().map(|t| Argument::new(t.clone())).collect()
 		};
 		Function {
-			id: ValueId::alloc(),
+			id: FunctionRef::new(ValueId::alloc()),
 			global: true,
 			name: name,
 			ty: ty,
 			args: args,
 			body: SeqBody::new(),
 		}
+	}
+
+	/// Obtain a reference to this function.
+	pub fn as_ref(&self) -> FunctionRef {
+		self.id
 	}
 
 	/// Get the name of the function.
@@ -93,6 +98,7 @@ impl Value for Function {
 		self.global
 	}
 }
+
 
 
 pub struct FunctionContext<'tctx> {

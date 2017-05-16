@@ -12,7 +12,7 @@ use seq_body::*;
 /// A process. Sequentially executes instructions to react to changes in input
 /// signals. Implements *control flow* and *timed execution*.
 pub struct Process {
-	id: ValueId,
+	id: ProcessRef,
 	global: bool,
 	name: String,
 	ty: Type,
@@ -33,7 +33,7 @@ impl Process {
 			(in_tys.iter().map(&to_arg).collect(), out_tys.iter().map(&to_arg).collect())
 		};
 		Process {
-			id: ValueId::alloc(),
+			id: ProcessRef::new(ValueId::alloc()),
 			global: true,
 			name: name,
 			ty: ty,
@@ -41,6 +41,11 @@ impl Process {
 			outs: outs,
 			body: SeqBody::new(),
 		}
+	}
+
+	/// Obtain a reference to this process.
+	pub fn as_ref(&self) -> ProcessRef {
+		self.id
 	}
 
 	/// Get the name of the process.

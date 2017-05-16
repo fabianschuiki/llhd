@@ -1,9 +1,8 @@
 // Copyright (c) 2017 Fabian Schuiki
-#![allow(dead_code)]
 
 use block::*;
 use inst::*;
-use value::Context;
+use value::{Context, ArgumentRef, BlockRef, InstRef};
 use argument::*;
 
 
