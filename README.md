@@ -13,10 +13,9 @@ LLHD is written in Rust, but is available as a fully-featured C library for use 
 - [ ] parse assembly into in-memory representation
 - [x] create processes, entities, functions
 - [ ] integer arithmetic instructions
-- [ ] call instruction
-- [ ] return, branch, phi instructions
-- [ ] instance, signal instructions
-- [ ] wait, probe, drive instructions
+- [x] call, inst instruction
+- [ ] wait, return, branch, phi instructions
+- [ ] signal, probe, drive instructions
 - **Milestone:** can write simulator
 - [ ] attach metadata to arbitrary nodes in the graph
 - **Milestone:** can extend simulator with debugging mode
@@ -28,7 +27,7 @@ LLHD is written in Rust, but is available as a fully-featured C library for use 
 - [ ] conversion between 9-value logic, 4-value logic, and integer
 - **Milestone:** can efficiently model SystemVerilog/VHDL hardware
 - [ ] pointer type
-- [ ] alloc, dealloc, stack, load, store instructions
+- [ ] alloc, free, stack, load, store instructions
 - **Milestone:** can represent arbitrary programs
 - [ ] struct, array, vector type
 - [ ] element extraction, insertion instructions
