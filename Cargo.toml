@@ -5,3 +5,4 @@ authors = ["Fabian Schuiki <fschuiki@iis.ee.ethz.ch>"]
 
 [dependencies]
 num = "0.1"
+combine = "2.3"

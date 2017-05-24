@@ -81,6 +81,15 @@ impl TypeKind {
 			_ => panic!("as_entity called on {}", self)
 		}
 	}
+
+	/// Unwrap the type to its integer bit width, or panic if the type is not an
+	/// integer.
+	pub fn as_int(&self) -> usize {
+		match *self {
+			IntType(width) => width,
+			_ => panic!("as_int called on {}", self)
+		}
+	}
 }
 
 

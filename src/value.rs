@@ -22,6 +22,7 @@ pub trait Value {
 
 
 /// A reference to a value in a module.
+#[derive(Clone)]
 pub enum ValueRef {
 	Inst(InstRef),
 	Block(BlockRef),

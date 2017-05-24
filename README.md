@@ -9,8 +9,8 @@ LLHD is written in Rust, but is available as a fully-featured C library for use 
 
 ## Roadmap and Milestones
 
-- [ ] emit in-memory representation as assembly
-- [ ] parse assembly into in-memory representation
+- [x] emit in-memory representation as assembly
+- [x] parse assembly into in-memory representation
 - [x] create processes, entities, functions
 - [x] integer arithmetic instructions
 - [x] call, inst instruction

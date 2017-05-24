@@ -1,9 +1,6 @@
 // Copyright (c) 2017 Fabian Schuiki
 #![allow(unused_variables)]
 
-//! Facilities to emit a module as human-readable assembly, or to parse such
-//! assembly back into a module.
-
 use std;
 use visit::Visitor;
 use std::io::Write;

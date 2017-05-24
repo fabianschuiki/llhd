@@ -29,8 +29,6 @@ impl SeqBody {
 		}
 	}
 
-
-
 	/// Add a block to the body.
 	pub fn add_block(&mut self, block: Block, pos: BlockPosition) -> BlockRef {
 		let br = block.as_ref();
