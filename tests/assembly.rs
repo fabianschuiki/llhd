@@ -92,11 +92,31 @@ fn call_and_inst() {
 
 		proc @bar (i32 %a) (i32 %b) {
 		%entry:
-		    %0 = call @foo (%a, %a)
+		    call @foo (%a, %a)
 		}
 
 		entity @top (i32 %a) (i32 %b) {
-		    %0 = inst @bar (%a) (%b)
+		    inst @bar (%a) (%b)
 		}
 	"#);
 }
+
+#[test]
+fn instructions() {
+	loopback(r#"
+		func @foo (i32 %a, i32 %b, time %x) void {
+		%entry:
+		    wait %entry
+		    wait %entry for %x
+		    wait %entry, %a, %b
+		    wait %entry for %x, %a, %b
+		    ret
+		    ret i32 %a
+		    ret i32 42
+		    br label %entry
+		    br %a label %entry %entry
+		}
+	"#);
+}
+
+

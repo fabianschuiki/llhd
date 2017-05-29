@@ -13,6 +13,8 @@ pub type Type = Arc<TypeKind>;
 pub enum TypeKind {
 	/// The `void` type.
 	VoidType,
+	/// The `time` type.
+	TimeType,
 	/// Integer types like `i32`.
 	IntType(usize),
 	/// Pointer types like `i32*`.
@@ -34,6 +36,7 @@ impl std::fmt::Display for TypeKind {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match *self {
 			VoidType => write!(f, "void"),
+			TimeType => write!(f, "time"),
 			IntType(l) => write!(f, "i{}", l),
 			PointerType(ref ty) => write!(f, "{}*", ty),
 			SignalType(ref ty) => write!(f, "{}$", ty),
@@ -90,12 +93,25 @@ impl TypeKind {
 			_ => panic!("as_int called on {}", self)
 		}
 	}
+
+	/// Check if this type is a void type.
+	pub fn is_void(&self) -> bool {
+		match *self {
+			VoidType => true,
+			_ => false,
+		}
+	}
 }
 
 
 /// Create a void type.
 pub fn void_ty() -> Type {
 	Type::new(VoidType)
+}
+
+/// Create a time type.
+pub fn time_ty() -> Type {
+	Type::new(TimeType)
 }
 
 /// Create an integer type of the requested size.

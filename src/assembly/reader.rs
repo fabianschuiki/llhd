@@ -14,7 +14,7 @@ use visit::Visitor;
 use block::{Block, BlockPosition};
 use seq_body::SeqBody;
 use inst::*;
-use value::{ValueRef, Value};
+use value::{ValueRef, Value, BlockRef};
 use konst;
 use assembly::Writer;
 use ty::*;
@@ -76,6 +76,7 @@ where I: Stream<Item = char> {
 	let int = many1(digit()).map(|s: String| s.parse::<usize>().unwrap());
 	choice!(
 		string("void").map(|_| void_ty()),
+		string("time").map(|_| time_ty()),
 		token('i').with(int).map(|i| int_ty(i))
 	).parse_stream(input)
 }
@@ -100,7 +101,7 @@ where I: Stream<Item = char> {
 	let block = parser(local_name).skip(token(':')).skip(parser(eol))
 		.expected("basic block")
 		.and(env_parser(ctx, insts))
-		.map(|(name, insts)| (Block::new(Some(name)), insts));
+		.map(|(name, insts)| (ctx.declare_block(Some(name)), insts));
 	many(block).parse_stream(input)
 }
 
@@ -114,7 +115,10 @@ where I: Stream<Item = char> {
 		try(env_parser(ctx, binary_inst)),
 		try(env_parser(ctx, compare_inst)),
 		try(env_parser(ctx, call_inst)),
-		try(env_parser(ctx, instance_inst))
+		try(env_parser(ctx, instance_inst)),
+		try(env_parser(ctx, wait_inst)),
+		try(env_parser(ctx, return_inst)),
+		try(env_parser(ctx, branch_inst))
 	);
 	let named_inst = try(optional(name)).and(inst).skip(parser(eol)).map(|(name, inst)| {
 		let inst = Inst::new(name.clone(), inst);
@@ -270,6 +274,63 @@ where I: Stream<Item = char> {
 }
 
 
+/// Parse a wait instruction.
+fn wait_inst<I>(ctx: &NameTable, input: I) -> ParseResult<InstKind, I>
+where I: Stream<Item = char> {
+	(
+		lex(string("wait")).with(env_parser(ctx, inline_label)),
+		optional(
+			try(spaces().skip(lex(string("for"))))
+			.with(env_parser((ctx, &time_ty()), inline_value))
+		),
+		many(
+			try(spaces().skip(lex(token(','))))
+			.with(env_parser(ctx, inline_named_value))
+		)
+	)
+	.map(|(target, time, signals)| InstKind::WaitInst(target, time, signals))
+	.parse_stream(input)
+}
+
+
+/// Parse a return instruction.
+fn return_inst<I>(ctx: &NameTable, input: I) -> ParseResult<InstKind, I>
+where I: Stream<Item = char> {
+	string("ret")
+	.with(optional(try(
+		spaces()
+		.with(parser(ty))
+		.skip(spaces())
+		.then(|ty| parser(move |input| {
+			let (value, consumed) = env_parser((ctx, &ty), inline_value).parse_stream(input)?;
+			Ok(((ty.clone(), value), consumed))
+		}))
+	)))
+	.map(|v| match v {
+		Some((ty, value)) => InstKind::ReturnInst(ReturnKind::Value(ty, value)),
+		None => InstKind::ReturnInst(ReturnKind::Void),
+	})
+	.parse_stream(input)
+}
+
+
+/// Parse a branch instruction.
+fn branch_inst<I>(ctx: &NameTable, input: I) -> ParseResult<InstKind, I>
+where I: Stream<Item = char> {
+	lex(string("br")).with(choice!(
+		lex(string("label")).with(env_parser(ctx, inline_label))
+		.map(|v| InstKind::BranchInst(BranchKind::Uncond(v))),
+		(
+			lex(env_parser((ctx, &int_ty(1)), inline_value)).skip(lex(string("label"))),
+			lex(env_parser(ctx, inline_label)),
+			env_parser(ctx, inline_label),
+		)
+		.map(|(c,t,f)| InstKind::BranchInst(BranchKind::Cond(c, t, f)))
+	))
+	.parse_stream(input)
+}
+
+
 /// Parse an inline value.
 fn inline_value<I>((ctx, ty): (&NameTable, &Type), input: I) -> ParseResult<ValueRef, I>
 where I: Stream<Item = char> {
@@ -285,6 +346,22 @@ where I: Stream<Item = char> {
 		parser(name).map(|(g,s)| ctx.lookup(&NameKey(g,s)).0),
 		const_int.map(|value| konst::const_int(ty.as_int(), value).into())
 	).parse_stream(input)
+}
+
+
+/// Parse an inline named value, which does not require type inference.
+fn inline_named_value<I>(ctx: &NameTable, input: I) -> ParseResult<ValueRef, I>
+where I: Stream<Item = char> {
+	parser(name).map(|(g,s)| ctx.lookup(&NameKey(g,s)).0).parse_stream(input)
+}
+
+
+/// Parse an inline block reference. This is special because it creates the
+/// block if it does not yet exist, allowing for blocks to be referenced before
+/// they are declared.
+fn inline_label<I>(ctx: &NameTable, input: I) -> ParseResult<BlockRef, I>
+where I: Stream<Item = char> {
+	parser(local_name).map(|s| ctx.use_block(s)).parse_stream(input)
 }
 
 
@@ -490,17 +567,25 @@ where I: Stream<Item = char> {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct NameKey(bool, String);
 
-struct NameTable<'tp>(Option<&'tp NameTable<'tp>>, Rc<RefCell<HashMap<NameKey, (ValueRef, Type)>>>);
+struct NameTable<'tp> {
+	parent: Option<&'tp NameTable<'tp>>,
+	values: Rc<RefCell<HashMap<NameKey, (ValueRef, Type)>>>,
+	blocks: Rc<RefCell<HashMap<String, Block>>>,
+}
 
 impl<'tp> NameTable<'tp> {
 	/// Create a new name table with an optional parent.
 	pub fn new(parent: Option<&'tp NameTable<'tp>>) -> NameTable<'tp> {
-		NameTable(parent, Rc::new(RefCell::new(HashMap::new())))
+		NameTable {
+			parent: parent,
+			values: Rc::new(RefCell::new(HashMap::new())),
+			blocks: Rc::new(RefCell::new(HashMap::new())),
+		}
 	}
 
 	/// Insert a name into the table.
 	pub fn insert(&self, key: NameKey, value: ValueRef, ty: Type) {
-		let mut map = self.1.borrow_mut();
+		let mut map = self.values.borrow_mut();
 		if map.insert(key, (value, ty)).is_some() {
 			panic!("name redefined");
 		}
@@ -508,33 +593,59 @@ impl<'tp> NameTable<'tp> {
 
 	/// Lookup a name in the table.
 	pub fn lookup(&self, key: &NameKey) -> (ValueRef, Type) {
-		if let Some(v) = self.1.borrow().get(key) {
+		if let Some(v) = self.values.borrow().get(key) {
 			return v.clone();
 		}
-		if let Some(p) = self.0 {
+		if let Some(p) = self.parent {
 			return p.lookup(key);
 		}
 		panic!("name {}{} has not been declared", if key.0 { "@" } else { "%" }, key.1);
 	}
-}
 
+	/// Lookup a block in the table. This will create the block if it does not
+	/// exist, allowing blocks to be used before they are declared.
+	pub fn use_block(&self, name: String) -> BlockRef {
+		// Return any value with this name that is already listed.
+		let k = NameKey(false, name);
+		match self.values.borrow().get(&k) {
+			Some(&(ValueRef::Block(r), _)) => return r,
+			Some(_) => panic!("%{} does not refer to a block", k.1),
+			None => ()
+		}
+		let name = k.1;
 
-#[test]
-fn parse_test() {
-	let text = r#"
-func @foo (i32 %a, i32 %b) void {
-%entry:
-    %0 = add i32 %a %b
-    %y = add i32 %0 42
-%schmentry:
-    %1 = cmp eq i32 %y %a
-}
+		// Otherwise create a new block, add it to the map of values and blocks,
+		// and return a reference to it.
+		let blk = Block::new(Some(name.clone()));
+		let r = blk.as_ref();
+		if self.blocks.borrow_mut().insert(name.clone(), blk).is_some() {
+			panic!("block redefined");
+		}
+		if self.values.borrow_mut().insert(NameKey(false, name), (r.into(), void_ty())).is_some() {
+			panic!("block redefined");
+		}
+		r
+	}
 
-func @bar (i32) void {
-%well:
-}
-	"#;
-	let (module, _) = parser(module).parse(State::new(text)).unwrap();
-	let stdout = std::io::stdout();
-	Writer::new(&mut stdout.lock()).visit_module(&module);
+	/// Create a new block with the given name, or take ownership of the block
+	/// if it was previously allocated by `use_block`.
+	pub fn declare_block(&self, name: Option<String>) -> Block {
+		let name = match name {
+			Some(n) => n,
+			None => return Block::new(None),
+		};
+
+		// If the block has already been declared, return it.
+		if let Some(block) = self.blocks.borrow_mut().remove(&name) {
+			return block;
+		}
+
+		// Otherwise create one, add it to the name table, and return it.
+		let blk = Block::new(Some(name.clone()));
+		let r: ValueRef = blk.as_ref().into();
+		if self.values.borrow_mut().insert(NameKey(false, name), (r.clone(), void_ty())).is_some() {
+			panic!("block redefined");
+		}
+		blk
+	}
 }

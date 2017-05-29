@@ -215,7 +215,11 @@ impl<'twr> Visitor for Writer<'twr> {
 
 	fn visit_inst(&mut self, ctx: &UnitContext, inst: &Inst) {
 		let name = self.uniquify(inst);
-		write!(self.sink, "    {} = {}", name, inst.mnemonic().as_str()).unwrap();
+		write!(self.sink, "    ").unwrap();
+		if !inst.ty().is_void() {
+			write!(self.sink, "{} = ", name).unwrap();
+		}
+		write!(self.sink, "{}", inst.mnemonic().as_str()).unwrap();
 		match *inst.kind() {
 			// <op> <ty> <arg>
 			UnaryInst(op, ref ty, ref arg) => {
@@ -272,6 +276,47 @@ impl<'twr> Visitor for Writer<'twr> {
 					self.write_value(ctx.as_context(), arg).unwrap();
 				}
 				write!(self.sink, ")").unwrap();
+			}
+
+			// wait <target> [for <time>] (<signals...>)
+			WaitInst(target, ref time, ref signals) => {
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), &target.into()).unwrap();
+				if let Some(ref time) = *time {
+					write!(self.sink, " for ").unwrap();
+					self.write_value(ctx.as_context(), time).unwrap();
+				}
+				for signal in signals {
+					write!(self.sink, ", ").unwrap();
+					self.write_value(ctx.as_context(), signal).unwrap();
+				}
+			}
+
+			// ret
+			ReturnInst(ReturnKind::Void) => (),
+
+			// ret <type> <value>
+			ReturnInst(ReturnKind::Value(ref ty, ref value)) => {
+				write!(self.sink, " ").unwrap();
+				self.write_ty(ty).unwrap();
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), value).unwrap();
+			}
+
+			// br label <target>
+			BranchInst(BranchKind::Uncond(target)) => {
+				write!(self.sink, " label ").unwrap();
+				self.write_value(ctx.as_context(), &target.into()).unwrap();
+			}
+
+			// br <cond> label <ifTrue> <ifFalse>
+			BranchInst(BranchKind::Cond(ref cond, if_true, if_false)) => {
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), cond).unwrap();
+				write!(self.sink, " label ").unwrap();
+				self.write_value(ctx.as_context(), &if_true.into()).unwrap();
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), &if_false.into()).unwrap();
 			}
 		}
 		write!(self.sink, "\n").unwrap();

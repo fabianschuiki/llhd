@@ -117,6 +117,9 @@ pub enum InstKind {
 	CompareInst(CompareOp, Type, ValueRef, ValueRef),
 	CallInst(Type, ValueRef, Vec<ValueRef>),
 	InstanceInst(Type, ValueRef, Vec<ValueRef>, Vec<ValueRef>),
+	WaitInst(BlockRef, Option<ValueRef>, Vec<ValueRef>),
+	ReturnInst(ReturnKind),
+	BranchInst(BranchKind),
 }
 
 impl InstKind {
@@ -127,7 +130,7 @@ impl InstKind {
 			BinaryInst(_, ref ty, _, _) => ty.clone(),
 			CompareInst(..) => int_ty(1),
 			CallInst(ref ty, _, _) => ty.as_func().1.clone(),
-			InstanceInst(..) => void_ty(),
+			InstanceInst(..) | WaitInst(..) | ReturnInst(_) | BranchInst(_) => void_ty(),
 		}
 	}
 
@@ -138,6 +141,9 @@ impl InstKind {
 			CompareInst(..) => Mnemonic::Cmp,
 			CallInst(..) => Mnemonic::Call,
 			InstanceInst(..) => Mnemonic::Inst,
+			WaitInst(..) => Mnemonic::Wait,
+			ReturnInst(..) => Mnemonic::Ret,
+			BranchInst(..) => Mnemonic::Br,
 		}
 	}
 }
@@ -239,6 +245,27 @@ impl CompareOp {
 }
 
 
+/// The return instruction flavor.
+#[derive(Clone)]
+pub enum ReturnKind {
+	/// Return from a void function.
+	Void,
+	/// Return from a non-void function.
+	Value(Type, ValueRef),
+}
+
+
+/// The branch flavor.
+#[derive(Clone)]
+pub enum BranchKind {
+	/// An unconditional branch to a block.
+	Uncond(BlockRef),
+	/// A conditional branch, transferring control to one block if the condition
+	/// is 1, or another block if it is 0.
+	Cond(ValueRef, BlockRef, BlockRef),
+}
+
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Mnemonic {
 	Unary(UnaryMnemonic),
@@ -246,6 +273,10 @@ pub enum Mnemonic {
 	Call,
 	Inst,
 	Cmp,
+	Wait,
+	Ret,
+	Br,
+	Phi,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -277,6 +308,10 @@ impl Mnemonic {
 			Mnemonic::Call => "call",
 			Mnemonic::Inst => "inst",
 			Mnemonic::Cmp => "cmp",
+			Mnemonic::Wait => "wait",
+			Mnemonic::Ret => "ret",
+			Mnemonic::Br => "br",
+			Mnemonic::Phi => "phi",
 		}
 	}
 }
