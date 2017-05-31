@@ -18,7 +18,7 @@ use value::{ValueRef, Value, BlockRef};
 use konst;
 use assembly::Writer;
 use ty::*;
-use num::BigInt;
+use num::{BigInt, BigRational};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -71,7 +71,7 @@ where I: Stream<Item = char> {
 /// Parse the part of a name after the '@' or '%' introducing it.
 fn inner_name<I>(input: I) -> ParseResult<String, I>
 where I: Stream<Item = char> {
-	many1(alpha_num()).parse_stream(input)
+	many1(alpha_num().or(token('_'))).parse_stream(input)
 }
 
 /// Parse a global or local name, e.g. `@foo` or `%bar` respectively.
@@ -93,12 +93,27 @@ where I: Stream<Item = char> {
 /// Parse a type.
 fn ty<I>(input: I) -> ParseResult<Type, I>
 where I: Stream<Item = char> {
+	enum Suffix {
+		Pointer,
+		Signal,
+	}
+
 	let int = many1(digit()).map(|s: String| s.parse::<usize>().unwrap());
 	choice!(
 		string("void").map(|_| void_ty()),
 		string("time").map(|_| time_ty()),
 		token('i').with(int).map(|i| int_ty(i))
-	).parse_stream(input)
+	)
+	.and(optional(choice!(
+		token('*').map(|_| Suffix::Pointer),
+		token('$').map(|_| Suffix::Signal)
+	)))
+	.map(|(ty,suffix)| match suffix {
+		Some(Suffix::Pointer) => pointer_ty(ty),
+		Some(Suffix::Signal) => signal_ty(ty),
+		None => ty,
+	})
+	.parse_stream(input)
 }
 
 
@@ -388,7 +403,7 @@ where I: Stream<Item = char> {
 		.parse_stream(input)?;
 
 	let ((value, delay), consumed) = consumed.combine(|input|
-		env_parser((ctx, &ty), inline_value)
+		env_parser((ctx, ty.as_signal()), inline_value)
 		.and(optional(try(
 			parser(whitespace).with(env_parser((ctx, &time_ty()), inline_value))
 		)))
@@ -401,7 +416,10 @@ where I: Stream<Item = char> {
 /// Parse an inline value.
 fn inline_value<I>((ctx, ty): (&NameTable, &Type), input: I) -> ParseResult<ValueRef, I>
 where I: Stream<Item = char> {
-	let const_int = (
+	use num::Zero;
+
+	// Parser for numeric constants (including an optional leading '-').
+	let const_int = ||(
 		optional(token('-')),
 		many1(digit()).map(|s: String| BigInt::parse_bytes(s.as_bytes(), 10).unwrap())
 	).map(|(sign, value)| match sign {
@@ -409,9 +427,69 @@ where I: Stream<Item = char> {
 		None => value
 	});
 
+	// Parser for SI prefices.
+	let si_prefix = optional(choice!(
+		token('a').map(|_| -18),
+		token('f').map(|_| -15),
+		token('p').map(|_| -12),
+		token('n').map(|_| -9),
+		token('u').map(|_| -6),
+		token('m').map(|_| -3),
+		// 0
+		token('k').map(|_| 3),
+		token('M').map(|_| 6),
+		token('G').map(|_| 9),
+		token('T').map(|_| 12),
+		token('P').map(|_| 15),
+		token('E').map(|_| 18)
+	)).map(|v: Option<isize>| v.unwrap_or(0));
+
+	// Parser for time constants.
+	let const_time = (
+		(
+			optional(token('-')),
+			many1(digit()),
+			optional(token('.').with(many1(digit()))),
+			si_prefix.skip(token('s')),
+		).map(|(sign, int, frac, scale): (_, String, Option<String>, isize)| {
+			// Concatenate the integer and fraction part into one number.
+			let mut numer = int;
+			if let Some(ref frac) = frac {
+				numer.push_str(frac);
+			}
+			let mut denom = String::from("1");
+
+			// Calculate the exponent the numerator needs to be multiplied with
+			// to arrive at the correct value. If it is negative, i.e. the order
+			// of magnitude needs to be reduced, append that amount of zeros to
+			// the denominator. If it is positive, i.e. the order of magnitude
+			// needs to be increased, append that amount of zeros to the
+			// numerator.
+			let zeros = scale - frac.map(|s| s.len() as isize).unwrap_or(0);
+			if zeros < 0 {
+				denom.extend(std::iter::repeat('0').take(-zeros as usize))
+			} else if zeros > 0 {
+				numer.extend(std::iter::repeat('0').take(zeros as usize))
+			}
+
+			// Convert the values to BigInt and combine them into a rational
+			// number.
+			let numer = BigInt::parse_bytes(numer.as_bytes(), 10).unwrap();
+			let denom = BigInt::parse_bytes(denom.as_bytes(), 10).unwrap();
+			let v = BigRational::new(numer, denom);
+			match sign {
+				Some(_) => -v,
+				None => v,
+			}
+		}),
+		optional(try(const_int().skip(token('d')))).map(|v| v.unwrap_or(BigInt::zero())),
+		optional(try(const_int().skip(token('e')))).map(|v| v.unwrap_or(BigInt::zero())),
+	);
+
 	choice!(
 		parser(name).map(|(g,s)| ctx.lookup(&NameKey(g,s)).0),
-		const_int.map(|value| konst::const_int(ty.as_int(), value).into())
+		try(const_time).map(|(time, delta, epsilon)| konst::const_time(time, delta, epsilon).into()),
+		try(const_int()).map(|value| konst::const_int(ty.as_int(), value).into())
 	).parse_stream(input)
 }
 
@@ -714,5 +792,44 @@ impl<'tp> NameTable<'tp> {
 			panic!("block redefined");
 		}
 		blk
+	}
+}
+
+
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	fn parse_inline_value(input: &str) -> ValueRef {
+		let ctx = NameTable::new(None);
+		env_parser((&ctx, &void_ty()), inline_value)
+			.parse(State::new(input))
+			.unwrap().0
+	}
+
+	#[test]
+	fn const_time() {
+		let parse = |input| parse_inline_value(input).into_const().as_time().clone();
+		assert_eq!(parse("1ns"), konst::ConstTime::new(
+			(1.into(), (1000000000 as isize).into()).into(),
+			0.into(),
+			0.into(),
+		));
+		assert_eq!(parse("-2ns"), konst::ConstTime::new(
+			((-2).into(), (1000000000 as isize).into()).into(),
+			0.into(),
+			0.into(),
+		));
+		assert_eq!(parse("3.45ns"), konst::ConstTime::new(
+			(345.into(), (100000000000 as isize).into()).into(),
+			0.into(),
+			0.into(),
+		));
+		assert_eq!(parse("-4.56ns"), konst::ConstTime::new(
+			((-456).into(), (100000000000 as isize).into()).into(),
+			0.into(),
+			0.into(),
+		));
 	}
 }

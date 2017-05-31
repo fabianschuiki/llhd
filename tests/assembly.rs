@@ -119,7 +119,24 @@ fn instructions() {
 		    %a1 = sig i8 42
 		    %a2 = prb %a0
 		    drv %a0 %a
+		    drv %a0 42
 		    drv %a1 %b %x
+		}
+	"#);
+}
+
+#[test]
+fn regression_underscore_names() {
+	parse(r#"
+		proc @four_pulses () () {
+		}
+	"#);
+}
+
+#[test]
+fn regression_signal_type() {
+	parse(r#"
+		proc @foo (i1$ %a) (i1$ %b) {
 		}
 	"#);
 }

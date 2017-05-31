@@ -128,6 +128,11 @@ pub fn int_ty(size: usize) -> Type {
 	Type::new(IntType(size))
 }
 
+/// Create a pointer type with the requested data type.
+pub fn pointer_ty(ty: Type) -> Type {
+	Type::new(PointerType(ty))
+}
+
 /// Create a signal type with the requested data type.
 pub fn signal_ty(ty: Type) -> Type {
 	Type::new(SignalType(ty))

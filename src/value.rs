@@ -34,6 +34,40 @@ pub enum ValueRef {
 	Const(Const),
 }
 
+impl ValueRef {
+	/// Return a static string describing the nature of the value reference.
+	fn desc(&self) -> &'static str {
+		match *self {
+			ValueRef::Inst(_)     => "ValueRef::Inst",
+			ValueRef::Block(_)    => "ValueRef::Block",
+			ValueRef::Argument(_) => "ValueRef::Argument",
+			ValueRef::Function(_) => "ValueRef::Function",
+			ValueRef::Process(_)  => "ValueRef::Process",
+			ValueRef::Entity(_)   => "ValueRef::Entity",
+			ValueRef::Global      => "ValueRef::Global",
+			ValueRef::Const(_)    => "ValueRef::Const",
+		}
+	}
+
+	/// Convert this value reference into the constant it contains. Panics if
+	/// the value reference does not contain a constant.
+	pub fn into_const(self) -> Const {
+		match self {
+			ValueRef::Const(k) => k,
+			x => panic!("into_const called on {}", x.desc())
+		}
+	}
+
+	/// Unwrap and return a reference to the constant represented by this value
+	/// reference. Panics if the value reference does not contain a constant.
+	pub fn as_const(&self) -> &Const {
+		match *self {
+			ValueRef::Const(ref k) => k,
+			_ => panic!("as_const called on {}", self.desc())
+		}
+	}
+}
+
 
 /// A unique identifier assigned to each value node in the graph. These IDs are
 /// wrapped specific ValueRef variants to refer to values in the graph.

@@ -135,8 +135,20 @@ impl<'twr> Writer<'twr> {
 
 	/// Write a constant value.
 	fn write_const(&mut self, konst: &ConstKind) -> std::io::Result<()> {
+		use num::Zero;
+
 		match *konst {
 			ConstKind::Int(ref k) => write!(self.sink, "{}", k.value()),
+			ConstKind::Time(ref k) => {
+				write!(self.sink, "{}s", k.time())?;
+				if !k.delta().is_zero() {
+					write!(self.sink, " {}d", k.delta())?;
+				}
+				if !k.epsilon().is_zero() {
+					write!(self.sink, " {}e", k.epsilon())?;
+				}
+				Ok(())
+			}
 		}
 	}
 }

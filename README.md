@@ -4,7 +4,7 @@
 
 Welcome to the Low Level Hardware Description language. LLHD aims at introducing a simple and open interface between the compiler frontends of hardware description languages and backend design tools. This allows tools such as simulators and synthesizers to focus on their respective task, rather than implementing a compiler for each supported language. With the compiler detached from the tools, LLHD enables innovation to happen on the language front. New approaches can be implemented without the need for support by established tools.
 
-LLHD is written in Rust, but is available as a fully-featured C library for use in virtually any environment.
+LLHD is written in Rust, but will eventually be available as a fully-featured C library for use in virtually any environment.
 
 
 ## Roadmap and Milestones
@@ -16,6 +16,7 @@ LLHD is written in Rust, but is available as a fully-featured C library for use 
 - [x] call, inst instruction
 - [x] wait, return, branch
 - [x] signal, probe, drive instructions
+- [x] time literals
 - [ ] validate types and terminators in module
 - **Milestone:** can write simulator
 - [ ] attach metadata to arbitrary nodes in the graph
@@ -27,7 +28,7 @@ LLHD is written in Rust, but is available as a fully-featured C library for use 
 - [ ] logic arithmetic instructions
 - [ ] conversion between 9-value logic, 4-value logic, and integer
 - **Milestone:** can efficiently model SystemVerilog/VHDL hardware
-- [ ] pointer type
+- [x] pointer type
 - [ ] alloc, free, stack, load, store instructions
 - **Milestone:** can represent arbitrary programs
 - [ ] struct, array, vector type
