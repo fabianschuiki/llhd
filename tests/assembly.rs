@@ -115,8 +115,11 @@ fn instructions() {
 		    ret i32 42
 		    br label %entry
 		    br %a label %entry %entry
+		    %a0 = sig i8
+		    %a1 = sig i8 42
+		    %a2 = prb %a0
+		    drv %a0 %a
+		    drv %a1 %b %x
 		}
 	"#);
 }
-
-

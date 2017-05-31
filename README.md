@@ -15,7 +15,7 @@ LLHD is written in Rust, but is available as a fully-featured C library for use 
 - [x] integer arithmetic instructions
 - [x] call, inst instruction
 - [x] wait, return, branch
-- [ ] signal, probe, drive instructions
+- [x] signal, probe, drive instructions
 - [ ] validate types and terminators in module
 - **Milestone:** can write simulator
 - [ ] attach metadata to arbitrary nodes in the graph

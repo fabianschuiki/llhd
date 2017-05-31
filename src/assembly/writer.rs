@@ -318,6 +318,34 @@ impl<'twr> Visitor for Writer<'twr> {
 				write!(self.sink, " ").unwrap();
 				self.write_value(ctx.as_context(), &if_false.into()).unwrap();
 			}
+
+			// sig <type> [<init>]
+			SignalInst(ref ty, ref init) => {
+				write!(self.sink, " ").unwrap();
+				self.write_ty(ty).unwrap();
+				if let Some(ref init) = *init {
+					write!(self.sink, " ").unwrap();
+					self.write_value(ctx.as_context(), init).unwrap();
+				}
+			}
+
+			// prb <signal>
+			ProbeInst(_, ref signal) => {
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), signal).unwrap();
+			}
+
+			// drv <signal> <value> [<delay>]
+			DriveInst(ref signal, ref value, ref delay) => {
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), signal).unwrap();
+				write!(self.sink, " ").unwrap();
+				self.write_value(ctx.as_context(), value).unwrap();
+				if let Some(ref delay) = *delay {
+					write!(self.sink, " ").unwrap();
+					self.write_value(ctx.as_context(), delay).unwrap();
+				}
+			}
 		}
 		write!(self.sink, "\n").unwrap();
 	}

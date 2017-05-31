@@ -94,6 +94,15 @@ impl TypeKind {
 		}
 	}
 
+	/// Unwrap the type to its signal data type, or panic if the type is not an
+	/// integer. E.g. yields the `i8` type in `i8$`.
+	pub fn as_signal(&self) -> &Type {
+		match *self {
+			SignalType(ref ty) => ty,
+			_ => panic!("as_signal called on {}", self)
+		}
+	}
+
 	/// Check if this type is a void type.
 	pub fn is_void(&self) -> bool {
 		match *self {
@@ -117,6 +126,11 @@ pub fn time_ty() -> Type {
 /// Create an integer type of the requested size.
 pub fn int_ty(size: usize) -> Type {
 	Type::new(IntType(size))
+}
+
+/// Create a signal type with the requested data type.
+pub fn signal_ty(ty: Type) -> Type {
+	Type::new(SignalType(ty))
 }
 
 /// Create a function type with the given arguments and return type.

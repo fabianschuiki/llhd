@@ -3,7 +3,7 @@
 
 use std;
 use combine::*;
-use combine::char::{alpha_num, digit, string, spaces, space, Spaces};
+use combine::char::{alpha_num, digit, string, space, Spaces};
 use combine::combinator::{Skip, Expected, FnParser};
 use module::Module;
 use function::Function;
@@ -23,6 +23,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Display;
+use std::marker::PhantomData;
 
 
 pub fn parse_str(input: &str) -> Result<Module, String> {
@@ -34,14 +35,33 @@ pub fn parse_str(input: &str) -> Result<Module, String> {
 
 
 /// Applies the inner parser `p` and skips any trailing spaces.
-fn lex<P>(p: P) -> Skip<P, Spaces<P::Input>>
+fn lex<P>(p: P) -> Skip<P, Whitespace<P::Input>>
 where P: Parser, P::Input: Stream<Item = char> {
-    p.skip(spaces())
+    p.skip(Whitespace{ _marker: PhantomData })
+}
+
+struct Whitespace<I> {
+	_marker: PhantomData<I>,
+}
+
+impl<I: Stream<Item = char>> Parser for Whitespace<I> {
+	type Input = I;
+	type Output = ();
+
+	fn parse_stream(&mut self, input: I) -> ParseResult<(),I> {
+		whitespace(input)
+	}
+}
+
+/// Skip spaces (not line breaks).
+fn whitespace<I>(input: I) -> ParseResult<(), I>
+where I: Stream<Item = char> {
+	skip_many(satisfy(|c: char| c.is_whitespace() && c != '\n')).parse_stream(input)
 }
 
 
 /// Skip whitespace and comments.
-fn whitespace<I>(input: I) -> ParseResult<(), I>
+fn leading_whitespace<I>(input: I) -> ParseResult<(), I>
 where I: Stream<Item = char> {
 	let comment = (token(';'), skip_many(satisfy(|c| c != '\n'))).map(|_| ());
 	skip_many(skip_many1(space()).or(comment)).parse_stream(input)
@@ -86,10 +106,10 @@ where I: Stream<Item = char> {
 fn eol<I>(input: I) -> ParseResult<(), I>
 where I: Stream<Item = char> {
 	let comment = (token(';'), skip_many(satisfy(|c| c != '\n'))).map(|_| ());
-	skip_many(satisfy(|c: char| c.is_whitespace() && c != '\n'))
+	parser(whitespace)
 		.skip(optional(comment))
 		.skip(token('\n').map(|_| ()).or(eof()))
-		.skip(parser(whitespace))
+		.skip(parser(leading_whitespace))
 		.expected("end of line")
 		.parse_stream(input)
 }
@@ -109,7 +129,7 @@ where I: Stream<Item = char> {
 /// Parse a sequence of instructions.
 fn insts<I>(ctx: &NameTable, input: I) -> ParseResult<Vec<Inst>, I>
 where I: Stream<Item = char> {
-	let name = parser(local_name).skip(spaces()).skip(token('=')).skip(spaces());
+	let name = parser(local_name).skip(parser(whitespace)).skip(token('=')).skip(parser(whitespace));
 	let inst = choice!(
 		try(env_parser(ctx, unary_inst)),
 		try(env_parser(ctx, binary_inst)),
@@ -118,7 +138,10 @@ where I: Stream<Item = char> {
 		try(env_parser(ctx, instance_inst)),
 		try(env_parser(ctx, wait_inst)),
 		try(env_parser(ctx, return_inst)),
-		try(env_parser(ctx, branch_inst))
+		try(env_parser(ctx, branch_inst)),
+		try(env_parser(ctx, signal_inst)),
+		try(env_parser(ctx, probe_inst)),
+		try(env_parser(ctx, drive_inst))
 	);
 	let named_inst = try(optional(name)).and(inst).skip(parser(eol)).map(|(name, inst)| {
 		let inst = Inst::new(name.clone(), inst);
@@ -280,12 +303,13 @@ where I: Stream<Item = char> {
 	(
 		lex(string("wait")).with(env_parser(ctx, inline_label)),
 		optional(
-			try(spaces().skip(lex(string("for"))))
+			try(parser(whitespace).skip(lex(string("for"))))
 			.with(env_parser((ctx, &time_ty()), inline_value))
 		),
 		many(
-			try(spaces().skip(lex(token(','))))
+			try(parser(whitespace).skip(lex(token(','))))
 			.with(env_parser(ctx, inline_named_value))
+			.map(|(v,_)| v)
 		)
 	)
 	.map(|(target, time, signals)| InstKind::WaitInst(target, time, signals))
@@ -298,9 +322,9 @@ fn return_inst<I>(ctx: &NameTable, input: I) -> ParseResult<InstKind, I>
 where I: Stream<Item = char> {
 	string("ret")
 	.with(optional(try(
-		spaces()
+		parser(whitespace)
 		.with(parser(ty))
-		.skip(spaces())
+		.skip(parser(whitespace))
 		.then(|ty| parser(move |input| {
 			let (value, consumed) = env_parser((ctx, &ty), inline_value).parse_stream(input)?;
 			Ok(((ty.clone(), value), consumed))
@@ -331,6 +355,49 @@ where I: Stream<Item = char> {
 }
 
 
+/// Parse a signal instruction.
+fn signal_inst<I>(ctx: &NameTable, input: I) -> ParseResult<InstKind, I>
+where I: Stream<Item = char> {
+	lex(string("sig"))
+	.with(parser(ty))
+	.then(|ty| parser(move |input| {
+		let (value, consumed) = optional(try(parser(whitespace).with(
+			env_parser((ctx, &ty), inline_value)))).parse_stream(input)?;
+		Ok(((ty.clone(), value), consumed))
+	}))
+	.map(|(ty,init)| InstKind::SignalInst(ty, init))
+	.parse_stream(input)
+}
+
+
+/// Parse a probe instruction.
+fn probe_inst<I>(ctx: &NameTable, input: I) -> ParseResult<InstKind, I>
+where I: Stream<Item = char> {
+	let ((signal, ty), consumed) = lex(string("prb"))
+		.with(env_parser(ctx, inline_named_value))
+		.parse_stream(input)?;
+	Ok((InstKind::ProbeInst(ty.as_signal().clone(), signal), consumed))
+}
+
+
+/// Parse a drive instruction.
+fn drive_inst<I>(ctx: &NameTable, input: I) -> ParseResult<InstKind, I>
+where I: Stream<Item = char> {
+	let ((signal, ty), consumed) = lex(string("drv"))
+		.with(lex(env_parser(ctx, inline_named_value)))
+		.parse_stream(input)?;
+
+	let ((value, delay), consumed) = consumed.combine(|input|
+		env_parser((ctx, &ty), inline_value)
+		.and(optional(try(
+			parser(whitespace).with(env_parser((ctx, &time_ty()), inline_value))
+		)))
+		.parse_stream(input))?;
+
+	Ok((InstKind::DriveInst(signal, value, delay), consumed))
+}
+
+
 /// Parse an inline value.
 fn inline_value<I>((ctx, ty): (&NameTable, &Type), input: I) -> ParseResult<ValueRef, I>
 where I: Stream<Item = char> {
@@ -350,9 +417,9 @@ where I: Stream<Item = char> {
 
 
 /// Parse an inline named value, which does not require type inference.
-fn inline_named_value<I>(ctx: &NameTable, input: I) -> ParseResult<ValueRef, I>
+fn inline_named_value<I>(ctx: &NameTable, input: I) -> ParseResult<(ValueRef, Type), I>
 where I: Stream<Item = char> {
-	parser(name).map(|(g,s)| ctx.lookup(&NameKey(g,s)).0).parse_stream(input)
+	parser(name).map(|(g,s)| ctx.lookup(&NameKey(g,s))).parse_stream(input)
 }
 
 
@@ -372,7 +439,7 @@ where I: Stream<Item = char> {
 		lex(token('(')),
 		token(')'),
 		sep_by(
-			parser(ty).skip(spaces()).and(optional(parser(local_name))),
+			parser(ty).skip(parser(whitespace)).and(optional(parser(local_name))),
 			lex(token(','))
 		),
 	).parse_stream(input)
@@ -549,7 +616,7 @@ where I: Stream<Item = char> {
 		env_parser(&tbl, entity).map(|e| Thing::Entity(e))
 	);
 
-	(parser(whitespace), many::<Vec<_>, _>(thing), eof())
+	(parser(leading_whitespace), many::<Vec<_>, _>(thing), eof())
 		.parse_stream(input)
 		.map(|((_, things, _),r)|{
 			for thing in things {

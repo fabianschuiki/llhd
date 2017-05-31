@@ -7,6 +7,7 @@ use value::*;
 use unit::UnitContext;
 pub use self::InstKind::*;
 
+#[derive(Debug)]
 pub struct Inst {
 	id: InstRef,
 	/// An optional name for the instruction used when emitting assembly.
@@ -111,6 +112,7 @@ pub enum InstPosition {
 }
 
 
+#[derive(Debug)]
 pub enum InstKind {
 	UnaryInst(UnaryOp, Type, ValueRef),
 	BinaryInst(BinaryOp, Type, ValueRef, ValueRef),
@@ -120,6 +122,9 @@ pub enum InstKind {
 	WaitInst(BlockRef, Option<ValueRef>, Vec<ValueRef>),
 	ReturnInst(ReturnKind),
 	BranchInst(BranchKind),
+	SignalInst(Type, Option<ValueRef>),
+	ProbeInst(Type, ValueRef),
+	DriveInst(ValueRef, ValueRef, Option<ValueRef>),
 }
 
 impl InstKind {
@@ -131,6 +136,9 @@ impl InstKind {
 			CompareInst(..) => int_ty(1),
 			CallInst(ref ty, _, _) => ty.as_func().1.clone(),
 			InstanceInst(..) | WaitInst(..) | ReturnInst(_) | BranchInst(_) => void_ty(),
+			SignalInst(ref ty, _) => signal_ty(ty.clone()),
+			ProbeInst(ref ty, _) => ty.clone(),
+			DriveInst(..) => void_ty(),
 		}
 	}
 
@@ -144,12 +152,15 @@ impl InstKind {
 			WaitInst(..) => Mnemonic::Wait,
 			ReturnInst(..) => Mnemonic::Ret,
 			BranchInst(..) => Mnemonic::Br,
+			SignalInst(..) => Mnemonic::Sig,
+			ProbeInst(..) => Mnemonic::Prb,
+			DriveInst(..) => Mnemonic::Drv,
 		}
 	}
 }
 
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum UnaryOp {
 	Not,
 }
@@ -163,7 +174,7 @@ impl UnaryOp {
 }
 
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BinaryOp {
 	Add,
 	Sub,
@@ -197,7 +208,7 @@ impl BinaryOp {
 }
 
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CompareOp {
 	Eq,
 	Neq,
@@ -246,7 +257,7 @@ impl CompareOp {
 
 
 /// The return instruction flavor.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum ReturnKind {
 	/// Return from a void function.
 	Void,
@@ -256,7 +267,7 @@ pub enum ReturnKind {
 
 
 /// The branch flavor.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum BranchKind {
 	/// An unconditional branch to a block.
 	Uncond(BlockRef),
@@ -277,6 +288,9 @@ pub enum Mnemonic {
 	Ret,
 	Br,
 	Phi,
+	Sig,
+	Prb,
+	Drv,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -312,6 +326,9 @@ impl Mnemonic {
 			Mnemonic::Ret => "ret",
 			Mnemonic::Br => "br",
 			Mnemonic::Phi => "phi",
+			Mnemonic::Sig => "sig",
+			Mnemonic::Prb => "prb",
+			Mnemonic::Drv => "drv",
 		}
 	}
 }

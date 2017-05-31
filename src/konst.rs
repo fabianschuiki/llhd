@@ -15,6 +15,7 @@ impl Into<ValueRef> for Const {
 	}
 }
 
+#[derive(Debug)]
 pub enum ConstKind {
 	Int(ConstInt),
 }
@@ -37,6 +38,7 @@ impl Value for ConstKind {
 
 
 /// A constant integer value.
+#[derive(Debug)]
 pub struct ConstInt {
 	width: usize,
 	value: BigInt,
