@@ -25,10 +25,12 @@ pub mod util;
 pub mod konst;
 pub mod seq_body;
 
-pub use module::Module;
-pub use value::ValueRef;
+pub use module::{Module, ModuleContext};
+pub use value::{ValueRef, ValueId, Value};
 pub use ty::*;
 pub use konst::*;
 pub use function::Function;
 pub use process::Process;
 pub use entity::Entity;
+pub use argument::Argument;
+pub use block::Block;

@@ -66,6 +66,20 @@ impl ValueRef {
 			_ => panic!("as_const called on {}", self.desc())
 		}
 	}
+
+	/// Obtain the ID of the value this reference points to, or None if the
+	/// value has no ID (e.g. if it is a constant).
+	pub fn id(&self) -> Option<ValueId> {
+		match *self {
+			ValueRef::Inst(InstRef(id)) |
+			ValueRef::Block(BlockRef(id)) |
+			ValueRef::Argument(ArgumentRef(id)) |
+			ValueRef::Function(FunctionRef(id)) |
+			ValueRef::Process(ProcessRef(id)) |
+			ValueRef::Entity(EntityRef(id)) => Some(id),
+			_ => None
+		}
+	}
 }
 
 
@@ -83,6 +97,12 @@ impl ValueId {
 	/// Get the underlying integer ID.
 	pub fn as_usize(self) -> usize {
 		self.0
+	}
+}
+
+impl std::fmt::Debug for ValueId {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "{}", self)
 	}
 }
 
