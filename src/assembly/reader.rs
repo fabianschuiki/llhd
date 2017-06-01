@@ -799,7 +799,12 @@ impl<'tp> NameTable<'tp> {
 
 #[cfg(test)]
 mod test {
-	use super::*;
+	use super::NameTable;
+	use super::inline_value;
+	use value::ValueRef;
+	use combine::{env_parser, State, Parser};
+	use ty::*;
+	use konst;
 
 	fn parse_inline_value(input: &str) -> ValueRef {
 		let ctx = NameTable::new(None);
