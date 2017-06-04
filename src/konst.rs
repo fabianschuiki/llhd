@@ -97,7 +97,7 @@ impl ConstInt {
 
 
 /// A constant time value.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialOrd, Ord, PartialEq, Eq)]
 pub struct ConstTime {
 	time: BigRational,
 	delta: BigInt,
@@ -145,14 +145,19 @@ impl std::fmt::Debug for ConstTime {
 impl std::fmt::Display for ConstTime {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		use num::Zero;
+		let mut any = false;
 		if !self.time.is_zero() || self.is_zero() {
 			write!(f, "{}s", self.time)?;
+			any = true;
 		}
 		if !self.delta.is_zero() {
-			write!(f, " {}d", self.delta)?;
+			if any { write!(f, " ")? };
+			write!(f, "{}d", self.delta)?;
+			any = true;
 		}
 		if !self.epsilon.is_zero() {
-			write!(f, " {}e", self.epsilon)?;
+			if any { write!(f, " ")? };
+			write!(f, "{}e", self.epsilon)?;
 		}
 		Ok(())
 	}
