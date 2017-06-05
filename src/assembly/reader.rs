@@ -281,7 +281,14 @@ where I: Stream<Item = char> {
 		let (in_tys, out_tys) = ty.as_entity();
 
 		let mut arg_tys = in_tys.into_iter();
-		let (ins, consumed) = consumed.combine(|input| between(
+		let (ins, consumed) = consumed.combine(|input| try(
+				// This try block is necessary since otherwise in the case of an
+				// empty argument list, the inline_value parser would be applied
+				// to see if any arguments are present. However, this causes a
+				// panic since arg_tys is empty. Therefore we have to treat the
+				// empty argument list as a special case.
+				lex(token('(')).and(lex(token(')'))).map(|_| Vec::new())
+			).or(between(
 			lex(token('(')),
 			lex(token(')')),
 			sep_by(
@@ -291,10 +298,17 @@ where I: Stream<Item = char> {
 				}),
 				lex(token(','))
 			),
-		).parse_stream(input))?;
+		)).parse_stream(input))?;
 
 		let mut arg_tys = out_tys.into_iter();
-		let (outs, consumed) = consumed.combine(|input| between(
+		let (outs, consumed) = consumed.combine(|input| try(
+				// This try block is necessary since otherwise in the case of an
+				// empty argument list, the inline_value parser would be applied
+				// to see if any arguments are present. However, this causes a
+				// panic since arg_tys is empty. Therefore we have to treat the
+				// empty argument list as a special case.
+				lex(token('(')).and(lex(token(')'))).map(|_| Vec::new())
+			).or(between(
 			lex(token('(')),
 			token(')'),
 			sep_by(
@@ -304,7 +318,7 @@ where I: Stream<Item = char> {
 				}),
 				lex(token(','))
 			),
-		).parse_stream(input))?;
+		)).parse_stream(input))?;
 
 		(ins, outs, consumed)
 	};
