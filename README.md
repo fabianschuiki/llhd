@@ -18,7 +18,7 @@ LLHD is written in Rust, but will eventually be available as a fully-featured C 
 - [x] signal, probe, drive instructions
 - [x] time literals
 - [ ] global values, convention to declare "main"
-- [ ] halt instruction
+- [x] halt instruction
 - [ ] validate types and terminators in module
 - **Milestone:** can write simulator
 - [ ] attach metadata to arbitrary nodes in the graph

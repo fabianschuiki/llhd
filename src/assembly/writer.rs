@@ -358,6 +358,9 @@ impl<'twr> Visitor for Writer<'twr> {
 					self.write_value(ctx.as_context(), delay).unwrap();
 				}
 			}
+
+			// halt
+			HaltInst => (),
 		}
 		write!(self.sink, "\n").unwrap();
 	}

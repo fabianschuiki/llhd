@@ -121,6 +121,7 @@ fn instructions() {
 		    drv %a0 %a
 		    drv %a0 42
 		    drv %a1 %b %x
+		    halt
 		}
 	"#);
 }

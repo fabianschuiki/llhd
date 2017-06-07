@@ -125,6 +125,7 @@ pub enum InstKind {
 	SignalInst(Type, Option<ValueRef>),
 	ProbeInst(Type, ValueRef),
 	DriveInst(ValueRef, ValueRef, Option<ValueRef>),
+	HaltInst,
 }
 
 impl InstKind {
@@ -139,6 +140,7 @@ impl InstKind {
 			SignalInst(ref ty, _) => signal_ty(ty.clone()),
 			ProbeInst(ref ty, _) => ty.clone(),
 			DriveInst(..) => void_ty(),
+			HaltInst => void_ty(),
 		}
 	}
 
@@ -155,6 +157,7 @@ impl InstKind {
 			SignalInst(..) => Mnemonic::Sig,
 			ProbeInst(..) => Mnemonic::Prb,
 			DriveInst(..) => Mnemonic::Drv,
+			HaltInst => Mnemonic::Halt,
 		}
 	}
 }
@@ -291,6 +294,7 @@ pub enum Mnemonic {
 	Sig,
 	Prb,
 	Drv,
+	Halt,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -329,6 +333,7 @@ impl Mnemonic {
 			Mnemonic::Sig => "sig",
 			Mnemonic::Prb => "prb",
 			Mnemonic::Drv => "drv",
+			Mnemonic::Halt => "halt",
 		}
 	}
 }

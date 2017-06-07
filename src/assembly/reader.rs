@@ -156,7 +156,8 @@ where I: Stream<Item = char> {
 		try(env_parser(ctx, branch_inst)),
 		try(env_parser(ctx, signal_inst)),
 		try(env_parser(ctx, probe_inst)),
-		try(env_parser(ctx, drive_inst))
+		try(env_parser(ctx, drive_inst)),
+		try(string("halt").map(|_| InstKind::HaltInst))
 	);
 	let named_inst = try(optional(name)).and(inst).skip(parser(eol)).map(|(name, inst)| {
 		let inst = Inst::new(name.clone(), inst);
