@@ -4,3 +4,4 @@
 !.travis.yml
 /Cargo.lock
 /target
+/docs/_build
