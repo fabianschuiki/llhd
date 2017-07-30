@@ -110,3 +110,28 @@ Details
 * ``icmp [eq|ne|sgt|sge|slt|sle|ugt|uge|ult|ule]``
 * ``lcmp [eq|ne]``
 * ``ext [zero|sign]``
+
+
+Instructions
+------------
+
+
+Branch Instruction
+^^^^^^^^^^^^^^^^^^
+
+::
+
+    br <cond> label <iftrue> <iffalse>  ; conditional form
+    br label <target>                   ; unconditional form
+
+The branch instruction has return type ``void``. The condition ``cond`` is of type ``i1``, the branch destinations ``iftrue``, ``iffalse``, and ``target`` are of type ``label``.
+
+.. code-block:: llhd
+
+    Test:
+        %cmp = cmp eq i32 %a, %b
+        br %cmp label %IfEqual %IfUnequal
+    IfEqual:
+        ret i32 1
+    IfUnequal:
+        ret i32 0
