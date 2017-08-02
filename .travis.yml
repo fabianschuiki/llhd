@@ -18,7 +18,7 @@ script:
 
 after_success:
   - |
-    [ ! $TRAVIS_BRANCH = rust ] ||
+    [ ! $TRAVIS_BRANCH = master ] ||
     [ ! $TRAVIS_RUST_VERSION = stable ] ||
     ci/doc-upload.sh
 
