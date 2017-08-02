@@ -239,3 +239,47 @@ Assertion Statement:
         free %message
         free %image
     AssertPass:
+
+Simple Signal Assignment:
+
+.. code-block:: vhdl
+
+    -- Inertial delay:
+    -- The following three assignments are equivalent to each other:
+    Output_pin <= Input_pin after 10 ns; -- (A)
+    Output_pin <= inertial Input_pin after 10 ns; -- (A)
+    Output_pin <= reject 10 ns inertial Input_pin after 10 ns; -- (A)
+    -- Assignments with a pulse rejection limit less than the time expression:
+    Output_pin <= reject 5 ns inertial Input_pin after 10 ns; -- (B)
+    Output_pin <= reject 5 ns inertial Input_pin after 10 ns,
+                                       not Input_pin after 20 ns; -- (B)
+
+    -- Transport delay:
+    Output_pin <= transport Input_pin after 10 ns; -- (C)
+    Output_pin <= transport Input_pin after 10 ns,
+                            not Input_pin after 20 ns; -- (D)
+    -- Their equivalent assignments:
+    Output_pin <= reject 0 ns inertial Input_pin after 10 ns; -- (C)
+    Output_pin <= reject 0 ns inertial Input_pin after 10 ns,
+                                       not Input_pin after 20 ns; -- (D)
+
+.. code-block:: llhd
+
+    %Output_pin = sig l8
+    %Input_pin = sig l8
+
+    ; (A)
+    %0 = probe i8 %Input_pin
+    drive i8 %Output_pin clear 0ns, 10ns %0
+    ; (B)
+    %0 = probe i8$ %Input_pin
+    %1 = not i8 %0
+    drive i8 %Output_pin clear 5ns, 10ns %0
+    drive i8 %Output_pin clear 5ns, 10ns %0, 20ns %1
+    ; (C)
+    %0 = probe i8$ %Input_pin
+    drive i8 %Output_pin clear 10ns, 10ns %0
+    ; (D)
+    %0 = probe i8$ %Input_pin
+    %1 = not i8 %0
+    drive i8 %Output_pin clear 10ns, 10ns %0, 20ns %1
