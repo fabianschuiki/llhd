@@ -115,6 +115,25 @@ Details
 Instructions
 ------------
 
+Control Flow
+~~~~~~~~~~~~
+
+Wait Instruction
+^^^^^^^^^^^^^^^^
+
+::
+
+    wait <resume> (<signal>, ...) [until <timeout>]
+
+The wait instruction has return type ``void``. The resume destination ``resume`` is of type ``label``. The ``timeout`` is of type ``time``. This instruction suspends the execution of the current process until activity occurs on one of the ``signals``, or the absolute time ``timeout`` has been reached. Execution then resumes at ``resume``.
+
+.. code-block:: llhd
+
+    Wait:
+        %A = sig i3
+        wait %Resume (%A)
+    Resume:
+
 
 Branch Instruction
 ^^^^^^^^^^^^^^^^^^
@@ -135,3 +154,26 @@ The branch instruction has return type ``void``. The condition ``cond`` is of ty
         ret i32 1
     IfUnequal:
         ret i32 0
+
+
+Call Instruction
+^^^^^^^^^^^^^^^^
+
+::
+
+    <retval> = call <retty> <func> (<argty> <arg>, ...)
+
+The **call** instruction represents a simple function call.
+
+#. ``retval``: The value returned by the function. Omitted if it returns ``void``.
+#. ``retty``: The type of the call instruction itself, and also the type of the return value.
+#. ``func``: The function to be called. Must be of type ``retty (argty, ...)``.
+#. ``argty``: The type of the first argument.
+#. ``arg``: The first argument.
+
+The call instruction is used to transfer control flow to the specified function. The function's arguments are bound to the values provided in the call. A return instruction in the function causes control flow to resume after the call. The call yields the function's return value.
+
+.. code-block:: llhd
+
+    decl func i16 @MyFunc (i32, i8, n2)
+    %return_value = call void @MyFunc (i32 42, i8 128, n2 0)

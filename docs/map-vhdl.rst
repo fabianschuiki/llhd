@@ -149,7 +149,7 @@ File Declarations:
     @str = const [9 x i8] "test.dat"
     @READ_MODE = const n2 0
     @WRITE_MODE = const n2 1
-    decl func @FILE_OPEN (i32*, i8*, n2) void
+    decl func void @FILE_OPEN (i32*, i8*, n2)
 
     %F1 = var i32
     %F2 = var i32
@@ -269,17 +269,64 @@ Simple Signal Assignment:
     %Input_pin = sig l8
 
     ; (A)
-    %0 = probe i8 %Input_pin
-    drive i8 %Output_pin clear 0ns, 10ns %0
+    %0 = probe l8 %Input_pin
+    drive l8 %Output_pin clear 0ns, 10ns %0
     ; (B)
-    %0 = probe i8$ %Input_pin
-    %1 = not i8 %0
-    drive i8 %Output_pin clear 5ns, 10ns %0
-    drive i8 %Output_pin clear 5ns, 10ns %0, 20ns %1
+    %0 = probe l8$ %Input_pin
+    %1 = not l8 %0
+    drive l8 %Output_pin clear 5ns, 10ns %0
+    drive l8 %Output_pin clear 5ns, 10ns %0, 20ns %1
     ; (C)
-    %0 = probe i8$ %Input_pin
-    drive i8 %Output_pin clear 10ns, 10ns %0
+    %0 = probe l8$ %Input_pin
+    drive l8 %Output_pin clear 10ns, 10ns %0
     ; (D)
-    %0 = probe i8$ %Input_pin
-    %1 = not i8 %0
-    drive i8 %Output_pin clear 10ns, 10ns %0, 20ns %1
+    %0 = probe l8$ %Input_pin
+    %1 = not l8 %0
+    drive l8 %Output_pin clear 10ns, 10ns %0, 20ns %1
+
+Conditional Signal Assignment:
+
+.. code-block:: vhdl
+
+    S <= unaffected when A = 42 else A after Buffer_Delay;
+
+.. code-block:: llhd
+
+    %S = sig i8
+    %A = sig i8
+    %Buffer_Delay = const time 10ns
+
+        %0 = probe i8 %A
+        %1 = cmp eq i8 %0 42
+        br %1 label %Drive %Skip
+    Drive:
+        drive i8 %S clear 0ns, %Buffer_Delay %0
+    Skip:
+
+Concurrent Procedure Call:
+
+.. code-block:: vhdl
+
+    -- A concurrent procedure call statement. (A)
+    CheckTiming (tPLH, tPHL, Clk, D, Q);
+    -- The equivalent process. (B)
+    process
+    begin
+        CheckTiming (tPLH, tPHL, Clk, D, Q);
+        wait on Clk, D, Q;
+    end process;
+
+.. code-block:: llhd
+
+    decl func void @CheckTiming (time, time, l1$, l8$, l8$)
+    @tPLH = const time 5ns
+    @tPHL = const time 4ns
+    %Clk = sig l1
+    %D = sig l8
+    %Q = sig l8
+
+    proc %proc0 (l1$ %Clk, l8$ %D, l8$ %Q) {
+    entry:
+        call void @CheckTiming (@tPLH, @tPHL, %Clk, %D, %Q)
+        wait %entry (%Clk, %D, %Q)
+    }
