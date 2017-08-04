@@ -10,6 +10,7 @@ Types
 ``label``        Basic block.
 ``time``         Simulation time.
 ``iN``           Integer of N bits.
+``nN``           Enumerated type of N values.
 ``lN``           Logic type with 9 possible values ``UX01ZWLH-`` (see IEEE 1164)
 ``sN``           Strong logic type with 4 possible values ``01ZX`` (see IEEE 1800)
 ``T*``           Pointer to value of type T.
@@ -18,6 +19,22 @@ Types
 ``{T0,T1,…}``    Struct containing fields of types T0, T1, etc.
 ``T (T0,T1,…)``  Function returning value T, taking arguments of type T0, T1, etc.
 ===============  ====
+
+
+Names
+-----
+
+===========  ====
+**Global Visibility**
+-----------------
+``@<name>``  Global name.  Visible in the symbol table of the module.
+``!<name>``  Metadata name. Visible in the symbol table of the module.
+**Local Visibility**
+-----------------
+``%<name>``  Local name. Not visible beyond the scope of the module or section it is declared in.
+``!<int>``   Temporary local metadata name.
+``%<int>``   Temporary local name.
+===========  ====
 
 
 Constants
@@ -148,7 +165,7 @@ The branch instruction has return type ``void``. The condition ``cond`` is of ty
 .. code-block:: llhd
 
     Test:
-        %cmp = cmp eq i32 %a, %b
+        %cmp = cmp eq i32 %a %b
         br %cmp label %IfEqual %IfUnequal
     IfEqual:
         ret i32 1

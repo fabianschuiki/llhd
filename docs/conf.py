@@ -44,14 +44,14 @@ class LLHDLexer(RegexLexer):
 			(r'\s+', Text),
 			(r';.*?$', Comment.Single),
 			(r'[=]', Operator),
-			(r'[()\[\]{},.]', Punctuation),
-			(r'[%@]([0-9a-zA-Z_.$]|\\[0-9a-fA-F]{2})+', Name),
+			(r'[%@!]([0-9a-zA-Z_.$]|\\[0-9a-fA-F]{2})+', Name),
 			(r'([0-9a-zA-Z_.$]|\\[0-9a-fA-F]{2})+:', Name.Label),
 			(r'[ilsn][0-9]+|void|metadata|label|time|\$|\*', Keyword.Type),
 			(words("const type func proc entity decl call inst wait br drive probe add sub mul div mod rem cmp alloc free var sig not and or xor now ret laod store".split(), suffix=r'\b'), Keyword),
-			(r'[0-9]+(\.[0-9]+)?([pnum]?s)', Number.Time),
+			(r'[0-9]+(\.[0-9]+)?([afpnum]?s)', Number.Time),
 			(r'[0-9]+', Number.Integer),
 			(r'[a-zA-Z_]', Text),
+			(r'[!()\[\]{},.]', Punctuation),
 		]
 	}
 
