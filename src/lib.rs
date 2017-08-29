@@ -24,6 +24,7 @@ pub mod visit;
 pub mod util;
 pub mod konst;
 pub mod seq_body;
+pub mod opt;
 
 pub use module::{Module, ModuleContext};
 pub use value::{ValueRef, ValueId, Value};
