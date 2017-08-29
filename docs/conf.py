@@ -30,7 +30,7 @@ html_theme = 'sphinx_rtd_theme'
 # Define a custom pygments lexer for LLHD.
 import re
 from pygments.lexer import RegexLexer, words
-from pygments.token import Keyword, Name, Text, Comment, Operator, Number, Punctuation
+from pygments.token import Keyword, Name, Text, Comment, Operator, Number, Punctuation, String
 from sphinx.highlighting import lexers
 
 class LLHDLexer(RegexLexer):
@@ -47,10 +47,11 @@ class LLHDLexer(RegexLexer):
 			(r'[%@!]([0-9a-zA-Z_.$]|\\[0-9a-fA-F]{2})+', Name),
 			(r'([0-9a-zA-Z_.$]|\\[0-9a-fA-F]{2})+:', Name.Label),
 			(r'[ilsn][0-9]+|void|metadata|label|time|\$|\*', Keyword.Type),
-			(words("const type func proc entity decl call inst wait br drive probe add sub mul div mod rem cmp alloc free var sig not and or xor now ret laod store".split(), suffix=r'\b'), Keyword),
-			(r'[0-9]+(\.[0-9]+)?([afpnum]?s)', Number.Time),
-			(r'[0-9]+', Number.Integer),
+			(words("const type func proc entity decl call inst wait br drive probe add sub mul div cmp alloc free var sig not and or xor now ret laod store".split(), suffix=r'\b'), Keyword),
+			(r'[+-]?[0-9]+(\.[0-9]+)?([afpnum]?s)', Number.Time),
+			(r'[+-]?[0-9]+', Number.Integer),
 			(r'[a-zA-Z_]', Text),
+			(r'"[^"]*"', String),
 			(r'[!()\[\]{},.]', Punctuation),
 		]
 	}

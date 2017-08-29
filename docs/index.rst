@@ -7,7 +7,12 @@ This is the documentation for LLHD, the Low Level Hardware Description language.
 .. _repository: https://github.com/fabianschuiki/llhd
 
 .. toctree::
-   :maxdepth: 2
+   :caption: Language Reference
 
    language
+   inst
+
+.. toctree::
+   :caption: Application Examples
+
    map-vhdl

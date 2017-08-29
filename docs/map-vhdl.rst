@@ -212,7 +212,7 @@ Wait Statement:
 
         ; (E,F)
         wait %bb6
-    %bb6:
+    bb6:
 
 Assertion Statement:
 
