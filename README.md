@@ -1,11 +1,14 @@
 # llhd
 
 [![Build Status](https://travis-ci.org/fabianschuiki/llhd.svg?branch=rust)](https://travis-ci.org/fabianschuiki/llhd)
-[![Documentation Status](https://readthedocs.org/projects/llhd/badge/?version=latest)](http://llhd.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/llhd/badge/?version=latest)](https://llhd.readthedocs.io/en/latest/?badge=latest)
 
-Welcome to the Low Level Hardware Description language. LLHD aims at introducing a simple and open interface between the compiler frontends of hardware description languages and backend design tools. This allows tools such as simulators and synthesizers to focus on their respective task, rather than implementing a compiler for each supported language. With the compiler detached from the tools, LLHD enables innovation to happen on the language front. New approaches can be implemented without the need for support by established tools.
+Welcome to the Low Level Hardware Description language. LLHD aims at introducing a simple and open interface between the compiler frontends of hardware description languages and backend design tools. This allows tools such as simulators and synthesizers to focus on their respective task, rather than implementing a compiler for each supported language. With the compiler detached from the tools, LLHD enables innovation to happen on the language front. Refer to the following documentation:
 
-LLHD is written in Rust, but will eventually be available as a fully-featured C library for use in virtually any environment.
+- [Language Reference](https://llhd.readthedocs.io/)
+- [API Documentation](https://fabianschuiki.github.io/llhd/)
+
+LLHD is written in [Rust](https://www.rust-lang.org/). Upon stabilization, a C interface will be added to the library, allowing it to be used from virtually every other programming language.
 
 
 ## Roadmap and Milestones
