@@ -19,6 +19,8 @@ pub enum TypeKind {
 	TimeType,
 	/// Integer types like `i32`.
 	IntType(usize),
+	/// Enumerated types like `n42`.
+	EnumType(usize),
 	/// Pointer types like `i32*`.
 	PointerType(Type),
 	/// Signal types like `i32$`.
@@ -40,6 +42,7 @@ impl std::fmt::Display for TypeKind {
 			VoidType => write!(f, "void"),
 			TimeType => write!(f, "time"),
 			IntType(l) => write!(f, "i{}", l),
+			EnumType(l) => write!(f, "n{}", l),
 			PointerType(ref ty) => write!(f, "{}*", ty),
 			SignalType(ref ty) => write!(f, "{}$", ty),
 			VectorType(l, ref ty) => write!(f, "<{} x {}>", l, ty),
@@ -91,8 +94,17 @@ impl TypeKind {
 	/// integer.
 	pub fn as_int(&self) -> usize {
 		match *self {
-			IntType(width) => width,
+			IntType(size) => size,
 			_ => panic!("as_int called on {}", self)
+		}
+	}
+
+	/// Unwrap the type to its number of enumerated states, or panic if the type
+	/// is not an enum.
+	pub fn as_enum(&self) -> usize {
+		match *self {
+			EnumType(size) => size,
+			_ => panic!("as_enum called on {}", self)
 		}
 	}
 
@@ -128,6 +140,11 @@ pub fn time_ty() -> Type {
 /// Create an integer type of the requested size.
 pub fn int_ty(size: usize) -> Type {
 	Type::new(IntType(size))
+}
+
+/// Create an enum type of the requested size.
+pub fn enum_ty(size: usize) -> Type {
+	Type::new(EnumType(size))
 }
 
 /// Create a pointer type with the requested data type.

@@ -98,11 +98,12 @@ where I: Stream<Item = char> {
 		Signal,
 	}
 
-	let int = many1(digit()).map(|s: String| s.parse::<usize>().unwrap());
+	let int = |input| many1(digit()).map(|s: String| s.parse::<usize>().unwrap()).parse_stream(input);
 	choice!(
 		string("void").map(|_| void_ty()),
 		string("time").map(|_| time_ty()),
-		token('i').with(int).map(|i| int_ty(i))
+		token('i').with(parser(&int)).map(|i| int_ty(i)),
+		token('n').with(parser(&int)).map(|i| enum_ty(i))
 	)
 	.and(optional(choice!(
 		token('*').map(|_| Suffix::Pointer),
@@ -817,7 +818,7 @@ mod test {
 	use super::NameTable;
 	use super::inline_value;
 	use value::ValueRef;
-	use combine::{env_parser, State, Parser};
+	use combine::{parser, env_parser, State, Parser};
 	use ty::*;
 	use konst;
 
@@ -859,6 +860,7 @@ mod test {
 		assert_eq!(parse("void"), void_ty());
 		assert_eq!(parse("time"), time_ty());
 		assert_eq!(parse("i8"), int_ty(8));
+		assert_eq!(parse("n42"), enum_ty(42));
 		assert_eq!(parse("i32*"), pointer_ty(int_ty(32)));
 		assert_eq!(parse("i32$"), signal_ty(int_ty(32)));
 		// assert_eq!(parse("<42 x i8>"), vector_ty(42, int_ty(8)));
