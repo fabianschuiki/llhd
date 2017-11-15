@@ -9,7 +9,9 @@ use util::write_implode;
 
 pub type Type = Arc<TypeKind>;
 
-#[derive(Debug)]
+
+/// The different kinds of types.
+#[derive(Debug, PartialEq, Eq)]
 pub enum TypeKind {
 	/// The `void` type.
 	VoidType,

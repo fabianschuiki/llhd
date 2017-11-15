@@ -852,4 +852,18 @@ mod test {
 			0.into(),
 		));
 	}
+
+	#[test]
+	fn types() {
+		let parse = |input| parser(super::ty).parse(State::new(input)).unwrap().0;
+		assert_eq!(parse("void"), void_ty());
+		assert_eq!(parse("time"), time_ty());
+		assert_eq!(parse("i8"), int_ty(8));
+		assert_eq!(parse("i32*"), pointer_ty(int_ty(32)));
+		assert_eq!(parse("i32$"), signal_ty(int_ty(32)));
+		// assert_eq!(parse("<42 x i8>"), vector_ty(42, int_ty(8)));
+		// assert_eq!(parse("{void, time, i8}"), struct_ty(vec![void_ty(), time_ty(), int_ty(8)]));
+		// assert_eq!(parse("(i8, time) void}"), func_ty(vec![int_ty(8), time_ty()], void_ty()));
+		// assert_eq!(parse("(i8$; i42$)"), entity_ty(vec![signal_ty(int_ty(8))], vec![signal_ty(int_ty(42))]));
+	}
 }
