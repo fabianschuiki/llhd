@@ -30,6 +30,7 @@ pub use module::{Module, ModuleContext};
 pub use value::{ValueRef, ValueId, Value};
 pub use ty::*;
 pub use konst::*;
+pub use inst::*;
 pub use function::{Function, FunctionContext};
 pub use process::{Process, ProcessContext};
 pub use entity::{Entity, EntityContext};
