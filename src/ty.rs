@@ -157,6 +157,17 @@ pub fn signal_ty(ty: Type) -> Type {
 	Type::new(SignalType(ty))
 }
 
+/// Create a vector type. `size` is the number of elements in the vector, and
+/// `ty` the type of each individual element.
+pub fn vector_ty(size: usize, ty: Type) -> Type {
+	Type::new(VectorType(size, ty))
+}
+
+/// Create a struct type. `fields` is an list of types, one for each field.
+pub fn struct_ty(fields: Vec<Type>) -> Type {
+	Type::new(StructType(fields))
+}
+
 /// Create a function type with the given arguments and return type.
 pub fn func_ty(args: Vec<Type>, ret: Type) -> Type {
 	Type::new(FuncType(args, ret))
