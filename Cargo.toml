@@ -4,7 +4,6 @@ version = "0.1.0"
 authors = ["Fabian Schuiki <fschuiki@iis.ee.ethz.ch>"]
 
 description = "A Low Level Hardware Description that acts as a foundation for building hardware design tools."
-documentation = "https://fabianschuiki.github.io/llhd"
 repository = "https://github.com/fabianschuiki/llhd"
 readme = "README.md"
 license = "Apache-2.0 OR MIT"
