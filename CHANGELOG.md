@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+- Make `visit` module private.
+- Export `visit::Visitor` directly as `llhd::Visitor`.
+
 ## 0.1.0 - 2018-02-27
 ### Added
 - Initial release

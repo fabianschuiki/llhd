@@ -20,7 +20,7 @@ pub mod opt;
 pub mod process;
 pub mod seq_body;
 pub mod util;
-pub mod visit;
+mod visit;
 
 pub use crate::{
     argument::Argument,
@@ -34,4 +34,5 @@ pub use crate::{
     ty::*,
     unit::UnitContext,
     value::{Value, ValueId, ValueRef},
+    visit::Visitor,
 };
