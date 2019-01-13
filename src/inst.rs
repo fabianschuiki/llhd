@@ -2,10 +2,7 @@
 #![allow(dead_code)]
 
 pub use self::InstKind::*;
-use std;
-use crate::ty::*;
-use crate::unit::UnitContext;
-use crate::value::*;
+use crate::{ty::*, unit::UnitContext, value::*};
 
 #[derive(Debug)]
 pub struct Inst {
@@ -108,6 +105,7 @@ pub enum InstPosition {
     BlockEnd(BlockRef),
 }
 
+/// The different forms an instruction can take.
 #[derive(Debug)]
 pub enum InstKind {
     UnaryInst(UnaryOp, Type, ValueRef),
@@ -154,6 +152,14 @@ impl InstKind {
             ProbeInst(..) => Mnemonic::Prb,
             DriveInst(..) => Mnemonic::Drv,
             HaltInst => Mnemonic::Halt,
+        }
+    }
+
+    /// Check if this is an instantiation instruction.
+    pub fn is_instance(&self) -> bool {
+        match *self {
+            InstanceInst(..) => true,
+            _ => false,
         }
     }
 }
