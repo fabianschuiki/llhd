@@ -3,10 +3,6 @@
 //! The Low Level Hardware Description language. This library provides tools to
 //! create, modify, store, and load LLHD graphs.
 
-#[macro_use]
-extern crate combine;
-extern crate num;
-
 pub mod module;
 pub mod ty;
 #[macro_use]
@@ -26,14 +22,16 @@ pub mod seq_body;
 pub mod util;
 pub mod visit;
 
-pub use argument::Argument;
-pub use block::Block;
-pub use entity::{Entity, EntityContext};
-pub use function::{Function, FunctionContext};
-pub use inst::*;
-pub use konst::*;
-pub use module::{Module, ModuleContext};
-pub use process::{Process, ProcessContext};
-pub use ty::*;
-pub use unit::UnitContext;
-pub use value::{Value, ValueId, ValueRef};
+pub use crate::{
+    argument::Argument,
+    block::Block,
+    entity::{Entity, EntityContext},
+    function::{Function, FunctionContext},
+    inst::*,
+    konst::*,
+    module::{Module, ModuleContext},
+    process::{Process, ProcessContext},
+    ty::*,
+    unit::UnitContext,
+    value::{Value, ValueId, ValueRef},
+};

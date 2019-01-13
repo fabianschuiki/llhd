@@ -2,6 +2,7 @@
 name = "llhd"
 version = "0.1.0"
 authors = ["Fabian Schuiki <fschuiki@iis.ee.ethz.ch>"]
+edition = "2018"
 
 description = "A Low Level Hardware Description that acts as a foundation for building hardware design tools."
 repository = "https://github.com/fabianschuiki/llhd"

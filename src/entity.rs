@@ -1,14 +1,14 @@
 // Copyright (c) 2017 Fabian Schuiki
 
-use argument::*;
-use inst::*;
-use module::ModuleContext;
+use crate::argument::*;
+use crate::inst::*;
+use crate::module::ModuleContext;
 use std;
 use std::collections::HashMap;
-use ty::*;
-use unit::*;
-use util::IndirectMapIter;
-use value::*;
+use crate::ty::*;
+use crate::unit::*;
+use crate::util::IndirectMapIter;
+use crate::value::*;
 
 /// An entity. Describes through its instructions the data dependencies in order
 /// to react to changes in input signals. Implements *data flow* and *timed

@@ -1,22 +1,22 @@
 // Copyright (c) 2017 Fabian Schuiki
 #![allow(unused_variables)]
 
-use argument::*;
-use block::*;
-use entity::{Entity, EntityContext};
-use function::{Function, FunctionContext};
-use inst::*;
-use konst::*;
-use module::{Module, ModuleContext};
-use process::{Process, ProcessContext};
+use crate::argument::*;
+use crate::block::*;
+use crate::entity::{Entity, EntityContext};
+use crate::function::{Function, FunctionContext};
+use crate::inst::*;
+use crate::konst::*;
+use crate::module::{Module, ModuleContext};
+use crate::process::{Process, ProcessContext};
 use std;
 use std::collections::HashMap;
 use std::io::Write;
 use std::rc::Rc;
-use ty::*;
-use unit::*;
-use value::*;
-use visit::Visitor;
+use crate::ty::*;
+use crate::unit::*;
+use crate::value::*;
+use crate::visit::Visitor;
 
 /// Emits a module as human-readable assembly code that can be parsed again
 /// later.

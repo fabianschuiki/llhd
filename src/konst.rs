@@ -5,8 +5,8 @@
 use num::{BigInt, BigRational};
 use std;
 use std::sync::Arc;
-use ty::*;
-use value::*;
+use crate::ty::*;
+use crate::value::*;
 
 pub type Const = Arc<ConstKind>;
 

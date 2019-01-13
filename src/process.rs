@@ -1,13 +1,13 @@
 // Copyright (c) 2017 Fabian Schuiki
 
-use argument::*;
-use block::*;
-use inst::*;
-use module::ModuleContext;
-use seq_body::*;
-use ty::*;
-use unit::*;
-use value::*;
+use crate::argument::*;
+use crate::block::*;
+use crate::inst::*;
+use crate::module::ModuleContext;
+use crate::seq_body::*;
+use crate::ty::*;
+use crate::unit::*;
+use crate::value::*;
 
 /// A process. Sequentially executes instructions to react to changes in input
 /// signals. Implements *control flow* and *timed execution*.

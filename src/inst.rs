@@ -3,9 +3,9 @@
 
 pub use self::InstKind::*;
 use std;
-use ty::*;
-use unit::UnitContext;
-use value::*;
+use crate::ty::*;
+use crate::unit::UnitContext;
+use crate::value::*;
 
 #[derive(Debug)]
 pub struct Inst {

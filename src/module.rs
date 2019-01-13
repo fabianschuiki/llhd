@@ -4,12 +4,12 @@
 //! Modules in LLHD encapsulate a design hierarchy and its data dependency and
 //! control flow graphs.
 
-use entity::Entity;
-use function::Function;
-use process::Process;
+use crate::entity::Entity;
+use crate::function::Function;
+use crate::process::Process;
 use std;
 use std::collections::HashMap;
-use value::{Context, EntityRef, FunctionRef, ProcessRef, Value, ValueRef};
+use crate::value::{Context, EntityRef, FunctionRef, ProcessRef, Value, ValueRef};
 
 pub struct Module {
     funcs: HashMap<FunctionRef, Function>,

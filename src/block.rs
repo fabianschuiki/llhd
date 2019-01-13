@@ -2,11 +2,11 @@
 
 //! This module implements basic blocks in a function or process body.
 
-use inst::*;
+use crate::inst::*;
 use std;
-use ty::*;
-use unit::*;
-use value::*;
+use crate::ty::*;
+use crate::unit::*;
+use crate::value::*;
 
 /// A basic block.
 pub struct Block {

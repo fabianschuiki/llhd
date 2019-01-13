@@ -1,9 +1,9 @@
 // Copyright (c) 2017 Fabian Schuiki
 
-use argument::*;
-use block::*;
-use inst::*;
-use value::{ArgumentRef, BlockRef, Context, InstRef};
+use crate::argument::*;
+use crate::block::*;
+use crate::inst::*;
+use crate::value::{ArgumentRef, BlockRef, Context, InstRef};
 
 /// A context wrapping a unit.
 pub trait UnitContext: Context + AsUnitContext {

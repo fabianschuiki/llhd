@@ -1,7 +1,7 @@
 // Copyright (c) 2017 Fabian Schuiki
 
-use ty::*;
-use value::*;
+use crate::ty::*;
+use crate::value::*;
 
 /// A function argument or process/entity input or output.
 pub struct Argument {

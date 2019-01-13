@@ -1,29 +1,29 @@
 // Copyright (c) 2017 Fabian Schuiki
 #![allow(dead_code, unused_imports)]
 
-use argument::Argument;
-use assembly::Writer;
-use block::{Block, BlockPosition};
+use crate::argument::Argument;
+use crate::assembly::Writer;
+use crate::block::{Block, BlockPosition};
 use combine::char::{alpha_num, digit, space, string, Spaces};
 use combine::combinator::{Expected, FnParser, Skip};
 use combine::*;
-use entity::Entity;
-use function::Function;
-use inst::*;
-use konst;
-use module::Module;
+use crate::entity::Entity;
+use crate::function::Function;
+use crate::inst::*;
+use crate::konst;
+use crate::module::Module;
 use num::{BigInt, BigRational};
-use process::Process;
-use seq_body::SeqBody;
+use crate::process::Process;
+use crate::seq_body::SeqBody;
 use std;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::marker::PhantomData;
 use std::rc::Rc;
-use ty::*;
-use value::{BlockRef, Value, ValueRef};
-use visit::Visitor;
+use crate::ty::*;
+use crate::value::{BlockRef, Value, ValueRef};
+use crate::visit::Visitor;
 
 pub fn parse_str(input: &str) -> Result<Module, String> {
     match parser(module).parse(State::new(input)) {
@@ -174,20 +174,20 @@ where
         .skip(token('='))
         .skip(parser(whitespace));
     let inst = choice!(
-        try(env_parser(ctx, unary_inst)),
-        try(env_parser(ctx, binary_inst)),
-        try(env_parser(ctx, compare_inst)),
-        try(env_parser(ctx, call_inst)),
-        try(env_parser(ctx, instance_inst)),
-        try(env_parser(ctx, wait_inst)),
-        try(env_parser(ctx, return_inst)),
-        try(env_parser(ctx, branch_inst)),
-        try(env_parser(ctx, signal_inst)),
-        try(env_parser(ctx, probe_inst)),
-        try(env_parser(ctx, drive_inst)),
-        try(string("halt").map(|_| InstKind::HaltInst))
+        r#try(env_parser(ctx, unary_inst)),
+        r#try(env_parser(ctx, binary_inst)),
+        r#try(env_parser(ctx, compare_inst)),
+        r#try(env_parser(ctx, call_inst)),
+        r#try(env_parser(ctx, instance_inst)),
+        r#try(env_parser(ctx, wait_inst)),
+        r#try(env_parser(ctx, return_inst)),
+        r#try(env_parser(ctx, branch_inst)),
+        r#try(env_parser(ctx, signal_inst)),
+        r#try(env_parser(ctx, probe_inst)),
+        r#try(env_parser(ctx, drive_inst)),
+        r#try(string("halt").map(|_| InstKind::HaltInst))
     );
-    let named_inst = try(optional(name))
+    let named_inst = r#try(optional(name))
         .and(inst)
         .skip(parser(eol))
         .map(|(name, inst)| {
@@ -335,7 +335,7 @@ where
 
         let mut arg_tys = in_tys.into_iter();
         let (ins, consumed) = consumed.combine(|input| {
-            try(
+            r#try(
                 // This try block is necessary since otherwise in the case of an
                 // empty argument list, the inline_value parser would be applied
                 // to see if any arguments are present. However, this causes a
@@ -362,7 +362,7 @@ where
 
         let mut arg_tys = out_tys.into_iter();
         let (outs, consumed) = consumed.combine(|input| {
-            try(
+            r#try(
                 // This try block is necessary since otherwise in the case of an
                 // empty argument list, the inline_value parser would be applied
                 // to see if any arguments are present. However, this causes a
@@ -400,11 +400,11 @@ where
     (
         lex(string("wait")).with(env_parser(ctx, inline_label)),
         optional(
-            try(parser(whitespace).skip(lex(string("for"))))
+            r#try(parser(whitespace).skip(lex(string("for"))))
                 .with(env_parser((ctx, &time_ty()), inline_value)),
         ),
         many(
-            try(parser(whitespace).skip(lex(token(','))))
+            r#try(parser(whitespace).skip(lex(token(','))))
                 .with(env_parser(ctx, inline_named_value))
                 .map(|(v, _)| v),
         ),
@@ -419,7 +419,7 @@ where
     I: Stream<Item = char>,
 {
     string("ret")
-        .with(optional(try(parser(whitespace)
+        .with(optional(r#try(parser(whitespace)
             .with(parser(ty))
             .skip(parser(whitespace))
             .then(|ty| {
@@ -465,7 +465,7 @@ where
         .with(parser(ty))
         .then(|ty| {
             parser(move |input| {
-                let (value, consumed) = optional(try(
+                let (value, consumed) = optional(r#try(
                     parser(whitespace).with(env_parser((ctx, &ty), inline_value))
                 ))
                 .parse_stream(input)?;
@@ -501,7 +501,7 @@ where
 
     let ((value, delay), consumed) = consumed.combine(|input| {
         env_parser((ctx, ty.as_signal()), inline_value)
-            .and(optional(try(
+            .and(optional(r#try(
                 parser(whitespace).with(env_parser((ctx, &time_ty()), inline_value))
             )))
             .parse_stream(input)
@@ -588,15 +588,15 @@ where
                     }
                 },
             ),
-        optional(try(const_int().skip(token('d')))).map(|v| v.unwrap_or(BigInt::zero())),
-        optional(try(const_int().skip(token('e')))).map(|v| v.unwrap_or(BigInt::zero())),
+        optional(r#try(const_int().skip(token('d')))).map(|v| v.unwrap_or(BigInt::zero())),
+        optional(r#try(const_int().skip(token('e')))).map(|v| v.unwrap_or(BigInt::zero())),
     );
 
     choice!(
         parser(name).map(|(g, s)| ctx.lookup(&NameKey(g, s)).0),
-        try(const_time)
+        r#try(const_time)
             .map(|(time, delta, epsilon)| konst::const_time(time, delta, epsilon).into()),
-        try(const_int()).map(|value| konst::const_int(ty.as_int(), value).into())
+        r#try(const_int()).map(|value| konst::const_int(ty.as_int(), value).into())
     )
     .parse_stream(input)
 }
@@ -946,9 +946,9 @@ mod test {
     use super::inline_value;
     use super::NameTable;
     use combine::{env_parser, parser, Parser, State};
-    use konst;
-    use ty::*;
-    use value::ValueRef;
+    use crate::konst;
+    use crate::ty::*;
+    use crate::value::ValueRef;
 
     fn parse_inline_value(input: &str) -> ValueRef {
         let ctx = NameTable::new(None);

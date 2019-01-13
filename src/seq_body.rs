@@ -1,11 +1,11 @@
 // Copyright (c) 2017 Fabian Schuiki
 
-use block::*;
-use inst::*;
+use crate::block::*;
+use crate::inst::*;
 use std;
 use std::collections::HashMap;
-use util::IndirectMapIter;
-use value::{BlockRef, InstRef};
+use crate::util::IndirectMapIter;
+use crate::value::{BlockRef, InstRef};
 
 /// A sequential body of blocks and instructions. Represents a control flow
 /// graph as describe by a process or function, i.e. a sequential arrangement of

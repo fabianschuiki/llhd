@@ -3,15 +3,15 @@
 
 //! The visitor pattern implemented for the LLHD graph.
 
-use argument::Argument;
-use block::Block;
-use entity::{Entity, EntityContext};
-use function::{Function, FunctionContext};
-use inst::Inst;
-use module::{Module, ModuleContext};
-use process::{Process, ProcessContext};
-use unit::*;
-use value::ValueRef;
+use crate::argument::Argument;
+use crate::block::Block;
+use crate::entity::{Entity, EntityContext};
+use crate::function::{Function, FunctionContext};
+use crate::inst::Inst;
+use crate::module::{Module, ModuleContext};
+use crate::process::{Process, ProcessContext};
+use crate::unit::*;
+use crate::value::ValueRef;
 
 /// A trait to implement the visitor pattern on an LLHD graph.
 pub trait Visitor {
@@ -44,7 +44,7 @@ pub trait Visitor {
         self.walk_arguments(args)
     }
 
-    fn visit_argument(&mut self, &Argument) {}
+    fn visit_argument(&mut self, _: &Argument) {}
 
     fn visit_block(&mut self, ctx: &SequentialContext, block: &Block) {
         self.walk_block(ctx, block)

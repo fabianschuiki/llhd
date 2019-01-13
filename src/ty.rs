@@ -5,7 +5,7 @@
 pub use self::TypeKind::*;
 use std;
 use std::sync::Arc;
-use util::write_implode;
+use crate::util::write_implode;
 
 pub type Type = Arc<TypeKind>;
 
