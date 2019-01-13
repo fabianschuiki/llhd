@@ -669,7 +669,9 @@ where
     for (name, arg) in arg_names.into_iter().zip(func.args_mut().into_iter()) {
         if let Some(name) = name {
             ctx.insert(NameKey(false, name.clone()), arg.as_ref().into(), arg.ty());
-            arg.set_name(name);
+            if let Some(name) = untemp_name(name) {
+                arg.set_name(name);
+            }
         }
     }
 
@@ -695,7 +697,9 @@ where
         for (name, arg) in names.into_iter().zip(args.into_iter()) {
             if let Some(name) = name {
                 ctx.insert(NameKey(false, name.clone()), arg.as_ref().into(), arg.ty());
-                arg.set_name(name);
+                if let Some(name) = untemp_name(name) {
+                    arg.set_name(name);
+                }
             }
         }
     };
@@ -724,7 +728,9 @@ where
         for (name, arg) in names.into_iter().zip(args.into_iter()) {
             if let Some(name) = name {
                 ctx.insert(NameKey(false, name.clone()), arg.as_ref().into(), arg.ty());
-                arg.set_name(name);
+                if let Some(name) = untemp_name(name) {
+                    arg.set_name(name);
+                }
             }
         }
     };
@@ -909,7 +915,7 @@ impl<'tp> NameTable<'tp> {
 
         // Otherwise create a new block, add it to the map of values and blocks,
         // and return a reference to it.
-        let blk = Block::new(Some(name.clone()));
+        let blk = Block::new(untemp_name(&name));
         let r = blk.as_ref();
         if self.blocks.borrow_mut().insert(name.clone(), blk).is_some() {
             panic!("block redefined");
@@ -939,7 +945,7 @@ impl<'tp> NameTable<'tp> {
         }
 
         // Otherwise create one, add it to the name table, and return it.
-        let blk = Block::new(Some(name.clone()));
+        let blk = Block::new(untemp_name(&name));
         let r: ValueRef = blk.as_ref().into();
         if self
             .values
