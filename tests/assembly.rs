@@ -2,39 +2,38 @@
 
 extern crate llhd;
 
-
 struct LineTrimIter<I: Iterator<Item = char>>(I, bool);
 
 impl<I: Iterator<Item = char>> Iterator for LineTrimIter<I> {
-	type Item = I::Item;
+    type Item = I::Item;
 
-	fn next(&mut self) -> Option<I::Item> {
-		let mut c = self.0.next();
-		while self.1 && c.map(|d| d == '\t').unwrap_or(false) {
-			c = self.0.next();
-		}
-		self.1 = c == Some('\n');
-		c
-	}
+    fn next(&mut self) -> Option<I::Item> {
+        let mut c = self.0.next();
+        while self.1 && c.map(|d| d == '\t').unwrap_or(false) {
+            c = self.0.next();
+        }
+        self.1 = c == Some('\n');
+        c
+    }
 }
 
 fn parse(input: &str) -> llhd::Module {
-	llhd::assembly::parse_str(input).unwrap()
+    llhd::assembly::parse_str(input).unwrap()
 }
 
 fn loopback(input: &str) {
-	use llhd::visit::Visitor;
-	let mut v = Vec::new();
-	llhd::assembly::Writer::new(&mut v).visit_module(&parse(input));
-	let a = String::from_utf8(v).unwrap();
-	let e: String = LineTrimIter(input.chars().skip(1), true).collect();
-	assert_eq!(e, a);
+    use llhd::visit::Visitor;
+    let mut v = Vec::new();
+    llhd::assembly::Writer::new(&mut v).visit_module(&parse(input));
+    let a = String::from_utf8(v).unwrap();
+    let e: String = LineTrimIter(input.chars().skip(1), true).collect();
+    assert_eq!(e, a);
 }
-
 
 #[test]
 fn empty() {
-	loopback(r#"
+    loopback(
+        r#"
 		func @a () void {
 		}
 
@@ -43,12 +42,14 @@ fn empty() {
 
 		entity @c () () {
 		}
-	"#);
+	"#,
+    );
 }
 
 #[test]
 fn function() {
-	loopback(r#"
+    loopback(
+        r#"
 		func @foo (i32 %a, i32 %b) void {
 		%entry:
 		    %0 = add i32 %a %b
@@ -60,33 +61,39 @@ fn function() {
 		func @bar (i32 %0) void {
 		%well:
 		}
-	"#);
+	"#,
+    );
 }
 
 #[test]
 fn process() {
-	loopback(r#"
+    loopback(
+        r#"
 		proc @bar (i32 %0) (i32 %1) {
 		%entry:
 		    %2 = add i32 %0 21
 		    %y = add i32 %0 42
 		}
-	"#);
+	"#,
+    );
 }
 
 #[test]
 fn entity() {
-	loopback(r#"
+    loopback(
+        r#"
 		entity @top (i32 %0) (i32 %1) {
 		    %2 = add i32 %0 9000
 		    %y = add i32 %0 42
 		}
-	"#);
+	"#,
+    );
 }
 
 #[test]
 fn call_and_inst() {
-	loopback(r#"
+    loopback(
+        r#"
 		func @foo (i32 %a, i32 %b) void {
 		}
 
@@ -98,12 +105,14 @@ fn call_and_inst() {
 		entity @top (i32 %a) (i32 %b) {
 		    inst @bar (%a) (%b)
 		}
-	"#);
+	"#,
+    );
 }
 
 #[test]
 fn instructions() {
-	loopback(r#"
+    loopback(
+        r#"
 		func @foo (i32 %a, i32 %b, time %x) void {
 		%entry:
 		    wait %entry
@@ -123,21 +132,26 @@ fn instructions() {
 		    drv %a1 %b %x
 		    halt
 		}
-	"#);
+	"#,
+    );
 }
 
 #[test]
 fn regression_underscore_names() {
-	parse(r#"
+    parse(
+        r#"
 		proc @four_pulses () () {
 		}
-	"#);
+	"#,
+    );
 }
 
 #[test]
 fn regression_signal_type() {
-	parse(r#"
+    parse(
+        r#"
 		proc @foo (i1$ %a) (i1$ %b) {
 		}
-	"#);
+	"#,
+    );
 }
