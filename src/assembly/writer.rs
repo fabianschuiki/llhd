@@ -1,22 +1,19 @@
-// Copyright (c) 2017 Fabian Schuiki
-#![allow(unused_variables)]
-
-use crate::argument::*;
-use crate::block::*;
-use crate::entity::{Entity, EntityContext};
-use crate::function::{Function, FunctionContext};
-use crate::inst::*;
-use crate::konst::*;
-use crate::module::{Module, ModuleContext};
-use crate::process::{Process, ProcessContext};
-use std;
-use std::collections::HashMap;
-use std::io::Write;
-use std::rc::Rc;
-use crate::ty::*;
-use crate::unit::*;
-use crate::value::*;
-use crate::visit::Visitor;
+// Copyright (c) 2017-2019 Fabian Schuiki
+use crate::{
+    argument::*,
+    block::*,
+    entity::{Entity, EntityContext},
+    function::{Function, FunctionContext},
+    inst::*,
+    konst::*,
+    module::{Module, ModuleContext},
+    process::{Process, ProcessContext},
+    ty::*,
+    unit::*,
+    value::*,
+    visit::Visitor,
+};
+use std::{collections::HashMap, io::Write, rc::Rc};
 
 /// Emits a module as human-readable assembly code that can be parsed again
 /// later.
@@ -240,13 +237,13 @@ impl<'twr> Visitor for Writer<'twr> {
     fn visit_inst(&mut self, ctx: &UnitContext, inst: &Inst) {
         let name = self.uniquify(inst);
         write!(self.sink, "    ").unwrap();
-        if !inst.ty().is_void() {
+        if !inst.ty().is_void() || (inst.name().is_some() && inst.kind().is_instance()) {
             write!(self.sink, "{} = ", name).unwrap();
         }
         write!(self.sink, "{}", inst.mnemonic().as_str()).unwrap();
         match *inst.kind() {
             // <op> <ty> <arg>
-            UnaryInst(op, ref ty, ref arg) => {
+            UnaryInst(_op, ref ty, ref arg) => {
                 write!(self.sink, " ").unwrap();
                 self.write_ty(ty).unwrap();
                 write!(self.sink, " ").unwrap();
@@ -254,7 +251,7 @@ impl<'twr> Visitor for Writer<'twr> {
             }
 
             // <op> <ty> <lhs> <rhs>
-            BinaryInst(op, ref ty, ref lhs, ref rhs) => {
+            BinaryInst(_op, ref ty, ref lhs, ref rhs) => {
                 write!(self.sink, " ").unwrap();
                 self.write_ty(ty).unwrap();
                 write!(self.sink, " ").unwrap();
