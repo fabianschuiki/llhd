@@ -6,7 +6,7 @@ extern crate num;
 
 use llhd::block::*;
 use llhd::inst::*;
-use llhd::visit::Visitor;
+use llhd::Visitor;
 
 #[test]
 fn simple_func() {
