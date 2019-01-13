@@ -82,6 +82,66 @@ impl ValueRef {
             _ => None,
         }
     }
+
+    /// Unwrap this reference as an instruction.
+    ///
+    /// Panics if this is not an instruction.
+    pub fn unwrap_inst(&self) -> InstRef {
+        match *self {
+            ValueRef::Inst(x) => x,
+            _ => panic!("unwrap_inst called on {}", self.desc()),
+        }
+    }
+
+    /// Unwrap this reference as a block.
+    ///
+    /// Panics if this is not a block.
+    pub fn unwrap_block(&self) -> BlockRef {
+        match *self {
+            ValueRef::Block(x) => x,
+            _ => panic!("unwrap_block called on {}", self.desc()),
+        }
+    }
+
+    /// Unwrap this reference as an argument.
+    ///
+    /// Panics if this is not an argument.
+    pub fn unwrap_argument(&self) -> ArgumentRef {
+        match *self {
+            ValueRef::Argument(x) => x,
+            _ => panic!("unwrap_argument called on {}", self.desc()),
+        }
+    }
+
+    /// Unwrap this reference as a function.
+    ///
+    /// Panics if this is not a function.
+    pub fn unwrap_function(&self) -> FunctionRef {
+        match *self {
+            ValueRef::Function(x) => x,
+            _ => panic!("unwrap_function called on {}", self.desc()),
+        }
+    }
+
+    /// Unwrap this reference as a process.
+    ///
+    /// Panics if this is not a process.
+    pub fn unwrap_process(&self) -> ProcessRef {
+        match *self {
+            ValueRef::Process(x) => x,
+            _ => panic!("unwrap_process called on {}", self.desc()),
+        }
+    }
+
+    /// Unwrap this reference as an entity.
+    ///
+    /// Panics if this is not an entity.
+    pub fn unwrap_entity(&self) -> EntityRef {
+        match *self {
+            ValueRef::Entity(x) => x,
+            _ => panic!("unwrap_entity called on {}", self.desc()),
+        }
+    }
 }
 
 /// A unique identifier assigned to each value node in the graph. These IDs are
