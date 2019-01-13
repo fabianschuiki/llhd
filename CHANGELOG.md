@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `unwrap_*` functions on `ValueRef`.
 
 ### Fixed
-- Emit instance names ([#21](https://github.com/fabianschuiki/llhd/issues/21))
+- Emit instance names. ([#21](https://github.com/fabianschuiki/llhd/issues/21))
+- Parse temporary names as `None`. ([#30](https://github.com/fabianschuiki/llhd/issues/30))
 
 ### Changed
 - Make `visit` module private.

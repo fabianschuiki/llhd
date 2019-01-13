@@ -1,9 +1,9 @@
 // Copyright (c) 2017 Fabian Schuiki
 
 use crate::konst::Const;
+use crate::ty::Type;
 use std;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-use crate::ty::Type;
 
 pub trait Value {
     /// Get the unique ID of the value.

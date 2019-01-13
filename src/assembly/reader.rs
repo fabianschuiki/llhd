@@ -160,7 +160,7 @@ where
         .skip(parser(eol))
         .expected("basic block")
         .and(env_parser(ctx, insts))
-        .map(|(name, insts)| (ctx.declare_block(Some(name)), insts));
+        .map(|(name, insts)| (ctx.declare_block(untemp_name(name)), insts));
     many(block).parse_stream(input)
 }
 
@@ -191,7 +191,7 @@ where
         .and(inst)
         .skip(parser(eol))
         .map(|(name, inst)| {
-            let inst = Inst::new(name.clone(), inst);
+            let inst = Inst::new(name.clone().and_then(untemp_name), inst);
             if let Some(name) = name {
                 ctx.insert(NameKey(false, name), inst.as_ref().into(), inst.ty());
             }
@@ -841,6 +841,16 @@ where
             }
             (module, r)
         })
+}
+
+/// Make a name `None` if it consists only of digits.
+///
+/// This is useful for filtering out temporary names read from the input.
+fn untemp_name(input: impl AsRef<str>) -> Option<String> {
+    match input.as_ref().chars().all(|c| c.is_digit(10)) {
+        false => Some(input.as_ref().into()),
+        true => None,
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
