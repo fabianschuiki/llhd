@@ -4,26 +4,26 @@
 use crate::argument::Argument;
 use crate::assembly::Writer;
 use crate::block::{Block, BlockPosition};
-use combine::char::{alpha_num, digit, space, string, Spaces};
-use combine::combinator::{Expected, FnParser, Skip};
-use combine::*;
 use crate::entity::Entity;
 use crate::function::Function;
 use crate::inst::*;
 use crate::konst;
 use crate::module::Module;
-use num::{BigInt, BigRational};
 use crate::process::Process;
 use crate::seq_body::SeqBody;
+use crate::ty::*;
+use crate::value::{BlockRef, Value, ValueRef};
+use crate::visit::Visitor;
+use combine::char::{alpha_num, digit, space, string, Spaces};
+use combine::combinator::{Expected, FnParser, Skip};
+use combine::*;
+use num::{BigInt, BigRational};
 use std;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::marker::PhantomData;
 use std::rc::Rc;
-use crate::ty::*;
-use crate::value::{BlockRef, Value, ValueRef};
-use crate::visit::Visitor;
 
 pub fn parse_str(input: &str) -> Result<Module, String> {
     match parser(module).parse(State::new(input)) {
@@ -419,16 +419,18 @@ where
     I: Stream<Item = char>,
 {
     string("ret")
-        .with(optional(r#try(parser(whitespace)
-            .with(parser(ty))
-            .skip(parser(whitespace))
-            .then(|ty| {
-                parser(move |input| {
-                    let (value, consumed) =
-                        env_parser((ctx, &ty), inline_value).parse_stream(input)?;
-                    Ok(((ty.clone(), value), consumed))
-                })
-            }))))
+        .with(optional(r#try(
+            parser(whitespace)
+                .with(parser(ty))
+                .skip(parser(whitespace))
+                .then(|ty| {
+                    parser(move |input| {
+                        let (value, consumed) =
+                            env_parser((ctx, &ty), inline_value).parse_stream(input)?;
+                        Ok(((ty.clone(), value), consumed))
+                    })
+                }),
+        )))
         .map(|v| match v {
             Some((ty, value)) => InstKind::ReturnInst(ReturnKind::Value(ty, value)),
             None => InstKind::ReturnInst(ReturnKind::Void),
@@ -466,7 +468,7 @@ where
         .then(|ty| {
             parser(move |input| {
                 let (value, consumed) = optional(r#try(
-                    parser(whitespace).with(env_parser((ctx, &ty), inline_value))
+                    parser(whitespace).with(env_parser((ctx, &ty), inline_value)),
                 ))
                 .parse_stream(input)?;
                 Ok(((ty.clone(), value), consumed))
@@ -502,7 +504,7 @@ where
     let ((value, delay), consumed) = consumed.combine(|input| {
         env_parser((ctx, ty.as_signal()), inline_value)
             .and(optional(r#try(
-                parser(whitespace).with(env_parser((ctx, &time_ty()), inline_value))
+                parser(whitespace).with(env_parser((ctx, &time_ty()), inline_value)),
             )))
             .parse_stream(input)
     })?;
@@ -945,10 +947,10 @@ impl<'tp> NameTable<'tp> {
 mod test {
     use super::inline_value;
     use super::NameTable;
-    use combine::{env_parser, parser, Parser, State};
     use crate::konst;
     use crate::ty::*;
     use crate::value::ValueRef;
+    use combine::{env_parser, parser, Parser, State};
 
     fn parse_inline_value(input: &str) -> ValueRef {
         let ctx = NameTable::new(None);
