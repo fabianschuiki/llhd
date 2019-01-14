@@ -29,7 +29,7 @@ impl Entity {
     /// arguments are created for each input and output in the type signature.
     /// Use the `inputs_mut` and `outputs_mut` functions get a hold of these
     /// arguments and assign names and additional data to them.
-    pub fn new(name: String, ty: Type) -> Entity {
+    pub fn new(name: impl Into<String>, ty: Type) -> Entity {
         let (ins, outs) = {
             let (in_tys, out_tys) = ty.as_entity();
             let to_arg = |t: &Type| Argument::new(t.clone());
@@ -41,7 +41,7 @@ impl Entity {
         Entity {
             id: EntityRef::new(ValueId::alloc()),
             global: true,
-            name: name,
+            name: name.into(),
             ty: ty,
             ins: ins,
             outs: outs,

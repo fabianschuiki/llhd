@@ -6,7 +6,7 @@ fn simple_func() {
     let mut module = llhd::Module::new();
 
     let func_ty = llhd::func_ty(vec![llhd::int_ty(32), llhd::int_ty(32)], llhd::void_ty());
-    let mut func = llhd::Function::new("foo".into(), func_ty.clone());
+    let mut func = llhd::Function::new("foo", func_ty.clone());
     {
         func.args_mut()[0].set_name("a");
         func.args_mut()[1].set_name("b");
@@ -42,7 +42,7 @@ fn simple_func() {
     let func = module.add_function(func);
 
     let proc_ty = llhd::entity_ty(vec![llhd::int_ty(32)], vec![llhd::int_ty(32)]);
-    let mut prok = llhd::Process::new("bar".into(), proc_ty.clone());
+    let mut prok = llhd::Process::new("bar", proc_ty.clone());
     {
         let a = prok.input(0);
         let body = prok.body_mut();
@@ -69,7 +69,7 @@ fn simple_func() {
     }
     let prok = module.add_process(prok);
 
-    let mut entity = llhd::Entity::new("top".into(), proc_ty.clone());
+    let mut entity = llhd::Entity::new("top", proc_ty.clone());
     {
         let a = entity.input(0);
         let b = entity.output(0);

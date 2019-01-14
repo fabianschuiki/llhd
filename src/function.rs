@@ -25,7 +25,7 @@ impl Function {
     /// arguments are created for each argument in the type signature. Use the
     /// `args_mut` function to get a hold of these arguments and assign names
     /// and additional data to them.
-    pub fn new(name: String, ty: Type) -> Function {
+    pub fn new(name: impl Into<String>, ty: Type) -> Function {
         let args = {
             let (arg_tys, _) = ty.as_func();
             arg_tys.iter().map(|t| Argument::new(t.clone())).collect()
@@ -33,7 +33,7 @@ impl Function {
         Function {
             id: FunctionRef::new(ValueId::alloc()),
             global: true,
-            name: name,
+            name: name.into(),
             ty: ty,
             args: args,
             body: SeqBody::new(),
