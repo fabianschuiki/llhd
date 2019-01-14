@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parse temporary names as `None`. ([#30](https://github.com/fabianschuiki/llhd/issues/30))
 
 ### Changed
-- Make `visit` module private.
-- Export `visit::Visitor` directly as `llhd::Visitor`.
+- Make most modules private.
+- Re-export contents of modules directly. ([#22](https://github.com/fabianschuiki/llhd/issues/22), [#23](https://github.com/fabianschuiki/llhd/issues/23))
 
 ## 0.1.0 - 2018-02-27
 ### Added

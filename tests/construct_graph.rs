@@ -1,12 +1,5 @@
-// Copyright (c) 2017 Fabian Schuiki
-#![allow(unused_variables, unused_mut)]
-
-extern crate llhd;
-extern crate num;
-
-use llhd::block::*;
-use llhd::inst::*;
-use llhd::Visitor;
+// Copyright (c) 2017-2019 Fabian Schuiki
+use llhd::*;
 
 #[test]
 fn simple_func() {
@@ -21,7 +14,7 @@ fn simple_func() {
         let b = func.arg(1);
         let body = func.body_mut();
 
-        let bb = body.add_block(Block::new(Some("entry".into())), BlockPosition::End);
+        let _bb = body.add_block(Block::new(Some("entry".into())), BlockPosition::End);
 
         let inst = body.add_inst(
             Inst::new(
@@ -38,7 +31,7 @@ fn simple_func() {
             ),
             InstPosition::End,
         );
-        let inst = body.add_inst(
+        let _inst = body.add_inst(
             Inst::new(
                 None,
                 CompareInst(CompareOp::Eq, llhd::int_ty(32), inst.into(), a.into()),
