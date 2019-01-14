@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 - Add `unwrap_*` functions on `ValueRef`.
+- Add `write` and `write_string` convenience functions. ([#26](https://github.com/fabianschuiki/llhd/issues/26))
 
 ### Fixed
 - Emit instance names. ([#21](https://github.com/fabianschuiki/llhd/issues/21))
