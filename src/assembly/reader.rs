@@ -223,18 +223,17 @@ where
     I: Stream<Item = char>,
 {
     let binary_op = choice!(
-        string("add").map(|_| BinaryOp::Add),
-        string("add").map(|_| BinaryOp::Add),
-        string("sub").map(|_| BinaryOp::Sub),
-        string("mul").map(|_| BinaryOp::Mul),
-        string("div").map(|_| BinaryOp::Div),
-        string("mod").map(|_| BinaryOp::Mod),
-        string("rem").map(|_| BinaryOp::Rem),
-        string("shl").map(|_| BinaryOp::Shl),
-        string("shr").map(|_| BinaryOp::Shr),
-        string("and").map(|_| BinaryOp::And),
-        string("or").map(|_| BinaryOp::Or),
-        string("xor").map(|_| BinaryOp::Xor)
+        r#try(string("add").map(|_| BinaryOp::Add)),
+        r#try(string("sub").map(|_| BinaryOp::Sub)),
+        r#try(string("mul").map(|_| BinaryOp::Mul)),
+        r#try(string("div").map(|_| BinaryOp::Div)),
+        r#try(string("mod").map(|_| BinaryOp::Mod)),
+        r#try(string("rem").map(|_| BinaryOp::Rem)),
+        r#try(string("shl").map(|_| BinaryOp::Shl)),
+        r#try(string("shr").map(|_| BinaryOp::Shr)),
+        r#try(string("and").map(|_| BinaryOp::And)),
+        r#try(string("or").map(|_| BinaryOp::Or)),
+        r#try(string("xor").map(|_| BinaryOp::Xor))
     );
 
     // Parse the operator and type.

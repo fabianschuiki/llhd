@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Emit instance names. ([#21](https://github.com/fabianschuiki/llhd/issues/21))
 - Parse temporary names as `None`. ([#30](https://github.com/fabianschuiki/llhd/issues/30))
+- Fix parsing of binary operations. ([#31](https://github.com/fabianschuiki/llhd/issues/31))
 
 ### Changed
 - Make most modules private.
