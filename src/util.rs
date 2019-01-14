@@ -7,7 +7,7 @@ use std::ops::Index;
 
 /// Formats a slice of elements that implement the `std::fmt::Display` trait as
 /// a list with the given separator.
-pub fn write_implode<T, I, S>(f: &mut std::fmt::Formatter, sep: S, it: I) -> std::fmt::Result
+pub(crate) fn write_implode<T, I, S>(f: &mut std::fmt::Formatter, sep: S, it: I) -> std::fmt::Result
 where
     T: std::fmt::Display,
     I: std::iter::Iterator<Item = T>,
@@ -18,7 +18,7 @@ where
 
 /// Formats a slice of elements using a callback function, inserting the given
 /// separator between consecutive elments.
-pub fn write_implode_with<T, I, S, F>(
+pub(crate) fn write_implode_with<T, I, S, F>(
     f: &mut std::fmt::Formatter,
     sep: S,
     mut it: I,

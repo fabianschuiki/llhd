@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Make most modules private.
 - Re-export contents of modules directly. ([#22](https://github.com/fabianschuiki/llhd/issues/22), [#23](https://github.com/fabianschuiki/llhd/issues/23))
+- Make `util::write_implode` and `util::write_implode_with` private.
 
 ## 0.1.0 - 2018-02-27
 ### Added
