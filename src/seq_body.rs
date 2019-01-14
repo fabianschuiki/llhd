@@ -2,10 +2,10 @@
 
 use crate::block::*;
 use crate::inst::*;
-use std;
-use std::collections::HashMap;
 use crate::util::IndirectMapIter;
 use crate::value::{BlockRef, InstRef};
+use std;
+use std::collections::HashMap;
 
 /// A sequential body of blocks and instructions. Represents a control flow
 /// graph as describe by a process or function, i.e. a sequential arrangement of

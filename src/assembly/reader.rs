@@ -160,7 +160,7 @@ where
         .skip(parser(eol))
         .expected("basic block")
         .and(env_parser(ctx, insts))
-        .map(|(name, insts)| (ctx.declare_block(untemp_name(name)), insts));
+        .map(|(name, insts)| (ctx.declare_block(name), insts));
     many(block).parse_stream(input)
 }
 
@@ -932,12 +932,7 @@ impl<'tp> NameTable<'tp> {
 
     /// Create a new block with the given name, or take ownership of the block
     /// if it was previously allocated by `use_block`.
-    pub fn declare_block(&self, name: Option<String>) -> Block {
-        let name = match name {
-            Some(n) => n,
-            None => return Block::new(None),
-        };
-
+    pub fn declare_block(&self, name: String) -> Block {
         // If the block has already been declared, return it.
         if let Some(block) = self.blocks.borrow_mut().remove(&name) {
             return block;
