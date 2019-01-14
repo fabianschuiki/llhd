@@ -26,15 +26,13 @@ fn check() {
 
     assert_eq!(
         asm,
-        indoc!(
-            "
+        indoc! {"
         entity @Foo () () {
         }
 
         entity @Bar () () {
             %baz = inst @Foo () ()
         }
-        "
-        )
+        "}
     );
 }

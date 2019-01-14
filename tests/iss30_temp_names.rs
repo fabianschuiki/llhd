@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate indoc;
-
 use llhd::Value;
 
 #[test]
