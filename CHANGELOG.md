@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fix blocks with temporary names not being parsed properly.
 - Fix parsing of comparison operations.
+- Fix time constant printing. ([#28](https://github.com/fabianschuiki/llhd/issues/28))
 
 ## 0.2.0 - 2019-01-14
 ### Added
