@@ -106,7 +106,7 @@ pub enum InstPosition {
 }
 
 /// The different forms an instruction can take.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InstKind {
     UnaryInst(UnaryOp, Type, ValueRef),
     BinaryInst(BinaryOp, Type, ValueRef, ValueRef),
@@ -258,7 +258,7 @@ impl CompareOp {
 }
 
 /// The return instruction flavor.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReturnKind {
     /// Return from a void function.
     Void,
@@ -267,7 +267,7 @@ pub enum ReturnKind {
 }
 
 /// The branch flavor.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BranchKind {
     /// An unconditional branch to a block.
     Uncond(BlockRef),
