@@ -257,16 +257,16 @@ where
     I: Stream<Item = char>,
 {
     let compare_op = choice!(
-        string("eq").map(|_| CompareOp::Eq),
-        string("neq").map(|_| CompareOp::Neq),
-        string("slt").map(|_| CompareOp::Slt),
-        string("sgt").map(|_| CompareOp::Sgt),
-        string("sle").map(|_| CompareOp::Sle),
-        string("sge").map(|_| CompareOp::Sge),
-        string("ult").map(|_| CompareOp::Ult),
-        string("ugt").map(|_| CompareOp::Ugt),
-        string("ule").map(|_| CompareOp::Ule),
-        string("uge").map(|_| CompareOp::Uge)
+        r#try(string("eq").map(|_| CompareOp::Eq)),
+        r#try(string("neq").map(|_| CompareOp::Neq)),
+        r#try(string("slt").map(|_| CompareOp::Slt)),
+        r#try(string("sgt").map(|_| CompareOp::Sgt)),
+        r#try(string("sle").map(|_| CompareOp::Sle)),
+        r#try(string("sge").map(|_| CompareOp::Sge)),
+        r#try(string("ult").map(|_| CompareOp::Ult)),
+        r#try(string("ugt").map(|_| CompareOp::Ugt)),
+        r#try(string("ule").map(|_| CompareOp::Ule)),
+        r#try(string("uge").map(|_| CompareOp::Uge))
     );
 
     // Parse the operator and type.
@@ -1020,5 +1020,28 @@ mod test {
         // assert_eq!(parse("{void, time, i8}"), struct_ty(vec![void_ty(), time_ty(), int_ty(8)]));
         // assert_eq!(parse("(i8, time) void}"), func_ty(vec![int_ty(8), time_ty()], void_ty()));
         // assert_eq!(parse("(i8$; i42$)"), entity_ty(vec![signal_ty(int_ty(8))], vec![signal_ty(int_ty(42))]));
+    }
+
+    #[test]
+    fn compare_ops() {
+        use crate::CompareOp;
+        let parse = |input| match env_parser(&NameTable::new(None), super::compare_inst)
+            .parse(State::new(input))
+            .unwrap()
+            .0
+        {
+            crate::CompareInst(op, ..) => op,
+            _ => panic!("did not yield a compare inst"),
+        };
+        assert_eq!(parse("cmp eq i1 0 0"), CompareOp::Eq);
+        assert_eq!(parse("cmp neq i1 0 0"), CompareOp::Neq);
+        assert_eq!(parse("cmp slt i1 0 0"), CompareOp::Slt);
+        assert_eq!(parse("cmp sgt i1 0 0"), CompareOp::Sgt);
+        assert_eq!(parse("cmp sle i1 0 0"), CompareOp::Sle);
+        assert_eq!(parse("cmp sge i1 0 0"), CompareOp::Sge);
+        assert_eq!(parse("cmp ult i1 0 0"), CompareOp::Ult);
+        assert_eq!(parse("cmp ugt i1 0 0"), CompareOp::Ugt);
+        assert_eq!(parse("cmp ule i1 0 0"), CompareOp::Ule);
+        assert_eq!(parse("cmp uge i1 0 0"), CompareOp::Uge);
     }
 }
