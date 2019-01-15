@@ -185,6 +185,9 @@ where
         r#try(env_parser(ctx, signal_inst)),
         r#try(env_parser(ctx, probe_inst)),
         r#try(env_parser(ctx, drive_inst)),
+        r#try(env_parser(ctx, variable_inst)),
+        r#try(env_parser(ctx, load_inst)),
+        r#try(env_parser(ctx, store_inst)),
         r#try(string("halt").map(|_| InstKind::HaltInst))
     );
     let named_inst = r#try(optional(name))
@@ -509,6 +512,57 @@ where
     })?;
 
     Ok((InstKind::DriveInst(signal, value, delay), consumed))
+}
+
+/// Parse a variable instruction.
+fn variable_inst<I>(_ctx: &NameTable, input: I) -> ParseResult<InstKind, I>
+where
+    I: Stream<Item = char>,
+{
+    lex(string("var"))
+        .with(parser(ty))
+        .map(|ty| InstKind::VariableInst(ty))
+        .parse_stream(input)
+}
+
+/// Parse a load instruction.
+fn load_inst<I>(ctx: &NameTable, input: I) -> ParseResult<InstKind, I>
+where
+    I: Stream<Item = char>,
+{
+    lex(string("load"))
+        .with(parser(ty))
+        .then(|ty| {
+            parser(move |input| {
+                let (value, consumed) = parser(whitespace)
+                    .with(env_parser((ctx, &ty), inline_value))
+                    .parse_stream(input)?;
+                Ok(((ty.clone(), value), consumed))
+            })
+        })
+        .map(|(ty, ptr)| InstKind::LoadInst(ty, ptr))
+        .parse_stream(input)
+}
+
+/// Parse a store instruction.
+fn store_inst<I>(ctx: &NameTable, input: I) -> ParseResult<InstKind, I>
+where
+    I: Stream<Item = char>,
+{
+    lex(string("store"))
+        .with(parser(ty))
+        .then(|ty| {
+            parser(move |input| {
+                let ((value, ptr), consumed) = (
+                    parser(whitespace).with(env_parser((ctx, &ty), inline_value)),
+                    parser(whitespace).with(env_parser((ctx, &ty), inline_value)),
+                )
+                    .parse_stream(input)?;
+                Ok(((ty.clone(), value, ptr), consumed))
+            })
+        })
+        .map(|(ty, value, ptr)| InstKind::StoreInst(ty, value, ptr))
+        .parse_stream(input)
 }
 
 /// Parse an inline value.
@@ -955,11 +1009,8 @@ impl<'tp> NameTable<'tp> {
 
 #[cfg(test)]
 mod test {
-    use super::inline_value;
-    use super::NameTable;
-    use crate::konst;
-    use crate::ty::*;
-    use crate::value::ValueRef;
+    use super::*;
+    use crate::const_int;
     use combine::{env_parser, parser, Parser, State};
 
     fn parse_inline_value(input: &str) -> ValueRef {
@@ -1043,5 +1094,33 @@ mod test {
         assert_eq!(parse("cmp ugt i1 0 0"), CompareOp::Ugt);
         assert_eq!(parse("cmp ule i1 0 0"), CompareOp::Ule);
         assert_eq!(parse("cmp uge i1 0 0"), CompareOp::Uge);
+    }
+
+    #[test]
+    fn memory_inst() {
+        let parse = |input| {
+            env_parser(&NameTable::new(None), super::insts)
+                .parse(State::new(input))
+                .unwrap()
+                .0
+        };
+        let insts = parse(indoc::indoc! {"
+            %0 = var i32
+            load i32 %0
+            store i32 0 %0
+        "});
+        assert_eq!(insts[0].kind(), &VariableInst(int_ty(32)));
+        assert_eq!(
+            insts[1].kind(),
+            &LoadInst(int_ty(32), insts[0].as_ref().into())
+        );
+        assert_eq!(
+            insts[2].kind(),
+            &StoreInst(
+                int_ty(32),
+                const_int(32, 0.into()).into(),
+                insts[0].as_ref().into()
+            )
+        );
     }
 }

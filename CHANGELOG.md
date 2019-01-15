@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 - Make `ValueRef`, `InstKind`, `ReturnKind`, and `BranchKind` comparable.
+- Add `var`, `load`, and `store` instructions.
 
 ## 0.2.1 - 2019-01-15
 ### Fixed

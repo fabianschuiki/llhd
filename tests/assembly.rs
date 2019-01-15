@@ -105,6 +105,9 @@ fn instructions() {
             drv %a0 %a
             drv %a0 42
             drv %a1 %b %x
+            %v0 = var i8
+            %v1 = load i8 %v0
+            store i8 42 %v0
             halt
         }
     "};

@@ -119,6 +119,13 @@ pub enum InstKind {
     SignalInst(Type, Option<ValueRef>),
     ProbeInst(Type, ValueRef),
     DriveInst(ValueRef, ValueRef, Option<ValueRef>),
+    /// `<result> = var <type>`
+    VariableInst(Type),
+    /// `<result> = load <type> <ptr>`
+    LoadInst(Type, ValueRef),
+    /// `store <type> <value> <ptr>`
+    StoreInst(Type, ValueRef, ValueRef),
+    /// `halt`
     HaltInst,
 }
 
@@ -134,6 +141,9 @@ impl InstKind {
             SignalInst(ref ty, _) => signal_ty(ty.clone()),
             ProbeInst(ref ty, _) => ty.clone(),
             DriveInst(..) => void_ty(),
+            VariableInst(ref ty) => pointer_ty(ty.clone()),
+            LoadInst(ref ty, ..) => ty.clone(),
+            StoreInst(..) => void_ty(),
             HaltInst => void_ty(),
         }
     }
@@ -151,6 +161,9 @@ impl InstKind {
             SignalInst(..) => Mnemonic::Sig,
             ProbeInst(..) => Mnemonic::Prb,
             DriveInst(..) => Mnemonic::Drv,
+            VariableInst(..) => Mnemonic::Var,
+            LoadInst(..) => Mnemonic::Load,
+            StoreInst(..) => Mnemonic::Store,
             HaltInst => Mnemonic::Halt,
         }
     }
@@ -290,6 +303,9 @@ pub enum Mnemonic {
     Sig,
     Prb,
     Drv,
+    Var,
+    Load,
+    Store,
     Halt,
 }
 
@@ -329,6 +345,9 @@ impl Mnemonic {
             Mnemonic::Sig => "sig",
             Mnemonic::Prb => "prb",
             Mnemonic::Drv => "drv",
+            Mnemonic::Var => "var",
+            Mnemonic::Load => "load",
+            Mnemonic::Store => "store",
             Mnemonic::Halt => "halt",
         }
     }

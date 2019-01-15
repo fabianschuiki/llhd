@@ -367,6 +367,30 @@ impl<'twr> Visitor for Writer<'twr> {
                 }
             }
 
+            // var <type>
+            VariableInst(ref ty) => {
+                write!(self.sink, " ").unwrap();
+                self.write_ty(ty).unwrap();
+            }
+
+            // load <type> <ptr>
+            LoadInst(ref ty, ref ptr) => {
+                write!(self.sink, " ").unwrap();
+                self.write_ty(ty).unwrap();
+                write!(self.sink, " ").unwrap();
+                self.write_value(ctx.as_context(), ptr).unwrap();
+            }
+
+            // store <type> <value> <ptr>
+            StoreInst(ref ty, ref value, ref ptr) => {
+                write!(self.sink, " ").unwrap();
+                self.write_ty(ty).unwrap();
+                write!(self.sink, " ").unwrap();
+                self.write_value(ctx.as_context(), value).unwrap();
+                write!(self.sink, " ").unwrap();
+                self.write_value(ctx.as_context(), ptr).unwrap();
+            }
+
             // halt
             HaltInst => (),
         }
