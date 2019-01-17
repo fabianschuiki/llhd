@@ -69,6 +69,14 @@ impl ValueRef {
         }
     }
 
+    /// Try to unwrap this value reference as a constant.
+    pub fn maybe_const(&self) -> Option<&Const> {
+        match *self {
+            ValueRef::Const(ref k) => Some(k),
+            _ => None,
+        }
+    }
+
     /// Obtain the ID of the value this reference points to, or None if the
     /// value has no ID (e.g. if it is a constant).
     pub fn id(&self) -> Option<ValueId> {
@@ -248,12 +256,15 @@ pub trait Context: AsContext {
     fn value(&self, value: &ValueRef) -> &Value {
         self.try_value(value)
             .or_else(|| self.parent().map(|p| p.value(value)))
-            .unwrap()
+            .expect("unable to resolve ValueRef")
     }
 
     /// Get the type of a value.
     fn ty(&self, value: &ValueRef) -> Type {
-        self.value(value).ty()
+        value
+            .maybe_const()
+            .map(|k| k.ty())
+            .unwrap_or_else(|| self.value(value).ty())
     }
 
     /// Get the name of a value.
@@ -269,5 +280,18 @@ pub trait AsContext {
 impl<T: Context> AsContext for T {
     fn as_context(&self) -> &Context {
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::*;
+
+    #[test]
+    fn type_of_const() {
+        let m = Module::new();
+        let ctx = ModuleContext::new(&m);
+        let value: ValueRef = const_int(32, 0.into()).into();
+        assert_eq!(ctx.ty(&value), int_ty(32));
     }
 }
