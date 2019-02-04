@@ -86,8 +86,8 @@ The following table shows the full instruction set of LLHD. Instructions have li
 
 Instruction | Allowed In | Description
 --- | --- | ---
-insert  | EFP | Change the value of one or more fields, elements, or bits.
-extract | EFP | Retrieve the value of one or more fields, elements, or bits.
+`insert`  | EFP | Change the value of one or more fields, elements, or bits.
+`extract` | EFP | Retrieve the value of one or more fields, elements, or bits.
 
 
 ### `insert` -- Insert Value
