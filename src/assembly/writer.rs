@@ -391,6 +391,44 @@ impl<'twr> Visitor for Writer<'twr> {
                 self.write_value(ctx.as_context(), ptr).unwrap();
             }
 
+            // insert element <type> <target>, <index>, <value>
+            // insert slice <type> <target>, <start>, <length>, <value>
+            InsertInst(ref ty, ref target, mode, ref value) => {
+                write!(self.sink, " ").unwrap();
+                match mode {
+                    SliceMode::Element(..) => write!(self.sink, "element").unwrap(),
+                    SliceMode::Slice(..) => write!(self.sink, "slice").unwrap(),
+                }
+                self.write_ty(ty).unwrap();
+                write!(self.sink, " ").unwrap();
+                self.write_value(ctx.as_context(), target).unwrap();
+                write!(self.sink, ", ").unwrap();
+                match mode {
+                    SliceMode::Element(i) => write!(self.sink, "{}", i).unwrap(),
+                    SliceMode::Slice(i, n) => write!(self.sink, "{}, {}", i, n).unwrap(),
+                }
+                write!(self.sink, ", ").unwrap();
+                self.write_value(ctx.as_context(), value).unwrap();
+            }
+
+            // extract element <type> <target>, <index>
+            // extract slice <type> <target>, <start>, <length>
+            ExtractInst(ref ty, ref target, mode) => {
+                write!(self.sink, " ").unwrap();
+                match mode {
+                    SliceMode::Element(..) => write!(self.sink, "element").unwrap(),
+                    SliceMode::Slice(..) => write!(self.sink, "slice").unwrap(),
+                }
+                self.write_ty(ty).unwrap();
+                write!(self.sink, " ").unwrap();
+                self.write_value(ctx.as_context(), target).unwrap();
+                write!(self.sink, ", ").unwrap();
+                match mode {
+                    SliceMode::Element(i) => write!(self.sink, "{}", i).unwrap(),
+                    SliceMode::Slice(i, n) => write!(self.sink, "{}, {}", i, n).unwrap(),
+                }
+            }
+
             // halt
             HaltInst => (),
         }

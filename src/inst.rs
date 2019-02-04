@@ -127,6 +127,10 @@ pub enum InstKind {
     StoreInst(Type, ValueRef, ValueRef),
     /// `halt`
     HaltInst,
+    /// The `insert` instruction.
+    InsertInst(Type, ValueRef, SliceMode, ValueRef),
+    /// The `extract` instruction.
+    ExtractInst(Type, ValueRef, SliceMode),
 }
 
 impl InstKind {
@@ -145,6 +149,15 @@ impl InstKind {
             LoadInst(ref ty, ..) => ty.clone(),
             StoreInst(..) => void_ty(),
             HaltInst => void_ty(),
+            InsertInst(ref ty, ..) => ty.clone(),
+            ExtractInst(ref ty, _, mode) => match (ty.as_ref(), mode) {
+                (&IntType(_), SliceMode::Element(_)) => int_ty(1),
+                (&IntType(_), SliceMode::Slice(_, len)) => int_ty(len),
+                (&VectorType(_, ref ty), SliceMode::Element(_)) => ty.clone(),
+                (&VectorType(_, ref ty), SliceMode::Slice(_, len)) => vector_ty(len, ty.clone()),
+                (&StructType(ref tys), SliceMode::Element(i)) => tys[i].clone(),
+                _ => panic!("invalid type/mode combination for `extract` instruction; type = {:?}, mode = {:?}", ty, mode),
+            },
         }
     }
 
@@ -165,6 +178,8 @@ impl InstKind {
             LoadInst(..) => Mnemonic::Load,
             StoreInst(..) => Mnemonic::Store,
             HaltInst => Mnemonic::Halt,
+            InsertInst(..) => Mnemonic::Insert,
+            ExtractInst(..) => Mnemonic::Extract,
         }
     }
 
@@ -289,6 +304,18 @@ pub enum BranchKind {
     Cond(ValueRef, BlockRef, BlockRef),
 }
 
+/// The insert/extract flavor.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SliceMode {
+    /// Extract or insert a single element.
+    Element(usize),
+    /// Extract or insert multiple consecutive elements.
+    ///
+    /// The first field corresponds to the first element to pick. The second
+    /// field determines the number of elements to pick.
+    Slice(usize, usize),
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Mnemonic {
     Unary(UnaryMnemonic),
@@ -307,6 +334,8 @@ pub enum Mnemonic {
     Load,
     Store,
     Halt,
+    Insert,
+    Extract,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -349,6 +378,8 @@ impl Mnemonic {
             Mnemonic::Load => "load",
             Mnemonic::Store => "store",
             Mnemonic::Halt => "halt",
+            Mnemonic::Insert => "insert",
+            Mnemonic::Extract => "extract",
         }
     }
 }
