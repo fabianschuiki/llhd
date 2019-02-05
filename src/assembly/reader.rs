@@ -122,7 +122,15 @@ where
         string("void").map(|_| void_ty()),
         string("time").map(|_| time_ty()),
         token('i').with(parser(&int)).map(|i| int_ty(i)),
-        token('n').with(parser(&int)).map(|i| enum_ty(i))
+        token('n').with(parser(&int)).map(|i| enum_ty(i)),
+        lex(token('{'))
+            .with(sep_by(lex(parser(ty_parser)), lex(token(','))))
+            .skip(token('}'))
+            .map(|v| struct_ty(v)),
+        lex(token('['))
+            .with((lex(parser(&int)), lex(token('x')), parser(ty_parser)))
+            .skip(token(']'))
+            .map(|(s, _, t)| array_ty(s, t))
     )
     .and(optional(choice!(
         token('*').map(|_| Suffix::Pointer),

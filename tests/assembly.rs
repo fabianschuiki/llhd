@@ -31,6 +31,22 @@ fn empty() {
 }
 
 #[test]
+fn types() {
+    loopback! {"
+        func @foo () void {
+        %entry:
+            %v0 = var i32
+            %v1 = var time
+            %v2 = var i32*
+            %v3 = var i32$
+            %v4 = var void
+            %v5 = var {i32, i64}
+            %v6 = var [9001 x i32]
+        }
+    "};
+}
+
+#[test]
 fn function() {
     loopback! {"
         func @foo (i32 %a, i32 %b) void {
