@@ -104,7 +104,7 @@ where
 }
 
 /// Parse a type.
-fn ty<I>(input: I) -> ParseResult<Type, I>
+fn ty_parser<I>(input: I) -> ParseResult<Type, I>
 where
     I: Stream<Item = char>,
 {
@@ -211,11 +211,13 @@ where
     let unary_op = choice!(string("not").map(|_| UnaryOp::Not));
 
     // Parse the operator and type.
-    let ((op, ty), consumed) = lex(unary_op).and(lex(parser(ty))).parse_stream(input)?;
+    let ((op, ty), consumed) = lex(unary_op)
+        .and(lex(parser(ty_parser)))
+        .parse_stream(input)?;
 
     // Parse the operand, passing in the type as context.
     let (arg, consumed) =
-        consumed.combine(|input| env_parser((ctx, &ty), inline_value).parse_stream(input))?;
+        consumed.combine(|input| env_parser((ctx, &ty), inline_value_infer).parse_stream(input))?;
 
     Ok((InstKind::UnaryInst(op, ty, arg), consumed))
 }
@@ -240,13 +242,15 @@ where
     );
 
     // Parse the operator and type.
-    let ((op, ty), consumed) = lex(binary_op).and(lex(parser(ty))).parse_stream(input)?;
+    let ((op, ty), consumed) = lex(binary_op)
+        .and(lex(parser(ty_parser)))
+        .parse_stream(input)?;
 
     // Parse the left and right hand side, passing in the type as context.
     let ((lhs, rhs), consumed) = consumed.combine(|input| {
         (
-            lex(env_parser((ctx, &ty), inline_value)),
-            env_parser((ctx, &ty), inline_value),
+            lex(env_parser((ctx, &ty), inline_value_infer)),
+            env_parser((ctx, &ty), inline_value_infer),
         )
             .parse_stream(input)
     })?;
@@ -275,14 +279,14 @@ where
     // Parse the operator and type.
     let ((op, ty), consumed) = lex(string("cmp"))
         .with(lex(compare_op))
-        .and(lex(parser(ty)))
+        .and(lex(parser(ty_parser)))
         .parse_stream(input)?;
 
     // Parse the left and right hand side, passing in the type as context.
     let ((lhs, rhs), consumed) = consumed.combine(|input| {
         (
-            lex(env_parser((ctx, &ty), inline_value)),
-            env_parser((ctx, &ty), inline_value),
+            lex(env_parser((ctx, &ty), inline_value_infer)),
+            env_parser((ctx, &ty), inline_value_infer),
         )
             .parse_stream(input)
     })?;
@@ -300,7 +304,7 @@ where
         .parse_stream(input)?;
     let (target, ty) = ctx.lookup(&NameKey(global, name));
     let (args, consumed) = {
-        let mut arg_tys = ty.as_func().0.into_iter();
+        let mut arg_tys = ty.unwrap_func().0.into_iter();
         let (args, consumed) = consumed.combine(|input| {
             between(
                 lex(token('(')),
@@ -309,7 +313,7 @@ where
                     parser(|input| {
                         env_parser(
                             (ctx, arg_tys.next().expect("missing argument")),
-                            inline_value,
+                            inline_value_infer,
                         )
                         .parse_stream(input)
                     }),
@@ -333,13 +337,13 @@ where
         .parse_stream(input)?;
     let (target, ty) = ctx.lookup(&NameKey(global, name));
     let (ins, outs, consumed) = {
-        let (in_tys, out_tys) = ty.as_entity();
+        let (in_tys, out_tys) = ty.unwrap_entity();
 
         let mut arg_tys = in_tys.into_iter();
         let (ins, consumed) = consumed.combine(|input| {
             r#try(
                 // This try block is necessary since otherwise in the case of an
-                // empty argument list, the inline_value parser would be applied
+                // empty argument list, the inline_value_infer parser would be applied
                 // to see if any arguments are present. However, this causes a
                 // panic since arg_tys is empty. Therefore we have to treat the
                 // empty argument list as a special case.
@@ -352,7 +356,7 @@ where
                     parser(|input| {
                         env_parser(
                             (ctx, arg_tys.next().expect("missing argument")),
-                            inline_value,
+                            inline_value_infer,
                         )
                         .parse_stream(input)
                     }),
@@ -366,7 +370,7 @@ where
         let (outs, consumed) = consumed.combine(|input| {
             r#try(
                 // This try block is necessary since otherwise in the case of an
-                // empty argument list, the inline_value parser would be applied
+                // empty argument list, the inline_value_infer parser would be applied
                 // to see if any arguments are present. However, this causes a
                 // panic since arg_tys is empty. Therefore we have to treat the
                 // empty argument list as a special case.
@@ -379,7 +383,7 @@ where
                     parser(|input| {
                         env_parser(
                             (ctx, arg_tys.next().expect("missing argument")),
-                            inline_value,
+                            inline_value_infer,
                         )
                         .parse_stream(input)
                     }),
@@ -403,7 +407,7 @@ where
         lex(string("wait")).with(env_parser(ctx, inline_label)),
         optional(
             r#try(parser(whitespace).skip(lex(string("for"))))
-                .with(env_parser((ctx, &time_ty()), inline_value)),
+                .with(env_parser((ctx, &time_ty()), inline_value_infer)),
         ),
         many(
             r#try(parser(whitespace).skip(lex(token(','))))
@@ -423,12 +427,12 @@ where
     string("ret")
         .with(optional(r#try(
             parser(whitespace)
-                .with(parser(ty))
+                .with(parser(ty_parser))
                 .skip(parser(whitespace))
                 .then(|ty| {
                     parser(move |input| {
                         let (value, consumed) =
-                            env_parser((ctx, &ty), inline_value).parse_stream(input)?;
+                            env_parser((ctx, &ty), inline_value_infer).parse_stream(input)?;
                         Ok(((ty.clone(), value), consumed))
                     })
                 }),
@@ -451,7 +455,7 @@ where
                 .with(env_parser(ctx, inline_label))
                 .map(|v| InstKind::BranchInst(BranchKind::Uncond(v))),
             (
-                lex(env_parser((ctx, &int_ty(1)), inline_value)).skip(lex(string("label"))),
+                lex(env_parser((ctx, &int_ty(1)), inline_value_infer)).skip(lex(string("label"))),
                 lex(env_parser(ctx, inline_label)),
                 env_parser(ctx, inline_label),
             )
@@ -466,11 +470,11 @@ where
     I: Stream<Item = char>,
 {
     lex(string("sig"))
-        .with(parser(ty))
+        .with(parser(ty_parser))
         .then(|ty| {
             parser(move |input| {
                 let (value, consumed) = optional(r#try(
-                    parser(whitespace).with(env_parser((ctx, &ty), inline_value)),
+                    parser(whitespace).with(env_parser((ctx, &ty), inline_value_infer)),
                 ))
                 .parse_stream(input)?;
                 Ok(((ty.clone(), value), consumed))
@@ -489,7 +493,7 @@ where
         .with(env_parser(ctx, inline_named_value))
         .parse_stream(input)?;
     Ok((
-        InstKind::ProbeInst(ty.as_signal().clone(), signal),
+        InstKind::ProbeInst(ty.unwrap_signal().clone(), signal),
         consumed,
     ))
 }
@@ -504,9 +508,9 @@ where
         .parse_stream(input)?;
 
     let ((value, delay), consumed) = consumed.combine(|input| {
-        env_parser((ctx, ty.as_signal()), inline_value)
+        env_parser((ctx, ty.unwrap_signal()), inline_value_infer)
             .and(optional(r#try(
-                parser(whitespace).with(env_parser((ctx, &time_ty()), inline_value)),
+                parser(whitespace).with(env_parser((ctx, &time_ty()), inline_value_infer)),
             )))
             .parse_stream(input)
     })?;
@@ -520,7 +524,7 @@ where
     I: Stream<Item = char>,
 {
     lex(string("var"))
-        .with(parser(ty))
+        .with(parser(ty_parser))
         .map(|ty| InstKind::VariableInst(ty))
         .parse_stream(input)
 }
@@ -531,11 +535,11 @@ where
     I: Stream<Item = char>,
 {
     lex(string("load"))
-        .with(parser(ty))
+        .with(parser(ty_parser))
         .then(|ty| {
             parser(move |input| {
                 let (value, consumed) = parser(whitespace)
-                    .with(env_parser((ctx, &ty), inline_value))
+                    .with(env_parser((ctx, &ty), inline_value_infer))
                     .parse_stream(input)?;
                 Ok(((ty.clone(), value), consumed))
             })
@@ -550,12 +554,12 @@ where
     I: Stream<Item = char>,
 {
     lex(string("store"))
-        .with(parser(ty))
+        .with(parser(ty_parser))
         .then(|ty| {
             parser(move |input| {
                 let ((ptr, value), consumed) = (
-                    parser(whitespace).with(env_parser((ctx, &ty), inline_value)),
-                    parser(whitespace).with(env_parser((ctx, &ty), inline_value)),
+                    parser(whitespace).with(env_parser((ctx, &ty), inline_value_infer)),
+                    parser(whitespace).with(env_parser((ctx, &ty), inline_value_infer)),
                 )
                     .parse_stream(input)?;
                 Ok(((ty.clone(), ptr, value), consumed))
@@ -565,8 +569,19 @@ where
         .parse_stream(input)
 }
 
-/// Parse an inline value.
-fn inline_value<I>((ctx, ty): (&NameTable, &Type), input: I) -> ParseResult<ValueRef, I>
+/// Parse an inline value which may infer its type from context.
+fn inline_value_infer<I>((ctx, ty): (&NameTable, &Type), input: I) -> ParseResult<ValueRef, I>
+where
+    I: Stream<Item = char>,
+{
+    inline_value((ctx, Some(ty)), input).map(|((v, _), c)| (v, c))
+}
+
+/// Parse an inline value with optional type context.
+fn inline_value<I>(
+    (ctx, ty): (&NameTable, Option<&Type>),
+    input: I,
+) -> ParseResult<(ValueRef, Type), I>
 where
     I: Stream<Item = char>,
 {
@@ -658,10 +673,31 @@ where
     );
 
     choice!(
-        parser(name).map(|(g, s)| ctx.lookup(&NameKey(g, s)).0),
-        r#try(const_time)
-            .map(|(time, delta, epsilon)| konst::const_time(time, delta, epsilon).into()),
-        r#try(const_int()).map(|value| konst::const_int(ty.as_int(), value).into())
+        r#try((
+            optional(parser(ty_parser).skip(parser(whitespace))),
+            parser(name)
+        ))
+        .map(|(_ty, (g, s))| ctx.lookup(&NameKey(g, s))),
+        r#try(const_time).map(|(time, delta, epsilon)| (
+            konst::const_time(time, delta, epsilon).into(),
+            time_ty()
+        )),
+        r#try((
+            optional(parser(ty_parser).skip(parser(whitespace))),
+            const_int()
+        ))
+        .map(|(local_ty, value)| {
+            let k = konst::const_int(
+                local_ty
+                    .as_ref()
+                    .or(ty)
+                    .expect("cannot infer type of integer")
+                    .unwrap_int(),
+                value,
+            );
+            let ty = k.ty();
+            (k.into(), ty)
+        })
     )
     .parse_stream(input)
 }
@@ -697,7 +733,7 @@ where
         lex(token('(')),
         token(')'),
         sep_by(
-            parser(ty)
+            parser(ty_parser)
                 .skip(parser(whitespace))
                 .and(optional(parser(local_name))),
             lex(token(',')),
@@ -713,7 +749,11 @@ where
 {
     // Parse the function header.
     let (((global, name), args, return_ty), consumed) = lex(string("func"))
-        .with((lex(parser(name)), lex(parser(arguments)), lex(parser(ty))))
+        .with((
+            lex(parser(name)),
+            lex(parser(arguments)),
+            lex(parser(ty_parser)),
+        ))
         .parse_stream(input)?;
 
     // Construct the function type.
@@ -1023,9 +1063,9 @@ mod test {
     use crate::const_int;
     use combine::{env_parser, parser, Parser, State};
 
-    fn parse_inline_value(input: &str) -> ValueRef {
+    fn parse_inline_value_infer(input: &str) -> ValueRef {
         let ctx = NameTable::new(None);
-        env_parser((&ctx, &void_ty()), inline_value)
+        env_parser((&ctx, &void_ty()), inline_value_infer)
             .parse(State::new(input))
             .unwrap()
             .0
@@ -1033,44 +1073,33 @@ mod test {
 
     #[test]
     fn const_time() {
-        let parse = |input| parse_inline_value(input).into_const().as_time().clone();
+        let parse = |input| {
+            parse_inline_value_infer(input)
+                .into_const()
+                .as_time()
+                .clone()
+        };
         assert_eq!(
             parse("1ns"),
-            konst::ConstTime::new(
-                (1.into(), (1000000000 as isize).into()).into(),
-                0.into(),
-                0.into(),
-            )
+            konst::ConstTime::new((1.into(), (1000000000 as isize).into()).into(), 0, 0,)
         );
         assert_eq!(
             parse("-2ns"),
-            konst::ConstTime::new(
-                ((-2).into(), (1000000000 as isize).into()).into(),
-                0.into(),
-                0.into(),
-            )
+            konst::ConstTime::new(((-2).into(), (1000000000 as isize).into()).into(), 0, 0,)
         );
         assert_eq!(
             parse("3.45ns"),
-            konst::ConstTime::new(
-                (345.into(), (100000000000 as isize).into()).into(),
-                0.into(),
-                0.into(),
-            )
+            konst::ConstTime::new((345.into(), (100000000000 as isize).into()).into(), 0, 0,)
         );
         assert_eq!(
             parse("-4.56ns"),
-            konst::ConstTime::new(
-                ((-456).into(), (100000000000 as isize).into()).into(),
-                0.into(),
-                0.into(),
-            )
+            konst::ConstTime::new(((-456).into(), (100000000000 as isize).into()).into(), 0, 0,)
         );
     }
 
     #[test]
     fn types() {
-        let parse = |input| parser(super::ty).parse(State::new(input)).unwrap().0;
+        let parse = |input| parser(super::ty_parser).parse(State::new(input)).unwrap().0;
         assert_eq!(parse("void"), void_ty());
         assert_eq!(parse("time"), time_ty());
         assert_eq!(parse("i8"), int_ty(8));
