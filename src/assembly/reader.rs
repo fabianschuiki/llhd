@@ -196,6 +196,8 @@ where
         r#try(env_parser(ctx, variable_inst)),
         r#try(env_parser(ctx, load_inst)),
         r#try(env_parser(ctx, store_inst)),
+        r#try(env_parser(ctx, insert_inst)),
+        r#try(env_parser(ctx, extract_inst)),
         r#try(string("halt").map(|_| InstKind::HaltInst))
     );
     let named_inst = r#try(optional(name))
@@ -574,6 +576,88 @@ where
             })
         })
         .map(|(ty, ptr, value)| InstKind::StoreInst(ty, ptr, value))
+        .parse_stream(input)
+}
+
+/// Parse an insert instruction.
+fn insert_inst<I>(ctx: &NameTable, input: I) -> ParseResult<InstKind, I>
+where
+    I: Stream<Item = char>,
+{
+    let element_variant = lex(string("element"))
+        .with(lex(parser(ty_parser)))
+        .then(|ty| {
+            parser(move |input| {
+                let ((ptr, _, index), consumed) = (
+                    lex(env_parser((ctx, &ty), inline_value_infer)),
+                    lex(token(',')),
+                    many1(digit()).map(|s: String| s.parse().unwrap()),
+                )
+                    .parse_stream(input)?;
+                Ok(((ty.clone(), ptr, SliceMode::Element(index)), consumed))
+            })
+        });
+    let slice_variant = lex(string("slice"))
+        .with(lex(parser(ty_parser)))
+        .then(|ty| {
+            parser(move |input| {
+                let ((ptr, _, base, _, length), consumed) = (
+                    lex(env_parser((ctx, &ty), inline_value_infer)),
+                    lex(token(',')),
+                    many1(digit()).map(|s: String| s.parse().unwrap()),
+                    lex(token(',')),
+                    many1(digit()).map(|s: String| s.parse().unwrap()),
+                )
+                    .parse_stream(input)?;
+                Ok(((ty.clone(), ptr, SliceMode::Slice(base, length)), consumed))
+            })
+        });
+    lex(string("insert"))
+        .with((
+            lex(choice!(r#try(element_variant), r#try(slice_variant))),
+            lex(token(',')),
+            env_parser((ctx, None), inline_value),
+        ))
+        .map(|((ty, ptr, mode), _, (value, _))| InstKind::InsertInst(ty, ptr, mode, value))
+        .parse_stream(input)
+}
+
+/// Parse an extract instruction.
+fn extract_inst<I>(ctx: &NameTable, input: I) -> ParseResult<InstKind, I>
+where
+    I: Stream<Item = char>,
+{
+    let element_variant = lex(string("element"))
+        .with(lex(parser(ty_parser)))
+        .then(|ty| {
+            parser(move |input| {
+                let ((ptr, _, index), consumed) = (
+                    lex(env_parser((ctx, &ty), inline_value_infer)),
+                    lex(token(',')),
+                    many1(digit()).map(|s: String| s.parse().unwrap()),
+                )
+                    .parse_stream(input)?;
+                Ok(((ty.clone(), ptr, SliceMode::Element(index)), consumed))
+            })
+        });
+    let slice_variant = lex(string("slice"))
+        .with(lex(parser(ty_parser)))
+        .then(|ty| {
+            parser(move |input| {
+                let ((ptr, _, base, _, length), consumed) = (
+                    lex(env_parser((ctx, &ty), inline_value_infer)),
+                    lex(token(',')),
+                    many1(digit()).map(|s: String| s.parse().unwrap()),
+                    lex(token(',')),
+                    many1(digit()).map(|s: String| s.parse().unwrap()),
+                )
+                    .parse_stream(input)?;
+                Ok(((ty.clone(), ptr, SliceMode::Slice(base, length)), consumed))
+            })
+        });
+    lex(string("extract"))
+        .with(choice!(r#try(element_variant), r#try(slice_variant)))
+        .map(|(ty, ptr, mode)| InstKind::ExtractInst(ty, ptr, mode))
         .parse_stream(input)
 }
 

@@ -124,6 +124,10 @@ fn instructions() {
             %v0 = var i8
             %v1 = load i8 %v0
             store i8 %v0 42
+            %i1 = insert element i32 %v0, 0, i32 42
+            %i2 = insert slice i8 %v0, 0, 2, i2 3
+            %e1 = extract element i32 %v0, 0
+            %e2 = extract slice i8 %v0, 0, 2
             halt
         }
     "};
