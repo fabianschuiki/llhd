@@ -7,12 +7,19 @@ use llhd::Visitor;
 
 macro_rules! loopback {
     ($input:tt) => {
+        compare! {$input, $input}
+    };
+}
+
+macro_rules! compare {
+    ($input:tt, $expected:tt) => {
         let input = indoc!($input);
+        let expected = indoc!($expected);
         let module = llhd::assembly::parse_str(input).unwrap();
         let mut asm = Vec::new();
         llhd::assembly::Writer::new(&mut asm).visit_module(&module);
         let asm = String::from_utf8(asm).unwrap();
-        assert_eq!(input, asm);
+        assert_eq!(expected, asm);
     };
 }
 
