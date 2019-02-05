@@ -643,8 +643,18 @@ where
                     }
                 },
             ),
-        optional(r#try(const_int().skip(token('d')))).map(|v| v.unwrap_or(BigInt::zero())),
-        optional(r#try(const_int().skip(token('e')))).map(|v| v.unwrap_or(BigInt::zero())),
+        optional(r#try(
+            many1(digit())
+                .map(|s: String| s.parse().expect("invalid delta value"))
+                .skip(token('d')),
+        ))
+        .map(|v| v.unwrap_or(0)),
+        optional(r#try(
+            many1(digit())
+                .map(|s: String| s.parse().expect("invalid epsilon value"))
+                .skip(token('e')),
+        ))
+        .map(|v| v.unwrap_or(0)),
     );
 
     choice!(

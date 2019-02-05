@@ -98,13 +98,13 @@ impl ConstInt {
 #[derive(Clone, PartialOrd, Ord, PartialEq, Eq)]
 pub struct ConstTime {
     time: BigRational,
-    delta: BigInt,
-    epsilon: BigInt,
+    delta: usize,
+    epsilon: usize,
 }
 
 impl ConstTime {
     /// Create a new constant time.
-    pub fn new(time: BigRational, delta: BigInt, epsilon: BigInt) -> ConstTime {
+    pub fn new(time: BigRational, delta: usize, epsilon: usize) -> ConstTime {
         ConstTime {
             time: time,
             delta: delta,
@@ -118,13 +118,13 @@ impl ConstTime {
     }
 
     /// Get the delta time of the constant.
-    pub fn delta(&self) -> &BigInt {
-        &self.delta
+    pub fn delta(&self) -> usize {
+        self.delta
     }
 
     /// Get the epsilon time of the constant.
-    pub fn epsilon(&self) -> &BigInt {
-        &self.epsilon
+    pub fn epsilon(&self) -> usize {
+        self.epsilon
     }
 
     /// Check whether all components of this time constant are zero.
@@ -196,7 +196,7 @@ pub fn const_int(width: usize, value: BigInt) -> Const {
 }
 
 /// Create a new time constant.
-pub fn const_time(time: BigRational, delta: BigInt, epsilon: BigInt) -> Const {
+pub fn const_time(time: BigRational, delta: usize, epsilon: usize) -> Const {
     Const::new(ConstKind::Time(ConstTime::new(time, delta, epsilon)))
 }
 
@@ -206,7 +206,7 @@ pub fn const_zero(ty: &Type) -> Const {
     use num::Zero;
     match **ty {
         IntType(sz) => const_int(sz, BigInt::zero()),
-        TimeType => const_time(BigRational::zero(), BigInt::zero(), BigInt::zero()),
+        TimeType => const_time(BigRational::zero(), 0, 0),
         ref x => panic!("no const zero value for type {}", x),
     }
 }
