@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Rename `VectorType` to `ArrayType`. ([#24](https://github.com/fabianschuiki/llhd/issues/24))
 - Change vector syntax from `<N x T>` to `[N x T]`.
+- Swap order of `store` instruction parameters such that the pointer comes first.
 - Change type of delta and epsilon time steps to `usize`.
 
 ### Fixed

@@ -123,7 +123,7 @@ pub enum InstKind {
     VariableInst(Type),
     /// `<result> = load <type> <ptr>`
     LoadInst(Type, ValueRef),
-    /// `store <type> <value> <ptr>`
+    /// `store <type> <ptr> <value>`
     StoreInst(Type, ValueRef, ValueRef),
     /// `halt`
     HaltInst,

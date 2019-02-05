@@ -553,15 +553,15 @@ where
         .with(parser(ty))
         .then(|ty| {
             parser(move |input| {
-                let ((value, ptr), consumed) = (
+                let ((ptr, value), consumed) = (
                     parser(whitespace).with(env_parser((ctx, &ty), inline_value)),
                     parser(whitespace).with(env_parser((ctx, &ty), inline_value)),
                 )
                     .parse_stream(input)?;
-                Ok(((ty.clone(), value, ptr), consumed))
+                Ok(((ty.clone(), ptr, value), consumed))
             })
         })
-        .map(|(ty, value, ptr)| InstKind::StoreInst(ty, value, ptr))
+        .map(|(ty, ptr, value)| InstKind::StoreInst(ty, ptr, value))
         .parse_stream(input)
 }
 

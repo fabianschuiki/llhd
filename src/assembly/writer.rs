@@ -381,14 +381,14 @@ impl<'twr> Visitor for Writer<'twr> {
                 self.write_value(ctx.as_context(), ptr).unwrap();
             }
 
-            // store <type> <value> <ptr>
-            StoreInst(ref ty, ref value, ref ptr) => {
+            // store <type> <ptr> <value>
+            StoreInst(ref ty, ref ptr, ref value) => {
                 write!(self.sink, " ").unwrap();
                 self.write_ty(ty).unwrap();
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), value).unwrap();
+                self.write_value(ctx.as_context(), ptr, false).unwrap();
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), ptr).unwrap();
+                self.write_value(ctx.as_context(), value, false).unwrap();
             }
 
             // insert element <type> <target>, <index>, <value>
