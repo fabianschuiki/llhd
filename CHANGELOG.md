@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add `insert` and `extract` instructions.
 
+### Fixed
+- Fix representation of times in assembly; always print seconds. ([#36](https://github.com/fabianschuiki/llhd/issues/36))
+
 ## 0.3.1 - 2019-01-17
 ### Fixed
 - Fix type lookup of constants via `Context::ty`.

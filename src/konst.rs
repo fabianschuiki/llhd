@@ -143,23 +143,12 @@ impl std::fmt::Debug for ConstTime {
 impl std::fmt::Display for ConstTime {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use num::Zero;
-        let mut any = false;
-        if !self.time.is_zero() || self.is_zero() {
-            write_ratio_as_si(&self.time, f)?;
-            any = true;
-        }
+        write_ratio_as_si(&self.time, f)?;
         if !self.delta.is_zero() {
-            if any {
-                write!(f, " ")?
-            };
-            write!(f, "{}d", self.delta)?;
-            any = true;
+            write!(f, " {}d", self.delta)?;
         }
         if !self.epsilon.is_zero() {
-            if any {
-                write!(f, " ")?
-            };
-            write!(f, "{}e", self.epsilon)?;
+            write!(f, " {}e", self.epsilon)?;
         }
         Ok(())
     }
@@ -239,9 +228,9 @@ mod tests {
             )
         };
         assert_eq!(make(0, 1, 0, 0), "0s");
-        assert_eq!(make(0, 1, 0, 1), "1e");
-        assert_eq!(make(0, 1, 1, 0), "1d");
-        assert_eq!(make(0, 1, 1, 1), "1d 1e");
+        assert_eq!(make(0, 1, 0, 1), "0s 1e");
+        assert_eq!(make(0, 1, 1, 0), "0s 1d");
+        assert_eq!(make(0, 1, 1, 1), "0s 1d 1e");
 
         assert_eq!(make(1, 1, 0, 0), "1s");
         assert_eq!(make(1, 1, 0, 1), "1s 1e");
