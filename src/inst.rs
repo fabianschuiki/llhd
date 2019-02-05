@@ -153,8 +153,8 @@ impl InstKind {
             ExtractInst(ref ty, _, mode) => match (ty.as_ref(), mode) {
                 (&IntType(_), SliceMode::Element(_)) => int_ty(1),
                 (&IntType(_), SliceMode::Slice(_, len)) => int_ty(len),
-                (&VectorType(_, ref ty), SliceMode::Element(_)) => ty.clone(),
-                (&VectorType(_, ref ty), SliceMode::Slice(_, len)) => vector_ty(len, ty.clone()),
+                (&ArrayType(_, ref ty), SliceMode::Element(_)) => ty.clone(),
+                (&ArrayType(_, ref ty), SliceMode::Slice(_, len)) => array_ty(len, ty.clone()),
                 (&StructType(ref tys), SliceMode::Element(i)) => tys[i].clone(),
                 _ => panic!("invalid type/mode combination for `extract` instruction; type = {:?}, mode = {:?}", ty, mode),
             },

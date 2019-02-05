@@ -24,8 +24,8 @@ pub enum TypeKind {
     PointerType(Type),
     /// Signal types like `i32$`.
     SignalType(Type),
-    /// Vector types like `<4 x i32>`.
-    VectorType(usize, Type),
+    /// Array types like `[4 x i32]`.
+    ArrayType(usize, Type),
     /// Struct types like `{i8, i32}`.
     StructType(Vec<Type>),
     /// Function types like `(i32) void`.
@@ -43,7 +43,7 @@ impl std::fmt::Display for TypeKind {
             EnumType(l) => write!(f, "n{}", l),
             PointerType(ref ty) => write!(f, "{}*", ty),
             SignalType(ref ty) => write!(f, "{}$", ty),
-            VectorType(l, ref ty) => write!(f, "<{} x {}>", l, ty),
+            ArrayType(l, ref ty) => write!(f, "[{} x {}]", l, ty),
             StructType(ref tys) => {
                 write!(f, "{{")?;
                 write_implode(f, ", ", tys.iter())?;
@@ -153,10 +153,10 @@ pub fn signal_ty(ty: Type) -> Type {
     Type::new(SignalType(ty))
 }
 
-/// Create a vector type. `size` is the number of elements in the vector, and
-/// `ty` the type of each individual element.
-pub fn vector_ty(size: usize, ty: Type) -> Type {
-    Type::new(VectorType(size, ty))
+/// Create a array type. `size` is the number of elements in the array, and `ty`
+/// the type of each individual element.
+pub fn array_ty(size: usize, ty: Type) -> Type {
+    Type::new(ArrayType(size, ty))
 }
 
 /// Create a struct type. `fields` is an list of types, one for each field.
