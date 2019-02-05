@@ -3,9 +3,9 @@
 //! Types of values.
 
 pub use self::TypeKind::*;
+use crate::util::write_implode;
 use std;
 use std::sync::Arc;
-use crate::util::write_implode;
 
 pub type Type = Arc<TypeKind>;
 
@@ -69,55 +69,154 @@ impl std::fmt::Display for TypeKind {
 }
 
 impl TypeKind {
-    /// Unwrap the type into arguments and return type, or panic if the type is
-    /// not a function.
-    pub fn as_func(&self) -> (&[Type], &Type) {
-        match *self {
-            FuncType(ref args, ref ret) => (args, ret),
-            _ => panic!("as_func called on {}", self),
-        }
-    }
-
-    /// Unwrap the type into input and output arguments, or panic if the type is
-    /// not an entity.
-    pub fn as_entity(&self) -> (&[Type], &[Type]) {
-        match *self {
-            EntityType(ref ins, ref outs) => (ins, outs),
-            _ => panic!("as_entity called on {}", self),
-        }
-    }
-
     /// Unwrap the type to its integer bit width, or panic if the type is not an
     /// integer.
-    pub fn as_int(&self) -> usize {
+    pub fn unwrap_int(&self) -> usize {
         match *self {
             IntType(size) => size,
-            _ => panic!("as_int called on {}", self),
+            _ => panic!("unwrap_int called on {}", self),
         }
     }
 
     /// Unwrap the type to its number of enumerated states, or panic if the type
     /// is not an enum.
-    pub fn as_enum(&self) -> usize {
+    pub fn unwrap_enum(&self) -> usize {
         match *self {
             EnumType(size) => size,
-            _ => panic!("as_enum called on {}", self),
+            _ => panic!("unwrap_enum called on {}", self),
+        }
+    }
+
+    /// Unwrap the type to its pointer data type, or panic if the type is not a
+    /// pointer. E.g. yields the `i8` type in `i8*`.
+    pub fn unwrap_pointer(&self) -> &Type {
+        match *self {
+            PointerType(ref ty) => ty,
+            _ => panic!("unwrap_pointer called on {}", self),
         }
     }
 
     /// Unwrap the type to its signal data type, or panic if the type is not an
     /// integer. E.g. yields the `i8` type in `i8$`.
-    pub fn as_signal(&self) -> &Type {
+    pub fn unwrap_signal(&self) -> &Type {
         match *self {
             SignalType(ref ty) => ty,
-            _ => panic!("as_signal called on {}", self),
+            _ => panic!("unwrap_signal called on {}", self),
         }
     }
 
-    /// Check if this type is a void type.
+    /// Unwrap the type to its array length and element type, or panic if the
+    /// type is not an array. E.g. yields the `(16, i32)` in `[16 x i32]`.
+    pub fn unwrap_array(&self) -> (usize, &Type) {
+        match *self {
+            ArrayType(len, ref ty) => (len, ty),
+            _ => panic!("unwrap_array called on {}", self),
+        }
+    }
+
+    /// Unwrap the type to its struct fields, or panic if the type is not a
+    /// struct. E.g. yields the `[i8, i16]` in `{i8, i16}`.
+    pub fn unwrap_struct(&self) -> &[Type] {
+        match *self {
+            StructType(ref fields) => fields,
+            _ => panic!("unwrap_struct called on {}", self),
+        }
+    }
+
+    /// Unwrap the type into arguments and return type, or panic if the type is
+    /// not a function.
+    pub fn unwrap_func(&self) -> (&[Type], &Type) {
+        match *self {
+            FuncType(ref args, ref ret) => (args, ret),
+            _ => panic!("unwrap_func called on {}", self),
+        }
+    }
+
+    /// Unwrap the type into input and output arguments, or panic if the type is
+    /// not an entity.
+    pub fn unwrap_entity(&self) -> (&[Type], &[Type]) {
+        match *self {
+            EntityType(ref ins, ref outs) => (ins, outs),
+            _ => panic!("unwrap_entity called on {}", self),
+        }
+    }
+
+    /// Check if this is a void type.
     pub fn is_void(&self) -> bool {
         match *self {
             VoidType => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this is a time type.
+    pub fn is_time(&self) -> bool {
+        match *self {
+            TimeType => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this is an integer type.
+    pub fn is_int(&self) -> bool {
+        match *self {
+            IntType(..) => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this is an enum type.
+    pub fn is_enum(&self) -> bool {
+        match *self {
+            EnumType(..) => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this is a pointer type.
+    pub fn is_pointer(&self) -> bool {
+        match *self {
+            PointerType(..) => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this is a signal type.
+    pub fn is_signal(&self) -> bool {
+        match *self {
+            SignalType(..) => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this is an array type.
+    pub fn is_array(&self) -> bool {
+        match *self {
+            ArrayType(..) => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this is a struct type.
+    pub fn is_struct(&self) -> bool {
+        match *self {
+            StructType(..) => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this is a func type.
+    pub fn is_func(&self) -> bool {
+        match *self {
+            FuncType(..) => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this is an entity type.
+    pub fn is_entity(&self) -> bool {
+        match *self {
+            EntityType(..) => true,
             _ => false,
         }
     }

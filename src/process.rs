@@ -28,7 +28,7 @@ impl Process {
     /// arguments and assign names and additional data to them.
     pub fn new(name: impl Into<String>, ty: Type) -> Process {
         let (ins, outs) = {
-            let (in_tys, out_tys) = ty.as_entity();
+            let (in_tys, out_tys) = ty.unwrap_entity();
             let to_arg = |t: &Type| Argument::new(t.clone());
             (
                 in_tys.iter().map(&to_arg).collect(),

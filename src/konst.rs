@@ -50,10 +50,10 @@ impl ConstKind {
 
     /// Yield a reference to this constant's embedded integer. Panics if the
     /// constant is not an integer.
-    pub fn as_int(&self) -> &ConstInt {
+    pub fn unwrap_int(&self) -> &ConstInt {
         match *self {
             ConstKind::Int(ref k) => k,
-            _ => panic!("as_int called on {}", self.desc()),
+            _ => panic!("unwrap_int called on {}", self.desc()),
         }
     }
 

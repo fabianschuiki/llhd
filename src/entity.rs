@@ -3,12 +3,12 @@
 use crate::argument::*;
 use crate::inst::*;
 use crate::module::ModuleContext;
-use std;
-use std::collections::HashMap;
 use crate::ty::*;
 use crate::unit::*;
 use crate::util::IndirectMapIter;
 use crate::value::*;
+use std;
+use std::collections::HashMap;
 
 /// An entity. Describes through its instructions the data dependencies in order
 /// to react to changes in input signals. Implements *data flow* and *timed
@@ -31,7 +31,7 @@ impl Entity {
     /// arguments and assign names and additional data to them.
     pub fn new(name: impl Into<String>, ty: Type) -> Entity {
         let (ins, outs) = {
-            let (in_tys, out_tys) = ty.as_entity();
+            let (in_tys, out_tys) = ty.unwrap_entity();
             let to_arg = |t: &Type| Argument::new(t.clone());
             (
                 in_tys.iter().map(&to_arg).collect(),

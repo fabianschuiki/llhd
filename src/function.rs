@@ -27,7 +27,7 @@ impl Function {
     /// and additional data to them.
     pub fn new(name: impl Into<String>, ty: Type) -> Function {
         let args = {
-            let (arg_tys, _) = ty.as_func();
+            let (arg_tys, _) = ty.unwrap_func();
             arg_tys.iter().map(|t| Argument::new(t.clone())).collect()
         };
         Function {
@@ -52,7 +52,7 @@ impl Function {
 
     /// Get the return type of the function.
     pub fn return_ty(&self) -> &Type {
-        self.ty.as_func().1
+        self.ty.unwrap_func().1
     }
 
     /// Get a graph reference to one of the arguments of the function.

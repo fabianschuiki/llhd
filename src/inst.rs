@@ -140,7 +140,7 @@ impl InstKind {
             UnaryInst(_, ref ty, _) => ty.clone(),
             BinaryInst(_, ref ty, _, _) => ty.clone(),
             CompareInst(..) => int_ty(1),
-            CallInst(ref ty, _, _) => ty.as_func().1.clone(),
+            CallInst(ref ty, _, _) => ty.unwrap_func().1.clone(),
             InstanceInst(..) | WaitInst(..) | ReturnInst(_) | BranchInst(_) => void_ty(),
             SignalInst(ref ty, _) => signal_ty(ty.clone()),
             ProbeInst(ref ty, _) => ty.clone(),

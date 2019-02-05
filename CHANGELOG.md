@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 - Add `insert` and `extract` instructions.
+- Add missing `unwrap_*` and `is_*` functions to types. ([#35](https://github.com/fabianschuiki/llhd/issues/35))
 
 ### Changed
+- Rename `as_*` functions on types to `unwrap_*`.
 - Rename `VectorType` to `ArrayType`. ([#24](https://github.com/fabianschuiki/llhd/issues/24))
 - Change vector syntax from `<N x T>` to `[N x T]`.
 - Swap order of `store` instruction parameters such that the pointer comes first.
