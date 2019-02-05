@@ -12,6 +12,7 @@ use crate::{
     unit::*,
     value::*,
     visit::Visitor,
+    AggregateKind,
 };
 use std::{collections::HashMap, io::Write, rc::Rc};
 
@@ -128,6 +129,7 @@ impl<'twr> Writer<'twr> {
     ) -> std::io::Result<()> {
         match *value {
             ValueRef::Const(ref k) => self.write_const(k, need_explicit_type),
+            ValueRef::Aggregate(ref a) => self.write_aggregate(ctx, a),
             _ => {
                 let value = ctx.value(value);
                 let name = self.uniquify(value);
@@ -157,6 +159,58 @@ impl<'twr> Writer<'twr> {
             }
             ConstKind::Time(ref k) => write!(self.sink, "{}", k),
         }
+    }
+
+    /// Write an aggregate value.
+    fn write_aggregate(&mut self, ctx: &Context, aggregate: &AggregateKind) -> std::io::Result<()> {
+        match *aggregate {
+            AggregateKind::Struct(ref a) => {
+                write!(self.sink, "{{")?;
+                let mut iter = a.fields().iter();
+                if let Some(field) = iter.next() {
+                    self.write_value(ctx, field, true)?;
+                }
+                for field in iter {
+                    write!(self.sink, ", ")?;
+                    self.write_value(ctx, field, true)?;
+                }
+                write!(self.sink, "}}")?;
+            }
+            AggregateKind::Array(ref a) => {
+                write!(self.sink, "[")?;
+                let elem_ty = a.ty().unwrap_array().1;
+                let mut iter = a.elements().iter();
+                let all_equal = if let Some(first) = iter.next() {
+                    iter.all(|elem| elem == first) && a.elements().len() > 1
+                } else {
+                    false
+                };
+                if all_equal {
+                    write!(self.sink, "{} x ", a.elements().len())?;
+                }
+                let need_explicit_type = if elem_ty.is_int() {
+                    self.write_ty(elem_ty)?;
+                    if !a.elements().is_empty() {
+                        write!(self.sink, " ")?;
+                    }
+                    false
+                } else {
+                    true
+                };
+                let mut iter = a.elements().iter();
+                if let Some(elem) = iter.next() {
+                    self.write_value(ctx, elem, need_explicit_type)?;
+                }
+                if !all_equal {
+                    for elem in iter {
+                        write!(self.sink, ", ")?;
+                        self.write_value(ctx, elem, need_explicit_type)?;
+                    }
+                }
+                write!(self.sink, "]")?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -449,5 +503,94 @@ impl<'twr> Visitor for Writer<'twr> {
             HaltInst => (),
         }
         write!(self.sink, "\n").unwrap();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Aggregate, ArrayAggregate, StructAggregate};
+    use num::BigInt;
+
+    fn with_writer(f: impl FnOnce(Writer)) -> String {
+        let mut asm = vec![];
+        f(Writer::new(&mut asm));
+        String::from_utf8(asm).expect("writer should emit proper utf8")
+    }
+
+    fn write_aggregate(agg: AggregateKind) -> String {
+        with_writer(|mut w| {
+            let module = Module::new();
+            let ctx = ModuleContext::new(&module);
+            let ent = Entity::new("foo", entity_ty(vec![], vec![]));
+            let ctx = EntityContext::new(&ctx, &ent);
+            w.write_value(&ctx, &Aggregate::new(agg).into(), false)
+                .unwrap();
+        })
+    }
+
+    fn write_array_aggregate(ty: Type, elements: Vec<Const>) -> String {
+        write_aggregate(
+            ArrayAggregate::new(
+                array_ty(elements.len(), ty),
+                elements.into_iter().map(Into::into).collect(),
+            )
+            .into(),
+        )
+    }
+
+    fn write_struct_aggregate(fields: Vec<Const>) -> String {
+        write_aggregate(
+            StructAggregate::new(
+                struct_ty(fields.iter().map(|f| f.ty()).collect()),
+                fields.into_iter().map(Into::into).collect(),
+            )
+            .into(),
+        )
+    }
+
+    #[test]
+    fn array_aggregate() {
+        assert_eq!(write_array_aggregate(int_ty(32), vec![]), "[i32]");
+        assert_eq!(
+            write_array_aggregate(int_ty(32), vec![const_int(32, BigInt::from(42)),]),
+            "[i32 42]"
+        );
+        assert_eq!(
+            write_array_aggregate(
+                int_ty(32),
+                vec![
+                    const_int(32, BigInt::from(42)),
+                    const_int(32, BigInt::from(9001)),
+                ]
+            ),
+            "[i32 42, 9001]"
+        );
+        assert_eq!(
+            write_array_aggregate(
+                int_ty(32),
+                vec![
+                    const_int(32, BigInt::from(42)),
+                    const_int(32, BigInt::from(42)),
+                ]
+            ),
+            "[2 x i32 42]"
+        );
+    }
+
+    #[test]
+    fn struct_aggregate() {
+        assert_eq!(write_struct_aggregate(vec![]), "{}");
+        assert_eq!(
+            write_struct_aggregate(vec![const_int(32, BigInt::from(42))]),
+            "{i32 42}"
+        );
+        assert_eq!(
+            write_struct_aggregate(vec![
+                const_int(32, BigInt::from(42)),
+                const_int(64, BigInt::from(9001))
+            ]),
+            "{i32 42, i64 9001}"
+        );
     }
 }
