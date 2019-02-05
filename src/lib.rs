@@ -7,6 +7,7 @@ mod module;
 mod ty;
 #[macro_use]
 mod value;
+mod aggregate;
 mod argument;
 pub mod assembly;
 mod block;
@@ -22,6 +23,6 @@ pub mod util;
 mod visit;
 
 pub use crate::{
-    argument::*, block::*, entity::*, function::*, inst::*, konst::*, module::*, process::*,
-    seq_body::*, ty::*, unit::*, value::*, visit::*,
+    aggregate::*, argument::*, block::*, entity::*, function::*, inst::*, konst::*, module::*,
+    process::*, seq_body::*, ty::*, unit::*, value::*, visit::*,
 };

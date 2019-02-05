@@ -1,8 +1,6 @@
 // Copyright (c) 2017 Fabian Schuiki
 
-use crate::konst::Const;
-use crate::ty::Type;
-use std;
+use crate::{Aggregate, Const, Type};
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 pub trait Value {
@@ -34,6 +32,7 @@ pub enum ValueRef {
     Entity(EntityRef),
     Global,
     Const(Const),
+    Aggregate(Aggregate),
 }
 
 impl ValueRef {
@@ -48,6 +47,7 @@ impl ValueRef {
             ValueRef::Entity(_) => "ValueRef::Entity",
             ValueRef::Global => "ValueRef::Global",
             ValueRef::Const(_) => "ValueRef::Const",
+            ValueRef::Aggregate(_) => "ValueRef::Aggregate",
         }
     }
 
@@ -148,6 +148,26 @@ impl ValueRef {
         match *self {
             ValueRef::Entity(x) => x,
             _ => panic!("unwrap_entity called on {}", self.desc()),
+        }
+    }
+
+    /// Unwrap this reference as a constant.
+    ///
+    /// Panics if this is not a constant.
+    pub fn unwrap_const(&self) -> &Const {
+        match *self {
+            ValueRef::Const(ref x) => x,
+            _ => panic!("unwrap_const called on {}", self.desc()),
+        }
+    }
+
+    /// Unwrap this reference as an aggregate.
+    ///
+    /// Panics if this is not an aggregate.
+    pub fn unwrap_aggregate(&self) -> &Aggregate {
+        match *self {
+            ValueRef::Aggregate(ref x) => x,
+            _ => panic!("unwrap_aggregate called on {}", self.desc()),
         }
     }
 }
