@@ -1,19 +1,13 @@
 // Copyright (c) 2017 Fabian Schuiki
 #![allow(dead_code, unused_imports)]
 
-use crate::argument::Argument;
-use crate::assembly::Writer;
-use crate::block::{Block, BlockPosition};
-use crate::entity::Entity;
-use crate::function::Function;
 use crate::inst::*;
 use crate::konst;
-use crate::module::Module;
-use crate::process::Process;
-use crate::seq_body::SeqBody;
 use crate::ty::*;
-use crate::value::{BlockRef, Value, ValueRef};
-use crate::visit::Visitor;
+use crate::{
+    assembly::Writer, Aggregate, Argument, ArrayAggregate, Block, BlockPosition, BlockRef, Entity,
+    Function, Module, Process, SeqBody, StructAggregate, Value, ValueRef, Visitor,
+};
 use combine::char::{alpha_num, digit, space, string, Spaces};
 use combine::combinator::{Expected, FnParser, Skip};
 use combine::*;
@@ -764,12 +758,63 @@ where
         .map(|v| v.unwrap_or(0)),
     );
 
+    // Parser for array aggregates.
+    let array_aggregate = (
+        token('['),
+        optional(r#try(
+            many1(digit())
+                .skip(token('x'))
+                .map(|d: String| d.parse().unwrap()),
+        )),
+        parser(ty_parser).then(|ty| {
+            parser(move |input| {
+                let (values, consumed): (Vec<_>, _) = sep_by(
+                    parser(whitespace).with(env_parser((ctx, &ty), inline_value_infer)),
+                    lex(token(',')),
+                )
+                .parse_stream(input)?;
+                Ok(((ty.clone(), values), consumed))
+            })
+        }),
+        token(']'),
+    )
+        .map(|(_, length, (ty, values), _)| {
+            let ty = array_ty(length.unwrap_or(values.len()), ty);
+            (
+                Aggregate::new(ArrayAggregate::new(ty.clone(), values).into()).into(),
+                ty,
+            )
+        });
+
+    // Parser for struct aggregates.
+    let struct_aggregate = (
+        token('{'),
+        sep_by(env_parser((ctx, None), inline_value), lex(token(','))),
+        token('}'),
+    )
+        .map(|(_, fields, _)| {
+            let fields: Vec<_> = fields;
+            let mut field_values = vec![];
+            let mut field_types = vec![];
+            for (v, t) in fields {
+                field_values.push(v);
+                field_types.push(t);
+            }
+            let ty = struct_ty(field_types);
+            (
+                Aggregate::new(StructAggregate::new(ty.clone(), field_values).into()).into(),
+                ty,
+            )
+        });
+
     choice!(
         r#try((
             optional(parser(ty_parser).skip(parser(whitespace))),
             parser(name)
         ))
         .map(|(_ty, (g, s))| ctx.lookup(&NameKey(g, s))),
+        r#try(array_aggregate),
+        r#try(struct_aggregate),
         r#try(const_time).map(|(time, delta, epsilon)| (
             konst::const_time(time, delta, epsilon).into(),
             time_ty()
@@ -1186,6 +1231,83 @@ mod test {
         assert_eq!(
             parse("-4.56ns"),
             konst::ConstTime::new(((-456).into(), (100000000000 as isize).into()).into(), 0, 0,)
+        );
+    }
+
+    #[test]
+    fn array_aggregate() {
+        let parse = |input| parse_inline_value_infer(input).unwrap_aggregate().clone();
+        assert_eq!(
+            parse("[i32]"),
+            Aggregate::new(ArrayAggregate::new(array_ty(0, int_ty(32)), vec![]).into())
+        );
+        assert_eq!(
+            parse("[i32 42]"),
+            Aggregate::new(
+                ArrayAggregate::new(
+                    array_ty(1, int_ty(32)),
+                    vec![const_int(32, BigInt::from(42)).into()]
+                )
+                .into()
+            )
+        );
+        assert_eq!(
+            parse("[i32 42, 9001]"),
+            Aggregate::new(
+                ArrayAggregate::new(
+                    array_ty(2, int_ty(32)),
+                    vec![
+                        const_int(32, BigInt::from(42)).into(),
+                        const_int(32, BigInt::from(9001)).into()
+                    ]
+                )
+                .into()
+            )
+        );
+        assert_eq!(
+            parse("[i32 42, i32 9001]"),
+            Aggregate::new(
+                ArrayAggregate::new(
+                    array_ty(2, int_ty(32)),
+                    vec![
+                        const_int(32, BigInt::from(42)).into(),
+                        const_int(32, BigInt::from(9001)).into()
+                    ]
+                )
+                .into()
+            )
+        );
+    }
+
+    #[test]
+    fn struct_aggregate() {
+        let parse = |input| parse_inline_value_infer(input).unwrap_aggregate().clone();
+        assert_eq!(
+            parse("{}"),
+            Aggregate::new(StructAggregate::new(struct_ty(vec![]), vec![]).into())
+        );
+        assert_eq!(
+            parse("{i32 42}"),
+            Aggregate::new(
+                StructAggregate::new(
+                    struct_ty(vec![int_ty(32)]),
+                    vec![const_int(32, BigInt::from(42)).into()]
+                )
+                .into()
+            )
+        );
+        assert_eq!(
+            parse("{i32 42, i64 9001}"),
+            Aggregate::new(
+                StructAggregate::new(
+                    struct_ty(vec![int_ty(32), int_ty(64)]),
+                    vec![
+                        const_int(32, BigInt::from(42)).into(),
+                        const_int(64, BigInt::from(9001)).into()
+                    ]
+                )
+                .into()
+            )
         );
     }
 
