@@ -120,12 +120,21 @@ impl<'twr> Writer<'twr> {
 
     /// Write an inline value. This function is used to emit instruction
     /// arguments and generally values on the right hand side of assignments.
-    fn write_value(&mut self, ctx: &Context, value: &ValueRef) -> std::io::Result<()> {
+    fn write_value(
+        &mut self,
+        ctx: &Context,
+        value: &ValueRef,
+        need_explicit_type: bool,
+    ) -> std::io::Result<()> {
         match *value {
-            ValueRef::Const(ref k) => self.write_const(k),
+            ValueRef::Const(ref k) => self.write_const(k, need_explicit_type),
             _ => {
                 let value = ctx.value(value);
                 let name = self.uniquify(value);
+                if need_explicit_type {
+                    self.write_ty(&value.ty())?;
+                    write!(self.sink, " ")?;
+                }
                 write!(self.sink, "{}", name)
             }
         }
@@ -137,9 +146,15 @@ impl<'twr> Writer<'twr> {
     }
 
     /// Write a constant value.
-    fn write_const(&mut self, konst: &ConstKind) -> std::io::Result<()> {
+    fn write_const(&mut self, konst: &ConstKind, need_explicit_type: bool) -> std::io::Result<()> {
         match *konst {
-            ConstKind::Int(ref k) => write!(self.sink, "{}", k.value()),
+            ConstKind::Int(ref k) => {
+                if need_explicit_type {
+                    self.write_ty(&konst.ty())?;
+                    write!(self.sink, " ")?;
+                }
+                write!(self.sink, "{}", k.value())
+            }
             ConstKind::Time(ref k) => write!(self.sink, "{}", k),
         }
     }
@@ -236,7 +251,7 @@ impl<'twr> Visitor for Writer<'twr> {
                 write!(self.sink, " ").unwrap();
                 self.write_ty(ty).unwrap();
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), arg).unwrap();
+                self.write_value(ctx.as_context(), arg, false).unwrap();
             }
 
             // <op> <ty> <lhs> <rhs>
@@ -244,9 +259,9 @@ impl<'twr> Visitor for Writer<'twr> {
                 write!(self.sink, " ").unwrap();
                 self.write_ty(ty).unwrap();
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), lhs).unwrap();
+                self.write_value(ctx.as_context(), lhs, false).unwrap();
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), rhs).unwrap();
+                self.write_value(ctx.as_context(), rhs, false).unwrap();
             }
 
             // cmp <op> <ty> <lhs> <rhs>
@@ -254,22 +269,22 @@ impl<'twr> Visitor for Writer<'twr> {
                 write!(self.sink, " {} ", op.to_str()).unwrap();
                 self.write_ty(ty).unwrap();
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), lhs).unwrap();
+                self.write_value(ctx.as_context(), lhs, false).unwrap();
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), rhs).unwrap();
+                self.write_value(ctx.as_context(), rhs, false).unwrap();
             }
 
             // call <target> (<args...>)
             CallInst(_, ref target, ref args) => {
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), target).unwrap();
+                self.write_value(ctx.as_context(), target, false).unwrap();
                 write!(self.sink, " (").unwrap();
                 for (arg, sep) in args
                     .iter()
                     .zip(std::iter::once("").chain(std::iter::repeat(", ")))
                 {
                     write!(self.sink, "{}", sep).unwrap();
-                    self.write_value(ctx.as_context(), arg).unwrap();
+                    self.write_value(ctx.as_context(), arg, false).unwrap();
                 }
                 write!(self.sink, ")").unwrap();
             }
@@ -277,14 +292,14 @@ impl<'twr> Visitor for Writer<'twr> {
             // inst <target> (<inputs...>) (<outputs...>)
             InstanceInst(_, ref target, ref ins, ref outs) => {
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), target).unwrap();
+                self.write_value(ctx.as_context(), target, false).unwrap();
                 write!(self.sink, " (").unwrap();
                 for (arg, sep) in ins
                     .iter()
                     .zip(std::iter::once("").chain(std::iter::repeat(", ")))
                 {
                     write!(self.sink, "{}", sep).unwrap();
-                    self.write_value(ctx.as_context(), arg).unwrap();
+                    self.write_value(ctx.as_context(), arg, false).unwrap();
                 }
                 write!(self.sink, ") (").unwrap();
                 for (arg, sep) in outs
@@ -292,7 +307,7 @@ impl<'twr> Visitor for Writer<'twr> {
                     .zip(std::iter::once("").chain(std::iter::repeat(", ")))
                 {
                     write!(self.sink, "{}", sep).unwrap();
-                    self.write_value(ctx.as_context(), arg).unwrap();
+                    self.write_value(ctx.as_context(), arg, false).unwrap();
                 }
                 write!(self.sink, ")").unwrap();
             }
@@ -300,14 +315,15 @@ impl<'twr> Visitor for Writer<'twr> {
             // wait <target> [for <time>] (<signals...>)
             WaitInst(target, ref time, ref signals) => {
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), &target.into()).unwrap();
+                self.write_value(ctx.as_context(), &target.into(), false)
+                    .unwrap();
                 if let Some(ref time) = *time {
                     write!(self.sink, " for ").unwrap();
-                    self.write_value(ctx.as_context(), time).unwrap();
+                    self.write_value(ctx.as_context(), time, false).unwrap();
                 }
                 for signal in signals {
                     write!(self.sink, ", ").unwrap();
-                    self.write_value(ctx.as_context(), signal).unwrap();
+                    self.write_value(ctx.as_context(), signal, false).unwrap();
                 }
             }
 
@@ -319,23 +335,25 @@ impl<'twr> Visitor for Writer<'twr> {
                 write!(self.sink, " ").unwrap();
                 self.write_ty(ty).unwrap();
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), value).unwrap();
+                self.write_value(ctx.as_context(), value, false).unwrap();
             }
 
             // br label <target>
             BranchInst(BranchKind::Uncond(target)) => {
                 write!(self.sink, " label ").unwrap();
-                self.write_value(ctx.as_context(), &target.into()).unwrap();
+                self.write_value(ctx.as_context(), &target.into(), false)
+                    .unwrap();
             }
 
             // br <cond> label <ifTrue> <ifFalse>
             BranchInst(BranchKind::Cond(ref cond, if_true, if_false)) => {
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), cond).unwrap();
+                self.write_value(ctx.as_context(), cond, false).unwrap();
                 write!(self.sink, " label ").unwrap();
-                self.write_value(ctx.as_context(), &if_true.into()).unwrap();
+                self.write_value(ctx.as_context(), &if_true.into(), false)
+                    .unwrap();
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), &if_false.into())
+                self.write_value(ctx.as_context(), &if_false.into(), false)
                     .unwrap();
             }
 
@@ -345,25 +363,25 @@ impl<'twr> Visitor for Writer<'twr> {
                 self.write_ty(ty).unwrap();
                 if let Some(ref init) = *init {
                     write!(self.sink, " ").unwrap();
-                    self.write_value(ctx.as_context(), init).unwrap();
+                    self.write_value(ctx.as_context(), init, false).unwrap();
                 }
             }
 
             // prb <signal>
             ProbeInst(_, ref signal) => {
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), signal).unwrap();
+                self.write_value(ctx.as_context(), signal, false).unwrap();
             }
 
             // drv <signal> <value> [<delay>]
             DriveInst(ref signal, ref value, ref delay) => {
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), signal).unwrap();
+                self.write_value(ctx.as_context(), signal, false).unwrap();
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), value).unwrap();
+                self.write_value(ctx.as_context(), value, false).unwrap();
                 if let Some(ref delay) = *delay {
                     write!(self.sink, " ").unwrap();
-                    self.write_value(ctx.as_context(), delay).unwrap();
+                    self.write_value(ctx.as_context(), delay, false).unwrap();
                 }
             }
 
@@ -378,7 +396,7 @@ impl<'twr> Visitor for Writer<'twr> {
                 write!(self.sink, " ").unwrap();
                 self.write_ty(ty).unwrap();
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), ptr).unwrap();
+                self.write_value(ctx.as_context(), ptr, false).unwrap();
             }
 
             // store <type> <ptr> <value>
@@ -394,34 +412,32 @@ impl<'twr> Visitor for Writer<'twr> {
             // insert element <type> <target>, <index>, <value>
             // insert slice <type> <target>, <start>, <length>, <value>
             InsertInst(ref ty, ref target, mode, ref value) => {
-                write!(self.sink, " ").unwrap();
                 match mode {
-                    SliceMode::Element(..) => write!(self.sink, "element").unwrap(),
-                    SliceMode::Slice(..) => write!(self.sink, "slice").unwrap(),
+                    SliceMode::Element(..) => write!(self.sink, " element ").unwrap(),
+                    SliceMode::Slice(..) => write!(self.sink, " slice ").unwrap(),
                 }
                 self.write_ty(ty).unwrap();
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), target).unwrap();
+                self.write_value(ctx.as_context(), target, false).unwrap();
                 write!(self.sink, ", ").unwrap();
                 match mode {
                     SliceMode::Element(i) => write!(self.sink, "{}", i).unwrap(),
                     SliceMode::Slice(i, n) => write!(self.sink, "{}, {}", i, n).unwrap(),
                 }
                 write!(self.sink, ", ").unwrap();
-                self.write_value(ctx.as_context(), value).unwrap();
+                self.write_value(ctx.as_context(), value, true).unwrap();
             }
 
             // extract element <type> <target>, <index>
             // extract slice <type> <target>, <start>, <length>
             ExtractInst(ref ty, ref target, mode) => {
-                write!(self.sink, " ").unwrap();
                 match mode {
-                    SliceMode::Element(..) => write!(self.sink, "element").unwrap(),
-                    SliceMode::Slice(..) => write!(self.sink, "slice").unwrap(),
+                    SliceMode::Element(..) => write!(self.sink, " element ").unwrap(),
+                    SliceMode::Slice(..) => write!(self.sink, " slice ").unwrap(),
                 }
                 self.write_ty(ty).unwrap();
                 write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), target).unwrap();
+                self.write_value(ctx.as_context(), target, false).unwrap();
                 write!(self.sink, ", ").unwrap();
                 match mode {
                     SliceMode::Element(i) => write!(self.sink, "{}", i).unwrap(),
