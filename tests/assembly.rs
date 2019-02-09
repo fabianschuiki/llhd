@@ -155,3 +155,34 @@ fn regression_signal_type() {
         }
     "};
 }
+
+#[test]
+fn extract_with_pointer() {
+    loopback! {"
+        func @foo () void {
+        %entry:
+            %a0 = var i32
+            %a1 = extract element i32* %a0, 3
+            %a2 = extract slice i32* %a0, 0, 2
+            %b0 = var {i32, i16}
+            %b1 = extract element {i32, i16}* %b0, 0
+            %c0 = var [4 x i32]
+            %c1 = extract element [4 x i32]* %c0, 2
+            %c2 = extract slice [4 x i32]$ %c0, 1, 2
+        }
+    "};
+}
+
+#[test]
+fn extract_with_signal() {
+    loopback! {"
+        proc @foo (i32$ %a0, {i32, i16}$ %b0, [4 x i32]$ %c0) () {
+        %entry:
+            %a1 = extract element i32* %a0, 3
+            %a2 = extract slice i32* %a0, 0, 2
+            %b1 = extract element {i32, i16}* %b0, 0
+            %c1 = extract element [4 x i32]* %c0, 2
+            %c2 = extract slice [4 x i32]$ %c0, 1, 2
+        }
+    "};
+}

@@ -150,14 +150,7 @@ impl InstKind {
             StoreInst(..) => void_ty(),
             HaltInst => void_ty(),
             InsertInst(ref ty, ..) => ty.clone(),
-            ExtractInst(ref ty, _, mode) => match (ty.as_ref(), mode) {
-                (&IntType(_), SliceMode::Element(_)) => int_ty(1),
-                (&IntType(_), SliceMode::Slice(_, len)) => int_ty(len),
-                (&ArrayType(_, ref ty), SliceMode::Element(_)) => ty.clone(),
-                (&ArrayType(_, ref ty), SliceMode::Slice(_, len)) => array_ty(len, ty.clone()),
-                (&StructType(ref tys), SliceMode::Element(i)) => tys[i].clone(),
-                _ => panic!("invalid type/mode combination for `extract` instruction; type = {:?}, mode = {:?}", ty, mode),
-            },
+            ExtractInst(ref ty, _, mode) => determine_sliced_type(ty, mode),
         }
     }
 
@@ -409,5 +402,22 @@ impl BinaryMnemonic {
             BinaryMnemonic::Or => "or",
             BinaryMnemonic::Xor => "xor",
         }
+    }
+}
+
+/// Determine the accessed type of an extract/insert operation.
+pub(crate) fn determine_sliced_type(ty: &TypeKind, mode: SliceMode) -> Type {
+    match (ty, mode) {
+        (&IntType(_), SliceMode::Element(_)) => int_ty(1),
+        (&IntType(_), SliceMode::Slice(_, len)) => int_ty(len),
+        (&ArrayType(_, ref ty), SliceMode::Element(_)) => ty.clone(),
+        (&ArrayType(_, ref ty), SliceMode::Slice(_, len)) => array_ty(len, ty.clone()),
+        (&StructType(ref tys), SliceMode::Element(i)) => tys[i].clone(),
+        (&PointerType(ref ty), _) => pointer_ty(determine_sliced_type(ty, mode)),
+        (&SignalType(ref ty), _) => signal_ty(determine_sliced_type(ty, mode)),
+        _ => panic!(
+            "invalid type/mode combination for `extract` instruction; type = {:?}, mode = {:?}",
+            ty, mode
+        ),
     }
 }
