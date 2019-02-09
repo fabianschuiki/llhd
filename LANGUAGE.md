@@ -158,6 +158,10 @@ The `extract` instruction may be used to obtain the value of fields of structs, 
 
 Note that `index`, `start`, and `length` must be integer constants. You cannot pass dynamically calculated integers for these fields.
 
+#### Types
+
+The basic operation of `extract` is defined on integer, struct, and array types. If the target is a signal or pointer type around a struct or array, the instruction returns a signal or pointer of the selected field or elements.
+
 #### Result
 
 The `extract element` instruction yields the value of the selected field, element, or bit. If the target is a struct the returned type is the `index` field of the struct. If it is an array the returned type is the array's element type. If it is an integer the returned type is the single bit variant of the integer (e.g. `i1`).
@@ -195,6 +199,58 @@ A slice of integer bits may be accessed as follows:
     ; %0 = i32 11
     %1 = extract slice i32 %0, 0, 2
     ; %1 = i2 3
+
+##### Signals
+
+The `extract` instruction may be used to dissect integer, struct, and array signals into smaller subsignals that alias the selected bits, field, or elements and may then be driven individually.
+
+A subsignal of an integer signal may be obtained as follows:
+
+    ; %0 = sig i32
+    %1 = extract element i32$ %0, 3
+    %2 = extract slice i32$ %0, 0, 2
+    ; typeof(%1) = i1$
+    ; typeof(%2) = i2$
+
+A subsignal of a struct signal may be obtained as follows:
+
+    ; %0 = sig {i32, i16}
+    %1 = extract element {i32, i16}$ %0, 0
+    ; typeof(%1) = i32$
+
+A subsignal of an array signal may be obtained as follows:
+
+    ; %0 = sig [4 x i32]
+    %1 = extract element [4 x i32]$ %0, 2
+    %2 = extract slice [4 x i32]$ %0, 1, 2
+    ; typeof(%1) = i32$
+    ; typeof(%2) = [2 x i32]$
+
+##### Pointers
+
+The `extract` instruction may be used to obtain a pointer to a struct field, or a pointer to one or more array fields. These pointers alias the selected field or elements and may be used in load and store operations.
+
+A pointer to specific bits of an integer may be obtained as follows:
+
+    ; %0 = var i32
+    %1 = extract element i32* %0, 3
+    %2 = extract slice i32* %0, 0, 2
+    ; typeof(%1) = i1*
+    ; typeof(%2) = i2*
+
+A pointer to the field of a struct may be obtained as follows:
+
+    ; %0 = var {i32, i16}
+    %1 = extract element {i32, i16}* %0, 0
+    ; typeof(%1) = i32*
+
+A pointer to specific elements of an array may be obtained as follows:
+
+    ; %0 = var [4 x i32]
+    %1 = extract element [4 x i32]* %0, 2
+    %2 = extract slice [4 x i32]$ %0, 1, 2
+    ; typeof(%1) = i32*
+    ; typeof(%2) = [2 x i32]*
 
 
 ## Call (*fpe*)
