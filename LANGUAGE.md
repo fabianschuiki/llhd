@@ -22,7 +22,7 @@ Type            | Description
 `time`          | A simulation time value.
 
 
-### `[N x T]` -- The Array Type
+### `[N x T]` — The Array Type
 
 An array type may be constructed as follows:
 
@@ -53,7 +53,7 @@ For example:
     [16 x i32 42]  ; type [16 x i32]
 
 
-### `{T0,T1,...}` -- The Struct Type
+### `{T0,T1,...}` — The Struct Type
 
 A struct type may be constructed as follows:
 
@@ -90,7 +90,7 @@ Instruction | Allowed In | Description
 `extract` | EFP | Retrieve the value of one or more fields, elements, or bits.
 
 
-### `insert` -- Insert Value
+### `insert` — Insert Value
 
 The `insert` instruction may be used to change the value of fields of structs, elements of arrays, or bits of integers. It comes in two variants: `insert element` operates on single elements, while `insert slice` operates on a slice of consecutive elements.
 
@@ -143,7 +143,7 @@ A slice of integer bits may be modified as follows:
     ; %1 = i32 11
 
 
-### `extract` -- Extract Value
+### `extract` — Extract Value
 
 The `extract` instruction may be used to obtain the value of fields of structs, elements of arrays, or bits of integers. It comes in two variants: `extract element` operates on single elements, while `extract slice` operates on a slice of consecutive elements.
 
