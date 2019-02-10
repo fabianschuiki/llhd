@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add aggregate values. ([#39](https://github.com/fabianschuiki/llhd/issues/39))
 - Add struct and array type parsing.
 
-### Changed
+### Changed
 - Rename `as_*` functions on types to `unwrap_*`.
 - Rename `VectorType` to `ArrayType`. ([#24](https://github.com/fabianschuiki/llhd/issues/24))
 - Change vector syntax from `<N x T>` to `[N x T]`.
