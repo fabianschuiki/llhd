@@ -745,13 +745,15 @@ where
                 },
             ),
         optional(r#try(
-            many1(digit())
+            parser(whitespace)
+                .with(many1(digit()))
                 .map(|s: String| s.parse().expect("invalid delta value"))
                 .skip(token('d')),
         ))
         .map(|v| v.unwrap_or(0)),
         optional(r#try(
-            many1(digit())
+            parser(whitespace)
+                .with(many1(digit()))
                 .map(|s: String| s.parse().expect("invalid epsilon value"))
                 .skip(token('e')),
         ))
@@ -1202,10 +1204,13 @@ mod test {
 
     fn parse_inline_value_infer(input: &str) -> ValueRef {
         let ctx = NameTable::new(None);
-        env_parser((&ctx, &void_ty()), inline_value_infer)
+        let (value, rest) = env_parser((&ctx, &void_ty()), inline_value_infer)
             .parse(State::new(input))
-            .unwrap()
-            .0
+            .unwrap();
+        if !rest.input.is_empty() {
+            panic!("not all of `{}` consumed, `{}` left", input, rest.input);
+        }
+        value
     }
 
     #[test]
@@ -1218,19 +1223,25 @@ mod test {
         };
         assert_eq!(
             parse("1ns"),
-            konst::ConstTime::new((1.into(), (1000000000 as isize).into()).into(), 0, 0,)
+            konst::ConstTime::new((1.into(), (1000000000 as isize).into()).into(), 0, 0)
         );
         assert_eq!(
             parse("-2ns"),
-            konst::ConstTime::new(((-2).into(), (1000000000 as isize).into()).into(), 0, 0,)
+            konst::ConstTime::new(((-2).into(), (1000000000 as isize).into()).into(), 0, 0)
         );
         assert_eq!(
             parse("3.45ns"),
-            konst::ConstTime::new((345.into(), (100000000000 as isize).into()).into(), 0, 0,)
+            konst::ConstTime::new((345.into(), (100000000000 as isize).into()).into(), 0, 0)
         );
         assert_eq!(
             parse("-4.56ns"),
-            konst::ConstTime::new(((-456).into(), (100000000000 as isize).into()).into(), 0, 0,)
+            konst::ConstTime::new(((-456).into(), (100000000000 as isize).into()).into(), 0, 0)
+        );
+        assert_eq!(parse("0s 1d"), konst::ConstTime::new(num::zero(), 1, 0));
+        assert_eq!(parse("0s 1e"), konst::ConstTime::new(num::zero(), 0, 1));
+        assert_eq!(
+            parse("0s 42d 9001e"),
+            konst::ConstTime::new(num::zero(), 42, 9001)
         );
     }
 
