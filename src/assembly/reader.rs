@@ -72,7 +72,7 @@ fn inner_name<I>(input: I) -> ParseResult<String, I>
 where
     I: Stream<Item = char>,
 {
-    many1(alpha_num().or(token('_'))).parse_stream(input)
+    many1(alpha_num().or(token('_')).or(token('.'))).parse_stream(input)
 }
 
 /// Parse a global or local name, e.g. `@foo` or `%bar` respectively.

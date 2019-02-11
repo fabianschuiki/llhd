@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix parsing of spaces in time constants.
+- Fix parsing of dots in names. ([#44](https://github.com/fabianschuiki/llhd/issues/44))
 
 ## 0.4.0 - 2019-02-05
 ### Added
