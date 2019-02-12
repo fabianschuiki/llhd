@@ -255,6 +255,52 @@ A pointer to specific elements of an array may be obtained as follows:
     ; typeof(%2) = [2 x i32]*
 
 
+### `shl`,`shr` — Shift a Value
+
+The `shl` and `shr` instructions may be used to shift the bits of a number or the elements of an array to the left or right.
+
+    %r = shl <ty> <target>, <lsb>, <amount>
+    %r = shr <ty> <target>, <msb>, <amount>
+
+- `ty` is the type of the target number or array.
+- `target` is the number or array to be modified.
+- `lsb` and `msb` determines the value of the bit or element that is revealed due to the shift.
+- `amount` is the number of bits or elements the value is shifted.
+
+The returned value is of type `ty`.
+
+#### Types
+
+The type of the value for inserted bits or elements, `lsb` and `msb`, must be the single-bit equivalent of `ty` if it is a number, or the element type of `ty` if it is an array.
+
+The shift `amount` must be an integer and is interpreted as unsigned.
+
+#### Examples
+
+A logical left or right shift of an integer may be performed as follows:
+
+    ; %0 = i32 42
+    %1 = shl i32 %0, i1 0, 3
+    %2 = shr i32 %0, i1 0, 3
+    ; %1 = i32 5
+    ; %2 = i32 336
+
+An arithmetic right shift of an integer which maintains sign extension may be performed as follows:
+
+    ; %0 = i32 -42
+    %sign = extract element i32 %0, 31
+    %1 = shr i32 %0, %sign, 3
+    ; %1 = i32 -6
+
+The elements of an array may be shifted to the left or right as follows:
+
+    ; %0 = [i32 1, 2, 3, 4]
+    %1 = shl [4 x i32] %0, i32 9, 3
+    %2 = shr [4 x i32] %0, i32 9, 3
+    ; %1 = [i32 4, 9, 9, 9]
+    ; %2 = [i32 9, 9, 9, 1]
+
+
 ## Call (*fpe*)
 
     call <target> (<args,...>)
