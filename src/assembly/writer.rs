@@ -499,6 +499,19 @@ impl<'twr> Visitor for Writer<'twr> {
                 }
             }
 
+            // shl <type> <target>, <lsb>, <amount>
+            // shr <type> <target>, <msb>, <amount>
+            ShiftInst(_, ref ty, ref target, ref lsbmsb, ref amount) => {
+                write!(self.sink, " ").unwrap();
+                self.write_ty(ty).unwrap();
+                write!(self.sink, " ").unwrap();
+                self.write_value(ctx.as_context(), target, false).unwrap();
+                write!(self.sink, ", ").unwrap();
+                self.write_value(ctx.as_context(), lsbmsb, true).unwrap();
+                write!(self.sink, ", ").unwrap();
+                self.write_value(ctx.as_context(), amount, true).unwrap();
+            }
+
             // halt
             HaltInst => (),
         }

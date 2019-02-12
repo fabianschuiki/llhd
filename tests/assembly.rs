@@ -135,6 +135,10 @@ fn instructions() {
             %i2 = insert slice i8 %v0, 0, 2, i2 3
             %e1 = extract element i32 %v0, 0
             %e2 = extract slice i8 %v0, 0, 2
+            %s0 = shl i32 %a, i1 0, i2 3
+            %s1 = shr i32 %a, i1 0, i2 3
+            %s2 = shl [4 x i32] [i32 1, 2, 3, 4], i32 9, i2 3
+            %s3 = shr [4 x i32] [i32 1, 2, 3, 4], i32 9, i2 3
             halt
         }
     "};

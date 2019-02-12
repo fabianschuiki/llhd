@@ -192,6 +192,7 @@ where
         r#try(env_parser(ctx, store_inst)),
         r#try(env_parser(ctx, insert_inst)),
         r#try(env_parser(ctx, extract_inst)),
+        r#try(env_parser(ctx, shift_inst)),
         r#try(string("halt").map(|_| InstKind::HaltInst))
     );
     let named_inst = r#try(optional(name))
@@ -238,8 +239,6 @@ where
         r#try(string("div").map(|_| BinaryOp::Div)),
         r#try(string("mod").map(|_| BinaryOp::Mod)),
         r#try(string("rem").map(|_| BinaryOp::Rem)),
-        r#try(string("shl").map(|_| BinaryOp::Shl)),
-        r#try(string("shr").map(|_| BinaryOp::Shr)),
         r#try(string("and").map(|_| BinaryOp::And)),
         r#try(string("or").map(|_| BinaryOp::Or)),
         r#try(string("xor").map(|_| BinaryOp::Xor))
@@ -655,12 +654,59 @@ where
         .parse_stream(input)
 }
 
+/// Parse a shift instruction.
+fn shift_inst<I>(ctx: &NameTable, input: I) -> ParseResult<InstKind, I>
+where
+    I: Stream<Item = char>,
+{
+    let fields = (
+        lex(choice!(
+            r#try(string("shl")).map(|_| ShiftDir::Left),
+            r#try(string("shr")).map(|_| ShiftDir::Right)
+        )),
+        lex(env_parser(ctx, inline_value_explicit)),
+        lex(token(',')),
+        lex(env_parser(ctx, inline_value_standalone)),
+        lex(token(',')),
+        env_parser(ctx, inline_value_standalone),
+    );
+    let mut inst = fields.map(|(dir, (target, ty), _, insert, _, amount)| {
+        InstKind::ShiftInst(dir, ty, target, insert, amount)
+    });
+    inst.parse_stream(input)
+}
+
 /// Parse an inline value which may infer its type from context.
 fn inline_value_infer<I>((ctx, ty): (&NameTable, &Type), input: I) -> ParseResult<ValueRef, I>
 where
     I: Stream<Item = char>,
 {
     inline_value((ctx, Some(ty)), input).map(|((v, _), c)| (v, c))
+}
+
+/// Parse an inline value which has a self-determined type.
+fn inline_value_standalone<I>(ctx: &NameTable, input: I) -> ParseResult<ValueRef, I>
+where
+    I: Stream<Item = char>,
+{
+    inline_value((ctx, None), input).map(|((v, _), c)| (v, c))
+}
+
+/// Parse an inline value with an explicitly stated type.
+fn inline_value_explicit<I>(ctx: &NameTable, input: I) -> ParseResult<(ValueRef, Type), I>
+where
+    I: Stream<Item = char>,
+{
+    // inline_value((ctx, None), input).map(|((v, _), c)| (v, c))
+    lex(parser(ty_parser))
+        .then(|ty| {
+            parser(move |input| {
+                let (value, consumed) =
+                    env_parser((ctx, &ty), inline_value_infer).parse_stream(input)?;
+                Ok(((value, ty.clone()), consumed))
+            })
+        })
+        .parse_stream(input)
 }
 
 /// Parse an inline value with optional type context.

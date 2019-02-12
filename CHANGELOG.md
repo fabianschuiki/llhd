@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Signal and pointer semantics for `extract`. ([#41](https://github.com/fabianschuiki/llhd/issues/41))
 
+### Changed
+- Make `shl` and `shr` separate instructions.
+
 ### Fixed
 - Fix parsing of spaces in time constants.
 - Fix parsing of dots in names. ([#44](https://github.com/fabianschuiki/llhd/issues/44))

@@ -131,6 +131,8 @@ pub enum InstKind {
     InsertInst(Type, ValueRef, SliceMode, ValueRef),
     /// The `extract` instruction.
     ExtractInst(Type, ValueRef, SliceMode),
+    /// The `shl` and `shr` instructions.
+    ShiftInst(ShiftDir, Type, ValueRef, ValueRef, ValueRef),
 }
 
 impl InstKind {
@@ -151,6 +153,7 @@ impl InstKind {
             HaltInst => void_ty(),
             InsertInst(ref ty, ..) => ty.clone(),
             ExtractInst(ref ty, _, mode) => determine_sliced_type(ty, mode),
+            ShiftInst(_, ref ty, ..) => ty.clone(),
         }
     }
 
@@ -173,6 +176,8 @@ impl InstKind {
             HaltInst => Mnemonic::Halt,
             InsertInst(..) => Mnemonic::Insert,
             ExtractInst(..) => Mnemonic::Extract,
+            ShiftInst(ShiftDir::Left, ..) => Mnemonic::Shl,
+            ShiftInst(ShiftDir::Right, ..) => Mnemonic::Shr,
         }
     }
 
@@ -206,8 +211,6 @@ pub enum BinaryOp {
     Div,
     Mod,
     Rem,
-    Shl,
-    Shr,
     And,
     Or,
     Xor,
@@ -222,8 +225,6 @@ impl BinaryOp {
             BinaryOp::Div => BinaryMnemonic::Div,
             BinaryOp::Mod => BinaryMnemonic::Mod,
             BinaryOp::Rem => BinaryMnemonic::Rem,
-            BinaryOp::Shl => BinaryMnemonic::Shl,
-            BinaryOp::Shr => BinaryMnemonic::Shr,
             BinaryOp::And => BinaryMnemonic::And,
             BinaryOp::Or => BinaryMnemonic::Or,
             BinaryOp::Xor => BinaryMnemonic::Xor,
@@ -309,6 +310,15 @@ pub enum SliceMode {
     Slice(usize, usize),
 }
 
+/// The shift direction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShiftDir {
+    /// A left shift.
+    Left,
+    /// A right shift.
+    Right,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Mnemonic {
     Unary(UnaryMnemonic),
@@ -329,6 +339,8 @@ pub enum Mnemonic {
     Halt,
     Insert,
     Extract,
+    Shl,
+    Shr,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -344,8 +356,6 @@ pub enum BinaryMnemonic {
     Div,
     Mod,
     Rem,
-    Shl,
-    Shr,
     And,
     Or,
     Xor,
@@ -373,6 +383,8 @@ impl Mnemonic {
             Mnemonic::Halt => "halt",
             Mnemonic::Insert => "insert",
             Mnemonic::Extract => "extract",
+            Mnemonic::Shl => "shl",
+            Mnemonic::Shr => "shr",
         }
     }
 }
@@ -396,8 +408,6 @@ impl BinaryMnemonic {
             BinaryMnemonic::Div => "div",
             BinaryMnemonic::Mod => "mod",
             BinaryMnemonic::Rem => "rem",
-            BinaryMnemonic::Shl => "shl",
-            BinaryMnemonic::Shr => "shr",
             BinaryMnemonic::And => "and",
             BinaryMnemonic::Or => "or",
             BinaryMnemonic::Xor => "xor",
