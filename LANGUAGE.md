@@ -88,6 +88,8 @@ Instruction | Allowed In | Description
 --- | --- | ---
 `insert`  | EFP | Change the value of one or more fields, elements, or bits.
 `extract` | EFP | Retrieve the value of one or more fields, elements, or bits.
+`shl`, `shr` | EFP | Shift a value to the left or right.
+`rol`, `ror` | EFP | Rotate a value cyclically to the left or right.
 
 
 ### `insert` — Insert Value
