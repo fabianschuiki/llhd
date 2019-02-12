@@ -89,7 +89,6 @@ Instruction | Allowed In | Description
 `insert`  | EFP | Change the value of one or more fields, elements, or bits.
 `extract` | EFP | Retrieve the value of one or more fields, elements, or bits.
 `shl`, `shr` | EFP | Shift a value to the left or right.
-`rol`, `ror` | EFP | Rotate a value cyclically to the left or right.
 
 
 ### `insert` — Insert Value
@@ -265,23 +264,21 @@ The `shl` and `shr` instructions may be used to shift the bits of a number or th
 - `ty` is the type of the target number or array.
 - `target` is the number or array to be modified.
 - `lsb` and `msb` determines the value of the bit or element that is revealed due to the shift.
-- `amount` is the number of bits or elements the value is shifted.
+- `amount` is the number of bits or elements the value is shifted. Must be an integer and is interpreted as unsigned.
 
-The returned value is of type `ty`.
+The returned value is of type `ty`. The shift `amount` may exceed the bit width or number of elements of `target`, in which case the result has all bits or elements set to `lsb` or `msb`.
 
 #### Types
 
 The type of the value for inserted bits or elements, `lsb` and `msb`, must be the single-bit equivalent of `ty` if it is a number, or the element type of `ty` if it is an array.
-
-The shift `amount` must be an integer and is interpreted as unsigned.
 
 #### Examples
 
 A logical left or right shift of an integer may be performed as follows:
 
     ; %0 = i32 42
-    %1 = shl i32 %0, i1 0, 3
-    %2 = shr i32 %0, i1 0, 3
+    %1 = shl i32 %0, i1 0, i32 3
+    %2 = shr i32 %0, i1 0, i32 3
     ; %1 = i32 5
     ; %2 = i32 336
 
@@ -289,14 +286,14 @@ An arithmetic right shift of an integer which maintains sign extension may be pe
 
     ; %0 = i32 -42
     %sign = extract element i32 %0, 31
-    %1 = shr i32 %0, %sign, 3
+    %1 = shr i32 %0, %sign, i32 3
     ; %1 = i32 -6
 
 The elements of an array may be shifted to the left or right as follows:
 
     ; %0 = [i32 1, 2, 3, 4]
-    %1 = shl [4 x i32] %0, i32 9, 3
-    %2 = shr [4 x i32] %0, i32 9, 3
+    %1 = shl [4 x i32] %0, i32 9, i32 3
+    %2 = shr [4 x i32] %0, i32 9, i32 3
     ; %1 = [i32 4, 9, 9, 9]
     ; %2 = [i32 9, 9, 9, 1]
 
