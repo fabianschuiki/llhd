@@ -332,8 +332,6 @@ These instructions perform unary arithmetic operations on a single integer value
     div <ty> <lhs> <rhs>
     mod <ty> <lhs> <rhs>
     rem <ty> <lhs> <rhs>
-    shl <ty> <lhs> <rhs>
-    shr <ty> <lhs> <rhs>
     and <ty> <lhs> <rhs>
     or  <ty> <lhs> <rhs>
     xor <ty> <lhs> <rhs>
@@ -346,8 +344,6 @@ These instructions perform binary arithmetic operations on two integer values `l
 - `div`: Division rounding towards negative infinity.
 - `mod`: Modulo. The result of the operation is `lhs + x * rhs` for the smallest `x` that makes the result positive.
 - `rem`: Remainder.
-- `shl`: Left bit shift. Upper bits are discarded, lower bits filled with 0.
-- `shr`: Right bit shift. Lower bits are discarded, upper bits filled with 0.
 - `and`: Bitwise logic AND. Each resulting bit is 1 iff both of the argument bits are 1.
 - `or`: Bitwise logic OR. Each resulting bit is 1 iff either of the argument bits are 1.
 - `xor`: Bitwise logic XOR. Each resulting bit is 1 iff the argument bits differ.
