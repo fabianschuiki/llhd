@@ -872,14 +872,19 @@ where
             const_int()
         ))
         .map(|(local_ty, value)| {
-            let k = konst::const_int(
-                local_ty
-                    .as_ref()
-                    .or(ty)
-                    .expect("cannot infer type of integer")
-                    .unwrap_int(),
-                value,
-            );
+            let inferred_ty = local_ty
+                .as_ref()
+                .or(ty)
+                .expect("cannot infer type of integer");
+            if !inferred_ty.is_int() {
+                panic!(
+                    "type should be an integer; \
+                     inferred from local type {:?}, \
+                     imposed type {:?}, and value {:?}",
+                    local_ty, ty, value
+                );
+            }
+            let k = konst::const_int(inferred_ty.unwrap_int(), value);
             let ty = k.ty();
             (k.into(), ty)
         })
