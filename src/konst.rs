@@ -2,8 +2,7 @@
 
 //! This module implements constant values.
 
-use crate::ty::*;
-use crate::value::*;
+use crate::{aggregate::*, ty::*, value::*};
 use num::{BigInt, BigRational};
 use std;
 use std::sync::Arc;
@@ -200,13 +199,57 @@ pub fn const_time(time: BigRational, delta: usize, epsilon: usize) -> Const {
     Const::new(ConstKind::Time(ConstTime::new(time, delta, epsilon)))
 }
 
+/// Create a new array constant.
+pub fn const_array(element_ty: Type, elements: Vec<ValueRef>) -> ValueRef {
+    let ty = array_ty(elements.len(), element_ty);
+    Aggregate::new(ArrayAggregate::new(ty, elements).into()).into()
+}
+
+/// Create a new array constant where each element has the same value.
+pub fn const_uniform_array(length: usize, element_value: ValueRef) -> ValueRef {
+    let ty = array_ty(
+        length,
+        match element_value {
+            ValueRef::Const(ref k) => k.ty(),
+            ValueRef::Aggregate(ref a) => a.ty(),
+            _ => panic!(
+                "const_uniform_array from non-const/non-aggregate element value {:?}",
+                element_value
+            ),
+        },
+    );
+    Aggregate::new(
+        ArrayAggregate::new(ty, std::iter::repeat(element_value).take(length).collect()).into(),
+    )
+    .into()
+}
+
+/// Create a new struct constant.
+pub fn const_struct(fields: Vec<ValueRef>) -> ValueRef {
+    let field_tys = fields
+        .iter()
+        .map(|field| match *field {
+            ValueRef::Const(ref k) => k.ty(),
+            ValueRef::Aggregate(ref a) => a.ty(),
+            _ => panic!(
+                "const_struct from non-const/non-aggregate field value {:?}",
+                field
+            ),
+        })
+        .collect();
+    let ty = struct_ty(field_tys);
+    Aggregate::new(StructAggregate::new(ty, fields).into()).into()
+}
+
 /// Create a constant zero value of the requested type. Panics if there is no
 /// zero value for the given type.
-pub fn const_zero(ty: &Type) -> Const {
+pub fn const_zero(ty: &Type) -> ValueRef {
     use num::Zero;
     match **ty {
-        IntType(sz) => const_int(sz, BigInt::zero()),
-        TimeType => const_time(BigRational::zero(), 0, 0),
+        IntType(sz) => const_int(sz, BigInt::zero()).into(),
+        TimeType => const_time(BigRational::zero(), 0, 0).into(),
+        ArrayType(sz, ref elem_ty) => const_uniform_array(sz, const_zero(elem_ty)),
+        StructType(ref field_tys) => const_struct(field_tys.iter().map(const_zero).collect()),
         ref x => panic!("no const zero value for type {}", x),
     }
 }

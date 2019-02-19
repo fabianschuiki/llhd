@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 - Signal and pointer semantics for `extract`. ([#41](https://github.com/fabianschuiki/llhd/issues/41))
+- Constructor for constant aggregate values.
 
 ### Changed
 - Make `shl` and `shr` separate instructions.
