@@ -4,7 +4,8 @@
 
 use crate::{
     ir::{
-        Arg, Block, DataFlowGraph, ExtUnit, ExtUnitData, Inst, InstData, Signature, Value,
+        Arg, Block, DataFlowGraph, ExtUnit, ExtUnitData, Inst, InstBuilder, InstData, Signature,
+        Value,
     },
     ty::Type,
 };
@@ -173,6 +174,11 @@ pub trait UnitBuilder: Sized {
 
     /// Return the mutable unit being built.
     fn unit_mut(&mut self) -> &mut Self::Unit;
+
+    /// Add a new instruction using an `InstBuilder`.
+    fn ins(&mut self) -> InstBuilder<Self> {
+        InstBuilder::new(self)
+    }
 
     /// Add a new instruction.
     fn build_inst(&mut self, data: InstData, ty: Type) -> Inst;
