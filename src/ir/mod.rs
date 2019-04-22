@@ -7,10 +7,12 @@
 
 use crate::{impl_table_key, ty::Type};
 
+mod dfg;
 mod inst;
 mod layout;
 mod sig;
 
+pub use self::dfg::*;
 pub use self::inst::*;
 pub use self::layout::*;
 pub use self::sig::*;
