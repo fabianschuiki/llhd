@@ -231,4 +231,21 @@ pub trait UnitBuilder: Sized {
     fn add_extern(&mut self, data: ExtUnitData) -> ExtUnit {
         self.dfg_mut().ext_units.add(data)
     }
+
+    /// Remove an instruction if its value is not being read.
+    fn prune_if_unused(&mut self, inst: Inst) {
+        if !self.dfg().has_uses(self.dfg().inst_result(inst)) {
+            #[allow(unreachable_patterns)]
+            let inst_args: Vec<_> = self.dfg()[inst]
+                .args()
+                .iter()
+                .cloned()
+                .flat_map(|arg| self.dfg().get_value_inst(arg))
+                .collect();
+            self.remove_inst(inst);
+            for inst in inst_args {
+                self.prune_if_unused(inst);
+            }
+        }
+    }
 }

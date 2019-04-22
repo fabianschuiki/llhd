@@ -18,6 +18,7 @@ mod inst;
 pub mod ir;
 mod konst;
 pub mod opt;
+pub mod pass;
 mod process;
 mod seq_body;
 pub mod table;
