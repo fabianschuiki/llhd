@@ -7,6 +7,10 @@
 
 use crate::{impl_table_key};
 
+mod sig;
+
+pub use self::sig::*;
+
 impl_table_key! {
     /// An instruction.
     struct Inst(u32) as "i";
