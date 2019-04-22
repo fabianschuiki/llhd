@@ -15,6 +15,7 @@ travis-ci = { repository = "fabianschuiki/llhd", branch = "master" }
 [dependencies]
 num = "0.1"
 combine = "2.3"
+bitflags = "1"
 
 [dev-dependencies]
 indoc = "0.3"

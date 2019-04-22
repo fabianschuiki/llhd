@@ -10,6 +10,7 @@ use crate::{
     ty::{array_ty, int_ty, pointer_ty, signal_ty, struct_ty, time_ty, void_ty, Type},
     ConstTime,
 };
+use bitflags::bitflags;
 use num::BigInt;
 
 /// An instruction format.
@@ -214,6 +215,17 @@ impl InstData {
     }
 }
 
+bitflags! {
+    /// A set of flags identifying a unit.
+    #[derive(Default)]
+    pub struct UnitFlags: u8 {
+        const FUNCTION = 0b001;
+        const PROCESS = 0b010;
+        const ENTITY = 0b100;
+        const ALL = 0b111;
+    }
+}
+
 /// An instruction opcode.
 ///
 /// This enum represents the actual instruction, whereas `InstData` covers the
@@ -350,6 +362,31 @@ impl std::fmt::Display for Opcode {
 }
 
 impl Opcode {
+    /// Return a set of flags where this instruction is valid.
+    pub fn valid_in(self) -> UnitFlags {
+        match self {
+            Opcode::Halt => UnitFlags::PROCESS,
+            Opcode::Ret | Opcode::RetValue => UnitFlags::FUNCTION,
+            Opcode::Br | Opcode::BrCond => UnitFlags::FUNCTION | UnitFlags::PROCESS,
+            _ => UnitFlags::ALL,
+        }
+    }
+
+    /// Check if this instruction can appear in a `Function`.
+    pub fn valid_in_function(self) -> bool {
+        self.valid_in().contains(UnitFlags::FUNCTION)
+    }
+
+    /// Check if this instruction can appear in a `Process`.
+    pub fn valid_in_process(self) -> bool {
+        self.valid_in().contains(UnitFlags::PROCESS)
+    }
+
+    /// Check if this instruction can appear in a `Entity`.
+    pub fn valid_in_entity(self) -> bool {
+        self.valid_in().contains(UnitFlags::ENTITY)
+    }
+
     /// Check if this instruction is a constant.
     pub fn is_const(self) -> bool {
         match self {
