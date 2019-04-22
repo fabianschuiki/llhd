@@ -7,8 +7,10 @@
 
 use crate::{impl_table_key};
 
+mod layout;
 mod sig;
 
+pub use self::layout::*;
 pub use self::sig::*;
 
 impl_table_key! {
