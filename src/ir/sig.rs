@@ -4,7 +4,7 @@
 //! and entitites.
 
 use crate::{
-    ir::Arg,
+    ir::{Arg, DataFlowGraph},
     table::PrimaryTable,
     ty::Type,
 };
@@ -117,6 +117,11 @@ impl Signature {
     pub fn is_output(&self, arg: Arg) -> bool {
         self.args[arg].dir == ArgDir::Output
     }
+
+    /// Dump the signature in human-readable form.
+    pub fn dump<'a>(&'a self, dfg: &'a DataFlowGraph) -> SignatureDumper<'a> {
+        SignatureDumper(self, dfg)
+    }
 }
 
 impl Eq for Signature {}
@@ -151,5 +156,32 @@ impl std::fmt::Display for Signature {
 impl std::fmt::Debug for Signature {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self)
+    }
+}
+
+/// Temporary object to dump a `Signature` in human-readable form for debugging.
+pub struct SignatureDumper<'a>(&'a Signature, &'a DataFlowGraph);
+
+impl std::fmt::Display for SignatureDumper<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use std::iter::{once, repeat};
+        write!(f, "(")?;
+        for (arg, sep) in self.0.inputs().zip(once("").chain(repeat(", "))) {
+            let value = self.1.arg_value(arg);
+            write!(f, "{}{} %{}", sep, self.1.value_type(value), value)?;
+        }
+        write!(f, ")")?;
+        if self.0.has_outputs() {
+            write!(f, " -> (")?;
+            for (arg, sep) in self.0.outputs().zip(once("").chain(repeat(", "))) {
+                let value = self.1.arg_value(arg);
+                write!(f, "{}{} %{}", sep, self.1.value_type(value), value)?;
+            }
+            write!(f, ")")?;
+        }
+        if self.0.has_return_type() {
+            write!(f, " {}", self.0.return_type())?;
+        }
+        Ok(())
     }
 }
