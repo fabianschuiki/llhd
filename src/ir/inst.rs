@@ -198,6 +198,30 @@ impl InstData {
         }
     }
 
+    /// Replace all uses of a value with another.
+    pub fn replace_value(&mut self, from: Value, to: Value) -> usize {
+        let mut count = 0;
+        for arg in self.args_mut() {
+            if *arg == from {
+                *arg = to;
+                count += 1;
+            }
+        }
+        count
+    }
+
+    /// Replace all uses of a block with another.
+    pub fn replace_block(&mut self, from: Block, to: Block) -> usize {
+        let mut count = 0;
+        for bb in self.blocks_mut() {
+            if *bb == from {
+                *bb = to;
+                count += 1;
+            }
+        }
+        count
+    }
+
     /// Return the const int constructed by this instruction.
     pub fn get_const_int(&self) -> Option<&BigInt> {
         match self {

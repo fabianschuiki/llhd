@@ -99,4 +99,38 @@ impl DataFlowGraph {
             None => panic!("value {} not the result of an instruction", value),
         }
     }
+
+    /// Replace all uses of a value with another.
+    ///
+    /// Returns how many uses were replaced.
+    pub fn replace_use(&mut self, from: Value, to: Value) -> usize {
+        let mut count = 0;
+        for inst in self.insts.storage.values_mut() {
+            count += inst.replace_value(from, to);
+        }
+        count
+    }
+
+    /// Iterate over all uses of a value.
+    pub fn uses(&self, value: Value) -> impl Iterator<Item = (Inst, usize)> {
+        let mut uses = vec![];
+        for inst in self.insts.keys() {
+            for (i, arg) in self[inst].args().iter().cloned().enumerate() {
+                if arg == value {
+                    uses.push((inst, i));
+                }
+            }
+        }
+        uses.into_iter()
+    }
+
+    /// Check if a value is used.
+    pub fn has_uses(&self, value: Value) -> bool {
+        self.uses(value).count() > 0
+    }
+
+    /// Check if a value has exactly one use.
+    pub fn has_one_use(&self, value: Value) -> bool {
+        self.uses(value).count() == 1
+    }
 }
