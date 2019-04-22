@@ -1,4 +1,5 @@
 // Copyright (c) 2017 Fabian Schuiki
+#![allow(deprecated)]
 
 use crate::{Aggregate, Const, Type};
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
