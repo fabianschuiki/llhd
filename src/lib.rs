@@ -18,6 +18,7 @@ mod konst;
 pub mod opt;
 mod process;
 mod seq_body;
+pub mod table;
 mod unit;
 pub mod util;
 mod visit;
