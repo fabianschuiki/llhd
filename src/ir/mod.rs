@@ -8,16 +8,29 @@
 use crate::{impl_table_key, ty::Type};
 
 mod dfg;
+mod function;
 mod inst;
 mod layout;
 mod sig;
 mod unit;
 
 pub use self::dfg::*;
+pub use self::function::*;
 pub use self::inst::*;
 pub use self::layout::*;
 pub use self::sig::*;
 pub use self::unit::*;
+
+/// The position where new instructions will be inserted into a `Function` or
+/// `Process`.
+#[derive(Clone, Copy)]
+enum FunctionInsertPos {
+    None,
+    Append(Block),
+    Prepend(Block),
+    After(Inst),
+    Before(Inst),
+}
 
 impl_table_key! {
     /// An instruction.
