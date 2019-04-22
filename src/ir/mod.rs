@@ -12,6 +12,7 @@ mod entity;
 mod function;
 mod inst;
 mod layout;
+pub mod prelude;
 mod process;
 mod sig;
 mod unit;
