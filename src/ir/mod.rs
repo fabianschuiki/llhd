@@ -34,6 +34,15 @@ impl_table_key! {
     struct ExtUnit(u32) as "ext";
 }
 
+impl Value {
+    /// A placeholder for invalid values.
+    ///
+    /// This is used for unused instruction arguments.
+    fn invalid() -> Self {
+        Value(std::u32::MAX)
+    }
+}
+
 /// Internal table storage for values.
 #[derive(Debug)]
 pub enum ValueData {
