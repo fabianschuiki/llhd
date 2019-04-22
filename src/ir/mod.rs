@@ -11,6 +11,7 @@ mod dfg;
 mod function;
 mod inst;
 mod layout;
+mod process;
 mod sig;
 mod unit;
 
@@ -18,6 +19,7 @@ pub use self::dfg::*;
 pub use self::function::*;
 pub use self::inst::*;
 pub use self::layout::*;
+pub use self::process::*;
 pub use self::sig::*;
 pub use self::unit::*;
 
