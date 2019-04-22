@@ -14,6 +14,7 @@ mod block;
 mod entity;
 mod function;
 mod inst;
+pub mod ir;
 mod konst;
 pub mod opt;
 mod process;
