@@ -5,7 +5,7 @@
 use crate::{
     ir::{
         Block, DataFlowGraph, FunctionInsertPos, FunctionLayout, Inst, InstData, Signature, Unit,
-        UnitBuilder, UnitKind, UnitName, ValueData,
+        UnitBuilder, UnitKind, UnitName,
     },
     table::PrimaryTable,
     ty::Type,
@@ -119,11 +119,7 @@ impl UnitBuilder for FunctionBuilder<'_> {
     }
 
     fn build_inst(&mut self, data: InstData, ty: Type) -> Inst {
-        let inst = self.func.dfg.insts.add(data);
-        if !ty.is_void() {
-            let result = self.func.dfg.values.add(ValueData::Inst { ty, inst });
-            self.func.dfg.results.add(inst, result);
-        }
+        let inst = self.func.dfg.add_inst(data, ty);
         match self.pos {
             FunctionInsertPos::None => panic!("no block selected to insert instruction"),
             FunctionInsertPos::Append(bb) => self.func.layout.append_inst(inst, bb),

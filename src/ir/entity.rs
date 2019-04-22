@@ -5,7 +5,7 @@
 use crate::{
     ir::{
         Block, DataFlowGraph, EntityInsertPos, Inst, InstData, InstLayout, Signature, Unit,
-        UnitBuilder, UnitKind, UnitName, ValueData,
+        UnitBuilder, UnitKind, UnitName,
     },
     ty::{signal_ty, Type},
     verifier::Verifier,
@@ -117,11 +117,7 @@ impl UnitBuilder for EntityBuilder<'_> {
         } else {
             ty
         };
-        let inst = self.entity.dfg.insts.add(data);
-        if !ty.is_void() {
-            let result = self.entity.dfg.values.add(ValueData::Inst { ty, inst });
-            self.entity.dfg.results.add(inst, result);
-        }
+        let inst = self.entity.dfg.add_inst(data, ty);
         match self.pos {
             EntityInsertPos::Append => self.entity.layout.append_inst(inst),
             EntityInsertPos::Prepend => self.entity.layout.prepend_inst(inst),

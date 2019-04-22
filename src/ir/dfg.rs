@@ -41,6 +41,16 @@ impl DataFlowGraph {
         Default::default()
     }
 
+    /// Add an instruction.
+    pub fn add_inst(&mut self, data: InstData, ty: Type) -> Inst {
+        let inst = self.insts.add(data);
+        if !ty.is_void() {
+            let result = self.values.add(ValueData::Inst { ty, inst });
+            self.results.add(inst, result);
+        }
+        inst
+    }
+
     /// Remove an instruction.
     pub fn remove_inst(&mut self, inst: Inst) {
         let value = self.inst_result(inst);
