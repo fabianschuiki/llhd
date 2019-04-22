@@ -11,11 +11,13 @@ mod dfg;
 mod inst;
 mod layout;
 mod sig;
+mod unit;
 
 pub use self::dfg::*;
 pub use self::inst::*;
 pub use self::layout::*;
 pub use self::sig::*;
+pub use self::unit::*;
 
 impl_table_key! {
     /// An instruction.
