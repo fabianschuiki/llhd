@@ -8,6 +8,7 @@
 use crate::{impl_table_key, ty::Type};
 
 mod dfg;
+mod entity;
 mod function;
 mod inst;
 mod layout;
@@ -16,6 +17,7 @@ mod sig;
 mod unit;
 
 pub use self::dfg::*;
+pub use self::entity::*;
 pub use self::function::*;
 pub use self::inst::*;
 pub use self::layout::*;
@@ -30,6 +32,15 @@ enum FunctionInsertPos {
     None,
     Append(Block),
     Prepend(Block),
+    After(Inst),
+    Before(Inst),
+}
+
+/// The position where new instructions will be inserted into an `Entity`.
+#[derive(Clone, Copy)]
+enum EntityInsertPos {
+    Append,
+    Prepend,
     After(Inst),
     Before(Inst),
 }
