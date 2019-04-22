@@ -5,6 +5,7 @@
 
 mod module;
 mod ty;
+pub mod verifier;
 #[macro_use]
 mod value;
 mod aggregate;

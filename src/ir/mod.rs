@@ -91,3 +91,47 @@ pub struct ExtUnitData {
     /// The signature of the referenced unit.
     pub sig: Signature,
 }
+
+/// Any one of the table keys in this module.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum AnyObject {
+    Inst(Inst),
+    Value(Value),
+    Block(Block),
+    Arg(Arg),
+}
+
+impl From<Inst> for AnyObject {
+    fn from(x: Inst) -> Self {
+        AnyObject::Inst(x)
+    }
+}
+
+impl From<Value> for AnyObject {
+    fn from(x: Value) -> Self {
+        AnyObject::Value(x)
+    }
+}
+
+impl From<Block> for AnyObject {
+    fn from(x: Block) -> Self {
+        AnyObject::Block(x)
+    }
+}
+
+impl From<Arg> for AnyObject {
+    fn from(x: Arg) -> Self {
+        AnyObject::Arg(x)
+    }
+}
+
+impl std::fmt::Display for AnyObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            AnyObject::Inst(x) => write!(f, "{}", x),
+            AnyObject::Value(x) => write!(f, "{}", x),
+            AnyObject::Block(x) => write!(f, "{}", x),
+            AnyObject::Arg(x) => write!(f, "{}", x),
+        }
+    }
+}

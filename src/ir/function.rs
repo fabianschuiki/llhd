@@ -9,6 +9,7 @@ use crate::{
     },
     table::PrimaryTable,
     ty::Type,
+    verifier::Verifier,
 };
 
 /// A function.
@@ -68,6 +69,23 @@ impl Unit for Function {
         }
         write!(f, "}}")?;
         Ok(())
+    }
+
+    fn verify(&self) {
+        let mut verifier = Verifier::new();
+        verifier.verify_function(self);
+        match verifier.finish() {
+            Ok(()) => (),
+            Err(errs) => {
+                eprintln!("");
+                eprintln!("Verified function:");
+                eprintln!("{}", self.dump());
+                eprintln!("");
+                eprintln!("Verification errors:");
+                eprintln!("{}", errs);
+                panic!("verification failed");
+            }
+        }
     }
 }
 

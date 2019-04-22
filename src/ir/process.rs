@@ -9,6 +9,7 @@ use crate::{
     },
     table::PrimaryTable,
     ty::Type,
+    verifier::Verifier,
 };
 
 /// A process.
@@ -67,6 +68,23 @@ impl Unit for Process {
         }
         write!(f, "}}")?;
         Ok(())
+    }
+
+    fn verify(&self) {
+        let mut verifier = Verifier::new();
+        verifier.verify_process(self);
+        match verifier.finish() {
+            Ok(()) => (),
+            Err(errs) => {
+                eprintln!("");
+                eprintln!("Verified process:");
+                eprintln!("{}", self.dump());
+                eprintln!("");
+                eprintln!("Verification errors:");
+                eprintln!("{}", errs);
+                panic!("verification failed");
+            }
+        }
     }
 }
 
