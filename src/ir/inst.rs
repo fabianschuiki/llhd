@@ -381,3 +381,80 @@ impl Opcode {
         }
     }
 }
+
+impl Inst {
+    pub fn dump(self, dfg: &DataFlowGraph) -> InstDumper {
+        InstDumper(self, dfg)
+    }
+}
+
+/// Temporary object to dump an `Inst` in human-readable form for debugging.
+pub struct InstDumper<'a>(Inst, &'a DataFlowGraph);
+
+impl std::fmt::Display for InstDumper<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let inst = self.0;
+        let dfg = self.1;
+        let data = &dfg[inst];
+        if dfg.has_result(inst) {
+            let result = dfg.inst_result(inst);
+            write!(
+                f,
+                "%{} = {} {}",
+                result,
+                data.opcode(),
+                dfg.value_type(result)
+            )?;
+        } else {
+            write!(f, "{}", data.opcode())?;
+        }
+        if let InstData::Call { unit, .. } = *data {
+            write!(f, " {}", dfg[unit].name)?;
+            write!(f, " (")?;
+            let mut comma = false;
+            for arg in data.input_args() {
+                if comma {
+                    write!(f, ", ")?;
+                }
+                write!(f, "%{}", arg)?;
+                comma = true;
+            }
+            write!(f, ")")?;
+            if data.opcode() == Opcode::Inst {
+                write!(f, " -> (")?;
+                let mut comma = false;
+                for arg in data.output_args() {
+                    if comma {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "%{}", arg)?;
+                    comma = true;
+                }
+                write!(f, ")")?;
+            }
+        } else {
+            let mut comma = false;
+            for arg in data.args() {
+                if comma {
+                    write!(f, ",")?;
+                }
+                write!(f, " %{}", arg)?;
+                comma = true;
+            }
+            for block in data.blocks() {
+                if comma {
+                    write!(f, ",")?;
+                }
+                write!(f, " %{}", block)?;
+                comma = true;
+            }
+            match data {
+                InstData::ConstInt { imm, .. } => write!(f, " {}", imm)?,
+                InstData::ConstTime { imm, .. } => write!(f, " {}", imm)?,
+                InstData::Array { imm, .. } => write!(f, ", {}", imm)?,
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+}
