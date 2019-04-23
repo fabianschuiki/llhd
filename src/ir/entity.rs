@@ -55,6 +55,14 @@ impl Unit for Entity {
         &mut self.sig
     }
 
+    fn name(&self) -> &UnitName {
+        &self.name
+    }
+
+    fn name_mut(&mut self) -> &mut UnitName {
+        &mut self.name
+    }
+
     fn dump_fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "entity {} {} {{\n", self.name, self.sig.dump(&self.dfg))?;
         for inst in self.layout.insts() {

@@ -21,6 +21,29 @@ pub enum UnitName {
     Global(String),
 }
 
+impl UnitName {
+    /// Check whether this is a local name.
+    ///
+    /// Local names can only be linked within the same module.
+    pub fn is_local(&self) -> bool {
+        match self {
+            UnitName::Anonymous(..) | UnitName::Local(..) => true,
+            _ => false,
+        }
+    }
+
+    /// Check whether this is a global name.
+    ///
+    /// Global names may be referenced by other modules and are considered by
+    /// the global linker.
+    pub fn is_global(&self) -> bool {
+        match self {
+            UnitName::Global(..) => true,
+            _ => false,
+        }
+    }
+}
+
 impl std::fmt::Display for UnitName {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -56,9 +79,17 @@ pub trait Unit: Sized {
     #[inline]
     fn sig(&self) -> &Signature;
 
-    /// Get the unti's mutable signature.
+    /// Get the unit's mutable signature.
     #[inline]
     fn sig_mut(&mut self) -> &mut Signature;
+
+    /// Get the unit's name.
+    #[inline]
+    fn name(&self) -> &UnitName;
+
+    /// Get the unit's mutable name.
+    #[inline]
+    fn name_mut(&mut self) -> &mut UnitName;
 
     /// Dump the unit in human-readable form.
     fn dump(&self) -> UnitDumper<Self> {
