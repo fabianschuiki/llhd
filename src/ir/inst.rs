@@ -373,6 +373,17 @@ impl<B: UnitBuilder> InstBuilder<'_, B> {
         self.inst_result(inst)
     }
 
+    /// `con type x, y`
+    pub fn con(&mut self, x: Value, y: Value) -> Inst {
+        self.build_binary(Opcode::Con, void_ty(), x, y)
+    }
+
+    /// `a = del type x, y`
+    pub fn del(&mut self, x: Value, y: Value) -> Inst {
+        let ty = self.value_type(x);
+        self.build_binary(Opcode::Del, ty, x, y)
+    }
+
     /// `a = call type unit (args...)`
     pub fn call(&mut self, unit: ExtUnit, args: Vec<Value>) -> Value {
         let ty = self.builder.unit().extern_sig(unit).return_type();
@@ -834,6 +845,8 @@ pub enum Opcode {
     InsSlice,
     ExtField,
     ExtSlice,
+    Con,
+    Del,
 
     Call,
     Inst,
@@ -900,6 +913,8 @@ impl std::fmt::Display for Opcode {
                 Opcode::InsSlice => "inss",
                 Opcode::ExtField => "extf",
                 Opcode::ExtSlice => "exts",
+                Opcode::Con => "con",
+                Opcode::Del => "del",
                 Opcode::Call => "call",
                 Opcode::Inst => "inst",
                 Opcode::Sig => "sig",
@@ -927,6 +942,8 @@ impl Opcode {
             Opcode::Halt => UnitFlags::PROCESS,
             Opcode::Ret | Opcode::RetValue => UnitFlags::FUNCTION,
             Opcode::Br | Opcode::BrCond => UnitFlags::FUNCTION | UnitFlags::PROCESS,
+            Opcode::Con => UnitFlags::ENTITY,
+            Opcode::Del => UnitFlags::ENTITY,
             _ => UnitFlags::ALL,
         }
     }
