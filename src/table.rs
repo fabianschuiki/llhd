@@ -69,6 +69,7 @@ macro_rules! impl_table_indexing {
 }
 
 /// A primary table that provides dense key-based storage.
+#[derive(Clone)]
 pub struct PrimaryTable<I, V> {
     next: usize,
     pub(crate) storage: HashMap<usize, V>,
@@ -144,6 +145,7 @@ impl<I: TableKey, V> IndexMut<I> for PrimaryTable<I, V> {
 
 /// A secondary table that associates additional information with entries in a
 /// primary table.
+#[derive(Clone)]
 pub struct SecondaryTable<I, V> {
     pub(crate) storage: HashMap<usize, V>,
     unused: PhantomData<I>,

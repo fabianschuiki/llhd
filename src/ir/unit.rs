@@ -22,6 +22,21 @@ pub enum UnitName {
 }
 
 impl UnitName {
+    // Create a new anonymous unit name.
+    pub fn anonymous(id: u32) -> Self {
+        UnitName::Anonymous(id)
+    }
+
+    // Create a new local unit name.
+    pub fn local(name: impl Into<String>) -> Self {
+        UnitName::Local(name.into())
+    }
+
+    // Create a new global unit name.
+    pub fn global(name: impl Into<String>) -> Self {
+        UnitName::Global(name.into())
+    }
+
     /// Check whether this is a local name.
     ///
     /// Local names can only be linked within the same module.
@@ -259,8 +274,8 @@ pub trait UnitBuilder: Sized {
     }
 
     /// Import an external unit for use within this unit.
-    fn add_extern(&mut self, data: ExtUnitData) -> ExtUnit {
-        self.dfg_mut().ext_units.add(data)
+    fn add_extern(&mut self, name: UnitName, sig: Signature) -> ExtUnit {
+        self.dfg_mut().ext_units.add(ExtUnitData { sig, name })
     }
 
     /// Remove an instruction if its value is not being read.

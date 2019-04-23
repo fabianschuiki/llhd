@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// A description of the input and output arguments of a unit.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Signature {
     args: PrimaryTable<Arg, ArgData>,
     inp: Vec<Arg>,
@@ -19,14 +19,14 @@ pub struct Signature {
 }
 
 /// Argument direction.
-#[derive(PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 enum ArgDir {
     Input,
     Output,
 }
 
 /// A single argument of a `Function`, `Process`, or `Entity`.
-#[derive(PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 struct ArgData {
     ty: Type,
     dir: ArgDir,
@@ -128,9 +128,11 @@ impl Eq for Signature {}
 
 impl PartialEq for Signature {
     fn eq(&self, other: &Self) -> bool {
-        self.args()
-            .zip(other.args())
-            .all(|(a, b)| self.args[a] == other.args[b])
+        self.args().count() == other.args().count()
+            && self
+                .args()
+                .zip(other.args())
+                .all(|(a, b)| self.args[a] == other.args[b])
     }
 }
 
@@ -139,11 +141,13 @@ impl std::fmt::Display for Signature {
         use std::iter::{once, repeat};
         write!(f, "(")?;
         for (arg, sep) in self.inputs().zip(once("").chain(repeat(", "))) {
-            write!(f, "{}{}", sep, arg)?;
+            write!(f, "{}{}", sep, self.arg_type(arg))?;
         }
-        write!(f, ") -> (")?;
-        for (arg, sep) in self.outputs().zip(once("").chain(repeat(", "))) {
-            write!(f, "{}{}", sep, arg)?;
+        if self.has_outputs() {
+            write!(f, ") -> (")?;
+            for (arg, sep) in self.outputs().zip(once("").chain(repeat(", "))) {
+                write!(f, "{}{}", sep, self.arg_type(arg))?;
+            }
         }
         write!(f, ")")?;
         if let Some(ref retty) = self.retty {

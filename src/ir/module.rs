@@ -8,11 +8,11 @@
 //! ingested by the reader and emitted by the writer.
 
 use crate::{
-    impl_table_indexing, impl_table_key,
-    ir::{Entity, Function, Process, Signature, Unit, UnitName},
+    impl_table_key,
+    ir::{DataFlowGraph, Entity, ExtUnit, Function, Process, Signature, Unit, UnitName},
     table::PrimaryTable,
 };
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
 /// A module.
 ///
@@ -23,9 +23,24 @@ pub struct Module {
     units: PrimaryTable<ModUnit, ModUnitData>,
     /// The order of units in the module.
     unit_order: BTreeSet<ModUnit>,
+    /// The local link table. Maps an external unit declared within a unit to a
+    /// unit in the module.
+    link_table: Option<HashMap<(ModUnit, ExtUnit), ModUnit>>,
 }
 
-impl_table_indexing!(Module, units, ModUnit, ModUnitData);
+impl std::ops::Index<ModUnit> for Module {
+    type Output = ModUnitData;
+    fn index(&self, idx: ModUnit) -> &ModUnitData {
+        &self.units[idx]
+    }
+}
+
+impl std::ops::IndexMut<ModUnit> for Module {
+    fn index_mut(&mut self, idx: ModUnit) -> &mut ModUnitData {
+        self.link_table = None;
+        &mut self.units[idx]
+    }
+}
 
 impl Module {
     /// Create a new empty module.
@@ -33,6 +48,7 @@ impl Module {
         Self {
             units: PrimaryTable::new(),
             unit_order: BTreeSet::new(),
+            link_table: None,
         }
     }
 
@@ -56,10 +72,16 @@ impl Module {
         self.add_unit(ModUnitData::Entity(ent))
     }
 
+    /// Declare an external unit.
+    pub fn declare(&mut self, name: UnitName, sig: Signature) -> ModUnit {
+        self.add_unit(ModUnitData::Declare { sig, name })
+    }
+
     /// Add a unit to the module.
     fn add_unit(&mut self, data: ModUnitData) -> ModUnit {
         let unit = self.units.add(data);
         self.unit_order.insert(unit);
+        self.link_table = None;
         unit
     }
 
@@ -90,7 +112,7 @@ impl Module {
     }
 
     /// Return an iterator over the external unit declarations in this module.
-    pub fn declarations<'a>(&'a self) -> impl Iterator<Item = (&'a Signature, &'a UnitName)> + 'a {
+    pub fn declarations<'a>(&'a self) -> impl Iterator<Item = (&'a UnitName, &'a Signature)> + 'a {
         self.units()
             .flat_map(move |unit| self[unit].get_declaration())
     }
@@ -134,6 +156,7 @@ impl Module {
     /// Return a mutable function in the module, or `None` if the unit is not a
     /// function.
     pub fn get_function_mut(&mut self, unit: ModUnit) -> Option<&mut Function> {
+        self.link_table = None;
         self[unit].get_function_mut()
     }
 
@@ -145,6 +168,7 @@ impl Module {
     /// Return a mutable function in the module. Panic if the unit is not a
     /// function.
     pub fn function_mut(&mut self, unit: ModUnit) -> &mut Function {
+        self.link_table = None;
         self[unit]
             .get_function_mut()
             .expect("unit is not a function")
@@ -159,6 +183,7 @@ impl Module {
     /// Return a mutable process in the module, or `None` if the unit is not a
     /// process.
     pub fn get_process_mut(&mut self, unit: ModUnit) -> Option<&mut Process> {
+        self.link_table = None;
         self[unit].get_process_mut()
     }
 
@@ -170,6 +195,7 @@ impl Module {
     /// Return a mutable process in the module. Panic if the unit is not a
     /// process.
     pub fn process_mut(&mut self, unit: ModUnit) -> &mut Process {
+        self.link_table = None;
         self[unit].get_process_mut().expect("unit is not a process")
     }
 
@@ -182,6 +208,7 @@ impl Module {
     /// Return a mutable entity in the module, or `None` if the unit is not an
     /// entity.
     pub fn get_entity_mut(&mut self, unit: ModUnit) -> Option<&mut Entity> {
+        self.link_table = None;
         self[unit].get_entity_mut()
     }
 
@@ -193,6 +220,7 @@ impl Module {
     /// Return a mutable entity in the module. Panic if the unit is not an
     /// entity.
     pub fn entity_mut(&mut self, unit: ModUnit) -> &mut Entity {
+        self.link_table = None;
         self[unit].get_entity_mut().expect("unit is not an entity")
     }
 
@@ -210,6 +238,71 @@ impl Module {
     pub fn global_symbols<'a>(&'a self) -> impl Iterator<Item = (&UnitName, ModUnit)> + 'a {
         self.symbols().filter(|&(name, _)| name.is_global())
     }
+
+    /// Check whether the module is internally linked.
+    ///
+    /// Adding or modifying a unit invalidates the linkage within the module.
+    pub fn is_linked(&self) -> bool {
+        self.link_table.is_some()
+    }
+
+    /// Locally link the module.
+    pub fn link(&mut self) {
+        let mut failed = false;
+
+        // Collect a table of symbols that we can resolve against.
+        let mut symbols = HashMap::new();
+        for (name, unit) in self.symbols() {
+            if let Some(existing) = symbols.insert(name, unit) {
+                if !self[existing].is_declaration() {
+                    eprintln!("unit {} declared multiple times", name);
+                    failed = true;
+                }
+            }
+        }
+        if failed {
+            panic!("linking failed; multiple uses of the same name");
+        }
+
+        // Resolve the external units in each unit.
+        let mut linked = HashMap::new();
+        for unit in self.units() {
+            let dfg = match self[unit].get_dfg() {
+                Some(dfg) => dfg,
+                None => continue,
+            };
+            for (ext_unit, data) in dfg.ext_units.iter() {
+                let to = match symbols.get(&data.name).cloned() {
+                    Some(to) => to,
+                    None => {
+                        eprintln!(
+                            "unit {} not found; referenced in {}",
+                            data.name,
+                            self.unit_name(unit)
+                        );
+                        failed = true;
+                        continue;
+                    }
+                };
+                if self.unit_sig(to) != &data.sig {
+                    eprintln!(
+                        "signature mismatch: {} has {}, but reference in {} expects {}",
+                        data.name,
+                        self.unit_sig(to),
+                        self.unit_name(unit),
+                        data.sig
+                    );
+                    failed = true;
+                    continue;
+                }
+                linked.insert((unit, ext_unit), to);
+            }
+        }
+        if failed {
+            panic!("linking failed; unresolved references");
+        }
+        self.link_table = Some(linked);
+    }
 }
 
 /// Temporary object to dump a `Module` in human-readable form for debugging.
@@ -221,14 +314,15 @@ impl std::fmt::Display for ModuleDumper<'_> {
         for unit in self.0.units() {
             if newline {
                 writeln!(f, "")?;
+                writeln!(f, "")?;
             }
             newline = true;
-            write!(f, "%{} = ", unit)?;
+            write!(f, "{}: ", unit)?;
             match &self.0[unit] {
-                ModUnitData::Function(unit) => writeln!(f, "{}", unit.dump())?,
-                ModUnitData::Process(unit) => writeln!(f, "{}", unit.dump())?,
-                ModUnitData::Entity(unit) => writeln!(f, "{}", unit.dump())?,
-                ModUnitData::Declare { sig, name } => writeln!(f, "declare {} {}", name, sig)?,
+                ModUnitData::Function(unit) => write!(f, "{}", unit.dump())?,
+                ModUnitData::Process(unit) => write!(f, "{}", unit.dump())?,
+                ModUnitData::Entity(unit) => write!(f, "{}", unit.dump())?,
+                ModUnitData::Declare { sig, name } => write!(f, "declare {} {}", name, sig)?,
             }
         }
         Ok(())
@@ -303,18 +397,18 @@ impl ModUnitData {
 
     /// If this unit is an external declaration, return it. Otherwise return
     /// `None`.
-    pub fn get_declaration(&self) -> Option<(&Signature, &UnitName)> {
+    pub fn get_declaration(&self) -> Option<(&UnitName, &Signature)> {
         match self {
-            ModUnitData::Declare { sig, name } => Some((sig, name)),
+            ModUnitData::Declare { sig, name } => Some((name, sig)),
             _ => None,
         }
     }
 
     /// If this unit is an external declaration, return it. Otherwise return
     /// `None`.
-    pub fn get_declaration_mut(&mut self) -> Option<(&mut Signature, &mut UnitName)> {
+    pub fn get_declaration_mut(&mut self) -> Option<(&mut UnitName, &mut Signature)> {
         match self {
-            ModUnitData::Declare { sig, name } => Some((sig, name)),
+            ModUnitData::Declare { sig, name } => Some((name, sig)),
             _ => None,
         }
     }
@@ -368,6 +462,26 @@ impl ModUnitData {
             ModUnitData::Process(unit) => unit.name(),
             ModUnitData::Entity(unit) => unit.name(),
             ModUnitData::Declare { name, .. } => name,
+        }
+    }
+
+    /// Return the data flow graph of the unit, if there is one.
+    pub fn get_dfg(&self) -> Option<&DataFlowGraph> {
+        match self {
+            ModUnitData::Function(unit) => Some(unit.dfg()),
+            ModUnitData::Process(unit) => Some(unit.dfg()),
+            ModUnitData::Entity(unit) => Some(unit.dfg()),
+            _ => None,
+        }
+    }
+
+    /// Return the mutable data flow graph of the unit, if there is one.
+    pub fn get_dfg_mut(&mut self) -> Option<&mut DataFlowGraph> {
+        match self {
+            ModUnitData::Function(unit) => Some(unit.dfg_mut()),
+            ModUnitData::Process(unit) => Some(unit.dfg_mut()),
+            ModUnitData::Entity(unit) => Some(unit.dfg_mut()),
+            _ => None,
         }
     }
 }
