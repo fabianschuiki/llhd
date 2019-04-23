@@ -287,6 +287,28 @@ impl<B: UnitBuilder> InstBuilder<'_, B> {
         self.inst_result(inst)
     }
 
+    /// `a = reg type init (, data mode trigger)*`
+    pub fn reg(&mut self, x: Value, data: Vec<(Value, RegMode, Value)>) -> Value {
+        let ty = self.value_type(x);
+        let mut args = vec![x];
+        let mut modes = vec![];
+        for (data, mode, trigger) in data {
+            args.push(data);
+            args.push(trigger);
+            modes.push(mode);
+        }
+        assert_eq!(args.len(), modes.len() * 2 + 1);
+        let inst = self.build(
+            InstData::Reg {
+                opcode: Opcode::Reg,
+                args,
+                modes,
+            },
+            ty,
+        );
+        self.inst_result(inst)
+    }
+
     /// `a = insf type x, y, imm`
     pub fn ins_field(&mut self, x: Value, y: Value, imm: usize) -> Value {
         let ty = self.value_type(x);
@@ -610,6 +632,12 @@ pub enum InstData {
         args: [Value; 2],
         imms: [usize; 2],
     },
+    /// `a = reg type x (, data mode trigger)*`
+    Reg {
+        opcode: Opcode,
+        args: Vec<Value>,
+        modes: Vec<RegMode>,
+    },
 }
 
 impl InstData {
@@ -629,6 +657,7 @@ impl InstData {
             InstData::Wait { opcode, .. } => opcode,
             InstData::Call { opcode, .. } => opcode,
             InstData::InsExt { opcode, .. } => opcode,
+            InstData::Reg { opcode, .. } => opcode,
         }
     }
 
@@ -658,6 +687,7 @@ impl InstData {
                 ..
             } => &args[0..1],
             InstData::InsExt { args, .. } => args,
+            InstData::Reg { args, .. } => args,
         }
     }
 
@@ -687,6 +717,7 @@ impl InstData {
                 ..
             } => &mut args[0..1],
             InstData::InsExt { args, .. } => args,
+            InstData::Reg { args, .. } => args,
         }
     }
 
@@ -702,6 +733,30 @@ impl InstData {
     pub fn output_args(&self) -> &[Value] {
         match *self {
             InstData::Call { ref args, ins, .. } => &args[ins as usize..],
+            _ => &[],
+        }
+    }
+
+    /// Get the data arguments of a register instruction.
+    pub fn data_args(&self) -> &[Value] {
+        match self {
+            InstData::Reg { args, modes, .. } => &args[1..1 + modes.len()],
+            _ => &[],
+        }
+    }
+
+    /// Get the trigger arguments of a register instruction.
+    pub fn trigger_args(&self) -> &[Value] {
+        match self {
+            InstData::Reg { args, modes, .. } => &args[1 + modes.len()..],
+            _ => &[],
+        }
+    }
+
+    /// Get the modes of a register instruction.
+    pub fn mode_args(&self) -> &[RegMode] {
+        match self {
+            InstData::Reg { modes, .. } => modes,
             _ => &[],
         }
     }
@@ -722,6 +777,7 @@ impl InstData {
             InstData::Wait { bbs, .. } => bbs,
             InstData::Call { .. } => &[],
             InstData::InsExt { .. } => &[],
+            InstData::Reg { .. } => &[],
         }
     }
 
@@ -741,6 +797,7 @@ impl InstData {
             InstData::Wait { bbs, .. } => bbs,
             InstData::Call { .. } => &mut [],
             InstData::InsExt { .. } => &mut [],
+            InstData::Reg { .. } => &mut [],
         }
     }
 
@@ -794,6 +851,21 @@ bitflags! {
         const ENTITY = 0b100;
         const ALL = 0b111;
     }
+}
+
+/// The trigger modes for register data acquisition.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RegMode {
+    /// The register is transparent if the trigger is low.
+    Low,
+    /// The register is transparent if the trigger is high.
+    High,
+    /// The register stores data on the rising edge of the trigger.
+    Rise,
+    /// The register stores data on the falling edge of the trigger.
+    Fall,
+    /// The register stores data on any edge of the trigger.
+    Both,
 }
 
 /// An instruction opcode.
@@ -944,6 +1016,7 @@ impl Opcode {
             Opcode::Br | Opcode::BrCond => UnitFlags::FUNCTION | UnitFlags::PROCESS,
             Opcode::Con => UnitFlags::ENTITY,
             Opcode::Del => UnitFlags::ENTITY,
+            Opcode::Reg => UnitFlags::ENTITY,
             _ => UnitFlags::ALL,
         }
     }
