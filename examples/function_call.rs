@@ -2,7 +2,7 @@
 use llhd::ir::prelude::*;
 
 fn main() {
-    let name = UnitName::Global("foo".to_owned());
+    let name = UnitName::global("foo");
     let mut sig = Signature::new();
     sig.set_return_type(llhd::int_ty(32));
     let mut func = Function::new(name, sig);
@@ -14,10 +14,7 @@ fn main() {
         sig.add_input(llhd::int_ty(1));
         sig.add_input(llhd::int_ty(42));
         sig.set_return_type(llhd::int_ty(32));
-        let ext = builder.add_extern(ExtUnitData {
-            name: UnitName::Global("bar".to_owned()),
-            sig,
-        });
+        let ext = builder.add_extern(UnitName::global("bar"), sig);
         let v1 = builder.ins().const_int(1, 0);
         let v2 = builder.ins().const_int(42, 9001);
         let v3 = builder.ins().call(ext, vec![v1, v2]);
