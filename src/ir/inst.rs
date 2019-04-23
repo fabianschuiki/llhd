@@ -14,18 +14,18 @@ use bitflags::bitflags;
 use num::BigInt;
 
 /// A temporary object used to construct a single instruction.
-pub struct InstBuilder<'b, B: UnitBuilder> {
-    builder: &'b mut B,
+pub struct InstBuilder<B> {
+    builder: B,
 }
 
-impl<'b, B: UnitBuilder> InstBuilder<'b, B> {
+impl<B> InstBuilder<B> {
     /// Create a new instruction builder that inserts into `builder`.
-    pub fn new(builder: &'b mut B) -> Self {
+    pub fn new(builder: B) -> Self {
         Self { builder }
     }
 }
 
-impl<B: UnitBuilder> InstBuilder<'_, B> {
+impl<B: UnitBuilder> InstBuilder<&mut B> {
     /// `a = const iN imm`
     pub fn const_int(&mut self, width: usize, value: impl Into<BigInt>) -> Value {
         let data = InstData::ConstInt {
@@ -531,7 +531,7 @@ impl<B: UnitBuilder> InstBuilder<'_, B> {
 }
 
 /// Convenience functions to construct the different instruction formats.
-impl<B: UnitBuilder> InstBuilder<'_, B> {
+impl<B: UnitBuilder> InstBuilder<&mut B> {
     /// `opcode`
     fn build_nullary(&mut self, opcode: Opcode) -> Inst {
         let data = InstData::Nullary { opcode };
@@ -564,7 +564,7 @@ impl<B: UnitBuilder> InstBuilder<'_, B> {
 }
 
 /// Fundamental convenience forwards to the wrapped builder.
-impl<B: UnitBuilder> InstBuilder<'_, B> {
+impl<B: UnitBuilder> InstBuilder<&mut B> {
     /// Convenience forward to `UnitBuilder`.
     fn build(&mut self, data: InstData, ty: Type) -> Inst {
         self.builder.build_inst(data, ty)

@@ -81,7 +81,7 @@ pub enum UnitKind {
 }
 
 /// A `Function`, `Process`, or `Entity`.
-pub trait Unit: Sized {
+pub trait Unit {
     /// Get the unit's DFG.
     #[inline]
     fn dfg(&self) -> &DataFlowGraph;
@@ -107,7 +107,7 @@ pub trait Unit: Sized {
     fn name_mut(&mut self) -> &mut UnitName;
 
     /// Dump the unit in human-readable form.
-    fn dump(&self) -> UnitDumper<Self> {
+    fn dump(&self) -> UnitDumper<&Self> {
         UnitDumper(self)
     }
 
@@ -202,16 +202,16 @@ pub trait Unit: Sized {
 }
 
 /// Temporary object to dump an `Entity` in human-readable form for debugging.
-pub struct UnitDumper<'unit, U>(&'unit U);
+pub struct UnitDumper<U>(U);
 
-impl<U: Unit> std::fmt::Display for UnitDumper<'_, U> {
+impl<U: Unit> std::fmt::Display for UnitDumper<&U> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.0.dump_fmt(f)
     }
 }
 
 /// A temporary object used to populate a `Function`, `Process` or `Entity`.
-pub trait UnitBuilder: Sized {
+pub trait UnitBuilder {
     /// The type returned by `unit()` and `unit_mut()`.
     type Unit: Unit;
 
@@ -222,7 +222,7 @@ pub trait UnitBuilder: Sized {
     fn unit_mut(&mut self) -> &mut Self::Unit;
 
     /// Add a new instruction using an `InstBuilder`.
-    fn ins(&mut self) -> InstBuilder<Self> {
+    fn ins(&mut self) -> InstBuilder<&mut Self> {
         InstBuilder::new(self)
     }
 
