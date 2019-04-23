@@ -15,6 +15,7 @@ travis-ci = { repository = "fabianschuiki/llhd", branch = "master" }
 [dependencies]
 num = "0.2"
 bitflags = "1"
+clap = "2"
 lalrpop-util = "0.16.3"
 regex = "0.2.0"
 

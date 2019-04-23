@@ -1,0 +1,22 @@
+use crate::liberty::FunctionTerm;
+
+grammar;
+
+pub Function: FunctionTerm = OrTerm;
+OrTerm: FunctionTerm = {
+	AndTerm,
+	<a:OrTerm> "+" <b:AndTerm> => FunctionTerm::Or(Box::new(a), Box::new(b)),
+};
+AndTerm: FunctionTerm = {
+	NotTerm,
+	<a:AndTerm> "&" <b:NotTerm> => FunctionTerm::And(Box::new(a), Box::new(b)),
+};
+NotTerm: FunctionTerm = {
+	PrimaryTerm,
+	"!" <NotTerm> => FunctionTerm::Not(Box::new(<>)),
+}
+PrimaryTerm: FunctionTerm = {
+	Atom,
+	"(" <OrTerm> ")",
+}
+Atom: FunctionTerm = <a:r"[a-zA-Z0-9]+"> => FunctionTerm::Atom(a.to_string());
