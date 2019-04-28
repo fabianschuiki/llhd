@@ -179,8 +179,8 @@ fn write_ratio_as_si(ratio: &BigRational, f: &mut std::fmt::Formatter) -> std::f
         write!(
             f,
             "{}.{}{}s",
-            &rounded[0..3],
-            &rounded[3..],
+            &rounded[..rounded.len() - shift],
+            &rounded[rounded.len() - shift..],
             prefices[prefix]
         )?;
     } else {

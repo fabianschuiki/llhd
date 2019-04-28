@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `ir` module.
 - Add `lalrpop` dependency.
 
+### Fixed
+- Fix emission of time constants.
+
 ## 0.5.0 - 2019-02-19
 ### Added
 - Signal and pointer semantics for `extract`. ([#41](https://github.com/fabianschuiki/llhd/issues/41))
