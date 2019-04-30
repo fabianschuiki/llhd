@@ -180,6 +180,16 @@ impl<I: TableKey, V> SecondaryTable<I, V> {
     pub fn contains(&self, key: I) -> bool {
         self.storage.contains_key(&key.index())
     }
+
+    /// Get an entry from the table, if one exists.
+    pub fn get(&self, key: I) -> Option<&V> {
+        self.storage.get(&key.index())
+    }
+
+    /// Get a mutable entry from the table, if one exists.
+    pub fn get_mut(&mut self, key: I) -> Option<&mut V> {
+        self.storage.get_mut(&key.index())
+    }
 }
 
 impl<I, V> Default for SecondaryTable<I, V> {
