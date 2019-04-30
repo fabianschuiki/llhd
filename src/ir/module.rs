@@ -11,6 +11,7 @@ use crate::{
     impl_table_key,
     ir::{DataFlowGraph, Entity, ExtUnit, Function, Process, Signature, Unit, UnitName},
     table::PrimaryTable,
+    verifier::Verifier,
 };
 use std::collections::{BTreeSet, HashMap};
 
@@ -302,6 +303,24 @@ impl Module {
             panic!("linking failed; unresolved references");
         }
         self.link_table = Some(linked);
+    }
+
+    /// Panic if the module is not well-formed.
+    pub fn verify(&self) {
+        let mut verifier = Verifier::new();
+        verifier.verify_module(self);
+        match verifier.finish() {
+            Ok(()) => (),
+            Err(errs) => {
+                eprintln!("");
+                eprintln!("Verified module:");
+                eprintln!("{}", self.dump());
+                eprintln!("");
+                eprintln!("Verification errors:");
+                eprintln!("{}", errs);
+                panic!("verification failed");
+            }
+        }
     }
 }
 

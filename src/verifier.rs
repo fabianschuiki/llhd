@@ -29,6 +29,18 @@ impl Verifier {
         Default::default()
     }
 
+    /// Verify the integrity of a `Module`.
+    pub fn verify_module(&mut self, module: &Module) {
+        for unit in module.units() {
+            match &module[unit] {
+                ModUnitData::Function(x) => self.verify_function(x),
+                ModUnitData::Process(x) => self.verify_process(x),
+                ModUnitData::Entity(x) => self.verify_entity(x),
+                ModUnitData::Declare { .. } => (),
+            }
+        }
+    }
+
     /// Verify the integrity of a `Function`.
     pub fn verify_function(&mut self, func: &Function) {
         self.unit = Some(format!("func {}", func.name));
