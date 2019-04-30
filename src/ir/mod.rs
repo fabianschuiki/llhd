@@ -81,6 +81,18 @@ pub enum ValueData {
     Inst { ty: Type, inst: Inst },
     /// The value is an argument of the `Function`, `Process`, or `Entity`.
     Arg { ty: Type, arg: Arg },
+    /// The value is a placeholder. Used during PHI node construction.
+    Placeholder { ty: Type },
+}
+
+impl ValueData {
+    /// Check if the value is a placeholder.
+    pub fn is_placeholder(&self) -> bool {
+        match self {
+            ValueData::Placeholder { .. } => true,
+            _ => false,
+        }
+    }
 }
 
 /// Another unit referenced within a `Function`, `Process`, or `Entity`.

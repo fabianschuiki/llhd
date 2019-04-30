@@ -44,6 +44,20 @@ impl DataFlowGraph {
         Default::default()
     }
 
+    /// Add a placeholder value.
+    ///
+    /// This function is intended to be used when constructing PHI nodes.
+    pub fn add_placeholder(&mut self, ty: Type) -> Value {
+        self.values.add(ValueData::Placeholder { ty })
+    }
+
+    /// Remove a placeholder value.
+    pub fn remove_placeholder(&mut self, value: Value) {
+        assert!(!self.has_uses(value));
+        assert!(self[value].is_placeholder());
+        self.values.remove(value);
+    }
+
     /// Add an instruction.
     pub fn add_inst(&mut self, data: InstData, ty: Type) -> Inst {
         let inst = self.insts.add(data);
@@ -94,6 +108,7 @@ impl DataFlowGraph {
         match &self[value] {
             ValueData::Inst { ty, .. } => ty.clone(),
             ValueData::Arg { ty, .. } => ty.clone(),
+            ValueData::Placeholder { ty, .. } => ty.clone(),
         }
     }
 
