@@ -1,0 +1,397 @@
+use crate::{ty::*, ir::prelude::*, konst::ConstTime, assembly::ast};
+use num::BigInt;
+
+grammar;
+
+pub Module: Module = <units: Unit*> => {
+    let mut module = Module::new();
+    for unit in units {
+        match unit {
+            ast::Unit::Function(x) => { module.add_function(x); },
+            ast::Unit::Process(x) => { module.add_process(x); },
+            ast::Unit::Entity(x) => { module.add_entity(x); },
+            ast::Unit::Declare(name, sig) => { module.declare(name, sig); },
+        }
+    }
+    module.link();
+    module.verify();
+    module
+};
+
+// A unit.
+Unit: ast::Unit = {
+    Function => ast::Unit::Function(<>),
+    Process => ast::Unit::Process(<>),
+    Entity => ast::Unit::Entity(<>),
+    "declare" <name: UnitName> <sig: Signature> => ast::Unit::Declare(name, sig),
+};
+
+Signature: Signature = {
+    "(" <args: Comma<Type>> ")" <retty: Type> => {
+        let mut sig = Signature::new();
+        for arg in args {
+            sig.add_input(arg);
+        }
+        sig.set_return_type(retty);
+        sig
+    },
+    "(" <input_args: Comma<Type>> ")" "->" "(" <output_args: Comma<Type>> ")" => {
+        let mut sig = Signature::new();
+        for arg in input_args {
+            sig.add_input(arg);
+        }
+        for arg in output_args {
+            sig.add_output(arg);
+        }
+        sig
+    },
+};
+
+// A function.
+Function: Function =
+    "func" <name: UnitName>
+    "(" <args: Args> ")"
+    <retty: Type>
+    "{" <blocks: Block*> "}" => {
+
+    let mut sig = Signature::new();
+    let args: Vec<_> = args
+        .into_iter()
+        .map(|(ty, name)| (sig.add_input(ty), name))
+        .collect();
+    sig.set_return_type(retty);
+    let mut func = Function::new(name, sig);
+    let mut builder = FunctionBuilder::new(&mut func);
+    let mut context = ast::Context::default();
+    for (arg, name) in args {
+        let v = builder.dfg().arg_value(arg);
+        context.value_names.insert(name, v);
+        builder.dfg_mut().set_name(v, name.to_string());
+    }
+    for block in blocks {
+        block.build(&mut builder, &mut context);
+    }
+    func
+};
+
+// A process.
+Process: Process =
+    "proc" <name: UnitName>
+    "(" <input_args: Args> ")"
+    "->"
+    "(" <output_args: Args> ")"
+    "{" <blocks: Block*> "}" => {
+
+    let mut sig = Signature::new();
+    let input_args: Vec<_> = input_args
+        .into_iter()
+        .map(|(ty, name)| (sig.add_input(ty), name))
+        .collect();
+    let output_args: Vec<_> = output_args
+        .into_iter()
+        .map(|(ty, name)| (sig.add_output(ty), name))
+        .collect();
+    let mut prok = Process::new(name, sig);
+    let mut builder = ProcessBuilder::new(&mut prok);
+    let mut context = ast::Context::default();
+    for (arg, name) in input_args {
+        let v = builder.dfg().arg_value(arg);
+        context.value_names.insert(name, v);
+        builder.dfg_mut().set_name(v, name.to_string());
+    }
+    for (arg, name) in output_args {
+        let v = builder.dfg().arg_value(arg);
+        context.value_names.insert(name, v);
+        builder.dfg_mut().set_name(v, name.to_string());
+    }
+    for block in blocks {
+        block.build(&mut builder, &mut context);
+    }
+    prok
+};
+
+// An entity.
+Entity: Entity =
+    "entity" <name: UnitName>
+    "(" <input_args: Args> ")"
+    "->"
+    "(" <output_args: Args> ")"
+    "{" <insts: Inst*> "}" => {
+
+    let mut sig = Signature::new();
+    let input_args: Vec<_> = input_args
+        .into_iter()
+        .map(|(ty, name)| (sig.add_input(ty), name))
+        .collect();
+    let output_args: Vec<_> = output_args
+        .into_iter()
+        .map(|(ty, name)| (sig.add_output(ty), name))
+        .collect();
+    let mut ent = Entity::new(name, sig);
+    let mut builder = EntityBuilder::new(&mut ent);
+    let mut context = ast::Context::default();
+    for (arg, name) in input_args {
+        let v = builder.dfg().arg_value(arg);
+        context.value_names.insert(name, v);
+        builder.dfg_mut().set_name(v, name.to_string());
+    }
+    for (arg, name) in output_args {
+        let v = builder.dfg().arg_value(arg);
+        context.value_names.insert(name, v);
+        builder.dfg_mut().set_name(v, name.to_string());
+    }
+    for inst in insts {
+        inst.build(&mut builder, &mut context);
+    }
+    ent
+};
+
+// A unit argument.
+Args = Comma<(Type LocalName)>;
+
+// A basic block.
+Block: ast::Block<'input> = <name: BlockLabel> <insts: Inst*> => ast::Block {
+    name: name,
+    insts
+};
+
+// An instruction.
+Inst: ast::Inst<'input> = {
+    <name: LocalName> "=" <inst: InstWithRequiredResult> => inst.name(name),
+    <name: LocalName> "=" <inst: InstWithResult> => inst.name(name),
+    <inst: InstWithResult> => inst,
+    <inst: InstWithoutResult> => inst,
+};
+
+// An instruction which yields a result.
+InstWithResult: ast::Inst<'input> = {
+    "const" <ty: IntType> <imm: BigInt> => ast::Inst::new(Opcode::ConstInt)
+        .data(ast::InstData::ConstInt(ty.unwrap_int(), imm)),
+    "const" <ty: TimeType> <imm: ConstTime> => ast::Inst::new(Opcode::ConstTime)
+        .data(ast::InstData::ConstTime(imm)),
+    "alias" <arg: TypedValue> => ast::Inst::new(Opcode::Alias)
+        .data(ast::InstData::Unary(arg)),
+    <opc: UnaryOpcode> <arg: TypedValue> => ast::Inst::new(opc)
+        .data(ast::InstData::Unary(arg)),
+    <opc: BinaryOpcode> <arg0: TypedValue> "," <arg1: Value> => {
+        let arg1 = arg1.ty(arg0.ty.clone());
+        ast::Inst::new(opc)
+            .data(ast::InstData::Binary(arg0, arg1))
+    },
+    <opc: ShiftOpcode> <base: TypedValue> "," <hidden: TypedValue> "," <amount: TypedValue> =>
+        ast::Inst::new(opc).data(ast::InstData::Ternary(base, hidden, amount)),
+    "mux" <array: TypedValue> "," <sel: TypedValue> => ast::Inst::new(Opcode::Mux)
+        .data(ast::InstData::Binary(array, sel)),
+    "reg" <init: TypedValue> <triggers: ("," <Value> <RegMode> <Value>)*> => {
+        let triggers = triggers.into_iter().map(|(data, mode, trigger)| (
+            data.ty(init.ty.clone()),
+            mode,
+            trigger.ty(int_ty(1)),
+        )).collect();
+        ast::Inst::new(Opcode::Reg)
+            .data(ast::InstData::Reg(init, triggers))
+    },
+    "insf" <target: TypedValue> "," <arg: Value> "," <imm: Usize> => {
+        let arg = match *target.ty {
+            StructType(ref ftys) => arg.ty(ftys[imm].clone()),
+            ArrayType(_, ref ty) => arg.ty(ty.clone()),
+            _ => panic!("argument to `insf` must be of struct or array type"),
+        };
+        ast::Inst::new(Opcode::InsField)
+            .data(ast::InstData::Ins(target, arg, [imm, 0]))
+    },
+    "inss" <target: TypedValue> "," <arg: Value> "," <imm0: Usize> "," <imm1: Usize> => {
+        let arg = match *target.ty {
+            ArrayType(_, ref ty) => arg.ty(array_ty(imm1, ty.clone())),
+            IntType(_) => arg.ty(int_ty(imm1)),
+            _ => panic!("argument to `inss` must be of array or integer type"),
+        };
+        ast::Inst::new(Opcode::InsSlice)
+            .data(ast::InstData::Ins(target, arg, [imm0, imm1]))
+    },
+    "extf" <target: TypedValue> "," <imm: Usize> => {
+        ast::Inst::new(Opcode::ExtField)
+            .data(ast::InstData::Ext(target, [imm, 0]))
+    },
+    "exts" <target: TypedValue> "," <imm0: Usize> "," <imm1: Usize> => {
+        ast::Inst::new(Opcode::ExtSlice)
+            .data(ast::InstData::Ext(target, [imm0, imm1]))
+    },
+    "del" <arg: TypedValue> "," <delay: Value> => {
+        let delay = delay.ty(time_ty());
+        ast::Inst::new(Opcode::Del)
+            .data(ast::InstData::Binary(arg, delay))
+    },
+    "call" <retty: Type> <unit: UnitName> "(" <args: Comma<TypedValue>> ")" => ast::Inst::new(Opcode::Call)
+        .data(ast::InstData::Call(retty, unit, args)),
+};
+
+// An instruction which yields a result that must be used.
+InstWithRequiredResult: ast::Inst<'input> = {
+    "[" <length: Usize> "x" <arg: TypedValue> "]" => ast::Inst::new(Opcode::ArrayUniform)
+        .data(ast::InstData::Aggregate(length, vec![arg])),
+    "[" <args: Comma<TypedValue>> "]" => ast::Inst::new(Opcode::Array)
+        .data(ast::InstData::Aggregate(0, args)),
+    "{" <args: Comma<TypedValue>> "}" => ast::Inst::new(Opcode::Struct)
+        .data(ast::InstData::Aggregate(0, args)),
+}
+
+// An instruction which does not yield a result.
+InstWithoutResult: ast::Inst<'input> = {
+    "con" <arg0: TypedValue> "," <arg1: Value> => {
+        let arg1 = arg1.ty(arg0.ty.clone());
+        ast::Inst::new(Opcode::Con)
+            .data(ast::InstData::Binary(arg0, arg1))
+    },
+    "inst" <unit: UnitName> "(" <input_args: Comma<TypedValue>> ")" "->" "(" <output_args: Comma<TypedValue>> ")" => ast::Inst::new(Opcode::Inst)
+        .data(ast::InstData::Inst(unit, input_args, output_args)),
+    "drv" <target: TypedValue> "," <value: Value> "," <delay: Value> => {
+        let value = value.ty(target.ty.unwrap_signal().clone());
+        let delay = delay.ty(time_ty());
+        ast::Inst::new(Opcode::Drv)
+            .data(ast::InstData::Ternary(target, value, delay))
+    },
+    "st" <target: TypedValue> "," <value: Value> => {
+        let value = value.ty(target.ty.unwrap_pointer().clone());
+        ast::Inst::new(Opcode::St)
+            .data(ast::InstData::Binary(target, value))
+    },
+    "halt" => ast::Inst::new(Opcode::Halt),
+    "ret" => ast::Inst::new(Opcode::Ret),
+    "ret" <arg: TypedValue> => ast::Inst::new(Opcode::RetValue)
+        .data(ast::InstData::Unary(arg)),
+    "br" <bb: Label> => ast::Inst::new(Opcode::Br)
+        .data(ast::InstData::Branch(None, bb, None)),
+    "br" <cond: Value> "," <bb0: Label> "," <bb1: Label> => {
+        let cond = cond.ty(int_ty(1));
+        ast::Inst::new(Opcode::BrCond)
+            .data(ast::InstData::Branch(Some(cond), bb0, Some(bb1)))
+    },
+    "wait" <bb: Label> <time: ("for" <Value>)?> <args: ("," <Value>)*> => {
+        let time = time.map(|t| t.ty(time_ty()));
+        ast::Inst::new(match time {
+            Some(_) => Opcode::WaitTime,
+            None => Opcode::Wait,
+        }).data(ast::InstData::Wait(bb, time, args))
+    }
+}
+
+// A regular unary opcode.
+UnaryOpcode: Opcode = {
+    "not" => Opcode::Not,
+    "neg" => Opcode::Neg,
+    "sig" => Opcode::Sig,
+    "prb" => Opcode::Prb,
+    "var" => Opcode::Var,
+    "ld" => Opcode::Ld,
+};
+
+// A regular binary opcode.
+BinaryOpcode: Opcode = {
+    "add" => Opcode::Add,
+    "sub" => Opcode::Sub,
+    "and" => Opcode::And,
+    "or" => Opcode::Or,
+    "xor" => Opcode::Xor,
+    "smul" => Opcode::Smul,
+    "sdiv" => Opcode::Sdiv,
+    "smod" => Opcode::Smod,
+    "srem" => Opcode::Srem,
+    "umul" => Opcode::Umul,
+    "udiv" => Opcode::Udiv,
+    "umod" => Opcode::Umod,
+    "urem" => Opcode::Urem,
+    "eq" => Opcode::Eq,
+    "neq" => Opcode::Neq,
+    "slt" => Opcode::Slt,
+    "sgt" => Opcode::Sgt,
+    "sle" => Opcode::Sle,
+    "sge" => Opcode::Sge,
+    "ult" => Opcode::Ult,
+    "ugt" => Opcode::Ugt,
+    "ule" => Opcode::Ule,
+    "uge" => Opcode::Uge,
+};
+
+// A shift opcode.
+ShiftOpcode: Opcode = {
+    "shl" => Opcode::Shl,
+    "shr" => Opcode::Shr,
+};
+
+// A register trigger mode.
+RegMode: RegMode = {
+    "low" => RegMode::Low,
+    "high" => RegMode::High,
+    "rise" => RegMode::Rise,
+    "fall" => RegMode::Fall,
+    "both" => RegMode::Both,
+}
+
+// A mentioning of a block as instruction argument.
+Label: ast::Label<'input> = LocalName => ast::Label(<>);
+
+// A mentioning of a value as instruction argument.
+Value: ast::Value<'input> = LocalName => ast::Value(<>);
+TypedValue: ast::TypedValue<'input> = <ty: Type> <value: Value> => value.ty(ty);
+
+// Any of the LLHD types.
+pub Type: Type = {
+    "void" => void_ty(),
+    TimeType,
+    IntType,
+    EnumType,
+    <Type> "$" => signal_ty(<>),
+    <Type> "*" => pointer_ty(<>),
+    "[" <Usize> "x" <Type> "]" => array_ty(<>),
+    "{" <Comma<Type>> "}" => struct_ty(<>),
+};
+
+TimeType: Type = "time" => time_ty();
+IntType: Type = r"i\d+" => int_ty(<>[1..].parse().unwrap());
+EnumType: Type = r"n\d+" => enum_ty(<>[1..].parse().unwrap());
+
+// A local name.
+LocalName: ast::LocalName<'input> = <name: Name> => {
+    match &name[0..1] {
+        "%" => name[1..].into(),
+        _ => panic!("expected local name (`%...`), got `{}`", name),
+    }
+};
+
+// A unit name, which is basically a name wrapped up in a different package.
+UnitName: UnitName = <name: Name> => {
+    let (first, tail) = (&name[0..1], &name[1..]);
+    let all_digits = tail.chars().all(|c| c.is_digit(10));
+    match first {
+        "@" => UnitName::global(tail),
+        "%" if all_digits => UnitName::anonymous(tail.parse().unwrap()),
+        "%" => UnitName::local(tail),
+        _ => unreachable!("regex should not match names starting with `{}`", first),
+    }
+};
+
+// A basic block label.
+BlockLabel: ast::LocalName<'input> = r"%[a-zA-Z0-9_\.\\]+:" => <>[1..<>.len()-1].into();
+
+// Any temporary, local, or global name.
+Name = r"[@%][a-zA-Z0-9_\.\\]+";
+Usize: usize = r"[-+]?\d+" => <>.parse().unwrap();
+BigInt: BigInt = r"[-+]?\d+" => <>.parse().unwrap();
+pub ConstTime: ConstTime = <time: RegularTime> <delta: DeltaTime?> <epsilon: EpsilonTime?> => {
+    let (v, delta, epsilon) = ast::parse_time_triple(time, delta, epsilon);
+    ConstTime::new(v, delta, epsilon)
+};
+RegularTime = r"[-+]?\d+(\.\d+)?[afpnumkMGTPE]?s";
+DeltaTime = r"[0-9]+d";
+EpsilonTime = r"[0-9]+e";
+
+// A macro for comma-separated items.
+Comma<T>: Vec<T> = <head: (<T> ",")*> <tail: T?> => match tail {
+    Some(tail) => {
+        let mut head = head;
+        head.push(tail);
+        head
+    }
+    None => head,
+};

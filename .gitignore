@@ -5,3 +5,4 @@
 /Cargo.lock
 /target
 /docs/_build
+/src/assembly/grammar.rs
