@@ -11,6 +11,7 @@ use crate::{
     table::{PrimaryTable, SecondaryTable, TableKey},
     ty::Type,
 };
+use std::collections::HashMap;
 
 /// A data flow graph.
 ///
@@ -29,6 +30,8 @@ pub struct DataFlowGraph {
     pub(crate) args: SecondaryTable<Arg, Value>,
     /// The external units in the graph.
     pub(crate) ext_units: PrimaryTable<ExtUnit, ExtUnitData>,
+    /// The names assigned to values.
+    pub(crate) names: HashMap<Value, String>,
 }
 
 impl_table_indexing!(DataFlowGraph, insts, Inst, InstData);
@@ -108,6 +111,21 @@ impl DataFlowGraph {
             Some(inst) => inst,
             None => panic!("value {} not the result of an instruction", value),
         }
+    }
+
+    /// Return the name of a value.
+    pub fn get_name(&self, value: Value) -> Option<&String> {
+        self.names.get(&value)
+    }
+
+    /// Set the name of a value.
+    pub fn set_name(&mut self, value: Value, name: String) {
+        self.names.insert(value, name);
+    }
+
+    /// Clear the name of a value.
+    pub fn clear_name(&mut self, value: Value) -> Option<String> {
+        self.names.remove(&value)
     }
 
     /// Replace all uses of a value with another.
