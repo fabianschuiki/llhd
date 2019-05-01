@@ -24,9 +24,9 @@ mod seq_body;
 pub mod table;
 mod unit;
 pub mod util;
-mod visit;
+// mod visit;
 
 pub use crate::{
     aggregate::*, argument::*, block::*, entity::*, function::*, inst::*, konst::*, module::*,
-    process::*, seq_body::*, ty::*, unit::*, value::*, visit::*,
+    process::*, seq_body::*, ty::*, unit::*, value::*,
 };

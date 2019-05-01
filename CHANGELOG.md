@@ -16,6 +16,7 @@ parse_module` to the `assembly` module.
 
 ### Removed
 - Remove `write` and `write_string` from the `assembly` module.
+- Remove `visit` module.
 
 ### Fixed
 - Fix emission of time constants.

@@ -380,7 +380,11 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     self.writer.sink,
                     "{} {} {} (",
                     data.opcode(),
-                    dfg.value_type(dfg.inst_result(inst)),
+                    if dfg.has_result(inst) {
+                        dfg.value_type(dfg.inst_result(inst))
+                    } else {
+                        crate::void_ty()
+                    },
                     dfg[data.get_ext_unit().unwrap()].name,
                 )?;
                 let mut comma = false;
@@ -432,7 +436,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                 write!(self.writer.sink, ", ")?;
                 self.write_block_name(data.blocks()[1])?;
             }
-            Opcode::Wait | Opcode::WaitTime => {
+            Opcode::Wait => {
                 write!(self.writer.sink, "{} ", data.opcode())?;
                 self.write_block_name(data.blocks()[0])?;
                 let mut comma = false;
@@ -441,6 +445,16 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                         write!(self.writer.sink, ", ")?;
                     }
                     comma = true;
+                    self.write_value_use(arg, false)?;
+                }
+            }
+            Opcode::WaitTime => {
+                write!(self.writer.sink, "{} ", data.opcode())?;
+                self.write_block_name(data.blocks()[0])?;
+                write!(self.writer.sink, " for ")?;
+                self.write_value_use(data.args()[0], false)?;
+                for &arg in &data.args()[1..] {
+                    write!(self.writer.sink, ", ")?;
                     self.write_value_use(arg, false)?;
                 }
             }

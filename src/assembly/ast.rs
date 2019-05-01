@@ -267,12 +267,15 @@ impl<'a> Inst<'a> {
             }
         };
         if let (Some(name), InstOrValue::Value(value)) = (self.name, result) {
-            if let Some(&ph) = context.value_names.get(&name) {
+            if let Some(ph) = context.value_names.insert(name, value) {
                 let dfg = builder.dfg_mut();
-                dfg.replace_use(ph, value);
-                dfg.remove_placeholder(ph);
+                if dfg.is_placeholder(ph) {
+                    dfg.replace_use(ph, value);
+                    dfg.remove_placeholder(ph);
+                } else {
+                    panic!("`{}` defined multiple times", name);
+                }
             }
-            context.value_names.insert(name, value);
             if let LocalName::Named(name) = name {
                 builder.dfg_mut().set_name(value, name.to_owned());
             }

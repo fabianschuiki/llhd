@@ -1,9 +1,5 @@
-// Copyright (c) 2017 Fabian Schuiki
-
-#[macro_use]
-extern crate indoc;
-
-use llhd::Visitor;
+// Copyright (c) 2017-2019 Fabian Schuiki
+use indoc::indoc;
 
 macro_rules! loopback {
     ($input:tt) => {
@@ -15,10 +11,8 @@ macro_rules! compare {
     ($input:tt, $expected:tt) => {
         let input = indoc!($input);
         let expected = indoc!($expected);
-        let module = llhd::assembly::parse_str(input).unwrap();
-        let mut asm = Vec::new();
-        llhd::assembly::Writer::new(&mut asm).visit_module(&module);
-        let asm = String::from_utf8(asm).unwrap();
+        let module = llhd::assembly::parse_module(input).unwrap();
+        let asm = llhd::assembly::write_module_string(&module);
         assert_eq!(expected, asm);
     };
 }
@@ -27,12 +21,16 @@ macro_rules! compare {
 fn empty() {
     loopback! {"
         func @a () void {
+        %0:
+            ret
         }
 
-        proc @b () () {
+        proc @b () -> () {
+        %0:
+            halt
         }
 
-        entity @c () () {
+        entity @c () -> () {
         }
     "};
 }
@@ -40,15 +38,9 @@ fn empty() {
 #[test]
 fn types() {
     loopback! {"
-        func @foo () void {
+        func @foo (i32 %v0, time %v1, i32* %v2, i32$ %v3, void %v4, {i32, i64} %v5, [9001 x i32] %v6) void {
         %entry:
-            %v0 = var i32
-            %v1 = var time
-            %v2 = var i32*
-            %v3 = var i32$
-            %v4 = var void
-            %v5 = var {i32, i64}
-            %v6 = var [9001 x i32]
+            ret
         }
     "};
 }
@@ -58,14 +50,18 @@ fn function() {
     loopback! {"
         func @foo (i32 %a, i32 %b) void {
         %entry:
-            %0 = add i32 %a %b
-            %y = add i32 %0 42
+            %0 = add i32 %a, %b
+            %1 = const i32 42
+            %y = add i32 %0, %1
+            ret
         %schmentry:
-            %1 = cmp eq i32 %y %a
+            %2 = eq i32 %y, %a
+            ret
         }
 
         func @bar (i32 %0) void {
         %well:
+            ret
         }
     "};
 }
@@ -73,10 +69,13 @@ fn function() {
 #[test]
 fn process() {
     loopback! {"
-        proc @bar (i32 %0) (i32 %1) {
+        proc @bar (i32 %0) -> (i32 %1) {
         %entry:
-            %2 = add i32 %0 21
-            %y = add i32 %0 42
+            %k0 = const i32 21
+            %k1 = const i32 42
+            %2 = add i32 %0, %k0
+            %y = add i32 %0, %k1
+            halt
         }
     "};
 }
@@ -84,9 +83,11 @@ fn process() {
 #[test]
 fn entity() {
     loopback! {"
-        entity @top (i32 %0) (i32 %1) {
-            %2 = add i32 %0 9000
-            %y = add i32 %0 42
+        entity @top (i32 %0) -> (i32 %1) {
+            %k0 = const i32 9000
+            %k1 = const i32 42
+            %2 = add i32 %0, %k0
+            %y = add i32 %0, %k1
         }
     "};
 }
@@ -95,51 +96,18 @@ fn entity() {
 fn call_and_inst() {
     loopback! {"
         func @foo (i32 %a, i32 %b) void {
-        }
-
-        proc @bar (i32 %a) (i32 %b) {
-        %entry:
-            call @foo (%a, %a)
-        }
-
-        entity @top (i32 %a) (i32 %b) {
-            inst @bar (%a) (%b)
-        }
-    "};
-}
-
-#[test]
-fn instructions() {
-    loopback! {"
-        func @foo (i32 %a, i32 %b, time %x) void {
-        %entry:
-            wait %entry
-            wait %entry for %x
-            wait %entry, %a, %b
-            wait %entry for %x, %a, %b
+        %0:
             ret
-            ret i32 %a
-            ret i32 42
-            br label %entry
-            br %a label %entry %entry
-            %a0 = sig i8
-            %a1 = sig i8 42
-            %a2 = prb %a0
-            drv %a0 %a
-            drv %a0 42
-            drv %a1 %b %x
-            %v0 = var i8
-            %v1 = load i8 %v0
-            store i8 %v0 42
-            %i1 = insert element i32 %v0, 0, i32 42
-            %i2 = insert slice i8 %v0, 0, 2, i2 3
-            %e1 = extract element i32 %v0, 0
-            %e2 = extract slice i8 %v0, 0, 2
-            %s0 = shl i32 %a, i1 0, i2 3
-            %s1 = shr i32 %a, i1 0, i2 3
-            %s2 = shl [4 x i32] [i32 1, 2, 3, 4], i32 9, i2 3
-            %s3 = shr [4 x i32] [i32 1, 2, 3, 4], i32 9, i2 3
+        }
+
+        proc @bar (i32 %a) -> (i32 %b) {
+        %entry:
+            call void @foo (i32 %a, i32 %a)
             halt
+        }
+
+        entity @top (i32 %a) -> (i32 %b) {
+            inst @bar (i32 %a) -> (i32 %b)
         }
     "};
 }
@@ -147,7 +115,9 @@ fn instructions() {
 #[test]
 fn regression_underscore_names() {
     loopback! {"
-        proc @four_pulses () () {
+        proc @four_pulses () -> () {
+        %0:
+            halt
         }
     "};
 }
@@ -155,7 +125,9 @@ fn regression_underscore_names() {
 #[test]
 fn regression_signal_type() {
     loopback! {"
-        proc @foo (i1$ %a) (i1$ %b) {
+        proc @foo (i1$ %a) -> (i1$ %b) {
+        %0:
+            halt
         }
     "};
 }
@@ -165,14 +137,19 @@ fn extract_with_pointer() {
     loopback! {"
         func @foo () void {
         %entry:
-            %a0 = var i32
-            %a1 = extract element i32* %a0, 3
-            %a2 = extract slice i32* %a0, 0, 2
-            %b0 = var {i32, i16}
-            %b1 = extract element {i32, i16}* %b0, 0
-            %c0 = var [4 x i32]
-            %c1 = extract element [4 x i32]* %c0, 2
-            %c2 = extract slice [4 x i32]$ %c0, 1, 2
+            %k0 = const i32 0
+            %k1 = const i16 0
+            %a0 = var i32 %k0
+            %a1 = exts i32* %a0, 3, 1
+            %a2 = exts i32* %a0, 0, 2
+            %k2 = {i32 %k0, i16 %k1}
+            %b0 = var {i32, i16} %k2
+            %b1 = extf {i32, i16}* %b0, 0
+            %k3 = [4 x i32 %k0]
+            %c0 = var [4 x i32] %k3
+            %c1 = extf [4 x i32]* %c0, 2
+            %c2 = exts [4 x i32]* %c0, 1, 2
+            ret
         }
     "};
 }
@@ -180,13 +157,14 @@ fn extract_with_pointer() {
 #[test]
 fn extract_with_signal() {
     loopback! {"
-        proc @foo (i32$ %a0, {i32, i16}$ %b0, [4 x i32]$ %c0) () {
+        proc @foo (i32$ %a0, {i32, i16}$ %b0, [4 x i32]$ %c0) -> () {
         %entry:
-            %a1 = extract element i32* %a0, 3
-            %a2 = extract slice i32* %a0, 0, 2
-            %b1 = extract element {i32, i16}* %b0, 0
-            %c1 = extract element [4 x i32]* %c0, 2
-            %c2 = extract slice [4 x i32]$ %c0, 1, 2
+            %a1 = exts i32$ %a0, 3, 1
+            %a2 = exts i32$ %a0, 0, 2
+            %b1 = extf {i32, i16}$ %b0, 0
+            %c1 = extf [4 x i32]$ %c0, 2
+            %c2 = exts [4 x i32]$ %c0, 1, 2
+            halt
         }
     "};
 }

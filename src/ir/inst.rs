@@ -377,12 +377,26 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
     /// `a = exts type x, imm0, imm1`
     pub fn ext_slice(&mut self, x: Value, imm0: usize, imm1: usize) -> Value {
         let ty = self.value_type(x);
+        let (ty, is_ptr, is_sig) = if ty.is_pointer() {
+            (ty.unwrap_pointer(), true, false)
+        } else if ty.is_signal() {
+            (ty.unwrap_signal(), false, true)
+        } else {
+            (&ty, false, false)
+        };
         let ty = if ty.is_array() {
             array_ty(imm1, ty.unwrap_array().1.clone())
         } else if ty.is_int() {
             int_ty(imm1)
         } else {
             panic!("argument to `exts` must be of array or integer type");
+        };
+        let ty = if is_ptr {
+            pointer_ty(ty)
+        } else if is_sig {
+            signal_ty(ty)
+        } else {
+            ty
         };
         let inst = self.build(
             InstData::InsExt {
@@ -407,7 +421,7 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
     }
 
     /// `a = call type unit (args...)`
-    pub fn call(&mut self, unit: ExtUnit, args: Vec<Value>) -> Value {
+    pub fn call(&mut self, unit: ExtUnit, args: Vec<Value>) -> Inst {
         let ty = self.builder.unit().extern_sig(unit).return_type();
         let data = InstData::Call {
             opcode: Opcode::Call,
@@ -415,8 +429,7 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
             ins: args.len() as u16,
             args,
         };
-        let inst = self.build(data, ty);
-        self.inst_result(inst)
+        self.build(data, ty)
     }
 
     /// `inst unit (inputs...) -> (outputs...)`

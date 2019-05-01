@@ -58,6 +58,11 @@ impl DataFlowGraph {
         self.values.remove(value);
     }
 
+    /// Check if a value is a placeholder.
+    pub fn is_placeholder(&self, value: Value) -> bool {
+        self[value].is_placeholder()
+    }
+
     /// Add an instruction.
     pub fn add_inst(&mut self, data: InstData, ty: Type) -> Inst {
         let inst = self.insts.add(data);
