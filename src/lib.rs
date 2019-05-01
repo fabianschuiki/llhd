@@ -14,7 +14,6 @@ mod konst;
 pub mod opt;
 pub mod pass;
 pub mod table;
-mod unit;
 pub mod util;
 
-pub use crate::{aggregate::*, konst::*, ty::*, unit::*, value::*};
+pub use crate::{aggregate::*, konst::*, ty::*, value::*};
