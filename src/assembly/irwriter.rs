@@ -178,7 +178,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
 
         // Check if the value has an explicit name set, or if we should just
         // generate a temporary name.
-        let name = self.uniquify_name(self.unit.dfg().get_name(value).map(AsRef::as_ref));
+        let name = self.uniquify_name(self.unit.dfg().get_name(value));
 
         // Emit the name and associate it with the value for later reuse.
         write!(self.writer.sink, "%{}", name)?;
@@ -195,7 +195,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
 
         // Check if the block has an explicit name set, or if we should just
         // generate a temporary name.
-        let name = self.uniquify_name(None);
+        let name = self.uniquify_name(self.unit.cfg().get_name(block));
 
         // Emit the name and associate it with the block for later reuse.
         write!(self.writer.sink, "%{}", name)?;

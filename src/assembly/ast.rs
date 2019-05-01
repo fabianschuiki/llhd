@@ -38,6 +38,9 @@ impl<'a> Block<'a> {
                 bb
             }
         };
+        if let LocalName::Named(name) = self.name {
+            builder.cfg_mut().set_name(bb, name.to_owned());
+        }
         builder.append_to(bb);
         for inst in self.insts {
             inst.build(builder, context);

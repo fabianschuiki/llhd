@@ -129,8 +129,8 @@ impl DataFlowGraph {
     }
 
     /// Return the name of a value.
-    pub fn get_name(&self, value: Value) -> Option<&String> {
-        self.names.get(&value)
+    pub fn get_name(&self, value: Value) -> Option<&str> {
+        self.names.get(&value).map(AsRef::as_ref)
     }
 
     /// Set the name of a value.

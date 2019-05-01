@@ -4,8 +4,8 @@
 
 use crate::{
     ir::{
-        Block, DataFlowGraph, EntityInsertPos, Inst, InstData, InstLayout, Signature, Unit,
-        UnitBuilder, UnitKind, UnitName,
+        Block, ControlFlowGraph, DataFlowGraph, EntityInsertPos, Inst, InstData, InstLayout,
+        Signature, Unit, UnitBuilder, UnitKind, UnitName,
     },
     ty::{signal_ty, Type},
     verifier::Verifier,
@@ -45,6 +45,14 @@ impl Unit for Entity {
 
     fn dfg_mut(&mut self) -> &mut DataFlowGraph {
         &mut self.dfg
+    }
+
+    fn cfg(&self) -> &ControlFlowGraph {
+        panic!("cfg() called on entity");
+    }
+
+    fn cfg_mut(&mut self) -> &mut ControlFlowGraph {
+        panic!("cfg_mut() called on entity");
     }
 
     fn sig(&self) -> &Signature {

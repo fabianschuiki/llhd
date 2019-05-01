@@ -4,10 +4,9 @@
 
 use crate::{
     ir::{
-        Block, DataFlowGraph, FunctionInsertPos, FunctionLayout, Inst, InstData, Signature, Unit,
-        UnitBuilder, UnitKind, UnitName,
+        Block, ControlFlowGraph, DataFlowGraph, FunctionInsertPos, FunctionLayout, Inst, InstData,
+        Signature, Unit, UnitBuilder, UnitKind, UnitName,
     },
-    table::PrimaryTable,
     ty::Type,
     verifier::Verifier,
 };
@@ -17,7 +16,7 @@ pub struct Function {
     pub name: UnitName,
     pub sig: Signature,
     pub dfg: DataFlowGraph,
-    pub bbs: PrimaryTable<Block, ()>,
+    pub cfg: ControlFlowGraph,
     pub layout: FunctionLayout,
 }
 
@@ -30,7 +29,7 @@ impl Function {
             name,
             sig,
             dfg: DataFlowGraph::new(),
-            bbs: PrimaryTable::new(),
+            cfg: ControlFlowGraph::new(),
             layout: FunctionLayout::new(),
         };
         func.dfg.make_args_for_signature(&func.sig);
@@ -49,6 +48,14 @@ impl Unit for Function {
 
     fn dfg_mut(&mut self) -> &mut DataFlowGraph {
         &mut self.dfg
+    }
+
+    fn cfg(&self) -> &ControlFlowGraph {
+        &self.cfg
+    }
+
+    fn cfg_mut(&mut self) -> &mut ControlFlowGraph {
+        &mut self.cfg
     }
 
     fn sig(&self) -> &Signature {
@@ -144,7 +151,7 @@ impl UnitBuilder for FunctionBuilder<'_> {
     }
 
     fn block(&mut self) -> Block {
-        let bb = self.func.bbs.add(());
+        let bb = self.func.cfg.add_block();
         self.func.layout.append_block(bb);
         bb
     }

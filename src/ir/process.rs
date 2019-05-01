@@ -4,10 +4,9 @@
 
 use crate::{
     ir::{
-        Block, DataFlowGraph, FunctionInsertPos, FunctionLayout, Inst, InstData, Signature, Unit,
-        UnitBuilder, UnitKind, UnitName,
+        Block, ControlFlowGraph, DataFlowGraph, FunctionInsertPos, FunctionLayout, Inst, InstData,
+        Signature, Unit, UnitBuilder, UnitKind, UnitName,
     },
-    table::PrimaryTable,
     ty::Type,
     verifier::Verifier,
 };
@@ -17,7 +16,7 @@ pub struct Process {
     pub name: UnitName,
     pub sig: Signature,
     pub dfg: DataFlowGraph,
-    pub bbs: PrimaryTable<Block, ()>,
+    pub cfg: ControlFlowGraph,
     pub layout: FunctionLayout,
 }
 
@@ -29,7 +28,7 @@ impl Process {
             name,
             sig,
             dfg: DataFlowGraph::new(),
-            bbs: PrimaryTable::new(),
+            cfg: ControlFlowGraph::new(),
             layout: FunctionLayout::new(),
         };
         prok.dfg.make_args_for_signature(&prok.sig);
@@ -48,6 +47,14 @@ impl Unit for Process {
 
     fn dfg_mut(&mut self) -> &mut DataFlowGraph {
         &mut self.dfg
+    }
+
+    fn cfg(&self) -> &ControlFlowGraph {
+        &self.cfg
+    }
+
+    fn cfg_mut(&mut self) -> &mut ControlFlowGraph {
+        &mut self.cfg
     }
 
     fn sig(&self) -> &Signature {
@@ -143,7 +150,7 @@ impl UnitBuilder for ProcessBuilder<'_> {
     }
 
     fn block(&mut self) -> Block {
-        let bb = self.prok.bbs.add(());
+        let bb = self.prok.cfg.add_block();
         self.prok.layout.append_block(bb);
         bb
     }

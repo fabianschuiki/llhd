@@ -4,8 +4,8 @@
 
 use crate::{
     ir::{
-        Arg, Block, DataFlowGraph, ExtUnit, ExtUnitData, Inst, InstBuilder, InstData, Signature,
-        Value,
+        Arg, Block, ControlFlowGraph, DataFlowGraph, ExtUnit, ExtUnitData, Inst, InstBuilder,
+        InstData, Signature, Value,
     },
     ty::Type,
 };
@@ -89,6 +89,14 @@ pub trait Unit {
     /// Get the unit's mutable DFG.
     #[inline]
     fn dfg_mut(&mut self) -> &mut DataFlowGraph;
+
+    /// Get the unit's CFG.
+    #[inline]
+    fn cfg(&self) -> &ControlFlowGraph;
+
+    /// Get the unit's mutable CFG.
+    #[inline]
+    fn cfg_mut(&mut self) -> &mut ControlFlowGraph;
 
     /// Get the unit's signature.
     #[inline]
@@ -271,6 +279,16 @@ pub trait UnitBuilder {
     /// Get the mutable DFG of the unit being built.
     fn dfg_mut(&mut self) -> &mut DataFlowGraph {
         self.unit_mut().dfg_mut()
+    }
+
+    /// Get the CFG of the unit being built.
+    fn cfg(&self) -> &ControlFlowGraph {
+        self.unit().cfg()
+    }
+
+    /// Get the mutable CFG of the unit being built.
+    fn cfg_mut(&mut self) -> &mut ControlFlowGraph {
+        self.unit_mut().cfg_mut()
     }
 
     /// Import an external unit for use within this unit.

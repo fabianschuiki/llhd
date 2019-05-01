@@ -7,6 +7,7 @@
 
 use crate::{impl_table_key, ty::Type};
 
+mod cfg;
 mod dfg;
 mod entity;
 mod function;
@@ -18,6 +19,7 @@ mod process;
 mod sig;
 mod unit;
 
+pub use self::cfg::*;
 pub use self::dfg::*;
 pub use self::entity::*;
 pub use self::function::*;
@@ -93,6 +95,13 @@ impl ValueData {
             _ => false,
         }
     }
+}
+
+/// Internal table storage for blocks.
+#[derive(Debug)]
+pub struct BlockData {
+    /// The name of the block.
+    pub name: Option<String>,
 }
 
 /// Another unit referenced within a `Function`, `Process`, or `Entity`.
