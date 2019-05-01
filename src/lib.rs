@@ -11,20 +11,16 @@ mod aggregate;
 mod argument;
 pub mod assembly;
 mod block;
-mod entity;
-mod function;
 mod inst;
 pub mod ir;
 mod konst;
 pub mod opt;
 pub mod pass;
-mod process;
 mod seq_body;
 pub mod table;
 mod unit;
 pub mod util;
 
 pub use crate::{
-    aggregate::*, argument::*, block::*, entity::*, function::*, inst::*, konst::*, process::*,
-    seq_body::*, ty::*, unit::*, value::*,
+    aggregate::*, argument::*, block::*, inst::*, konst::*, seq_body::*, ty::*, unit::*, value::*,
 };

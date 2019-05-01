@@ -18,6 +18,9 @@ parse_module` to the `assembly` module.
 - Remove `write` and `write_string` from the `assembly` module.
 - Remove `visit` module.
 - Remove `Module` in favor of `ir::Module`.
+- Remove `Entity` in favor of `ir::Entity`.
+- Remove `Function` in favor of `ir::Function`.
+- Remove `Process` in favor of `ir::Process`.
 
 ### Fixed
 - Fix emission of time constants.
