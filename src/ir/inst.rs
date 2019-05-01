@@ -840,6 +840,15 @@ impl InstData {
             _ => None,
         }
     }
+
+    /// Return the external unit being called or instantiated by this
+    /// instruction.
+    pub fn get_ext_unit(&self) -> Option<ExtUnit> {
+        match self {
+            InstData::Call { unit, .. } => Some(*unit),
+            _ => None,
+        }
+    }
 }
 
 bitflags! {
