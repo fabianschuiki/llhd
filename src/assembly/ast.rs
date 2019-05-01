@@ -271,7 +271,7 @@ impl<'a> Inst<'a> {
             }
             context.value_names.insert(name, value);
             if let LocalName::Named(name) = name {
-                builder.dfg_mut().set_name(value, name.to_string());
+                builder.dfg_mut().set_name(value, name.to_owned());
             }
         }
     }
@@ -443,7 +443,7 @@ pub fn parse_time_triple(
     let frac = split.next();
 
     // Concatenate the integer and fraction part into one number.
-    let mut numer = int.to_string();
+    let mut numer = int.to_owned();
     if let Some(ref frac) = frac {
         numer.push_str(frac);
     }

@@ -66,7 +66,9 @@ Function: Function =
     for (arg, name) in args {
         let v = builder.dfg().arg_value(arg);
         context.value_names.insert(name, v);
-        builder.dfg_mut().set_name(v, name.to_string());
+        if let ast::LocalName::Named(name) = name {
+            builder.dfg_mut().set_name(v, name.to_owned());
+        }
     }
     for block in blocks {
         block.build(&mut builder, &mut context);
@@ -97,12 +99,16 @@ Process: Process =
     for (arg, name) in input_args {
         let v = builder.dfg().arg_value(arg);
         context.value_names.insert(name, v);
-        builder.dfg_mut().set_name(v, name.to_string());
+        if let ast::LocalName::Named(name) = name {
+            builder.dfg_mut().set_name(v, name.to_owned());
+        }
     }
     for (arg, name) in output_args {
         let v = builder.dfg().arg_value(arg);
         context.value_names.insert(name, v);
-        builder.dfg_mut().set_name(v, name.to_string());
+        if let ast::LocalName::Named(name) = name {
+            builder.dfg_mut().set_name(v, name.to_owned());
+        }
     }
     for block in blocks {
         block.build(&mut builder, &mut context);
@@ -133,12 +139,16 @@ Entity: Entity =
     for (arg, name) in input_args {
         let v = builder.dfg().arg_value(arg);
         context.value_names.insert(name, v);
-        builder.dfg_mut().set_name(v, name.to_string());
+        if let ast::LocalName::Named(name) = name {
+            builder.dfg_mut().set_name(v, name.to_owned());
+        }
     }
     for (arg, name) in output_args {
         let v = builder.dfg().arg_value(arg);
         context.value_names.insert(name, v);
-        builder.dfg_mut().set_name(v, name.to_string());
+        if let ast::LocalName::Named(name) = name {
+            builder.dfg_mut().set_name(v, name.to_owned());
+        }
     }
     for inst in insts {
         inst.build(&mut builder, &mut context);
