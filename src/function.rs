@@ -3,7 +3,6 @@
 use crate::argument::*;
 use crate::block::*;
 use crate::inst::*;
-use crate::module::ModuleContext;
 use crate::seq_body::*;
 use crate::ty::*;
 use crate::unit::*;
@@ -100,24 +99,16 @@ impl Value for Function {
 }
 
 pub struct FunctionContext<'tctx> {
-    module: &'tctx ModuleContext<'tctx>,
     function: &'tctx Function,
 }
 
 impl<'tctx> FunctionContext<'tctx> {
-    pub fn new(module: &'tctx ModuleContext, function: &'tctx Function) -> FunctionContext<'tctx> {
-        FunctionContext {
-            module: module,
-            function: function,
-        }
+    pub fn new(function: &'tctx Function) -> FunctionContext<'tctx> {
+        FunctionContext { function: function }
     }
 }
 
 impl<'tctx> Context for FunctionContext<'tctx> {
-    fn parent(&self) -> Option<&Context> {
-        Some(self.module.as_context())
-    }
-
     fn try_value(&self, value: &ValueRef) -> Option<&Value> {
         match *value {
             ValueRef::Inst(id) => Some(self.inst(id)),

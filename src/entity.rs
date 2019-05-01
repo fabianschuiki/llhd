@@ -2,7 +2,6 @@
 
 use crate::argument::*;
 use crate::inst::*;
-use crate::module::ModuleContext;
 use crate::ty::*;
 use crate::unit::*;
 use crate::util::IndirectMapIter;
@@ -183,24 +182,16 @@ impl Value for Entity {
 }
 
 pub struct EntityContext<'tctx> {
-    module: &'tctx ModuleContext<'tctx>,
     entity: &'tctx Entity,
 }
 
 impl<'tctx> EntityContext<'tctx> {
-    pub fn new(module: &'tctx ModuleContext, entity: &'tctx Entity) -> EntityContext<'tctx> {
-        EntityContext {
-            module: module,
-            entity: entity,
-        }
+    pub fn new(entity: &'tctx Entity) -> EntityContext<'tctx> {
+        EntityContext { entity: entity }
     }
 }
 
 impl<'tctx> Context for EntityContext<'tctx> {
-    fn parent(&self) -> Option<&Context> {
-        Some(self.module.as_context())
-    }
-
     fn try_value(&self, value: &ValueRef) -> Option<&Value> {
         match *value {
             ValueRef::Inst(id) => Some(self.inst(id)),

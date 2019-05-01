@@ -303,16 +303,3 @@ impl<T: Context> AsContext for T {
         self
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::*;
-
-    #[test]
-    fn type_of_const() {
-        let m = Module::new();
-        let ctx = ModuleContext::new(&m);
-        let value: ValueRef = const_int(32, 0.into()).into();
-        assert_eq!(ctx.ty(&value), int_ty(32));
-    }
-}

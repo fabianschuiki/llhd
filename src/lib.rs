@@ -3,7 +3,6 @@
 //! The Low Level Hardware Description language. This library provides tools to
 //! create, modify, store, and load LLHD graphs.
 
-mod module;
 mod ty;
 pub mod verifier;
 #[macro_use]
@@ -24,9 +23,8 @@ mod seq_body;
 pub mod table;
 mod unit;
 pub mod util;
-// mod visit;
 
 pub use crate::{
-    aggregate::*, argument::*, block::*, entity::*, function::*, inst::*, konst::*, module::*,
-    process::*, seq_body::*, ty::*, unit::*, value::*,
+    aggregate::*, argument::*, block::*, entity::*, function::*, inst::*, konst::*, process::*,
+    seq_body::*, ty::*, unit::*, value::*,
 };
