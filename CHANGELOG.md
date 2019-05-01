@@ -24,6 +24,7 @@ parse_module` to the `assembly` module.
 - Remove `seq_body` module.
 - Remove `block` module.
 - Remove `argument` module.
+- Remove `inst` module.
 
 ### Fixed
 - Fix emission of time constants.

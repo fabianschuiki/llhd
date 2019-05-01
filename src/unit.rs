@@ -1,13 +1,9 @@
 // Copyright (c) 2017 Fabian Schuiki
 
-use crate::inst::*;
-use crate::value::{Context, InstRef};
+use crate::value::Context;
 
 /// A context wrapping a unit.
-pub trait UnitContext: Context + AsUnitContext {
-    /// Resolve a `InstRef` to an actual `&Inst` reference.
-    fn inst(&self, inst: InstRef) -> &Inst;
-}
+pub trait UnitContext: Context + AsUnitContext {}
 
 pub trait AsUnitContext {
     fn as_unit_context(&self) -> &UnitContext;
