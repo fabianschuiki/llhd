@@ -877,6 +877,18 @@ pub enum RegMode {
     Both,
 }
 
+impl std::fmt::Display for RegMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            RegMode::Low => write!(f, "low"),
+            RegMode::High => write!(f, "high"),
+            RegMode::Rise => write!(f, "rise"),
+            RegMode::Fall => write!(f, "fall"),
+            RegMode::Both => write!(f, "both"),
+        }
+    }
+}
+
 /// An instruction opcode.
 ///
 /// This enum represents the actual instruction, whereas `InstData` covers the
@@ -1126,6 +1138,17 @@ impl std::fmt::Display for InstDumper<'_> {
                     comma = true;
                 }
                 write!(f, ")")?;
+            }
+        } else if let InstData::Reg { .. } = *data {
+            write!(f, " {}", data.args()[0])?;
+            for arg in data.data_args() {
+                write!(f, ", %{}", arg)?;
+            }
+            for arg in data.mode_args() {
+                write!(f, ", {}", arg)?;
+            }
+            for arg in data.trigger_args() {
+                write!(f, ", %{}", arg)?;
             }
         } else {
             let mut comma = false;
