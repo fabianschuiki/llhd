@@ -8,6 +8,7 @@ fn main() {
         %entry:
             %asdf0 = const i32 42
             %1 = const time 1.489ns 10d 9e
+            %hello = alias i32 %asdf0
             %2 = not i32 %asdf0
             %3 = neg i32 %2
             %4 = add i32 %2, %3
@@ -33,6 +34,10 @@ fn main() {
             con i32$ %out, %0
         }
     "};
-    let output = llhd::assembly::parse_module(input).unwrap();
-    println!("{}", output.dump());
+    println!("Dump:");
+    let module = llhd::assembly::parse_module(input).unwrap();
+    println!("{}", module.dump());
+    println!("");
+    println!("Written:");
+    llhd::assembly::write_module(std::io::stdout(), &module);
 }

@@ -7,6 +7,7 @@ use crate::{konst::ConstTime, ty::Type};
 
 pub(crate) mod ast;
 pub(crate) mod grammar;
+mod irwriter;
 mod reader;
 mod writer;
 
@@ -48,6 +49,11 @@ pub fn write_string(module: &Module) -> String {
     let mut asm = vec![];
     write(&mut asm, &module);
     String::from_utf8(asm).expect("writer should emit proper utf8")
+}
+
+/// Emit assembly for a module.
+pub fn write_module(sink: impl std::io::Write, module: &crate::ir::Module) {
+    irwriter::Writer::new(sink).write_module(module).unwrap();
 }
 
 /// Parse a type.
