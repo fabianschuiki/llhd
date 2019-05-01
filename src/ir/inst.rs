@@ -59,7 +59,7 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         let inst = self.build(
             InstData::Array {
                 opcode: Opcode::ArrayUniform,
-                imm: imm,
+                imms: [imm],
                 args: [x],
             },
             ty,
@@ -592,7 +592,7 @@ pub enum InstData {
     /// `opcode imm, type x`
     Array {
         opcode: Opcode,
-        imm: usize,
+        imms: [usize; 1],
         args: [Value; 1],
     },
     /// `opcode args`
@@ -718,6 +718,36 @@ impl InstData {
             } => &mut args[0..1],
             InstData::InsExt { args, .. } => args,
             InstData::Reg { args, .. } => args,
+        }
+    }
+
+    /// Get the immediates of an instruction.
+    pub fn imms(&self) -> &[usize] {
+        match self {
+            InstData::ConstInt { .. } => &[],
+            InstData::ConstTime { .. } => &[],
+            InstData::Array { imms, .. } => imms,
+            InstData::Aggregate { .. } => &[],
+            InstData::Nullary { .. } => &[],
+            InstData::Unary { .. } => &[],
+            InstData::Binary { .. } => &[],
+            InstData::Ternary { .. } => &[],
+            InstData::Jump { .. } => &[],
+            InstData::Branch { .. } => &[],
+            InstData::Wait { .. } => &[],
+            InstData::Call { .. } => &[],
+            InstData::InsExt {
+                opcode: Opcode::InsField,
+                imms,
+                ..
+            }
+            | InstData::InsExt {
+                opcode: Opcode::ExtField,
+                imms,
+                ..
+            } => &imms[0..1],
+            InstData::InsExt { imms, .. } => imms,
+            InstData::Reg { .. } => &[],
         }
     }
 
@@ -1166,10 +1196,17 @@ impl std::fmt::Display for InstDumper<'_> {
                 write!(f, " %{}", block)?;
                 comma = true;
             }
+            for imm in data.imms() {
+                if comma {
+                    write!(f, ",")?;
+                }
+                write!(f, " {}", imm)?;
+                comma = true;
+            }
             match data {
                 InstData::ConstInt { imm, .. } => write!(f, " {}", imm)?,
                 InstData::ConstTime { imm, .. } => write!(f, " {}", imm)?,
-                InstData::Array { imm, .. } => write!(f, ", {}", imm)?,
+                InstData::Array { imms, .. } => write!(f, ", {}", imms[0])?,
                 _ => (),
             }
         }
