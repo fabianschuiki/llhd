@@ -116,6 +116,7 @@ impl<'a> Inst<'a> {
             InstData::Unary(arg) => {
                 let arg = arg.build(builder, context);
                 match self.opcode {
+                    Opcode::Alias => builder.ins().alias(arg).into(),
                     Opcode::Not => builder.ins().not(arg).into(),
                     Opcode::Neg => builder.ins().neg(arg).into(),
                     Opcode::RetValue => builder.ins().ret_value(arg).into(),
