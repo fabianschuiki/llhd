@@ -21,6 +21,8 @@ parse_module` to the `assembly` module.
 - Remove `Entity` in favor of `ir::Entity`.
 - Remove `Function` in favor of `ir::Function`.
 - Remove `Process` in favor of `ir::Process`.
+- Remove `seq_body` module.
+- Remove `block` module.
 
 ### Fixed
 - Fix emission of time constants.

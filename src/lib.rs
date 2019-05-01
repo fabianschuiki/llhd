@@ -10,17 +10,13 @@ mod value;
 mod aggregate;
 mod argument;
 pub mod assembly;
-mod block;
 mod inst;
 pub mod ir;
 mod konst;
 pub mod opt;
 pub mod pass;
-mod seq_body;
 pub mod table;
 mod unit;
 pub mod util;
 
-pub use crate::{
-    aggregate::*, argument::*, block::*, inst::*, konst::*, seq_body::*, ty::*, unit::*, value::*,
-};
+pub use crate::{aggregate::*, argument::*, inst::*, konst::*, ty::*, unit::*, value::*};

@@ -1,9 +1,8 @@
 // Copyright (c) 2017 Fabian Schuiki
 
 use crate::argument::*;
-use crate::block::*;
 use crate::inst::*;
-use crate::value::{ArgumentRef, BlockRef, Context, InstRef};
+use crate::value::{ArgumentRef, Context, InstRef};
 
 /// A context wrapping a unit.
 pub trait UnitContext: Context + AsUnitContext {
@@ -21,11 +20,4 @@ impl<T: UnitContext> AsUnitContext for T {
     fn as_unit_context(&self) -> &UnitContext {
         self
     }
-}
-
-/// A context wrapping a unit that uses basic blocks to group a sequence of
-/// instructions.
-pub trait SequentialContext: UnitContext {
-    /// Resolve a `BlockRef` to an actual `&Block` reference.
-    fn block(&self, block: BlockRef) -> &Block;
 }
