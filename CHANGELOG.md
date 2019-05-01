@@ -23,6 +23,7 @@ parse_module` to the `assembly` module.
 - Remove `Process` in favor of `ir::Process`.
 - Remove `seq_body` module.
 - Remove `block` module.
+- Remove `argument` module.
 
 ### Fixed
 - Fix emission of time constants.

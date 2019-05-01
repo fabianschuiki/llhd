@@ -8,7 +8,7 @@ pub mod verifier;
 #[macro_use]
 mod value;
 mod aggregate;
-mod argument;
+// mod argument;
 pub mod assembly;
 mod inst;
 pub mod ir;
@@ -19,4 +19,4 @@ pub mod table;
 mod unit;
 pub mod util;
 
-pub use crate::{aggregate::*, argument::*, inst::*, konst::*, ty::*, unit::*, value::*};
+pub use crate::{aggregate::*, inst::*, konst::*, ty::*, unit::*, value::*};
