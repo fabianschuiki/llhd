@@ -1,609 +1,468 @@
 // Copyright (c) 2017-2019 Fabian Schuiki
-use crate::{
-    argument::*,
-    block::*,
-    entity::{Entity, EntityContext},
-    function::{Function, FunctionContext},
-    inst::*,
-    konst::*,
-    module::{Module, ModuleContext},
-    process::{Process, ProcessContext},
-    ty::*,
-    unit::*,
-    value::*,
-    visit::Visitor,
-    AggregateKind,
-};
-use std::{collections::HashMap, io::Write, rc::Rc};
 
-/// Emits a module as human-readable assembly code that can be parsed again
-/// later.
-pub struct Writer<'twr> {
-    sink: &'twr mut Write,
-    /// A table of uniquified names assigned to values.
-    name_table: HashMap<ValueId, Rc<String>>,
-    /// A stack of maps that keep a counter for every string encountered in
-    /// a namespace. Currently there are only two namespaces: modules and units.
-    name_stack: Vec<(usize, HashMap<String, usize>)>,
+//! Emitting LLHD IR assembly.
+
+use crate::ir::{prelude::*, ModUnitData};
+use std::{
+    collections::{HashMap, HashSet},
+    io::{Result, Write},
+    rc::Rc,
+};
+
+/// Temporary object to emit LLHD IR assembly.
+pub struct Writer<T> {
+    sink: T,
 }
 
-impl<'twr> Writer<'twr> {
-    /// Create a new assembly writer that will emit code into the provided sink.
-    pub fn new(sink: &mut Write) -> Writer {
-        Writer {
-            sink: sink,
-            name_table: HashMap::new(),
-            name_stack: vec![(0, HashMap::new())],
+impl<T: Write> Writer<T> {
+    /// Create a new assembly writer.
+    pub fn new(sink: T) -> Self {
+        Self { sink }
+    }
+
+    /// Emit assembly for a module.
+    pub fn write_module(&mut self, module: &Module) -> Result<()> {
+        let mut separate = false;
+        let mut was_declaration = false;
+        for mod_unit in module.units() {
+            let is_declaration = module.is_declaration(mod_unit);
+            if separate && (!was_declaration || !is_declaration) {
+                write!(self.sink, "\n")?;
+            }
+            separate = true;
+            was_declaration = is_declaration;
+            match &module[mod_unit] {
+                ModUnitData::Function(x) => self.write_function(x)?,
+                ModUnitData::Process(x) => self.write_process(x)?,
+                ModUnitData::Entity(x) => self.write_entity(x)?,
+                ModUnitData::Declare { sig, name } => self.write_declaration(sig, name)?,
+            }
+        }
+        Ok(())
+    }
+
+    /// Emit assembly for a function.
+    pub fn write_function(&mut self, func: &Function) -> Result<()> {
+        let mut uw = UnitWriter::new(self, func);
+        write!(uw.writer.sink, "func {} (", func.name())?;
+        let mut comma = false;
+        for arg in func.sig().inputs() {
+            if comma {
+                write!(uw.writer.sink, ", ")?;
+            }
+            comma = true;
+            write!(uw.writer.sink, "{} ", func.sig().arg_type(arg))?;
+            uw.write_value_name(func.dfg().arg_value(arg))?;
+        }
+        write!(uw.writer.sink, ") {} {{\n", func.sig().return_type())?;
+        for block in func.layout.blocks() {
+            uw.write_block_name(block)?;
+            write!(uw.writer.sink, ":\n")?;
+            for inst in func.layout.insts(block) {
+                write!(uw.writer.sink, "    ")?;
+                uw.write_inst(inst)?;
+                write!(uw.writer.sink, "\n")?;
+            }
+        }
+        write!(uw.writer.sink, "}}\n")?;
+        Ok(())
+    }
+
+    /// Emit assembly for a process.
+    pub fn write_process(&mut self, prok: &Process) -> Result<()> {
+        let mut uw = UnitWriter::new(self, prok);
+        write!(uw.writer.sink, "proc {} (", prok.name())?;
+        let mut comma = false;
+        for arg in prok.sig().inputs() {
+            if comma {
+                write!(uw.writer.sink, ", ")?;
+            }
+            comma = true;
+            write!(uw.writer.sink, "{} ", prok.sig().arg_type(arg))?;
+            uw.write_value_name(prok.dfg().arg_value(arg))?;
+        }
+        write!(uw.writer.sink, ") -> (")?;
+        let mut comma = false;
+        for arg in prok.sig().outputs() {
+            if comma {
+                write!(uw.writer.sink, ", ")?;
+            }
+            comma = true;
+            write!(uw.writer.sink, "{} ", prok.sig().arg_type(arg))?;
+            uw.write_value_name(prok.dfg().arg_value(arg))?;
+        }
+        write!(uw.writer.sink, ") {{\n")?;
+        for block in prok.layout.blocks() {
+            uw.write_block_name(block)?;
+            write!(uw.writer.sink, ":\n")?;
+            for inst in prok.layout.insts(block) {
+                write!(uw.writer.sink, "    ")?;
+                uw.write_inst(inst)?;
+                write!(uw.writer.sink, "\n")?;
+            }
+        }
+        write!(uw.writer.sink, "}}\n")?;
+        Ok(())
+    }
+
+    /// Emit assembly for a entity.
+    pub fn write_entity(&mut self, ent: &Entity) -> Result<()> {
+        let mut uw = UnitWriter::new(self, ent);
+        write!(uw.writer.sink, "entity {} (", ent.name())?;
+        let mut comma = false;
+        for arg in ent.sig().inputs() {
+            if comma {
+                write!(uw.writer.sink, ", ")?;
+            }
+            comma = true;
+            write!(uw.writer.sink, "{} ", ent.sig().arg_type(arg))?;
+            uw.write_value_name(ent.dfg().arg_value(arg))?;
+        }
+        write!(uw.writer.sink, ") -> (")?;
+        let mut comma = false;
+        for arg in ent.sig().outputs() {
+            if comma {
+                write!(uw.writer.sink, ", ")?;
+            }
+            comma = true;
+            write!(uw.writer.sink, "{} ", ent.sig().arg_type(arg))?;
+            uw.write_value_name(ent.dfg().arg_value(arg))?;
+        }
+        write!(uw.writer.sink, ") {{\n")?;
+        for inst in ent.layout.insts() {
+            write!(uw.writer.sink, "    ")?;
+            uw.write_inst(inst)?;
+            write!(uw.writer.sink, "\n")?;
+        }
+        write!(uw.writer.sink, "}}\n")?;
+        Ok(())
+    }
+
+    /// Emit assembly for a declaration.
+    pub fn write_declaration(&mut self, sig: &Signature, name: &UnitName) -> Result<()> {
+        write!(self.sink, "declare {} {}\n", name, sig)?;
+        Ok(())
+    }
+}
+
+pub struct UnitWriter<'a, T, U> {
+    writer: &'a mut Writer<T>,
+    unit: &'a U,
+    value_names: HashMap<Value, Rc<String>>,
+    block_names: HashMap<Block, Rc<String>>,
+    name_indices: HashMap<Rc<String>, usize>,
+    names: HashSet<Rc<String>>,
+    tmp_index: usize,
+}
+
+impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
+    /// Create a new writer for a unit.
+    pub fn new(writer: &'a mut Writer<T>, unit: &'a U) -> Self {
+        Self {
+            writer,
+            unit,
+            value_names: Default::default(),
+            block_names: Default::default(),
+            name_indices: Default::default(),
+            names: Default::default(),
+            tmp_index: 0,
         }
     }
 
-    /// Determine a unique name for a value. Either returns the value's name, or
-    /// extends it with a monotonically increasing number. If the value has no
-    /// name assigned, returns a unique temporary name.
-    fn uniquify(&mut self, value: &Value) -> Rc<String> {
-        let id = value.id();
-        if let Some(name) = self.name_table.get(&id).cloned() {
-            name
-        } else {
-            let name = self.uniquify_name(value.name(), value.is_global());
-            self.name_table.insert(id, name.clone());
-            name
+    /// Emit the name of a value.
+    pub fn write_value_name(&mut self, value: Value) -> Result<()> {
+        // If we have already picked a name for the value, use that.
+        if let Some(name) = self.value_names.get(&value) {
+            return write!(self.writer.sink, "%{}", name);
         }
+
+        // Check if the value has an explicit name set, or if we should just
+        // generate a temporary name.
+        let name = self.uniquify_name(self.unit.dfg().get_name(value));
+
+        // Emit the name and associate it with the value for later reuse.
+        write!(self.writer.sink, "%{}", name)?;
+        self.value_names.insert(value, name);
+        Ok(())
     }
 
-    /// Ensures that a name is unique within the current name stack, extending
-    /// the name with a monotonically increasing number or using a temporary
-    /// name altogether, if need be.
-    fn uniquify_name(&mut self, name: Option<&str>, global: bool) -> Rc<String> {
-        let prefix = if global { "@" } else { "%" };
-
-        if let Some(name) = name {
-            // First handle the easy case where the namespace at the top of the
-            // stack already has a uniquification counter for the name. If that
-            // is the case, increment it and append the old count to the
-            // requested name.
-            if let Some(index) = self.name_stack.last_mut().unwrap().1.get_mut(name) {
-                let n = Rc::new(format!("{}{}{}", prefix, name, index));
-                *index += 1;
-                return n;
-            }
-
-            // Traverse the name stack top to bottom, looking for an existing
-            // uniquification counter for the name. If we find one, store the
-            // count and break out of the loop. We'll use this count to uniquify
-            // the name.
-            let mut index: Option<usize> = None;
-            for &(_, ref names) in self.name_stack.iter().rev().skip(1) {
-                if let Some(&i) = names.get(name) {
-                    index = Some(i);
-                    break;
-                }
-            }
-
-            // Insert the name into the topmost namespace, either using the
-            // existing uniquification count we'found, or 0.
-            self.name_stack
-                .last_mut()
-                .unwrap()
-                .1
-                .insert(name.to_owned(), index.unwrap_or(0));
-
-            // If we have found a uniquification count, append that to the name.
-            // Otherwise just use the name as it is.
-            Rc::new(
-                index
-                    .map(|i| format!("{}{}{}", prefix, name, i))
-                    .unwrap_or_else(|| format!("{}{}", prefix, name)),
-            )
-        } else {
-            // We arrive here if `None` was passed as a name. This case is
-            // trivial. We simply increment the index for unnamed values, and
-            // convert the old index to a string to be used as the value's name.
-            let ref mut index = self.name_stack.last_mut().unwrap().0;
-            let name = Rc::new(format!("%{}", index));
-            *index += 1;
-            name
+    /// Emit the name of a BB.
+    pub fn write_block_name(&mut self, block: Block) -> Result<()> {
+        // If we have already picked a name for the value, use that.
+        if let Some(name) = self.block_names.get(&block) {
+            return write!(self.writer.sink, "%{}", name);
         }
+
+        // Check if the block has an explicit name set, or if we should just
+        // generate a temporary name.
+        let name = self.uniquify_name(self.unit.cfg().get_name(block));
+
+        // Emit the name and associate it with the block for later reuse.
+        write!(self.writer.sink, "%{}", name)?;
+        self.block_names.insert(block, name);
+        Ok(())
     }
 
-    /// Add an empty namespace to the top of the name stack. Future temporary
-    /// and uniquified names will be stored there.
-    fn push(&mut self) {
-        let index = self.name_stack.last().unwrap().0;
-        self.name_stack.push((index, HashMap::new()))
-    }
-
-    /// Remove the topmost namespace from the name stack.
-    fn pop(&mut self) {
-        self.name_stack.pop();
-        assert!(!self.name_stack.is_empty())
-    }
-
-    /// Write an inline value. This function is used to emit instruction
-    /// arguments and generally values on the right hand side of assignments.
-    fn write_value(
-        &mut self,
-        ctx: &Context,
-        value: &ValueRef,
-        need_explicit_type: bool,
-    ) -> std::io::Result<()> {
-        match *value {
-            ValueRef::Const(ref k) => self.write_const(k, need_explicit_type),
-            ValueRef::Aggregate(ref a) => self.write_aggregate(ctx, a),
-            _ => {
-                let value = ctx.value(value);
-                let name = self.uniquify(value);
-                if need_explicit_type {
-                    self.write_ty(&value.ty())?;
-                    write!(self.sink, " ")?;
-                }
-                write!(self.sink, "{}", name)
-            }
-        }
-    }
-
-    /// Write a type.
-    fn write_ty(&mut self, ty: &Type) -> std::io::Result<()> {
-        write!(self.sink, "{}", ty)
-    }
-
-    /// Write a constant value.
-    fn write_const(&mut self, konst: &ConstKind, need_explicit_type: bool) -> std::io::Result<()> {
-        match *konst {
-            ConstKind::Int(ref k) => {
-                if need_explicit_type {
-                    self.write_ty(&konst.ty())?;
-                    write!(self.sink, " ")?;
-                }
-                write!(self.sink, "{}", k.value())
-            }
-            ConstKind::Time(ref k) => write!(self.sink, "{}", k),
-        }
-    }
-
-    /// Write an aggregate value.
-    fn write_aggregate(&mut self, ctx: &Context, aggregate: &AggregateKind) -> std::io::Result<()> {
-        match *aggregate {
-            AggregateKind::Struct(ref a) => {
-                write!(self.sink, "{{")?;
-                let mut iter = a.fields().iter();
-                if let Some(field) = iter.next() {
-                    self.write_value(ctx, field, true)?;
-                }
-                for field in iter {
-                    write!(self.sink, ", ")?;
-                    self.write_value(ctx, field, true)?;
-                }
-                write!(self.sink, "}}")?;
-            }
-            AggregateKind::Array(ref a) => {
-                write!(self.sink, "[")?;
-                let elem_ty = a.ty().unwrap_array().1;
-                let mut iter = a.elements().iter();
-                let all_equal = if let Some(first) = iter.next() {
-                    iter.all(|elem| elem == first) && a.elements().len() > 1
+    /// Uniquify a value or block name.
+    fn uniquify_name(&mut self, name: Option<&str>) -> Rc<String> {
+        if let Some(requested_name) = name {
+            let requested_name = escape_name(requested_name);
+            let idx = self.name_indices.entry(requested_name.clone()).or_insert(0);
+            loop {
+                let name = if *idx == 0 {
+                    requested_name.clone()
                 } else {
-                    false
+                    Rc::new(format!("{}{}", requested_name, idx))
                 };
-                if all_equal {
-                    write!(self.sink, "{} x ", a.elements().len())?;
+                *idx += 1;
+                if !self.names.contains(&name) {
+                    break name;
                 }
-                let need_explicit_type = if elem_ty.is_int() {
-                    self.write_ty(elem_ty)?;
-                    if !a.elements().is_empty() {
-                        write!(self.sink, " ")?;
+            }
+        } else {
+            loop {
+                let name = Rc::new(format!("{}", self.tmp_index));
+                self.tmp_index += 1;
+                if !self.names.contains(&name) {
+                    break name;
+                }
+            }
+        }
+    }
+
+    /// Emit the use of a value.
+    pub fn write_value_use(&mut self, value: Value, with_type: bool) -> Result<()> {
+        if with_type {
+            write!(self.writer.sink, "{} ", self.unit.dfg().value_type(value))?;
+        }
+        self.write_value_name(value)
+    }
+
+    /// Emit an instruction.
+    pub fn write_inst(&mut self, inst: Inst) -> Result<()> {
+        let dfg = self.unit.dfg();
+        if dfg.has_result(inst) {
+            self.write_value_name(dfg.inst_result(inst))?;
+            write!(self.writer.sink, " = ")?;
+        }
+        let data = &dfg[inst];
+        match data.opcode() {
+            Opcode::ConstInt => write!(
+                self.writer.sink,
+                "{} {} {}",
+                data.opcode(),
+                dfg.value_type(dfg.inst_result(inst)),
+                data.get_const_int().unwrap()
+            )?,
+            Opcode::ConstTime => write!(
+                self.writer.sink,
+                "{} time {}",
+                data.opcode(),
+                data.get_const_time().unwrap()
+            )?,
+            Opcode::ArrayUniform => {
+                write!(self.writer.sink, "[{} x ", data.imms()[0])?;
+                self.write_value_use(data.args()[0], true)?;
+                write!(self.writer.sink, "]")?;
+            }
+            Opcode::Array => {
+                write!(self.writer.sink, "[")?;
+                let mut first = true;
+                for &arg in data.args() {
+                    if !first {
+                        write!(self.writer.sink, ", ")?;
                     }
-                    false
-                } else {
-                    true
-                };
-                let mut iter = a.elements().iter();
-                if let Some(elem) = iter.next() {
-                    self.write_value(ctx, elem, need_explicit_type)?;
+                    self.write_value_use(arg, first)?;
+                    first = false;
                 }
-                if !all_equal {
-                    for elem in iter {
-                        write!(self.sink, ", ")?;
-                        self.write_value(ctx, elem, need_explicit_type)?;
+                write!(self.writer.sink, "]")?;
+            }
+            Opcode::Struct => {
+                write!(self.writer.sink, "{{")?;
+                let mut first = true;
+                for &arg in data.args() {
+                    if !first {
+                        write!(self.writer.sink, ", ")?;
                     }
+                    first = false;
+                    self.write_value_use(arg, true)?;
                 }
-                write!(self.sink, "]")?;
+                write!(self.writer.sink, "}}")?;
+            }
+            Opcode::Alias
+            | Opcode::Not
+            | Opcode::Neg
+            | Opcode::Add
+            | Opcode::Sub
+            | Opcode::And
+            | Opcode::Or
+            | Opcode::Xor
+            | Opcode::Smul
+            | Opcode::Sdiv
+            | Opcode::Smod
+            | Opcode::Srem
+            | Opcode::Umul
+            | Opcode::Udiv
+            | Opcode::Umod
+            | Opcode::Urem
+            | Opcode::Eq
+            | Opcode::Neq
+            | Opcode::Slt
+            | Opcode::Sgt
+            | Opcode::Sle
+            | Opcode::Sge
+            | Opcode::Ult
+            | Opcode::Ugt
+            | Opcode::Ule
+            | Opcode::Uge
+            | Opcode::Con
+            | Opcode::Del
+            | Opcode::Sig
+            | Opcode::Prb
+            | Opcode::Drv
+            | Opcode::Var
+            | Opcode::Ld
+            | Opcode::St
+            | Opcode::RetValue => {
+                write!(self.writer.sink, "{} ", data.opcode())?;
+                let mut first = true;
+                for &arg in data.args() {
+                    if !first {
+                        write!(self.writer.sink, ", ")?;
+                    }
+                    self.write_value_use(arg, first)?;
+                    first = false;
+                }
+            }
+            Opcode::Shl | Opcode::Shr | Opcode::Mux => {
+                write!(self.writer.sink, "{} ", data.opcode())?;
+                let mut comma = false;
+                for &arg in data.args() {
+                    if comma {
+                        write!(self.writer.sink, ", ")?;
+                    }
+                    comma = true;
+                    self.write_value_use(arg, true)?;
+                }
+            }
+            Opcode::Reg => {
+                write!(self.writer.sink, "{} ", data.opcode())?;
+                self.write_value_use(data.args()[0], true)?;
+                let iter = data
+                    .data_args()
+                    .iter()
+                    .cloned()
+                    .zip(data.mode_args().iter().cloned())
+                    .zip(data.trigger_args().iter().cloned());
+                for ((value, mode), trigger) in iter {
+                    write!(self.writer.sink, ", ")?;
+                    self.write_value_use(value, false)?;
+                    write!(self.writer.sink, " {} ", mode)?;
+                    self.write_value_use(trigger, false)?;
+                }
+            }
+            Opcode::InsField | Opcode::InsSlice | Opcode::ExtField | Opcode::ExtSlice => {
+                write!(self.writer.sink, "{} ", data.opcode())?;
+                let mut first = true;
+                for &arg in data.args() {
+                    if !first {
+                        write!(self.writer.sink, ", ")?;
+                    }
+                    self.write_value_use(arg, first)?;
+                    first = false;
+                }
+                for &imm in data.imms() {
+                    write!(self.writer.sink, ", {}", imm)?;
+                }
+            }
+            Opcode::Call => {
+                write!(
+                    self.writer.sink,
+                    "{} {} {} (",
+                    data.opcode(),
+                    dfg.value_type(dfg.inst_result(inst)),
+                    dfg[data.get_ext_unit().unwrap()].name,
+                )?;
+                let mut comma = false;
+                for &arg in data.input_args() {
+                    if comma {
+                        write!(self.writer.sink, ", ")?;
+                    }
+                    comma = true;
+                    self.write_value_use(arg, true)?;
+                }
+                write!(self.writer.sink, ")")?;
+            }
+            Opcode::Inst => {
+                write!(
+                    self.writer.sink,
+                    "{} {} (",
+                    data.opcode(),
+                    dfg[data.get_ext_unit().unwrap()].name,
+                )?;
+                let mut comma = false;
+                for &arg in data.input_args() {
+                    if comma {
+                        write!(self.writer.sink, ", ")?;
+                    }
+                    comma = true;
+                    self.write_value_use(arg, true)?;
+                }
+                write!(self.writer.sink, ") -> (")?;
+                let mut comma = false;
+                for &arg in data.output_args() {
+                    if comma {
+                        write!(self.writer.sink, ", ")?;
+                    }
+                    comma = true;
+                    self.write_value_use(arg, true)?;
+                }
+                write!(self.writer.sink, ")")?;
+            }
+            Opcode::Halt | Opcode::Ret => write!(self.writer.sink, "{}", data.opcode())?,
+            Opcode::Br => {
+                write!(self.writer.sink, "{} ", data.opcode())?;
+                self.write_block_name(data.blocks()[0])?;
+            }
+            Opcode::BrCond => {
+                write!(self.writer.sink, "{} ", data.opcode())?;
+                self.write_value_use(data.args()[0], false)?;
+                write!(self.writer.sink, ", ")?;
+                self.write_block_name(data.blocks()[0])?;
+                write!(self.writer.sink, ", ")?;
+                self.write_block_name(data.blocks()[1])?;
+            }
+            Opcode::Wait | Opcode::WaitTime => {
+                write!(self.writer.sink, "{} ", data.opcode())?;
+                self.write_block_name(data.blocks()[0])?;
+                let mut comma = false;
+                for &arg in data.args() {
+                    if comma {
+                        write!(self.writer.sink, ", ")?;
+                    }
+                    comma = true;
+                    self.write_value_use(arg, false)?;
+                }
             }
         }
         Ok(())
     }
 }
 
-impl<'twr> Visitor for Writer<'twr> {
-    fn visit_module(&mut self, module: &Module) {
-        let ctx = ModuleContext::new(module);
-        for (value, sep) in module
-            .values()
-            .zip(std::iter::once("").chain(std::iter::repeat("\n")))
-        {
-            write!(self.sink, "{}", sep).unwrap();
-            self.visit_module_value(&ctx, value);
-        }
-    }
-
-    fn visit_function(&mut self, ctx: &ModuleContext, func: &Function) {
-        let ctx = FunctionContext::new(ctx, func);
-        self.push();
-        write!(self.sink, "func @{} (", func.name()).unwrap();
-        self.visit_arguments(func.args());
-        write!(self.sink, ") {} {{\n", func.return_ty()).unwrap();
-        for block in func.body().blocks() {
-            self.visit_block(&ctx, block);
-        }
-        write!(self.sink, "}}\n").unwrap();
-        self.pop();
-    }
-
-    fn visit_process(&mut self, ctx: &ModuleContext, prok: &Process) {
-        let ctx = ProcessContext::new(ctx, prok);
-        self.push();
-        write!(self.sink, "proc @{} (", prok.name()).unwrap();
-        self.visit_arguments(prok.inputs());
-        write!(self.sink, ") (").unwrap();
-        self.visit_arguments(prok.outputs());
-        write!(self.sink, ") {{\n").unwrap();
-        for block in prok.body().blocks() {
-            self.visit_block(&ctx, block);
-        }
-        write!(self.sink, "}}\n").unwrap();
-        self.pop();
-    }
-
-    fn visit_entity(&mut self, ctx: &ModuleContext, entity: &Entity) {
-        let ctx = EntityContext::new(ctx, entity);
-        self.push();
-        write!(self.sink, "entity @{} (", entity.name()).unwrap();
-        self.visit_arguments(entity.inputs());
-        write!(self.sink, ") (").unwrap();
-        self.visit_arguments(entity.outputs());
-        write!(self.sink, ") {{\n").unwrap();
-        let uctx = ctx.as_unit_context();
-        for inst in entity.insts() {
-            self.visit_inst(uctx, inst);
-        }
-        write!(self.sink, "}}\n").unwrap();
-        self.pop();
-    }
-
-    fn visit_arguments(&mut self, args: &[Argument]) {
-        for (arg, sep) in args
-            .iter()
-            .zip(std::iter::once("").chain(std::iter::repeat(", ")))
-        {
-            write!(self.sink, "{}", sep).unwrap();
-            self.visit_argument(arg);
-        }
-    }
-
-    fn visit_argument(&mut self, arg: &Argument) {
-        write!(self.sink, "{}", arg.ty()).unwrap();
-        let name = self.uniquify(arg);
-        write!(self.sink, " {}", name).unwrap();
-    }
-
-    fn visit_block(&mut self, ctx: &SequentialContext, block: &Block) {
-        let name = self.uniquify(block);
-        write!(self.sink, "{}:\n", name).unwrap();
-        self.walk_block(ctx, block);
-    }
-
-    fn visit_inst(&mut self, ctx: &UnitContext, inst: &Inst) {
-        let name = self.uniquify(inst);
-        write!(self.sink, "    ").unwrap();
-        if !inst.ty().is_void() || (inst.name().is_some() && inst.kind().is_instance()) {
-            write!(self.sink, "{} = ", name).unwrap();
-        }
-        write!(self.sink, "{}", inst.mnemonic().as_str()).unwrap();
-        match *inst.kind() {
-            // <op> <ty> <arg>
-            UnaryInst(_op, ref ty, ref arg) => {
-                write!(self.sink, " ").unwrap();
-                self.write_ty(ty).unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), arg, false).unwrap();
-            }
-
-            // <op> <ty> <lhs> <rhs>
-            BinaryInst(_op, ref ty, ref lhs, ref rhs) => {
-                write!(self.sink, " ").unwrap();
-                self.write_ty(ty).unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), lhs, false).unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), rhs, false).unwrap();
-            }
-
-            // cmp <op> <ty> <lhs> <rhs>
-            CompareInst(op, ref ty, ref lhs, ref rhs) => {
-                write!(self.sink, " {} ", op.to_str()).unwrap();
-                self.write_ty(ty).unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), lhs, false).unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), rhs, false).unwrap();
-            }
-
-            // call <target> (<args...>)
-            CallInst(_, ref target, ref args) => {
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), target, false).unwrap();
-                write!(self.sink, " (").unwrap();
-                for (arg, sep) in args
-                    .iter()
-                    .zip(std::iter::once("").chain(std::iter::repeat(", ")))
-                {
-                    write!(self.sink, "{}", sep).unwrap();
-                    self.write_value(ctx.as_context(), arg, false).unwrap();
-                }
-                write!(self.sink, ")").unwrap();
-            }
-
-            // inst <target> (<inputs...>) (<outputs...>)
-            InstanceInst(_, ref target, ref ins, ref outs) => {
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), target, false).unwrap();
-                write!(self.sink, " (").unwrap();
-                for (arg, sep) in ins
-                    .iter()
-                    .zip(std::iter::once("").chain(std::iter::repeat(", ")))
-                {
-                    write!(self.sink, "{}", sep).unwrap();
-                    self.write_value(ctx.as_context(), arg, false).unwrap();
-                }
-                write!(self.sink, ") (").unwrap();
-                for (arg, sep) in outs
-                    .iter()
-                    .zip(std::iter::once("").chain(std::iter::repeat(", ")))
-                {
-                    write!(self.sink, "{}", sep).unwrap();
-                    self.write_value(ctx.as_context(), arg, false).unwrap();
-                }
-                write!(self.sink, ")").unwrap();
-            }
-
-            // wait <target> [for <time>] (<signals...>)
-            WaitInst(target, ref time, ref signals) => {
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), &target.into(), false)
-                    .unwrap();
-                if let Some(ref time) = *time {
-                    write!(self.sink, " for ").unwrap();
-                    self.write_value(ctx.as_context(), time, false).unwrap();
-                }
-                for signal in signals {
-                    write!(self.sink, ", ").unwrap();
-                    self.write_value(ctx.as_context(), signal, false).unwrap();
-                }
-            }
-
-            // ret
-            ReturnInst(ReturnKind::Void) => (),
-
-            // ret <type> <value>
-            ReturnInst(ReturnKind::Value(ref ty, ref value)) => {
-                write!(self.sink, " ").unwrap();
-                self.write_ty(ty).unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), value, false).unwrap();
-            }
-
-            // br label <target>
-            BranchInst(BranchKind::Uncond(target)) => {
-                write!(self.sink, " label ").unwrap();
-                self.write_value(ctx.as_context(), &target.into(), false)
-                    .unwrap();
-            }
-
-            // br <cond> label <ifTrue> <ifFalse>
-            BranchInst(BranchKind::Cond(ref cond, if_true, if_false)) => {
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), cond, false).unwrap();
-                write!(self.sink, " label ").unwrap();
-                self.write_value(ctx.as_context(), &if_true.into(), false)
-                    .unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), &if_false.into(), false)
-                    .unwrap();
-            }
-
-            // sig <type> [<init>]
-            SignalInst(ref ty, ref init) => {
-                write!(self.sink, " ").unwrap();
-                self.write_ty(ty).unwrap();
-                if let Some(ref init) = *init {
-                    write!(self.sink, " ").unwrap();
-                    self.write_value(ctx.as_context(), init, false).unwrap();
-                }
-            }
-
-            // prb <signal>
-            ProbeInst(_, ref signal) => {
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), signal, false).unwrap();
-            }
-
-            // drv <signal> <value> [<delay>]
-            DriveInst(ref signal, ref value, ref delay) => {
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), signal, false).unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), value, false).unwrap();
-                if let Some(ref delay) = *delay {
-                    write!(self.sink, " ").unwrap();
-                    self.write_value(ctx.as_context(), delay, false).unwrap();
-                }
-            }
-
-            // var <type>
-            VariableInst(ref ty) => {
-                write!(self.sink, " ").unwrap();
-                self.write_ty(ty).unwrap();
-            }
-
-            // load <type> <ptr>
-            LoadInst(ref ty, ref ptr) => {
-                write!(self.sink, " ").unwrap();
-                self.write_ty(ty).unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), ptr, false).unwrap();
-            }
-
-            // store <type> <ptr> <value>
-            StoreInst(ref ty, ref ptr, ref value) => {
-                write!(self.sink, " ").unwrap();
-                self.write_ty(ty).unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), ptr, false).unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), value, false).unwrap();
-            }
-
-            // insert element <type> <target>, <index>, <value>
-            // insert slice <type> <target>, <start>, <length>, <value>
-            InsertInst(ref ty, ref target, mode, ref value) => {
-                match mode {
-                    SliceMode::Element(..) => write!(self.sink, " element ").unwrap(),
-                    SliceMode::Slice(..) => write!(self.sink, " slice ").unwrap(),
-                }
-                self.write_ty(ty).unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), target, false).unwrap();
-                write!(self.sink, ", ").unwrap();
-                match mode {
-                    SliceMode::Element(i) => write!(self.sink, "{}", i).unwrap(),
-                    SliceMode::Slice(i, n) => write!(self.sink, "{}, {}", i, n).unwrap(),
-                }
-                write!(self.sink, ", ").unwrap();
-                self.write_value(ctx.as_context(), value, true).unwrap();
-            }
-
-            // extract element <type> <target>, <index>
-            // extract slice <type> <target>, <start>, <length>
-            ExtractInst(ref ty, ref target, mode) => {
-                match mode {
-                    SliceMode::Element(..) => write!(self.sink, " element ").unwrap(),
-                    SliceMode::Slice(..) => write!(self.sink, " slice ").unwrap(),
-                }
-                self.write_ty(ty).unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), target, false).unwrap();
-                write!(self.sink, ", ").unwrap();
-                match mode {
-                    SliceMode::Element(i) => write!(self.sink, "{}", i).unwrap(),
-                    SliceMode::Slice(i, n) => write!(self.sink, "{}, {}", i, n).unwrap(),
-                }
-            }
-
-            // shl <type> <target>, <lsb>, <amount>
-            // shr <type> <target>, <msb>, <amount>
-            ShiftInst(_, ref ty, ref target, ref lsbmsb, ref amount) => {
-                write!(self.sink, " ").unwrap();
-                self.write_ty(ty).unwrap();
-                write!(self.sink, " ").unwrap();
-                self.write_value(ctx.as_context(), target, false).unwrap();
-                write!(self.sink, ", ").unwrap();
-                self.write_value(ctx.as_context(), lsbmsb, true).unwrap();
-                write!(self.sink, ", ").unwrap();
-                self.write_value(ctx.as_context(), amount, true).unwrap();
-            }
-
-            // halt
-            HaltInst => (),
-        }
-        write!(self.sink, "\n").unwrap();
-    }
+/// Check if a character can be emitted in a name without escaping.
+fn is_acceptable_name_char(c: char) -> bool {
+    c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' || c == '.'
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{Aggregate, ArrayAggregate, StructAggregate};
-    use num::BigInt;
-
-    fn with_writer(f: impl FnOnce(Writer)) -> String {
-        let mut asm = vec![];
-        f(Writer::new(&mut asm));
-        String::from_utf8(asm).expect("writer should emit proper utf8")
+/// Escape the special characters in a name.
+fn escape_name(input: &str) -> Rc<String> {
+    let mut s = String::with_capacity(input.len());
+    for c in input.chars() {
+        if is_acceptable_name_char(c) {
+            s.push(c);
+        } else {
+            s.push_str(&format!("\\{:x}", c as u32));
+        }
     }
-
-    fn write_aggregate(agg: AggregateKind) -> String {
-        with_writer(|mut w| {
-            let module = Module::new();
-            let ctx = ModuleContext::new(&module);
-            let ent = Entity::new("foo", entity_ty(vec![], vec![]));
-            let ctx = EntityContext::new(&ctx, &ent);
-            w.write_value(&ctx, &Aggregate::new(agg).into(), false)
-                .unwrap();
-        })
-    }
-
-    fn write_array_aggregate(ty: Type, elements: Vec<Const>) -> String {
-        write_aggregate(
-            ArrayAggregate::new(
-                array_ty(elements.len(), ty),
-                elements.into_iter().map(Into::into).collect(),
-            )
-            .into(),
-        )
-    }
-
-    fn write_struct_aggregate(fields: Vec<Const>) -> String {
-        write_aggregate(
-            StructAggregate::new(
-                struct_ty(fields.iter().map(|f| f.ty()).collect()),
-                fields.into_iter().map(Into::into).collect(),
-            )
-            .into(),
-        )
-    }
-
-    #[test]
-    fn array_aggregate() {
-        assert_eq!(write_array_aggregate(int_ty(32), vec![]), "[i32]");
-        assert_eq!(
-            write_array_aggregate(int_ty(32), vec![const_int(32, BigInt::from(42)),]),
-            "[i32 42]"
-        );
-        assert_eq!(
-            write_array_aggregate(
-                int_ty(32),
-                vec![
-                    const_int(32, BigInt::from(42)),
-                    const_int(32, BigInt::from(9001)),
-                ]
-            ),
-            "[i32 42, 9001]"
-        );
-        assert_eq!(
-            write_array_aggregate(
-                int_ty(32),
-                vec![
-                    const_int(32, BigInt::from(42)),
-                    const_int(32, BigInt::from(42)),
-                ]
-            ),
-            "[2 x i32 42]"
-        );
-    }
-
-    #[test]
-    fn struct_aggregate() {
-        assert_eq!(write_struct_aggregate(vec![]), "{}");
-        assert_eq!(
-            write_struct_aggregate(vec![const_int(32, BigInt::from(42))]),
-            "{i32 42}"
-        );
-        assert_eq!(
-            write_struct_aggregate(vec![
-                const_int(32, BigInt::from(42)),
-                const_int(64, BigInt::from(9001))
-            ]),
-            "{i32 42, i64 9001}"
-        );
-    }
+    Rc::new(s)
 }

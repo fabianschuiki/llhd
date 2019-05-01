@@ -8,7 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add `ir` module.
 - Add `lalrpop` dependency.
-- Add lalrpop-based assembly reader.
+- Add `write_module`, `write_module_string`, `parse_type`, `parse_time`, and `
+parse_module` to the `assembly` module.
+
+### Changed
+- Update assembly reader and writer to new IR module.
+
+### Removed
+- Remove `write` and `write_string` from the `assembly` module.
 
 ### Fixed
 - Fix emission of time constants.
