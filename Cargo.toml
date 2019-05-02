@@ -1,6 +1,6 @@
 [package]
 name = "llhd"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Fabian Schuiki <fschuiki@iis.ee.ethz.ch>"]
 edition = "2018"
 
