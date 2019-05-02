@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Fabian Schuiki
+// Copyright (c) 2017-2019 Fabian Schuiki
 
 //! Various utility functions that fit nowhere else.
 

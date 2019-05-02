@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Fabian Schuiki
+// Copyright (c) 2017-2019 Fabian Schuiki
 
 //! This module implements constant values.
 
