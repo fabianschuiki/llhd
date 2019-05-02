@@ -13,6 +13,7 @@ parse_module` to the `assembly` module.
 
 ### Changed
 - Update assembly reader and writer to new IR module.
+- Update `num` to version 0.2.
 
 ### Removed
 - Remove `write` and `write_string` from the `assembly` module.
