@@ -6,7 +6,6 @@
 mod ty;
 pub mod verifier;
 #[macro_use]
-mod value;
 pub mod assembly;
 pub mod ir;
 mod konst;
@@ -14,4 +13,4 @@ pub mod pass;
 pub mod table;
 pub mod util;
 
-pub use crate::{konst::*, ty::*, value::*};
+pub use crate::{konst::*, ty::*};
