@@ -29,6 +29,7 @@ parse_module` to the `assembly` module.
 - Remove `Const` and `ConstInt` in favor of the `const` instruction.
 - Remove `aggregate` module in favor of `array` and `struct` instructions.
 - Remove `value` module.
+- Remove `combine` dependency.
 
 ### Fixed
 - Fix emission of time constants.
