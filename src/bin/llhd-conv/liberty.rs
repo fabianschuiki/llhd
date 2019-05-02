@@ -278,21 +278,21 @@ enum Context {
 
 impl Visitor for RootVisitor<'_> {
     fn visit_scalar(&mut self, name: String, value: String) {
-        match self.stack.last().unwrap() {
-            Context::Pin if name == "function" => self.pin_function = Some(value),
-            Context::Pin if name == "direction" => self.pin_direction = Some(value),
+        match self.stack.last() {
+            Some(Context::Pin) if name == "function" => self.pin_function = Some(value),
+            Some(Context::Pin) if name == "direction" => self.pin_direction = Some(value),
             _ => (),
         }
     }
 
     fn visit_group_begin(&mut self, name: String, mut values: Vec<String>) {
-        let context = match name.as_str() {
-            "cell" => {
-                self.cell_name = Some(values.pop().unwrap());
+        let context = match (name.as_str(), values.pop()) {
+            ("cell", Some(value)) => {
+                self.cell_name = Some(value);
                 Context::Cell
             }
-            "pin" => {
-                self.pin_name = Some(values.pop().unwrap());
+            ("pin", Some(value)) => {
+                self.pin_name = Some(value);
                 self.pin_function = None;
                 self.pin_direction = None;
                 Context::Pin
@@ -305,14 +305,18 @@ impl Visitor for RootVisitor<'_> {
     fn visit_group_end(&mut self) {
         match self.stack.pop().expect("unbalanced LIB file") {
             Context::Cell => self.emit_cell(),
-            Context::Pin => match self.pin_direction.take().unwrap().as_str() {
-                "input" => self.cell_inputs.push(self.pin_name.take().unwrap()),
-                "output" => self.cell_outputs.push((
-                    self.pin_name.take().unwrap(),
-                    self.pin_function.take().unwrap(),
-                )),
-                _ => (),
-            },
+            Context::Pin => {
+                let dir = self.pin_direction.take();
+                let name = self.pin_name.take();
+                let func = self.pin_function.take();
+                match (dir.as_ref().map(AsRef::as_ref), name, func) {
+                    (Some("input"), Some(name), _) => self.cell_inputs.push(name),
+                    (Some("output"), Some(name), Some(func)) => {
+                        self.cell_outputs.push((name, func))
+                    }
+                    _ => (),
+                }
+            }
             Context::None => (),
         }
     }
@@ -334,27 +338,60 @@ impl<'a> RootVisitor<'a> {
     }
 
     fn emit_cell(&mut self) {
+        let cell_name = match self.cell_name.take() {
+            Some(name) => UnitName::Global(name),
+            None => return,
+        };
         let mut sig = Signature::new();
         let mut input_map = HashMap::new();
         for name in self.cell_inputs.drain(..) {
             let arg = sig.add_input(signal_ty(int_ty(1)));
             input_map.insert(name, arg);
         }
+        let mut output_map = HashMap::new();
         let mut funcs = vec![];
-        for (_name, func) in &self.cell_outputs {
+        for (name, func) in self.cell_outputs.drain(..) {
             let arg = sig.add_output(signal_ty(int_ty(1)));
-            funcs.push((arg, FunctionParser::new().parse(&func).unwrap()));
+            let func = match FunctionParser::new().parse(&func) {
+                Ok(f) => f,
+                Err(e) => {
+                    eprintln!(
+                        "{}: invalid function `{}` on pin `{}`; {}",
+                        cell_name, func, name, e
+                    );
+                    return;
+                }
+            };
+            funcs.push((arg, func));
+            output_map.insert(name, arg);
         }
-        let name = UnitName::Global(self.cell_name.take().unwrap());
-        let mut ent = Entity::new(name, sig);
+        let mut ent = Entity::new(cell_name, sig);
         let mut builder = EntityBuilder::new(&mut ent);
+        for (name, &arg) in input_map.iter().chain(output_map.iter()) {
+            let arg = builder.dfg().arg_value(arg);
+            builder.dfg_mut().set_name(arg, name.clone());
+        }
         for (arg, func) in funcs {
-            let arg = builder.unit().arg_value(arg);
-            let value = self.emit_term(&mut builder, &input_map, func);
+            let arg = builder.dfg().arg_value(arg);
+            let value = match self.emit_term(&mut builder, &input_map, func) {
+                Ok(v) => v,
+                Err(e) => {
+                    eprintln!(
+                        "{}: invalid function on `{}`; {}",
+                        builder.entity.name(),
+                        builder
+                            .dfg()
+                            .get_name(arg)
+                            .map(str::to_owned)
+                            .unwrap_or_else(|| format!("{}", arg)),
+                        e
+                    );
+                    return;
+                }
+            };
             builder.ins().con(arg, value);
         }
         self.module.add_entity(ent);
-        self.cell_outputs.clear();
     }
 
     fn emit_term(
@@ -362,24 +399,29 @@ impl<'a> RootVisitor<'a> {
         builder: &mut EntityBuilder,
         map: &HashMap<String, Arg>,
         func: FunctionTerm,
-    ) -> Value {
-        match func {
+    ) -> Result<Value, String> {
+        Ok(match func {
             FunctionTerm::Or(lhs, rhs) => {
-                let x = self.emit_term(builder, map, *lhs);
-                let y = self.emit_term(builder, map, *rhs);
+                let x = self.emit_term(builder, map, *lhs)?;
+                let y = self.emit_term(builder, map, *rhs)?;
                 builder.ins().or(x, y)
             }
             FunctionTerm::And(lhs, rhs) => {
-                let x = self.emit_term(builder, map, *lhs);
-                let y = self.emit_term(builder, map, *rhs);
+                let x = self.emit_term(builder, map, *lhs)?;
+                let y = self.emit_term(builder, map, *rhs)?;
                 builder.ins().and(x, y)
             }
             FunctionTerm::Not(term) => {
-                let x = self.emit_term(builder, map, *term);
+                let x = self.emit_term(builder, map, *term)?;
                 builder.ins().not(x)
             }
-            FunctionTerm::Atom(name) => builder.unit().arg_value(map[&name]),
-        }
+            FunctionTerm::Atom(name) => {
+                let arg = map.get(&name).cloned().ok_or_else(|| {
+                    format!("term references argument `{}` which is not a pin", name)
+                })?;
+                builder.unit().arg_value(arg)
+            }
+        })
     }
 }
 
