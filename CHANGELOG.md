@@ -26,6 +26,7 @@ parse_module` to the `assembly` module.
 - Remove `argument` module.
 - Remove `inst` module.
 - Remove `unit` module.
+- Remove `Const` and `ConstInt` in favor of the `const` instruction.
 
 ### Fixed
 - Fix emission of time constants.

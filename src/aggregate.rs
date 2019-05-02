@@ -10,12 +10,6 @@ use std::sync::Arc;
 /// An aggregate value.
 pub type Aggregate = Arc<AggregateKind>;
 
-impl Into<ValueRef> for Aggregate {
-    fn into(self) -> ValueRef {
-        ValueRef::Aggregate(self)
-    }
-}
-
 /// The different forms an aggregate can take.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AggregateKind {

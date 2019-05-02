@@ -1,7 +1,7 @@
 // Copyright (c) 2017 Fabian Schuiki
 #![allow(deprecated)]
 
-use crate::{Aggregate, Const, Type};
+use crate::Type;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 pub trait Value {
@@ -32,8 +32,6 @@ pub enum ValueRef {
     Process(ProcessRef),
     Entity(EntityRef),
     Global,
-    Const(Const),
-    Aggregate(Aggregate),
 }
 
 impl ValueRef {
@@ -47,34 +45,6 @@ impl ValueRef {
             ValueRef::Process(_) => "ValueRef::Process",
             ValueRef::Entity(_) => "ValueRef::Entity",
             ValueRef::Global => "ValueRef::Global",
-            ValueRef::Const(_) => "ValueRef::Const",
-            ValueRef::Aggregate(_) => "ValueRef::Aggregate",
-        }
-    }
-
-    /// Convert this value reference into the constant it contains. Panics if
-    /// the value reference does not contain a constant.
-    pub fn into_const(self) -> Const {
-        match self {
-            ValueRef::Const(k) => k,
-            x => panic!("into_const called on {}", x.desc()),
-        }
-    }
-
-    /// Unwrap and return a reference to the constant represented by this value
-    /// reference. Panics if the value reference does not contain a constant.
-    pub fn as_const(&self) -> &Const {
-        match *self {
-            ValueRef::Const(ref k) => k,
-            _ => panic!("as_const called on {}", self.desc()),
-        }
-    }
-
-    /// Try to unwrap this value reference as a constant.
-    pub fn maybe_const(&self) -> Option<&Const> {
-        match *self {
-            ValueRef::Const(ref k) => Some(k),
-            _ => None,
         }
     }
 
@@ -149,26 +119,6 @@ impl ValueRef {
         match *self {
             ValueRef::Entity(x) => x,
             _ => panic!("unwrap_entity called on {}", self.desc()),
-        }
-    }
-
-    /// Unwrap this reference as a constant.
-    ///
-    /// Panics if this is not a constant.
-    pub fn unwrap_const(&self) -> &Const {
-        match *self {
-            ValueRef::Const(ref x) => x,
-            _ => panic!("unwrap_const called on {}", self.desc()),
-        }
-    }
-
-    /// Unwrap this reference as an aggregate.
-    ///
-    /// Panics if this is not an aggregate.
-    pub fn unwrap_aggregate(&self) -> &Aggregate {
-        match *self {
-            ValueRef::Aggregate(ref x) => x,
-            _ => panic!("unwrap_aggregate called on {}", self.desc()),
         }
     }
 }
@@ -282,10 +232,7 @@ pub trait Context: AsContext {
 
     /// Get the type of a value.
     fn ty(&self, value: &ValueRef) -> Type {
-        value
-            .maybe_const()
-            .map(|k| k.ty())
-            .unwrap_or_else(|| self.value(value).ty())
+        self.value(value).ty()
     }
 
     /// Get the name of a value.
