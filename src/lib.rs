@@ -10,7 +10,6 @@ mod value;
 pub mod assembly;
 pub mod ir;
 mod konst;
-pub mod opt;
 pub mod pass;
 pub mod table;
 pub mod util;
