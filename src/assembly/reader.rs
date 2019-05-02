@@ -480,3 +480,9 @@ pub fn parse_time_triple(
 
     (v, delta, epsilon)
 }
+
+mod grammar {
+    include!(concat!(env!("OUT_DIR"), "/assembly/grammar.rs"));
+}
+
+pub use grammar::{ConstTimeParser, ModuleParser, TypeParser};

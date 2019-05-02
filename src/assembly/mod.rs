@@ -5,8 +5,7 @@
 
 use crate::{ir::Module, konst::ConstTime, ty::Type};
 
-pub(crate) mod ast;
-pub(crate) mod grammar;
+mod reader;
 mod writer;
 
 /// Emit assembly for a module.
@@ -25,7 +24,7 @@ pub fn write_module_string(module: &Module) -> String {
 ///
 /// Parses the `input` string into a type.
 pub fn parse_type(input: impl AsRef<str>) -> Result<Type, String> {
-    grammar::TypeParser::new()
+    reader::TypeParser::new()
         .parse(input.as_ref())
         .map_err(|e| format!("{}", e))
 }
@@ -34,7 +33,7 @@ pub fn parse_type(input: impl AsRef<str>) -> Result<Type, String> {
 ///
 /// Parses the `input` string into a time constant.
 pub fn parse_time(input: impl AsRef<str>) -> Result<ConstTime, String> {
-    grammar::ConstTimeParser::new()
+    reader::ConstTimeParser::new()
         .parse(input.as_ref())
         .map_err(|e| format!("{}", e))
 }
@@ -43,7 +42,7 @@ pub fn parse_time(input: impl AsRef<str>) -> Result<ConstTime, String> {
 ///
 /// Parses the `input` string into a module.
 pub fn parse_module(input: impl AsRef<str>) -> Result<crate::ir::Module, String> {
-    grammar::ModuleParser::new()
+    reader::ModuleParser::new()
         .parse(input.as_ref())
         .map_err(|e| format!("{}", e))
 }

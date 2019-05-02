@@ -1,4 +1,5 @@
-use crate::{ty::*, ir::prelude::*, konst::ConstTime, assembly::ast};
+use crate::assembly::reader as ast;
+use crate::{ty::*, ir::prelude::*, konst::ConstTime};
 use num::BigInt;
 
 grammar;
