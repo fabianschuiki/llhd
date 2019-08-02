@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 - Add `llhd-check` tool to verify consistency of assembly files.
+- Add `const iN$` flavor to generate a constant integer signal.
 
 ### Changed
 - Triggers for `reg` instruction now require type annotation.

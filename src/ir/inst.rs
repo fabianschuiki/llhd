@@ -26,13 +26,19 @@ impl<B> InstBuilder<B> {
 }
 
 impl<B: UnitBuilder> InstBuilder<&mut B> {
-    /// `a = const iN imm`
-    pub fn const_int(&mut self, width: usize, value: impl Into<BigInt>) -> Value {
+    /// `a = const iN[$]? imm`
+    pub fn const_int(&mut self, width: usize, sig: bool, value: impl Into<BigInt>) -> Value {
         let data = InstData::ConstInt {
             opcode: Opcode::ConstInt,
+            sig,
             imm: value.into(),
         };
-        let inst = self.build(data, int_ty(width));
+        let ty = int_ty(width);
+        let ty = match sig {
+            true => signal_ty(ty),
+            false => ty,
+        };
+        let inst = self.build(data, ty);
         self.inst_result(inst)
     }
 
@@ -598,8 +604,12 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
 #[allow(missing_docs)]
 #[derive(Debug, Clone)]
 pub enum InstData {
-    /// `a = const iN imm`
-    ConstInt { opcode: Opcode, imm: BigInt },
+    /// `a = const iN[$]? imm`
+    ConstInt {
+        opcode: Opcode,
+        sig: bool,
+        imm: BigInt,
+    },
     /// `a = const time imm`
     ConstTime { opcode: Opcode, imm: ConstTime },
     /// `opcode imm, type x`

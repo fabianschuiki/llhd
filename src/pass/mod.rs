@@ -116,6 +116,6 @@ impl ConstantFoldingPass {
             Opcode::Add => imm0 + imm1,
             _ => return None,
         };
-        Some(builder.ins().const_int(width, result))
+        Some(builder.ins().const_int(width, false, result))
     }
 }
