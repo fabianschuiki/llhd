@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add `llhd-check` tool to verify consistency of assembly files.
 
+### Changed
+- Triggers for `reg` instruction now require type annotation.
+
 ## 0.7.1 - 2019-05-04
 ### Fixed
 - Make llhd-conv more robust in presence of unknown LIB pin functions.
