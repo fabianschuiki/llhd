@@ -86,9 +86,311 @@ The following table shows the full instruction set of LLHD. Instructions have li
 
 Instruction | Allowed In | Description
 --- | --- | ---
+`const` | EFP | Construct a constant value
+`alias` | EFP | Assign a new name to a value
+`[...]` | EFP | Construct an array
+`{...}` | EFP | Construct a struct
+`not`   | EFP | Bitwise NOT
+`neg`   | EFP | Two's complement
+`add`   | EFP | Addition
+`sub`   | EFP | Subtraction
+`and`   | EFP | Bitwise AND
+`or`    | EFP | Bitwise OR
+`xor`   | EFP | Bitwise XOR
+`smul`  | EFP | Signed multiplication
+`umul`  | EFP | Unsigned multiplication
+`sdiv`  | EFP | Signed division
+`udiv`  | EFP | Unsigned division
+`smod`  | EFP | Signed modulo
+`umod`  | EFP | Unsigned modulo
+`srem`  | EFP | Signed remainder
+`urem`  | EFP | Unsigned remainder
+`eq`    | EFP | Check for equality
+`neq`   | EFP | Check for inequality
+`slt`   | EFP | Check for signed less-than ordering
+`ult`   | EFP | Check for unsigned less-than ordering
+`sgt`   | EFP | Check for signed greater-than ordering
+`ugt`   | EFP | Check for unsigned greater-than ordering
+`sle`   | EFP | Check for signed less-than-or-equal ordering
+`ule`   | EFP | Check for unsigned less-than-or-equal ordering
+`sge`   | EFP | Check for signed greater-than-or-equal ordering
+`uge`   | EFP | Check for unsigned greater-than-or-equal ordering
+`shl`   | EFP | Shift a value to the left
+`shr`   | EFP | Shift a value to the right
+`mux`   | EFP | Choose from an array of values
+`reg`   | E   | A register to provide storage for a value
 `insert`  | EFP | Change the value of one or more fields, elements, or bits.
 `extract` | EFP | Retrieve the value of one or more fields, elements, or bits.
 `shl`, `shr` | EFP | Shift a value to the left or right.
+
+
+### `const` - Constant Value
+
+The `const` instruction is used to introduce a constant value into the IR. The first version constructs a constant integer value, the second a constant integer signal, and the third a constant time value.
+
+    %a = const iN <int>
+    %a = const iN$ <int>
+    %a = const time <time>
+
+- `int` is an integer literal
+- `time` is a time literal
+
+#### Examples
+
+A constant 32 bit integer with value 42 may be constructed as follows:
+
+    %0 = const i32 42
+    %1 = const i32$ 42
+    ; type(%0) = i32
+    ; type(%1) = i32$
+
+A constant time with value 1s+3d+7e may be constructed as follows:
+
+    %0 = const time 1s 3d 7e
+
+
+### `alias` - Rename Value
+
+The `alias` instruction is used to assign a new name to a value.
+
+    %a = alias <ty> <value>
+
+- `ty` is the type of the resulting value `%a` and must match the type of `value`.
+- `value` is the value to be aliased.
+
+#### Example
+
+A value `%0` may be aliased under name `foo` as follows:
+
+    %0 = const i32 42
+    %foo = alias i32 %0
+
+
+### `[...]` - Construct Array
+
+Array values may be constructed in two ways. The first constructs a uniform array where each element has the same value. The second constructs an array with different values for each element. Every element in an array must have the same type.
+
+    %a = [<N> x <ty> <value>]
+    %a = [<ty> <value1>, ..., <ty> <valueN>]
+
+- `N` is the number of elements in the array.
+- `ty` is the type of each element. All elements must have the same type.
+- `value` is the value each element will have.
+- `value1` to `valueN` are the values for each individual element.
+
+#### Example
+
+An array of 9001 zeros of 8 bits each may be constructed as follows:
+
+    %0 = const i8 0
+    %1 = [9001 x i8 %0]
+    ; type(%1) = [9001 x i8]
+
+An array with three different 16 bit values may be constructed as follows:
+
+    %0 = const i16 9001
+    %1 = const i16 42
+    %2 = const i16 1337
+    %3 = [i16 %0, i16 %1, i16 %2]
+    ; type(%3) = [3 x i16]
+
+
+### `{...}` - Construct Struct
+
+Struct values may be constructed in the following way:
+
+    %a = {<ty1> <value1>, ..., <tyN> <valueN>}
+
+- `ty1` to `tyN` is the type of each field in the struct.
+- `value1` to `valueN` is the value of each field in the struct.
+
+#### Example
+
+A struct with three fields of different types may be constructed as follows:
+
+    %0 = const i1 0
+    %1 = const i42 9001
+    %2 = const time 1337s
+    %3 = {i1 %0, i42 %1, time %2}
+    ; type(%3) = {i1, i42, time}
+
+
+### `not`, `neg` - Unary Arithmetic
+
+The `not` operation flips each bit of a value. The `neg` operation computes the two's complement of a value, effectively flipping its sign.
+
+    %a = not <ty> <value>
+    %a = neg <ty> <value>
+
+- `ty` must be `iN` or `iN$`.
+- `value` is the input argument. Must be of type `ty`.
+
+#### Example
+
+The bits of an integer value may be flipped as follows:
+
+    %0 = const i8 0x0F
+    %1 = not i8 %0
+    ; %1 = 0xF0
+
+The sign of an integer may be flipped as follows:
+
+    %0 = const i8 42
+    %1 = neg i8 %0
+    ; %1 = -42
+
+
+###  `add`, `sub`, `and`, `or`, `xor`, `smul`, `sdiv`, `smod`, `srem`, `umul`, `udiv`, `umod`, `urem` - Binary Arithmetic
+
+The `add` and `sub` operation add or subtract two values.
+
+    %a = add  <ty> <lhs>, <rhs>
+    %a = sub  <ty> <lhs>, <rhs>
+
+The `and`, `or`, and `xor` operation compute the bitwise AND, OR, and XOR of two values.
+
+    %a = and  <ty> <lhs>, <rhs>
+    %a = or   <ty> <lhs>, <rhs>
+    %a = xor  <ty> <lhs>, <rhs>
+
+The multiplicative operations are available in a signed (`s...`) and unsigned (`u...`) flavor. Choosing one or the other alters how the input operands are interpreted. The `mul` operation multiplies two values. The `div` operation divides the left-hand side by the right-hand side value. The `mod` and `rem` operation compute the modulo and remainder of the division.
+
+    %a = smul <ty> <lhs>, <rhs>
+    %a = umul <ty> <lhs>, <rhs>
+    %a = sdiv <ty> <lhs>, <rhs>
+    %a = udiv <ty> <lhs>, <rhs>
+    %a = smod <ty> <lhs>, <rhs>
+    %a = umod <ty> <lhs>, <rhs>
+    %a = srem <ty> <lhs>, <rhs>
+    %a = urem <ty> <lhs>, <rhs>
+
+- `ty` must be `iN` or `iN$`.
+- `lhs` and `rhs` are the left- and right-hand side arguments. Must be of type `ty`.
+
+
+### `eq`, `neq` - Equality Comparison of two Values
+
+The `eq` and `neq` operation checks for equality or inequality of two values.
+
+    %a = eq  <ty> <lhs>, <rhs>
+    %a = neq <ty> <lhs>, <rhs>
+
+- `ty` can be any type.
+- `lhs` and `rhs` are the left- and right-hand side arguments of the comparison. Must be of type `ty`.
+- The result of the operation is of type `i1`.
+
+
+### `slt`, `sgt`, `sle`, `sge`, `ult`, `ugt`, `ule`, `uge` - Relational Comparison of two Values
+
+The relational operators are available in a signed (`s...`) and unsigned (`u...`) flavor. Choosing one or the other alters how the input operands are interpreted. The `lt`, `gt`, `le`, and `ge` operation checks for less-than, greater-than, less-than-or-equal, and greater-than-or-equal ordering.
+
+    %a = slt <ty> <lhs>, <rhs>
+    %a = ult <ty> <lhs>, <rhs>
+    %a = sgt <ty> <lhs>, <rhs>
+    %a = ugt <ty> <lhs>, <rhs>
+    %a = sle <ty> <lhs>, <rhs>
+    %a = ule <ty> <lhs>, <rhs>
+    %a = sge <ty> <lhs>, <rhs>
+    %a = uge <ty> <lhs>, <rhs>
+
+- `ty` must be `iN` or `iN$`.
+- `lhs` and `rhs` are the left- and right-hand side arguments of the comparison. Must be of type `ty`.
+- The result of the operation is of type `i1`.
+
+
+### `shl`, `shr` - Shift a Value
+
+The `shl` and `shr` operation shifts a value to the left or right by a given amount.
+
+    %a = shl <ty1> <base>, <ty2> <hidden>, <ty3> <amount>
+    %a = shr <ty1> <base>, <ty2> <hidden>, <ty3> <amount>
+
+- `ty1` is the type of the base value and the type of the shift result. Can be `iN` or any array, or a signal/pointer of thereof.
+- `base` is the base value that is produced if the shift amount is 0.
+- `ty2` is the type of the hidden value. Must be of the same as `ty1` but may have a different number of bits or elements.
+- `hidden` is the hidden value that is uncovered by non-zero shift amounts.
+- `ty3` is the type of the shift amount. Must be `iN`.
+- `amount` determines by how many positions the value is to be shifted. Must be in the range 0 to N, where N is the width of the `hidden` value.
+- The result of the shift operation has the same type as the base value.
+
+#### Example
+
+The operation can be visualized as concatenating the base and the hidden value, then selecting a slice of the resulting bits starting at the offset determined by the `amount` value.
+
+    %0 = const i8 0b10011001
+    %1 = const i12 0b010110100101
+    %2 = const i3 6
+
+    %3 = shl i8 %0, i12 %1, i3 %2
+    ; %3 = 0b01010110
+
+    ; |%0----||%1--------|
+    ; 10011001010110100101
+    ; >>>>>>|%3----|
+
+    %4 = shr i8 %0, i12 %1, i3 %2
+    ; %4 = 0b10010110
+
+    ; |%1--------||%0----|
+    ; 01011010010110011001
+    ;       |%4----|<<<<<<
+
+
+### `mux` - Pick a Value from an Array
+
+The `mux` operation chooses one of an array of values based on a given selector value.
+
+    %a = mux <ty> <array>, <ty_sel> <sel>
+
+- `ty` is the type of the `array`.
+- `array` is a list of values from which the multiplexer selects.
+- `ty_sel` is the type of the selector. Must be `iN` or `iN$`.
+- `sel` is the selector and must be in the range 0 to M-1, where M is the number of elements in the array.
+- The result of the operation is the element type of the array `ty`.
+
+
+### `reg` - Register to Store a Value
+
+The `reg` instruction provides a storage element for a value. It may only be used inside an entity.
+
+    %a = reg <ty> <init>, <value> <mode> <trigger_ty> <trigger>, ...
+
+- `ty` is the type of the stored value. Must be a signal.
+- `init` is the initial value. Must be of type `ty`.
+- Each comma-separated triple following the initial value specifies a storage trigger:
+    - `value` is the value to be stored in the register. Must be of type `ty`.
+    - `mode` is the trigger mode and may be one of the following:
+        - `low` stores `value` while the trigger is low. Models active-low resets and low-transparent latches.
+        - `high` stores `value` while the trigger is high. Models active-high resets and high-transparent latches.
+        - `rise` stores `value` upon the rising edge of the trigger. Models rising-edge flip-flops.
+        - `fall` stores `value` upon the falling edge of the trigger. Models falling-edge flip-flops.
+        - `both` stores `value` upon either a rising or a falling edge of the trigger. Models dual-edge flip-flops.
+    - `trigger_ty` is the trigger type. Must be `i1`.
+    - `trigger` is the trigger value. Must be of type `trigger_ty`.
+    - In case multiple triggers apply the left-most takes precedence.
+
+#### Examples
+
+A rising, falling, and dual-edge triggered flip-flop:
+
+    %Q = reg i8$ %init, %D rise i1$ %CLK
+    %Q = reg i8$ %init, %D fall i1$ %CLK
+    %Q = reg i8$ %init, %D both i1$ %CLK
+
+A rising-edge triggered flip-flop with active-low reset:
+
+    %Q = reg i8$ %init, %init low i1$ %RSTB, %D rise i1$ %CLK
+
+A transparent-low and transparent-high latch:
+
+    %Q = reg i8$ %init, %D low i1$ %CLK
+    %Q = reg i8$ %init, %D high i1$ %CLK
+
+An SR latch:
+
+    %0 = const i1$ 0
+    %1 = const i1$ 1
+    %Q = reg i1$ %0, %0 high i1$ %R, %1 high i1$ %S
 
 
 ### `insert` — Insert Value
