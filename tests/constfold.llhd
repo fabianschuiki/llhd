@@ -1,0 +1,7 @@
+func @foo () void {
+%entry:
+	%0 = const i32 18
+	%1 = const i32 24
+	%2 = add i32 %0, %1
+	ret
+}

@@ -7,7 +7,7 @@
 
 use crate::ir::prelude::*;
 use crate::{
-    ir::InstData,
+    ir::{InstData, ModUnitData},
     ty::{signal_ty, Type},
 };
 
@@ -15,6 +15,21 @@ use crate::{
 pub struct ConstantFoldingPass;
 
 impl ConstantFoldingPass {
+    /// Fold a module.
+    pub fn run_on_module(module: &mut Module) -> bool {
+        let mut modified = false;
+        let units: Vec<_> = module.units().collect();
+        for unit in units {
+            modified |= match module[unit] {
+                ModUnitData::Function(ref mut u) => Self::run_on_function(u),
+                ModUnitData::Process(ref mut u) => Self::run_on_process(u),
+                ModUnitData::Entity(ref mut u) => Self::run_on_entity(u),
+                _ => false,
+            };
+        }
+        modified
+    }
+
     /// Fold a function.
     pub fn run_on_function(func: &mut Function) -> bool {
         let mut builder = FunctionBuilder::new(func);
