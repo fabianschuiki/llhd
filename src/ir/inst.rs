@@ -298,11 +298,9 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         let ty = self.value_type(x);
         let mut args = vec![x];
         let mut modes = vec![];
-        for (data, mode, trigger) in data {
-            args.push(data);
-            args.push(trigger);
-            modes.push(mode);
-        }
+        args.extend(data.iter().map(|x| x.0));
+        args.extend(data.iter().map(|x| x.2));
+        modes.extend(data.iter().map(|x| x.1));
         assert_eq!(args.len(), modes.len() * 2 + 1);
         let inst = self.build(
             InstData::Reg {

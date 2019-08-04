@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Triggers for `reg` instruction now require type annotation.
 
+### Fixed
+- Fix `reg` instruction writer output having data and triggers mangled.
+
 ## 0.7.1 - 2019-05-04
 ### Fixed
 - Make llhd-conv more robust in presence of unknown LIB pin functions.
