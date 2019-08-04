@@ -45,6 +45,13 @@ fn main() -> Result<(), String> {
     // Apply optimization pass. Just constant folding for now.
     ConstantFoldingPass::run_on_module(&mut module);
 
+    // Verify modified module.
+    let mut verifier = Verifier::new();
+    verifier.verify_module(&module);
+    verifier
+        .finish()
+        .map_err(|errs| format!("Verification failed after optimization: {}", errs))?;
+
     // Write the output.
     if let Some(path) = matches.value_of("output)") {
         let output = File::create(path).map_err(|e| format!("{}", e))?;
