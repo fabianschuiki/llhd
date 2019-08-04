@@ -12,13 +12,11 @@ fn main() {
         sig.add_input(llhd::signal_ty(llhd::int_ty(42)));
         sig.add_output(llhd::signal_ty(llhd::int_ty(32)));
         let ext = builder.add_extern(UnitName::global("bar"), sig);
-        let v1 = builder.ins().const_int(1, 0);
-        let v2 = builder.ins().const_int(42, 9001);
-        let v3 = builder.ins().const_int(32, 0);
-        let v4 = builder.ins().sig(v1);
-        let v5 = builder.ins().sig(v2);
-        let v6 = builder.ins().sig(v3);
-        builder.ins().inst(ext, vec![v4, v5], vec![v6]);
+        let v1 = builder.ins().const_int(1, true, 0);
+        let v2 = builder.ins().const_int(42, true, 9001);
+        let v3 = builder.ins().const_int(32, false, 0);
+        let v4 = builder.ins().sig(v3);
+        builder.ins().inst(ext, vec![v1, v2], vec![v4]);
     }
     println!("{}", ent.dump());
 }
