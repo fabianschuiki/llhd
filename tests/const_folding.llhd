@@ -1,0 +1,31 @@
+func @foo () void {
+%entry:
+	%0 = const i32 24
+	%1 = const i32 18
+	%v2 = not i32 %0
+	%v3 = neg i32 %0
+	%v4 = add i32 %0, %1
+	%v5 = sub i32 %0, %1
+	%v6 = and i32 %0, %1
+	%v7 = or i32 %0, %1
+	%v8 = xor i32 %0, %1
+	%v9 = smul i32 %0, %1
+	%v10 = sdiv i32 %0, %1
+	%v11 = smod i32 %0, %1
+	%v12 = srem i32 %0, %1
+	%v13 = umul i32 %0, %1
+	%v14 = udiv i32 %0, %1
+	%v15 = umod i32 %0, %1
+	%v16 = urem i32 %0, %1
+	%v17 = eq i32 %0, %1
+	%v18 = neq i32 %0, %1
+	%v19 = slt i32 %0, %1
+	%v20 = sgt i32 %0, %1
+	%v21 = sle i32 %0, %1
+	%v22 = sge i32 %0, %1
+	%v23 = ult i32 %0, %1
+	%v24 = ugt i32 %0, %1
+	%v25 = ule i32 %0, %1
+	%v26 = uge i32 %0, %1
+	ret
+}

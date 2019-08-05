@@ -8,8 +8,9 @@
 use crate::ir::prelude::*;
 use crate::{
     ir::{InstData, ModUnitData},
-    ty::{signal_ty, Type},
+    ty::Type,
 };
+use num::BigInt;
 
 /// Fold a module.
 pub fn run_on_module(module: &mut Module) -> bool {
@@ -27,6 +28,8 @@ pub fn run_on_module(module: &mut Module) -> bool {
 }
 
 /// Fold a function.
+///
+/// Returns `true` if the function was modified.
 pub fn run_on_function(func: &mut Function) -> bool {
     let mut builder = FunctionBuilder::new(func);
     let mut modified = false;
@@ -43,6 +46,8 @@ pub fn run_on_function(func: &mut Function) -> bool {
 }
 
 /// Fold a process.
+///
+/// Returns `true` if the process was modified.
 pub fn run_on_process(prok: &mut Process) -> bool {
     let mut builder = ProcessBuilder::new(prok);
     let mut modified = false;
@@ -59,6 +64,8 @@ pub fn run_on_process(prok: &mut Process) -> bool {
 }
 
 /// Fold an entity.
+///
+/// Returns `true` if the entity was modified.
 pub fn run_on_entity(entity: &mut Entity) -> bool {
     let mut builder = EntityBuilder::new(entity);
     let mut modified = false;
@@ -69,6 +76,8 @@ pub fn run_on_entity(entity: &mut Entity) -> bool {
 }
 
 /// Fold a single instruction.
+///
+/// Returns `true` if the unit that contains the instruction was modified.
 pub fn run_on_inst(builder: &mut impl UnitBuilder, inst: Inst) -> bool {
     if !builder.dfg().has_result(inst) {
         return false;
@@ -77,21 +86,61 @@ pub fn run_on_inst(builder: &mut impl UnitBuilder, inst: Inst) -> bool {
     let value = builder.dfg().inst_result(inst);
     let ty = builder.dfg().value_type(value);
     let replacement = match builder.dfg()[inst] {
+        InstData::Unary { opcode, args, .. } => fold_unary(builder, opcode, ty.clone(), args[0]),
         InstData::Binary { opcode, args, .. } => fold_binary(builder, opcode, ty.clone(), args),
         _ => None,
     };
     if let Some(replacement) = replacement {
         let new_ty = builder.dfg().value_type(replacement);
-        assert!(
-            ty == new_ty || ty == signal_ty(new_ty),
+        assert_eq!(
+            ty, new_ty,
             "types before (lhs) and after (rhs) folding must match"
         );
-        builder.unit_mut().dfg_mut().replace_use(value, replacement);
+        let dfg = builder.unit_mut().dfg_mut();
+        if let Some(name) = dfg.get_name(value).map(String::from) {
+            dfg.set_name(replacement, name);
+            dfg.clear_name(value);
+        }
+        dfg.replace_use(value, replacement);
         builder.prune_if_unused(inst);
         true
     } else {
         false
     }
+}
+
+/// Fold a unary instruction.
+fn fold_unary(
+    builder: &mut impl UnitBuilder,
+    opcode: Opcode,
+    ty: Type,
+    arg: Value,
+) -> Option<Value> {
+    if ty.is_int() {
+        fold_unary_int(builder, opcode, ty.unwrap_int(), false, arg)
+    } else if ty.is_signal() && ty.unwrap_signal().is_int() {
+        fold_unary_int(builder, opcode, ty.unwrap_signal().unwrap_int(), true, arg)
+    } else {
+        None
+    }
+}
+
+/// Fold a unary instruction on integers.
+fn fold_unary_int(
+    builder: &mut impl UnitBuilder,
+    opcode: Opcode,
+    width: usize,
+    signal: bool,
+    arg: Value,
+) -> Option<Value> {
+    let inst = builder.dfg().get_value_inst(arg)?;
+    let imm = builder.dfg()[inst].get_const_int()?;
+    let result = match opcode {
+        Opcode::Not => (BigInt::from(1) << width) - 1 - imm,
+        Opcode::Neg => -imm,
+        _ => return None,
+    };
+    Some(builder.ins().const_int(width, signal, result))
 }
 
 /// Fold a binary instruction.
@@ -102,9 +151,9 @@ fn fold_binary(
     args: [Value; 2],
 ) -> Option<Value> {
     if ty.is_int() {
-        fold_binary_int(builder, opcode, ty.unwrap_int(), args)
+        fold_binary_int(builder, opcode, ty.unwrap_int(), false, args)
     } else if ty.is_signal() && ty.unwrap_signal().is_int() {
-        fold_binary_int(builder, opcode, ty.unwrap_signal().unwrap_int(), args)
+        fold_binary_int(builder, opcode, ty.unwrap_signal().unwrap_int(), true, args)
     } else {
         None
     }
@@ -115,6 +164,7 @@ fn fold_binary_int(
     builder: &mut impl UnitBuilder,
     opcode: Opcode,
     width: usize,
+    signal: bool,
     args: [Value; 2],
 ) -> Option<Value> {
     let inst0 = builder.dfg().get_value_inst(args[0])?;
@@ -123,7 +173,29 @@ fn fold_binary_int(
     let imm1 = builder.dfg()[inst1].get_const_int()?;
     let result = match opcode {
         Opcode::Add => imm0 + imm1,
+        Opcode::Sub => imm0 - imm1,
+        Opcode::And => imm0 & imm1,
+        Opcode::Or => imm0 | imm1,
+        Opcode::Xor => imm0 ^ imm1,
+        Opcode::Smul => imm0 * imm1,
+        Opcode::Sdiv => imm0 / imm1,
+        Opcode::Smod => imm0 % imm1,
+        Opcode::Srem => imm0 % imm1,
+        Opcode::Umul => (imm0.to_biguint()? * imm1.to_biguint()?).into(),
+        Opcode::Udiv => (imm0.to_biguint()? / imm1.to_biguint()?).into(),
+        Opcode::Umod => (imm0.to_biguint()? % imm1.to_biguint()?).into(),
+        Opcode::Urem => (imm0.to_biguint()? % imm1.to_biguint()?).into(),
+        Opcode::Eq => ((imm0 == imm1) as usize).into(),
+        Opcode::Neq => ((imm0 != imm1) as usize).into(),
+        Opcode::Slt => ((imm0 < imm1) as usize).into(),
+        Opcode::Sgt => ((imm0 > imm1) as usize).into(),
+        Opcode::Sle => ((imm0 <= imm1) as usize).into(),
+        Opcode::Sge => ((imm0 >= imm1) as usize).into(),
+        Opcode::Ult => ((imm0.to_biguint()? < imm1.to_biguint()?) as usize).into(),
+        Opcode::Ugt => ((imm0.to_biguint()? > imm1.to_biguint()?) as usize).into(),
+        Opcode::Ule => ((imm0.to_biguint()? <= imm1.to_biguint()?) as usize).into(),
+        Opcode::Uge => ((imm0.to_biguint()? >= imm1.to_biguint()?) as usize).into(),
         _ => return None,
     };
-    Some(builder.ins().const_int(width, false, result))
+    Some(builder.ins().const_int(width, signal, result))
 }
