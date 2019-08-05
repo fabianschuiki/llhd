@@ -27,5 +27,15 @@ func @foo () void {
 	%v24 = ugt i32 %0, %1
 	%v25 = ule i32 %0, %1
 	%v26 = uge i32 %0, %1
+	%3 = const i1 0
+	br %3, %bb0, %bb1
+%dead:
+	%4 = const i1 1
+	br %4, %bb0, %bb1
+%bb0:
+	br %done
+%bb1:
+	br %done
+%done:
 	ret
 }

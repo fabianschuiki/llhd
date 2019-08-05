@@ -10,7 +10,7 @@ use crate::{
     ir::{InstData, ModUnitData},
     ty::Type,
 };
-use num::BigInt;
+use num::{BigInt, Zero};
 
 /// Fold a module.
 pub fn run_on_module(module: &mut Module) -> bool {
@@ -79,10 +79,24 @@ pub fn run_on_entity(entity: &mut Entity) -> bool {
 ///
 /// Returns `true` if the unit that contains the instruction was modified.
 pub fn run_on_inst(builder: &mut impl UnitBuilder, inst: Inst) -> bool {
+    builder.insert_after(inst);
+
+    // Fold branches.
+    if let InstData::Branch {
+        opcode: Opcode::BrCond,
+        args,
+        bbs,
+    } = builder.dfg()[inst]
+    {
+        return fold_branch(builder, inst, args[0], bbs).unwrap_or(false);
+    }
+
+    // Don't bother folding instructions which don't yield a result.
     if !builder.dfg().has_result(inst) {
         return false;
     }
-    builder.insert_after(inst);
+
+    // Fold all other instructions.
     let value = builder.dfg().inst_result(inst);
     let ty = builder.dfg().value_type(value);
     let replacement = match builder.dfg()[inst] {
@@ -198,4 +212,20 @@ fn fold_binary_int(
         _ => return None,
     };
     Some(builder.ins().const_int(width, signal, result))
+}
+
+/// Fold a branch instruction.
+fn fold_branch(
+    builder: &mut impl UnitBuilder,
+    inst: Inst,
+    arg: Value,
+    bbs: [Block; 2],
+) -> Option<bool> {
+    let arg_inst = builder.dfg().get_value_inst(arg)?;
+    let imm = builder.dfg()[arg_inst].get_const_int()?;
+    let bb = bbs[!imm.is_zero() as usize];
+    builder.ins().br(bb);
+    builder.remove_inst(inst);
+    builder.prune_if_unused(arg_inst);
+    Some(true)
 }

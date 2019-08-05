@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix `reg` instruction writer output having data and triggers mangled.
+- Fix `remove_inst` for instructions not yielding a result.
+- Fix `prune_if_unused` for instructions not yielding a result.
 
 ## 0.7.1 - 2019-05-04
 ### Fixed

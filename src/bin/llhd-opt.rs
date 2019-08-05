@@ -10,7 +10,17 @@ use std::{
     result::Result,
 };
 
-fn main() -> Result<(), String> {
+fn main() {
+    match main_inner() {
+        Ok(_) => (),
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            std::process::exit(1);
+        }
+    }
+}
+
+fn main_inner() -> Result<(), String> {
     let matches = app_from_crate!()
         .about("Optimizes LLHD assembly.")
         .arg(
@@ -50,7 +60,7 @@ fn main() -> Result<(), String> {
     verifier.verify_module(&module);
     verifier
         .finish()
-        .map_err(|errs| format!("Verification failed after optimization: {}", errs))?;
+        .map_err(|errs| format!("Verification failed after optimization:\n{}", errs))?;
 
     // Write the output.
     if let Some(path) = matches.value_of("output)") {

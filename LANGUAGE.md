@@ -119,6 +119,7 @@ Instruction | Allowed In | Description
 `shr`   | EFP | Shift a value to the right
 `mux`   | EFP | Choose from an array of values
 `reg`   | E   | A register to provide storage for a value
+`br`    | FP  | Branch to a different block
 `insert`  | EFP | Change the value of one or more fields, elements, or bits.
 `extract` | EFP | Retrieve the value of one or more fields, elements, or bits.
 `shl`, `shr` | EFP | Shift a value to the left or right.
@@ -391,6 +392,12 @@ An SR latch:
     %0 = const i1$ 0
     %1 = const i1$ 1
     %Q = reg i1$ %0, %0 high i1$ %R, %1 high i1$ %S
+
+
+### `br` - Branch
+
+    br <block>
+    br <value>, <block_if_0>, <block_if_1>
 
 
 ### `insert` — Insert Value

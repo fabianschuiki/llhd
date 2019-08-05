@@ -75,11 +75,13 @@ impl DataFlowGraph {
 
     /// Remove an instruction.
     pub fn remove_inst(&mut self, inst: Inst) {
-        let value = self.inst_result(inst);
-        assert!(!self.has_uses(value));
+        if self.has_result(inst) {
+            let value = self.inst_result(inst);
+            assert!(!self.has_uses(value));
+            self.values.remove(value);
+        }
         self.insts.remove(inst);
         self.results.remove(inst);
-        self.values.remove(value);
     }
 
     /// Returns whether an instruction produces a result.
