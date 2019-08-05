@@ -4,8 +4,8 @@
 
 use crate::{
     ir::{
-        Block, ControlFlowGraph, DataFlowGraph, EntityInsertPos, Inst, InstData, InstLayout,
-        Signature, Unit, UnitBuilder, UnitKind, UnitName,
+        Block, ControlFlowGraph, DataFlowGraph, EntityInsertPos, FunctionLayout, Inst, InstData,
+        InstLayout, Signature, Unit, UnitBuilder, UnitKind, UnitName,
     },
     ty::{signal_ty, Type},
     verifier::Verifier,
@@ -69,6 +69,22 @@ impl Unit for Entity {
 
     fn name_mut(&mut self) -> &mut UnitName {
         &mut self.name
+    }
+
+    fn func_layout(&self) -> &FunctionLayout {
+        panic!("func_layout() called on entity");
+    }
+
+    fn func_layout_mut(&mut self) -> &mut FunctionLayout {
+        panic!("func_layout_mut() called on entity");
+    }
+
+    fn inst_layout(&self) -> &InstLayout {
+        &self.layout
+    }
+
+    fn inst_layout_mut(&mut self) -> &mut InstLayout {
+        &mut self.layout
     }
 
     fn dump_fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

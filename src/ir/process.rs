@@ -5,7 +5,7 @@
 use crate::{
     ir::{
         Block, ControlFlowGraph, DataFlowGraph, FunctionInsertPos, FunctionLayout, Inst, InstData,
-        Signature, Unit, UnitBuilder, UnitKind, UnitName, Value,
+        InstLayout, Signature, Unit, UnitBuilder, UnitKind, UnitName, Value,
     },
     ty::Type,
     verifier::Verifier,
@@ -71,6 +71,22 @@ impl Unit for Process {
 
     fn name_mut(&mut self) -> &mut UnitName {
         &mut self.name
+    }
+
+    fn func_layout(&self) -> &FunctionLayout {
+        &self.layout
+    }
+
+    fn func_layout_mut(&mut self) -> &mut FunctionLayout {
+        &mut self.layout
+    }
+
+    fn inst_layout(&self) -> &InstLayout {
+        panic!("inst_layout() called on process");
+    }
+
+    fn inst_layout_mut(&mut self) -> &mut InstLayout {
+        panic!("inst_layout_mut() called on process");
     }
 
     fn dump_fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
