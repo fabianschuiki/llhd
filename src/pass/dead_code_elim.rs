@@ -6,7 +6,8 @@
 //! value is never used, trivial blocks, and blocks which cannot be reached.
 
 use crate::ir::prelude::*;
-use crate::ir::ModUnitData;
+use crate::ir::{InstData, ModUnitData};
+use std::collections::HashSet;
 
 /// Eliminate dead code in a module.
 pub fn run_on_module(module: &mut Module) -> bool {
@@ -38,6 +39,7 @@ pub fn run_on_function(func: &mut Function) -> bool {
     for inst in insts {
         modified |= builder.prune_if_unused(inst);
     }
+    prune_function_layout(&mut builder);
     modified
 }
 
@@ -56,6 +58,7 @@ pub fn run_on_process(prok: &mut Process) -> bool {
     for inst in insts {
         modified |= builder.prune_if_unused(inst);
     }
+    // prune_function_layout(&mut builder.prok.layout);
     modified
 }
 
@@ -69,4 +72,59 @@ pub fn run_on_entity(entity: &mut Entity) -> bool {
         modified |= builder.prune_if_unused(inst);
     }
     modified
+}
+
+/// Eliminate unreachable blocks in a function layout.
+fn prune_function_layout(builder: &mut FunctionBuilder) -> bool {
+    // Find all trivially empty blocks and cause all predecessors to directly
+    // jump to the successor.
+    let first_bb = builder.func.layout.first_block().unwrap();
+    let mut trivial: Vec<(Block, Block)> = vec![];
+    for bb in builder.func.layout.blocks() {
+        let first_inst = builder.func.layout.first_inst(bb).unwrap();
+        let last_inst = builder.func.layout.last_inst(bb).unwrap();
+        if first_inst != last_inst {
+            continue;
+        }
+        match builder.dfg()[last_inst] {
+            InstData::Jump { bbs, .. } => {
+                for (_, to) in &mut trivial {
+                    if *to == bb {
+                        *to = bbs[0];
+                    }
+                }
+                trivial.push((bb, bbs[0]));
+            }
+            _ => continue,
+        }
+    }
+    for (from, to) in trivial {
+        builder.dfg_mut().replace_block_use(from, to);
+        // If this is the entry block, hoist the target up as the first block.
+        if from == first_bb {
+            builder.func.layout.swap_blocks(from, to);
+        }
+    }
+
+    // Find all blocks reachable from the entry point.
+    let first_bb = builder.func.layout.first_block().unwrap();
+    let mut unreachable: HashSet<Block> = builder.func.layout.blocks().collect();
+    let mut todo: Vec<Block> = Default::default();
+    todo.push(first_bb);
+    unreachable.remove(&first_bb);
+    while let Some(block) = todo.pop() {
+        let term_inst = builder.func.layout.last_inst(block).unwrap();
+        for &bb in builder.dfg()[term_inst].blocks() {
+            if unreachable.remove(&bb) {
+                todo.push(bb);
+            }
+        }
+    }
+
+    // Remove all unreachable blocks.
+    for bb in unreachable {
+        builder.remove_block(bb);
+    }
+
+    false
 }

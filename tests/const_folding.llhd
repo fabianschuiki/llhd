@@ -35,6 +35,9 @@ func @foo () void {
 %bb0:
 	br %done
 %bb1:
+	%weiot = const i32 0
+	%asdf = var i32 %weiot
+	st i32* %asdf, %weiot
 	br %done
 %done:
 	ret
