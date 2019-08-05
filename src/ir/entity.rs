@@ -152,6 +152,10 @@ impl UnitBuilder for EntityBuilder<'_> {
         panic!("block() called on entity");
     }
 
+    fn remove_block(&mut self, _: Block) {
+        panic!("remove_block() called on entity");
+    }
+
     fn insert_at_end(&mut self) {
         self.pos = EntityInsertPos::Append;
     }

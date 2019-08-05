@@ -245,6 +245,11 @@ pub trait UnitBuilder {
     /// Panics if the unit is an `Entity`.
     fn block(&mut self) -> Block;
 
+    /// Remove a BB.
+    ///
+    /// Panics if the unit is an `Entity`.
+    fn remove_block(&mut self, bb: Block);
+
     /// Append all following instructions at the end of the unit.
     ///
     /// Panics if the unit is a `Function` or `Process`.

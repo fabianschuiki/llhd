@@ -5,7 +5,7 @@
 use crate::{
     ir::{
         Block, ControlFlowGraph, DataFlowGraph, FunctionInsertPos, FunctionLayout, Inst, InstData,
-        Signature, Unit, UnitBuilder, UnitKind, UnitName,
+        Signature, Unit, UnitBuilder, UnitKind, UnitName, Value,
     },
     ty::Type,
     verifier::Verifier,
@@ -153,6 +153,19 @@ impl UnitBuilder for ProcessBuilder<'_> {
         let bb = self.prok.cfg.add_block();
         self.prok.layout.append_block(bb);
         bb
+    }
+
+    fn remove_block(&mut self, bb: Block) {
+        let insts: Vec<_> = self.prok.layout.insts(bb).collect();
+        self.prok.layout.remove_block(bb);
+        self.prok.cfg_mut().remove_block(bb);
+        for inst in insts {
+            if self.prok.dfg().has_result(inst) {
+                let value = self.prok.dfg().inst_result(inst);
+                self.prok.dfg_mut().replace_use(value, Value::invalid());
+            }
+            self.prok.dfg_mut().remove_inst(inst);
+        }
     }
 
     fn insert_at_end(&mut self) {

@@ -34,6 +34,11 @@ impl ControlFlowGraph {
         self.blocks.add(BlockData { name: None })
     }
 
+    /// Remove a BB from the graph.
+    pub fn remove_block(&mut self, bb: Block) {
+        self.blocks.remove(bb);
+    }
+
     /// Return the name of a BB.
     pub fn get_name(&self, bb: Block) -> Option<&str> {
         self[bb].name.as_ref().map(AsRef::as_ref)
