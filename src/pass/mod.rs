@@ -6,3 +6,4 @@
 //! intermediate representation.
 
 pub mod const_folding;
+pub mod dead_code_elim;

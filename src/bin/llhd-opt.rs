@@ -52,8 +52,9 @@ fn main_inner() -> Result<(), String> {
         module
     };
 
-    // Apply optimization pass. Just constant folding for now.
+    // Apply optimization pass.
     llhd::pass::const_folding::run_on_module(&mut module);
+    llhd::pass::dead_code_elim::run_on_module(&mut module);
 
     // Verify modified module.
     let mut verifier = Verifier::new();
