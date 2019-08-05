@@ -83,11 +83,11 @@ fn process() {
 #[test]
 fn entity() {
     loopback! {"
-        entity @top (i32 %0) -> (i32 %1) {
-            %k0 = const i32 9000
-            %k1 = const i32 42
-            %2 = add i32 %0, %k0
-            %y = add i32 %0, %k1
+        entity @top (i32$ %0) -> (i32$ %1) {
+            %k0 = const i32$ 9000
+            %k1 = const i32$ 42
+            %2 = add i32$ %0, %k0
+            %y = add i32$ %0, %k1
         }
     "};
 }
