@@ -297,7 +297,9 @@ pub trait UnitBuilder {
     }
 
     /// Remove an instruction if its value is not being read.
-    fn prune_if_unused(&mut self, inst: Inst) {
+    ///
+    /// Returns true if the instruction was removed.
+    fn prune_if_unused(&mut self, inst: Inst) -> bool {
         if self.dfg().has_result(inst) && !self.dfg().has_uses(self.dfg().inst_result(inst)) {
             #[allow(unreachable_patterns)]
             let inst_args: Vec<_> = self.dfg()[inst]
@@ -310,6 +312,9 @@ pub trait UnitBuilder {
             for inst in inst_args {
                 self.prune_if_unused(inst);
             }
+            true
+        } else {
+            false
         }
     }
 }
