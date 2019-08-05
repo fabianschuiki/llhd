@@ -76,6 +76,8 @@ pub fn run_on_entity(entity: &mut Entity) -> bool {
 
 /// Eliminate unreachable and trivial blocks in a function layout.
 fn prune_blocks(builder: &mut impl UnitBuilder) -> bool {
+    let mut modified = false;
+
     // Find all trivially empty blocks and cause all predecessors to directly
     // jump to the successor.
     let first_bb = builder.func_layout().first_block().unwrap();
@@ -99,6 +101,7 @@ fn prune_blocks(builder: &mut impl UnitBuilder) -> bool {
         }
     }
     for (from, to) in trivial {
+        modified |= true;
         builder.dfg_mut().replace_block_use(from, to);
         // If this is the entry block, hoist the target up as the first block.
         if from == first_bb {
@@ -123,8 +126,9 @@ fn prune_blocks(builder: &mut impl UnitBuilder) -> bool {
 
     // Remove all unreachable blocks.
     for bb in unreachable {
+        modified |= true;
         builder.remove_block(bb);
     }
 
-    false
+    modified
 }
