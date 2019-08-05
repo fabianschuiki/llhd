@@ -7,7 +7,7 @@
 
 use crate::{
     impl_table_indexing,
-    ir::{Arg, ExtUnit, ExtUnitData, Inst, InstData, Signature, Value, ValueData},
+    ir::{Arg, Block, ExtUnit, ExtUnitData, Inst, InstData, Signature, Value, ValueData},
     table::{PrimaryTable, SecondaryTable, TableKey},
     ty::Type,
 };
@@ -182,5 +182,16 @@ impl DataFlowGraph {
     /// Check if a value has exactly one use.
     pub fn has_one_use(&self, value: Value) -> bool {
         self.uses(value).count() == 1
+    }
+
+    /// Replace all uses of a block with another.
+    ///
+    /// Returns how many blocks were replaced.
+    pub fn replace_block_use(&mut self, from: Block, to: Block) -> usize {
+        let mut count = 0;
+        for inst in self.insts.storage.values_mut() {
+            count += inst.replace_block(from, to);
+        }
+        count
     }
 }
