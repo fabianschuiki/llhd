@@ -141,6 +141,41 @@ impl FunctionLayout {
         }
     }
 
+    /// Swap the position of two BBs.
+    pub fn swap_blocks(&mut self, bb0: Block, bb1: Block) {
+        let bb0_next = self.bbs[bb0].next;
+        let bb0_prev = self.bbs[bb0].prev;
+
+        self.bbs[bb0].next = self.bbs[bb1].next;
+        self.bbs[bb0].prev = self.bbs[bb1].prev;
+        if let Some(next) = self.bbs[bb0].next {
+            self.bbs[next].prev = Some(bb0);
+        }
+        if let Some(prev) = self.bbs[bb0].prev {
+            self.bbs[prev].next = Some(bb0);
+        }
+
+        self.bbs[bb1].next = bb0_next;
+        self.bbs[bb1].prev = bb0_prev;
+        if let Some(next) = self.bbs[bb1].next {
+            self.bbs[next].prev = Some(bb1);
+        }
+        if let Some(prev) = self.bbs[bb1].prev {
+            self.bbs[prev].next = Some(bb1);
+        }
+
+        if self.first_bb == Some(bb0) {
+            self.first_bb = Some(bb1);
+        } else if self.first_bb == Some(bb1) {
+            self.first_bb = Some(bb0);
+        }
+        if self.last_bb == Some(bb0) {
+            self.last_bb = Some(bb1);
+        } else if self.last_bb == Some(bb1) {
+            self.last_bb = Some(bb0);
+        }
+    }
+
     /// Return an iterator over all BBs in layout order.
     pub fn blocks<'a>(&'a self) -> impl Iterator<Item = Block> + 'a {
         std::iter::successors(self.first_bb, move |&bb| self.next_block(bb))
