@@ -1,0 +1,8 @@
+func @foo () void {
+%entry:
+	%0 = const i32 0
+	%1 = var i32* %0
+	%2 = var i32* %0
+	eq i32* %1, %2
+	ret
+}

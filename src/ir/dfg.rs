@@ -9,7 +9,7 @@ use crate::{
     impl_table_indexing,
     ir::{Arg, Block, ExtUnit, ExtUnitData, Inst, InstData, Signature, Value, ValueData},
     table::{PrimaryTable, SecondaryTable, TableKey},
-    ty::Type,
+    ty::{void_ty, Type},
 };
 use std::collections::HashMap;
 
@@ -116,6 +116,15 @@ impl DataFlowGraph {
             ValueData::Inst { ty, .. } => ty.clone(),
             ValueData::Arg { ty, .. } => ty.clone(),
             ValueData::Placeholder { ty, .. } => ty.clone(),
+        }
+    }
+
+    /// Returns the type of an instruction.
+    pub fn inst_type(&self, inst: Inst) -> Type {
+        if self.has_result(inst) {
+            self.value_type(self.inst_result(inst))
+        } else {
+            void_ty()
         }
     }
 

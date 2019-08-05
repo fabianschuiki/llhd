@@ -370,7 +370,8 @@ impl<'a> TypedValue<'a> {
     fn build(self, builder: &mut impl UnitBuilder, context: &mut Context<'a>) -> ir::Value {
         match context.value_names.get(&self.value.0).cloned() {
             Some(v) => {
-                assert_eq!(builder.dfg().value_type(v), self.ty, "type mismatch");
+                // assert_eq!(builder.dfg().value_type(v), self.ty, "type mismatch");
+                // The above will be caught by the verifier in a more gentle way
                 v
             }
             None => {
