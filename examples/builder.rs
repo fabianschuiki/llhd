@@ -1,6 +1,6 @@
 // Copyright (c) 2017-2019 Fabian Schuiki
 use llhd::ir::prelude::*;
-use llhd::pass::ConstantFoldingPass;
+use llhd::pass::const_folding;
 
 fn main() {
     let mut func = build_function(UnitName::Global("foo".to_owned()));
@@ -12,9 +12,9 @@ fn main() {
     println!("");
     println!("Constant Folding");
     println!("");
-    ConstantFoldingPass::run_on_function(&mut func);
-    ConstantFoldingPass::run_on_process(&mut prok);
-    ConstantFoldingPass::run_on_entity(&mut ent);
+    const_folding::run_on_function(&mut func);
+    const_folding::run_on_process(&mut prok);
+    const_folding::run_on_entity(&mut ent);
     println!("{}", func.dump());
     println!("{}", prok.dump());
     println!("{}", ent.dump());

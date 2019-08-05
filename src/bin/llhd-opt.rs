@@ -3,7 +3,7 @@
 #[macro_use]
 extern crate clap;
 use clap::Arg;
-use llhd::{assembly::parse_module, pass::ConstantFoldingPass, verifier::Verifier};
+use llhd::{assembly::parse_module, verifier::Verifier};
 use std::{
     fs::File,
     io::{BufWriter, Read},
@@ -43,7 +43,7 @@ fn main() -> Result<(), String> {
     };
 
     // Apply optimization pass. Just constant folding for now.
-    ConstantFoldingPass::run_on_module(&mut module);
+    llhd::pass::const_folding::run_on_module(&mut module);
 
     // Verify modified module.
     let mut verifier = Verifier::new();
