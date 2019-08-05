@@ -39,7 +39,7 @@ pub fn run_on_function(func: &mut Function) -> bool {
     for inst in insts {
         modified |= builder.prune_if_unused(inst);
     }
-    prune_function_layout(&mut builder);
+    prune_blocks(&mut builder);
     modified
 }
 
@@ -58,7 +58,7 @@ pub fn run_on_process(prok: &mut Process) -> bool {
     for inst in insts {
         modified |= builder.prune_if_unused(inst);
     }
-    // prune_function_layout(&mut builder.prok.layout);
+    prune_blocks(&mut builder);
     modified
 }
 
@@ -74,15 +74,15 @@ pub fn run_on_entity(entity: &mut Entity) -> bool {
     modified
 }
 
-/// Eliminate unreachable blocks in a function layout.
-fn prune_function_layout(builder: &mut FunctionBuilder) -> bool {
+/// Eliminate unreachable and trivial blocks in a function layout.
+fn prune_blocks(builder: &mut impl UnitBuilder) -> bool {
     // Find all trivially empty blocks and cause all predecessors to directly
     // jump to the successor.
-    let first_bb = builder.func.layout.first_block().unwrap();
+    let first_bb = builder.func_layout().first_block().unwrap();
     let mut trivial: Vec<(Block, Block)> = vec![];
-    for bb in builder.func.layout.blocks() {
-        let first_inst = builder.func.layout.first_inst(bb).unwrap();
-        let last_inst = builder.func.layout.last_inst(bb).unwrap();
+    for bb in builder.func_layout().blocks() {
+        let first_inst = builder.func_layout().first_inst(bb).unwrap();
+        let last_inst = builder.func_layout().last_inst(bb).unwrap();
         if first_inst != last_inst {
             continue;
         }
@@ -102,18 +102,18 @@ fn prune_function_layout(builder: &mut FunctionBuilder) -> bool {
         builder.dfg_mut().replace_block_use(from, to);
         // If this is the entry block, hoist the target up as the first block.
         if from == first_bb {
-            builder.func.layout.swap_blocks(from, to);
+            builder.func_layout_mut().swap_blocks(from, to);
         }
     }
 
     // Find all blocks reachable from the entry point.
-    let first_bb = builder.func.layout.first_block().unwrap();
-    let mut unreachable: HashSet<Block> = builder.func.layout.blocks().collect();
+    let first_bb = builder.func_layout().first_block().unwrap();
+    let mut unreachable: HashSet<Block> = builder.func_layout().blocks().collect();
     let mut todo: Vec<Block> = Default::default();
     todo.push(first_bb);
     unreachable.remove(&first_bb);
     while let Some(block) = todo.pop() {
-        let term_inst = builder.func.layout.last_inst(block).unwrap();
+        let term_inst = builder.func_layout().last_inst(block).unwrap();
         for &bb in builder.dfg()[term_inst].blocks() {
             if unreachable.remove(&bb) {
                 todo.push(bb);
