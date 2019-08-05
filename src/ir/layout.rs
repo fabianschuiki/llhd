@@ -65,6 +65,27 @@ impl FunctionLayout {
         self.last_bb = Some(bb);
     }
 
+    /// Prepend a BB to the beginning of a function.
+    ///
+    /// This effectively makes `bb` the new entry block.
+    pub fn prepend_block(&mut self, bb: Block) {
+        self.bbs.add(
+            bb,
+            BlockNode {
+                prev: None,
+                next: self.first_bb,
+                layout: Default::default(),
+            },
+        );
+        if let Some(next) = self.first_bb {
+            self.bbs[next].prev = Some(bb);
+        }
+        if self.last_bb.is_none() {
+            self.last_bb = Some(bb);
+        }
+        self.first_bb = Some(bb);
+    }
+
     /// Insert a BB after another BB.
     pub fn insert_block_after(&mut self, bb: Block, after: Block) {
         self.bbs.add(
