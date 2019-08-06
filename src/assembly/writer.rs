@@ -439,12 +439,8 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
             Opcode::Wait => {
                 write!(self.writer.sink, "{} ", data.opcode())?;
                 self.write_block_name(data.blocks()[0])?;
-                let mut comma = false;
                 for &arg in data.args() {
-                    if comma {
-                        write!(self.writer.sink, ", ")?;
-                    }
-                    comma = true;
+                    write!(self.writer.sink, ", ")?;
                     self.write_value_use(arg, false)?;
                 }
             }
