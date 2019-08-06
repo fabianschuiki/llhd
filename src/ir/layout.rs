@@ -115,10 +115,10 @@ impl FunctionLayout {
                 layout: Default::default(),
             },
         );
-        self.bbs[before].prev = Some(bb);
         if let Some(prev) = self.bbs[before].prev {
             self.bbs[prev].next = Some(bb);
         }
+        self.bbs[before].prev = Some(bb);
         if self.first_bb == Some(before) {
             self.first_bb = Some(bb);
         }
@@ -143,25 +143,42 @@ impl FunctionLayout {
 
     /// Swap the position of two BBs.
     pub fn swap_blocks(&mut self, bb0: Block, bb1: Block) {
-        let bb0_next = self.bbs[bb0].next;
-        let bb0_prev = self.bbs[bb0].prev;
-
-        self.bbs[bb0].next = self.bbs[bb1].next;
-        self.bbs[bb0].prev = self.bbs[bb1].prev;
-        if let Some(next) = self.bbs[bb0].next {
-            self.bbs[next].prev = Some(bb0);
-        }
-        if let Some(prev) = self.bbs[bb0].prev {
-            self.bbs[prev].next = Some(bb0);
+        if bb0 == bb1 {
+            return;
         }
 
+        let mut bb0_next = self.bbs[bb0].next;
+        let mut bb0_prev = self.bbs[bb0].prev;
+        let mut bb1_next = self.bbs[bb1].next;
+        let mut bb1_prev = self.bbs[bb1].prev;
+        if bb0_next == Some(bb1) {
+            bb0_next = Some(bb0);
+        }
+        if bb0_prev == Some(bb1) {
+            bb0_prev = Some(bb0);
+        }
+        if bb1_next == Some(bb0) {
+            bb1_next = Some(bb1);
+        }
+        if bb1_prev == Some(bb0) {
+            bb1_prev = Some(bb1);
+        }
+        self.bbs[bb0].next = bb1_next;
+        self.bbs[bb0].prev = bb1_prev;
         self.bbs[bb1].next = bb0_next;
         self.bbs[bb1].prev = bb0_prev;
-        if let Some(next) = self.bbs[bb1].next {
+
+        if let Some(next) = bb0_next {
             self.bbs[next].prev = Some(bb1);
         }
-        if let Some(prev) = self.bbs[bb1].prev {
+        if let Some(prev) = bb0_prev {
             self.bbs[prev].next = Some(bb1);
+        }
+        if let Some(next) = bb1_next {
+            self.bbs[next].prev = Some(bb0);
+        }
+        if let Some(prev) = bb1_prev {
+            self.bbs[prev].next = Some(bb0);
         }
 
         if self.first_bb == Some(bb0) {
