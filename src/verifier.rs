@@ -251,7 +251,7 @@ impl Verifier {
                 self.verify_prb_inst(inst, dfg);
             }
             Opcode::Drv => {
-                self.assert_inst_binary(inst, dfg);
+                self.assert_inst_ternary(inst, dfg);
                 self.verify_drv_inst(inst, dfg);
             }
             Opcode::Var => {
@@ -814,6 +814,7 @@ impl Verifier {
                 ),
             });
         }
+        self.verify_arg_matches_ty(inst, dfg, dfg[inst].args()[2], &time_ty());
     }
 
     /// Verify that the types of a var instruction line up.
