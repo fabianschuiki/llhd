@@ -996,8 +996,8 @@ pub enum Opcode {
     Inst,
 
     Sig,
-    Drv,
     Prb,
+    Drv,
 
     Var,
     Ld,

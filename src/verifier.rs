@@ -7,7 +7,7 @@
 //! have terminators, and types line up.
 
 use crate::ir::*;
-use crate::ty::{int_ty, void_ty, Type};
+use crate::ty::{array_ty, int_ty, pointer_ty, signal_ty, time_ty, void_ty, Type};
 use std::{
     fmt::Display,
     ops::{Deref, DerefMut},
@@ -205,13 +205,66 @@ impl Verifier {
                 self.assert_inst_binary(inst, dfg);
                 self.verify_mux_inst(inst, dfg);
             }
+            Opcode::Reg => {
+                self.assert_inst_reg(inst, dfg);
+                self.verify_reg_inst(inst, dfg);
+            }
+            Opcode::InsField => {
+                self.assert_inst_insext(inst, dfg);
+                self.verify_ins_field_inst(inst, dfg);
+            }
+            Opcode::ExtField => {
+                self.assert_inst_insext(inst, dfg);
+                self.verify_ext_field_inst(inst, dfg);
+            }
+            Opcode::InsSlice => {
+                self.assert_inst_insext(inst, dfg);
+                self.verify_ins_slice_inst(inst, dfg);
+            }
+            Opcode::ExtSlice => {
+                self.assert_inst_insext(inst, dfg);
+                self.verify_ext_slice_inst(inst, dfg);
+            }
+            Opcode::Con => {
+                self.assert_inst_binary(inst, dfg);
+                self.verify_arg_ty_is_signal(inst, dfg, dfg[inst].args()[0]);
+                self.verify_arg_tys_match(inst, dfg);
+            }
+            Opcode::Del => {
+                self.assert_inst_binary(inst, dfg);
+                self.verify_arg_ty_is_signal(inst, dfg, dfg[inst].args()[0]);
+                self.verify_arg_matches_ty(inst, dfg, dfg[inst].args()[0], &dfg.inst_type(inst));
+                self.verify_arg_matches_ty(inst, dfg, dfg[inst].args()[1], &time_ty());
+            }
+            Opcode::Call => {
+                // TODO: properly check argument types match the declaration
+            }
+            Opcode::Inst => {
+                // TODO: properly check argument types match the declaration
+            }
             Opcode::Sig => {
                 self.assert_inst_unary(inst, dfg);
                 self.verify_sig_inst(inst, dfg);
             }
+            Opcode::Prb => {
+                self.assert_inst_unary(inst, dfg);
+                self.verify_prb_inst(inst, dfg);
+            }
+            Opcode::Drv => {
+                self.assert_inst_binary(inst, dfg);
+                self.verify_drv_inst(inst, dfg);
+            }
             Opcode::Var => {
                 self.assert_inst_unary(inst, dfg);
                 self.verify_var_inst(inst, dfg);
+            }
+            Opcode::Ld => {
+                self.assert_inst_unary(inst, dfg);
+                self.verify_ld_inst(inst, dfg);
+            }
+            Opcode::St => {
+                self.assert_inst_binary(inst, dfg);
+                self.verify_st_inst(inst, dfg);
             }
             Opcode::Halt => {}
             Opcode::Ret => {
@@ -229,7 +282,14 @@ impl Verifier {
                 self.assert_inst_branch(inst, dfg);
                 self.verify_args_match_ty(inst, dfg, &int_ty(1));
             }
-            _ => {}
+            Opcode::Wait => {
+                self.assert_inst_wait(inst, dfg);
+            }
+            Opcode::WaitTime => {
+                self.assert_inst_wait(inst, dfg);
+                self.verify_arg_matches_ty(inst, dfg, dfg[inst].args()[0], &time_ty());
+            }
+            // _ => {}
             // _ => unimplemented!("verify `{}`", inst.dump(dfg)),
         }
     }
@@ -306,6 +366,42 @@ impl Verifier {
         }
     }
 
+    /// Assert that an instruction has wait format.
+    fn assert_inst_wait(&mut self, inst: Inst, dfg: &DataFlowGraph) {
+        match &dfg[inst] {
+            InstData::Wait { .. } => (),
+            fmt => panic!(
+                "{0:?} ({0}) should have wait format, but has {1:?}",
+                fmt.opcode(),
+                fmt
+            ),
+        }
+    }
+
+    /// Assert that an instruction has reg format.
+    fn assert_inst_reg(&mut self, inst: Inst, dfg: &DataFlowGraph) {
+        match &dfg[inst] {
+            InstData::Reg { .. } => (),
+            fmt => panic!(
+                "{0:?} ({0}) should have reg format, but has {1:?}",
+                fmt.opcode(),
+                fmt
+            ),
+        }
+    }
+
+    /// Assert that an instruction has ins/ext format.
+    fn assert_inst_insext(&mut self, inst: Inst, dfg: &DataFlowGraph) {
+        match &dfg[inst] {
+            InstData::InsExt { .. } => (),
+            fmt => panic!(
+                "{0:?} ({0}) should have ins/ext format, but has {1:?}",
+                fmt.opcode(),
+                fmt
+            ),
+        }
+    }
+
     /// Verify that the types of an instruction's arguments agree.
     fn verify_arg_tys_match(&mut self, inst: Inst, dfg: &DataFlowGraph) {
         let ty = match dfg[inst].args().get(0) {
@@ -330,6 +426,18 @@ impl Verifier {
                 unit: self.unit.clone(),
                 object: Some(inst.dump(dfg).to_string()),
                 message: format!("argument types must match (but are {})", tys),
+            });
+        }
+    }
+
+    /// Verify that the type of aninstruction's argument is a signal.
+    fn verify_arg_ty_is_signal(&mut self, inst: Inst, dfg: &DataFlowGraph, arg: Value) {
+        let ty = dfg.value_type(arg);
+        if !ty.is_signal() {
+            self.errors.push(VerifierError {
+                unit: self.unit.clone(),
+                object: Some(inst.dump(dfg).to_string()),
+                message: format!("argument {} type must be a signal (but is {})", arg, ty),
             });
         }
     }
@@ -397,6 +505,18 @@ impl Verifier {
             object: Some(inst.dump(dfg).to_string()),
             message: format!("return type must be iN or iN$ (but is {})", ty),
         });
+    }
+
+    /// Verify that an instruction produces a result of a given type.
+    fn verify_inst_ty(&mut self, inst: Inst, dfg: &DataFlowGraph, ty: &Type) {
+        let inst_ty = dfg.inst_type(inst);
+        if inst_ty != *ty {
+            self.errors.push(VerifierError {
+                unit: self.unit.clone(),
+                object: Some(inst.dump(dfg).to_string()),
+                message: format!("return type must be {} (but is {})", ty, inst_ty),
+            });
+        }
     }
 
     /// Verify that the types of a shift instruction line up.
@@ -483,6 +603,163 @@ impl Verifier {
         }
     }
 
+    /// Verify that the types of a reg instruction line up.
+    fn verify_reg_inst(&mut self, inst: Inst, dfg: &DataFlowGraph) {
+        let ty = dfg.value_type(dfg[inst].args()[0]);
+        self.verify_arg_ty_is_signal(inst, dfg, dfg[inst].args()[0]);
+        for &arg in dfg[inst].data_args() {
+            self.verify_arg_matches_ty(inst, dfg, arg, &ty);
+        }
+        for &arg in dfg[inst].trigger_args() {
+            self.verify_arg_matches_ty(inst, dfg, arg, &signal_ty(int_ty(1)));
+        }
+    }
+
+    /// Determine the field type for an insf/extf instruction.
+    fn find_insext_field_type(
+        &mut self,
+        inst: Inst,
+        dfg: &DataFlowGraph,
+        allow_deref: bool,
+    ) -> Option<Type> {
+        let field = dfg[inst].imms()[0];
+        let target_ty = dfg.value_type(dfg[inst].args()[0]);
+        let (target_ty, wrap): (_, &Fn(Type) -> Type) = if allow_deref && target_ty.is_signal() {
+            (target_ty.unwrap_signal(), &signal_ty)
+        } else if allow_deref && target_ty.is_pointer() {
+            (target_ty.unwrap_pointer(), &pointer_ty)
+        } else {
+            (&target_ty, &identity)
+        };
+        let ty = if target_ty.is_struct() {
+            match target_ty.unwrap_struct().get(field) {
+                Some(ty) => Some(ty.clone()),
+                None => {
+                    self.errors.push(VerifierError {
+                        unit: self.unit.clone(),
+                        object: Some(inst.dump(dfg).to_string()),
+                        message: format!(
+                            "field index {} out of bounds of struct type {}",
+                            field, target_ty
+                        ),
+                    });
+                    None
+                }
+            }
+        } else if target_ty.is_array() {
+            Some(target_ty.unwrap_array().1.clone())
+        } else {
+            self.errors.push(VerifierError {
+                unit: self.unit.clone(),
+                object: Some(inst.dump(dfg).to_string()),
+                message: format!(
+                    "target must be of struct or array type (but is {})",
+                    target_ty
+                ),
+            });
+            None
+        };
+        ty.map(wrap)
+    }
+
+    /// Determine the field type for an inss/exts instruction.
+    fn find_insext_slice_type(
+        &mut self,
+        inst: Inst,
+        dfg: &DataFlowGraph,
+        allow_deref: bool,
+    ) -> Option<Type> {
+        let offset = dfg[inst].imms()[0];
+        let length = dfg[inst].imms()[1];
+        let target_ty = dfg.value_type(dfg[inst].args()[0]);
+        let (target_ty, wrap): (_, &Fn(Type) -> Type) = if allow_deref && target_ty.is_signal() {
+            (target_ty.unwrap_signal(), &signal_ty)
+        } else if allow_deref && target_ty.is_pointer() {
+            (target_ty.unwrap_pointer(), &pointer_ty)
+        } else {
+            (&target_ty, &identity)
+        };
+        let ty = if target_ty.is_array() {
+            let (array_len, elem_ty) = target_ty.unwrap_array();
+            if array_len < offset + length {
+                self.errors.push(VerifierError {
+                    unit: self.unit.clone(),
+                    object: Some(inst.dump(dfg).to_string()),
+                    message: format!(
+                        "access {}..{} out of array bounds 0..{}",
+                        offset,
+                        offset + length,
+                        array_len
+                    ),
+                });
+            }
+            Some(array_ty(length, elem_ty.clone()))
+        } else if target_ty.is_int() {
+            let size = target_ty.unwrap_int();
+            if size < offset + length {
+                self.errors.push(VerifierError {
+                    unit: self.unit.clone(),
+                    object: Some(inst.dump(dfg).to_string()),
+                    message: format!(
+                        "access {}..{} out of integer bounds 0..{}",
+                        offset,
+                        offset + length,
+                        size
+                    ),
+                });
+            }
+            Some(int_ty(length))
+        } else {
+            self.errors.push(VerifierError {
+                unit: self.unit.clone(),
+                object: Some(inst.dump(dfg).to_string()),
+                message: format!("target must be of array or iN type (but is {})", target_ty),
+            });
+            None
+        };
+        ty.map(wrap)
+    }
+
+    /// Verify that the types of an insf instruction line up.
+    fn verify_ins_field_inst(&mut self, inst: Inst, dfg: &DataFlowGraph) {
+        let target_ty = dfg.inst_type(inst);
+        self.verify_arg_matches_ty(inst, dfg, dfg[inst].args()[0], &target_ty);
+        let arg_ty = match self.find_insext_field_type(inst, dfg, false) {
+            Some(ty) => ty,
+            None => return,
+        };
+        self.verify_arg_matches_ty(inst, dfg, dfg[inst].args()[1], &arg_ty);
+    }
+
+    /// Verify that the types of an extf instruction line up.
+    fn verify_ext_field_inst(&mut self, inst: Inst, dfg: &DataFlowGraph) {
+        let arg_ty = match self.find_insext_field_type(inst, dfg, true) {
+            Some(ty) => ty,
+            None => return,
+        };
+        self.verify_inst_ty(inst, dfg, &arg_ty);
+    }
+
+    /// Verify that the types of an inss instruction line up.
+    fn verify_ins_slice_inst(&mut self, inst: Inst, dfg: &DataFlowGraph) {
+        let target_ty = dfg.inst_type(inst);
+        self.verify_arg_matches_ty(inst, dfg, dfg[inst].args()[0], &target_ty);
+        let arg_ty = match self.find_insext_slice_type(inst, dfg, false) {
+            Some(ty) => ty,
+            None => return,
+        };
+        self.verify_arg_matches_ty(inst, dfg, dfg[inst].args()[1], &arg_ty);
+    }
+
+    /// Verify that the types of an exts instruction line up.
+    fn verify_ext_slice_inst(&mut self, inst: Inst, dfg: &DataFlowGraph) {
+        let arg_ty = match self.find_insext_slice_type(inst, dfg, true) {
+            Some(ty) => ty,
+            None => return,
+        };
+        self.verify_inst_ty(inst, dfg, &arg_ty);
+    }
+
     /// Verify that the types of a sig instruction line up.
     fn verify_sig_inst(&mut self, inst: Inst, dfg: &DataFlowGraph) {
         let ty = dfg.inst_type(inst);
@@ -496,6 +773,49 @@ impl Verifier {
         self.verify_args_match_ty(inst, dfg, ty.unwrap_signal());
     }
 
+    /// Verify that the types of a prb instruction line up.
+    fn verify_prb_inst(&mut self, inst: Inst, dfg: &DataFlowGraph) {
+        let ty = dfg.inst_type(inst);
+        let arg_ty = dfg.value_type(dfg[inst].args()[0]);
+        if !arg_ty.is_signal() {
+            self.errors.push(VerifierError {
+                unit: self.unit.clone(),
+                object: Some(inst.dump(dfg).to_string()),
+                message: format!("type {} must be a signal", ty),
+            });
+        }
+        if ty != *arg_ty.unwrap_signal() {
+            self.errors.push(VerifierError {
+                unit: self.unit.clone(),
+                object: Some(inst.dump(dfg).to_string()),
+                message: format!("type {} must be signal of return type {}", arg_ty, ty),
+            });
+        }
+    }
+
+    /// Verify that the types of a drv instruction line up.
+    fn verify_drv_inst(&mut self, inst: Inst, dfg: &DataFlowGraph) {
+        let ty = dfg.value_type(dfg[inst].args()[1]);
+        let arg_ty = dfg.value_type(dfg[inst].args()[0]);
+        if !arg_ty.is_signal() {
+            self.errors.push(VerifierError {
+                unit: self.unit.clone(),
+                object: Some(inst.dump(dfg).to_string()),
+                message: format!("type {} must be a signal", ty),
+            });
+        }
+        if ty != *arg_ty.unwrap_signal() {
+            self.errors.push(VerifierError {
+                unit: self.unit.clone(),
+                object: Some(inst.dump(dfg).to_string()),
+                message: format!(
+                    "drive target type {} must be signal of driven value type {}",
+                    arg_ty, ty
+                ),
+            });
+        }
+    }
+
     /// Verify that the types of a var instruction line up.
     fn verify_var_inst(&mut self, inst: Inst, dfg: &DataFlowGraph) {
         let ty = dfg.inst_type(inst);
@@ -507,6 +827,49 @@ impl Verifier {
             });
         }
         self.verify_args_match_ty(inst, dfg, ty.unwrap_pointer());
+    }
+
+    /// Verify that the types of a ld instruction line up.
+    fn verify_ld_inst(&mut self, inst: Inst, dfg: &DataFlowGraph) {
+        let ty = dfg.inst_type(inst);
+        let arg_ty = dfg.value_type(dfg[inst].args()[0]);
+        if !arg_ty.is_pointer() {
+            self.errors.push(VerifierError {
+                unit: self.unit.clone(),
+                object: Some(inst.dump(dfg).to_string()),
+                message: format!("type {} must be a pointer", ty),
+            });
+        }
+        if ty != *arg_ty.unwrap_pointer() {
+            self.errors.push(VerifierError {
+                unit: self.unit.clone(),
+                object: Some(inst.dump(dfg).to_string()),
+                message: format!("type {} must be pointer of return type {}", arg_ty, ty),
+            });
+        }
+    }
+
+    /// Verify that the types of a st instruction line up.
+    fn verify_st_inst(&mut self, inst: Inst, dfg: &DataFlowGraph) {
+        let ty = dfg.value_type(dfg[inst].args()[1]);
+        let arg_ty = dfg.value_type(dfg[inst].args()[0]);
+        if !arg_ty.is_pointer() {
+            self.errors.push(VerifierError {
+                unit: self.unit.clone(),
+                object: Some(inst.dump(dfg).to_string()),
+                message: format!("type {} must be a pointer", ty),
+            });
+        }
+        if ty != *arg_ty.unwrap_pointer() {
+            self.errors.push(VerifierError {
+                unit: self.unit.clone(),
+                object: Some(inst.dump(dfg).to_string()),
+                message: format!(
+                    "store target type {} must be pointer of stored value type {}",
+                    arg_ty, ty
+                ),
+            });
+        }
     }
 
     /// Verify that the return type of the enclosing function is compatible with
@@ -596,4 +959,8 @@ impl Display for VerifierErrors {
         }
         Ok(())
     }
+}
+
+fn identity(ty: Type) -> Type {
+    ty
 }
