@@ -1,0 +1,129 @@
+proc %top.always_ff.227.0 (i1$ %0, i1$ %1, i32$ %2) -> (i32$ %3) {
+%4:
+    %const_i1_0 = const i1 0
+    br %init
+%init:
+    %clk = prb i1$ %0
+    %rst_n = prb i1$ %1
+    wait %check, %0, %1
+%check:
+    %clk0 = prb i1$ %0
+    %7 = eq i1 %clk, %const_i1_0
+    %8 = neq i1 %clk0, %const_i1_0
+    %posedge = and i1 %7, %8
+    %rst_n0 = prb i1$ %1
+    %9 = eq i1 %rst_n0, %const_i1_0
+    %10 = neq i1 %rst_n, %const_i1_0
+    %negedge = and i1 %9, %10
+    %event_or = or i1 %posedge, %negedge
+    br %event_or, %init, %event
+%event:
+    %rst_n1 = prb i1$ %1
+    %12 = not i1 %rst_n1
+    br %12, %if_false, %if_true
+%if_true:
+    %epsilon = const time 0s 1e
+    %const_i32_0 = const i32 0
+    drv i32$ %3, %const_i32_0, %epsilon
+    wait %16 for %epsilon
+%if_false:
+    %count = prb i32$ %2
+    %const_i32_1 = const i32 1
+    %17 = add i32 %count, %const_i32_1
+    drv i32$ %3, %17, %epsilon
+    wait %20 for %epsilon
+%if_exit:
+    br %4
+%16:
+    br %if_exit
+%20:
+    br %if_exit
+}
+
+proc %top.initial.228.0 (i1$ %0) -> (i1$ %1, i1$ %2) {
+%3:
+    %time_1e = const time 0s 1e
+    %time_1ns = const time 1ns
+    %const_i1_0 = const i1 0
+    %const_i1_1 = const i1 1
+    wait %5 for %time_1ns
+%5:
+    drv i1$ %2, %const_i1_0, %time_1e
+    wait %8 for %time_1e
+%8:
+    wait %10 for %time_1ns
+%10:
+    drv i1$ %2, %const_i1_1, %time_1e
+    wait %13 for %time_1e
+%13:
+    wait %15 for %time_1ns
+%15:
+    %clk = prb i1$ %1
+    %16 = not i1 %clk
+    drv i1$ %1, %16, %time_1e
+    wait %19 for %time_1e
+%19:
+    wait %21 for %time_1ns
+%21:
+    %clk0 = prb i1$ %1
+    %22 = not i1 %clk0
+    drv i1$ %1, %22, %time_1e
+    wait %25 for %time_1e
+%25:
+    wait %27 for %time_1ns
+%27:
+    %clk1 = prb i1$ %1
+    %28 = not i1 %clk1
+    drv i1$ %1, %28, %time_1e
+    wait %31 for %time_1e
+%31:
+    wait %33 for %time_1ns
+%33:
+    %clk2 = prb i1$ %1
+    %34 = not i1 %clk2
+    drv i1$ %1, %34, %time_1e
+    wait %37 for %time_1e
+%37:
+    wait %39 for %time_1ns
+%39:
+    %clk3 = prb i1$ %1
+    %40 = not i1 %clk3
+    drv i1$ %1, %40, %time_1e
+    wait %43 for %time_1e
+%43:
+    wait %45 for %time_1ns
+%45:
+    %clk4 = prb i1$ %1
+    %46 = not i1 %clk4
+    drv i1$ %1, %46, %time_1e
+    wait %49 for %time_1e
+%49:
+    wait %51 for %time_1ns
+%51:
+    %clk5 = prb i1$ %1
+    %52 = not i1 %clk5
+    drv i1$ %1, %52, %time_1e
+    wait %55 for %time_1e
+%55:
+    wait %57 for %time_1ns
+%57:
+    %clk6 = prb i1$ %1
+    %58 = not i1 %clk6
+    drv i1$ %1, %58, %time_1e
+    wait %61 for %time_1e
+%61:
+    wait %63 for %time_1ns
+%63:
+    halt
+}
+
+entity @top () -> () {
+    %clk_init = const i1 0
+    %clk = sig i1 %clk_init
+    %rst_n_init = const i1 1
+    %rst_n = sig i1 %rst_n_init
+    %count_init = const i32 99
+    %count = sig i32 %count_init
+    inst %top.always_ff.227.0 (i1$ %clk, i1$ %rst_n, i32$ %count) -> (i32$ %count)
+    inst %top.initial.228.0 (i1$ %clk) -> (i1$ %clk, i1$ %rst_n)
+}
