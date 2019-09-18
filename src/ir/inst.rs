@@ -286,9 +286,10 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
 
     /// `a = mux type x, y`
     pub fn mux(&mut self, x: Value, y: Value) -> Value {
-        let ty = self.value_type(x);
-        assert!(ty.is_array(), "argument to `mux` must be of array type");
-        let ty = ty.unwrap_array().1.clone();
+        let ty = with_unpacked_sigptr(self.value_type(x), |ty| {
+            assert!(ty.is_array(), "argument to `mux` must be of array type");
+            ty.unwrap_array().1.clone()
+        });
         let inst = self.build_binary(Opcode::Mux, ty, x, y);
         self.inst_result(inst)
     }
@@ -343,30 +344,17 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
 
     /// `a = extf type x, imm`
     pub fn ext_field(&mut self, x: Value, imm: usize) -> Value {
-        let ty = self.value_type(x);
-        let (ty, is_ptr, is_sig) = if ty.is_pointer() {
-            (ty.unwrap_pointer(), true, false)
-        } else if ty.is_signal() {
-            (ty.unwrap_signal(), false, true)
-        } else {
-            (&ty, false, false)
-        };
-        let ty = if ty.is_struct() {
-            let fields = ty.unwrap_struct();
-            assert!(imm < fields.len(), "field index in `extf` out of range");
-            fields[imm].clone()
-        } else if ty.is_array() {
-            ty.unwrap_array().1.clone()
-        } else {
-            panic!("argument to `extf` must be of struct or array type");
-        };
-        let ty = if is_ptr {
-            pointer_ty(ty)
-        } else if is_sig {
-            signal_ty(ty)
-        } else {
-            ty
-        };
+        let ty = with_unpacked_sigptr(self.value_type(x), |ty| {
+            if ty.is_struct() {
+                let fields = ty.unwrap_struct();
+                assert!(imm < fields.len(), "field index in `extf` out of range");
+                fields[imm].clone()
+            } else if ty.is_array() {
+                ty.unwrap_array().1.clone()
+            } else {
+                panic!("argument to `extf` must be of struct or array type");
+            }
+        });
         let inst = self.build(
             InstData::InsExt {
                 opcode: Opcode::ExtField,
@@ -380,28 +368,15 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
 
     /// `a = exts type x, imm0, imm1`
     pub fn ext_slice(&mut self, x: Value, imm0: usize, imm1: usize) -> Value {
-        let ty = self.value_type(x);
-        let (ty, is_ptr, is_sig) = if ty.is_pointer() {
-            (ty.unwrap_pointer(), true, false)
-        } else if ty.is_signal() {
-            (ty.unwrap_signal(), false, true)
-        } else {
-            (&ty, false, false)
-        };
-        let ty = if ty.is_array() {
-            array_ty(imm1, ty.unwrap_array().1.clone())
-        } else if ty.is_int() {
-            int_ty(imm1)
-        } else {
-            panic!("argument to `exts` must be of array or integer type");
-        };
-        let ty = if is_ptr {
-            pointer_ty(ty)
-        } else if is_sig {
-            signal_ty(ty)
-        } else {
-            ty
-        };
+        let ty = with_unpacked_sigptr(self.value_type(x), |ty| {
+            if ty.is_array() {
+                array_ty(imm1, ty.unwrap_array().1.clone())
+            } else if ty.is_int() {
+                int_ty(imm1)
+            } else {
+                panic!("argument to `exts` must be of array or integer type");
+            }
+        });
         let inst = self.build(
             InstData::InsExt {
                 opcode: Opcode::ExtSlice,
@@ -1232,5 +1207,15 @@ impl std::fmt::Display for InstDumper<'_> {
             }
         }
         Ok(())
+    }
+}
+
+fn with_unpacked_sigptr(ty: Type, f: impl FnOnce(Type) -> Type) -> Type {
+    if ty.is_pointer() {
+        pointer_ty(f(ty.unwrap_pointer().clone()))
+    } else if ty.is_signal() {
+        signal_ty(f(ty.unwrap_signal().clone()))
+    } else {
+        ty
     }
 }
