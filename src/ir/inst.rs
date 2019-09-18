@@ -426,7 +426,8 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
 
     /// `a = sig type x`
     pub fn sig(&mut self, x: Value) -> Value {
-        let ty = signal_ty(self.value_type(x));
+        let ty = self.value_type(x);
+        let ty = if ty.is_signal() { ty } else { signal_ty(ty) };
         let inst = self.build_unary(Opcode::Sig, ty, x);
         self.inst_result(inst)
     }
