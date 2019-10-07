@@ -2,6 +2,163 @@
 
 This document specifies the low-level hardware description language. It outlines the architecture, structure, and instruction set, and provides usage examples.
 
+@[toc]
+
+---
+
+
+## Modules
+
+At the root of the LLHD hierarchy, a module represents an entire design. It is equivalent to one single LLHD assembly file on disk, or one in-memory design graph. Modules consist of functions, processes, entities, and external unit declarations as outlined in the following sections. Two or more modules can be combined using the linker, which substitutes external declarations (`declare ...`) with an actual unit definition. A module is called *self-contained* if it contains no external unit declarations.
+
+
+## Names
+
+Names in LLHD follow a scheme similar to LLVM. The language distinguishes between global names, local names, and anonymous names. Global names are visible outside of the module. Local names are visible only within the module, function, process, or entity they are defined in. Anonymous names are purely numeric local names whose numbering is not preserved across IR in-memory and on-disk representations.
+
+Example | Regex                | Description
+------- | -------------------- | ---
+`@foo`  | `@[a-zA-Z0-9_\.\\]+` | Global name visible outside of the module, function, process, or entity.
+`%foo`  | `%[a-zA-Z0-9_\.\\]+` | Local name visible only within module, function, process, or entity.
+`%42`   | `%[0-9]+`            | Anonymous local name.
+
+Names are UTF-8 encoded. Arbitrary code points beyond letters and numbers may be represented as sequences of `\xx` bytes, where `xx` is the lower- or uppercase hexadecimal representation of the byte. E.g. the local name `foo$bar` is encoded as `%foo\24bar`.
+
+
+## Units
+
+Designs in LLHD are represented by three different constructs (called "units"): functions, processes, and entities. These capture different concerns arising from the need to model silicon hardware, and is in contrast to IRs targeting machine code generation, which generally only consist of functions.
+
+The language differentiates between how instructions are executed in a unit:
+
+- *Control-flow* units consist of basic blocks, where execution follows a clear control-flow path. This is equivalent to what one would find LLVM's IR.
+- *Data-flow* units consist only of an unordered set of instructions which form a data-flow graph. Execution of instructions is implied by the propagation of value changes through the graph.
+
+Furthermore it differentiates how time passes during the execution of a unit:
+
+- *Immediate* units execute in zero time. They may not contain any instructions that suspend execution or manipulate signals. These units are ephemeral in the sense that their execution starts and terminates in between time steps. As such no immediate units coexist or persist across time steps.
+- *Timed* units coexist and persist during the entire execution of the IR. They represent reactions to changes in signals and may suspend execution or interact with signals (probe value, schedule state changes).
+
+The following table provides an overview of the three IR units, which are detailed in the following sections:
+
+Unit         | Paradigm     | Timing
+------------ | ------------ | ---
+**Function** | control-flow | immediate
+**Process**  | control-flow | timed
+**Entity**   | data-flow    | timed
+
+
+### Functions
+
+Functions represent *control-flow* executing *immediately* and consist of a sequence of basic blocks and instructions:
+
+    func <name> (<ty1> <arg1>, ...) <retty> {
+        <bb1>
+        ...
+        <bbN>
+    }
+
+A function has a local or global name, input arguments, and a return type. The first basic block in a function is the entry block. Functions must contain at least one basic block. Terminator instructions may either branch to another basic block or must be the `ret` instruction. The argument to `ret` must be of the return type `<retty>`. Functions are called using the `call` instruction. Functions may not contain instructions that suspend execution (`wait` and `halt`), may not interact with signals (`prb`, `drv`, `sig`), and may not instantiate entities/processes (`inst`).
+
+#### Example
+
+The following function computes the Fibonacci series for a 32 bit signed integer number N:
+
+    func @fib (i32 %N) i32 {
+    %entry:
+        %one = const i32 1
+        %0 = sle i32 %N, %one
+        br %0, %recursive, %base
+    %base:
+        ret i32 %one
+    %recursive:
+        %two = const i32 2
+        %1 = sub i32 %N, %one
+        %2 = sub i32 %N, %two
+        %3 = call i32 @fib (i32 %1)
+        %4 = call i32 @fib (i32 %2)
+        %5 = add i32 %3, %4
+        ret i32 %5
+    }
+
+
+### Processes
+
+Processes represent *control-flow* executing in a *timed* fashion and consist of a sequence of basic blocks and instructions. They are used to represent a procedural description of a how a circuit's output signals change in reaction to changing input signals.
+
+    proc <name> (<in_ty1> <in_arg1>, ...) -> (<out_ty1> <out_arg1>, ...) {
+        <bb1>
+        ...
+        <bbN>
+    }
+
+A process has a local or global name, input arguments, and output arguments. Input arguments may be used with the `prb` instruction. Output arguments must be of signal type (`T$`) and may be used with the `drv` instruction. The first basic block in a process is the entry block. Processes must contain at least one basic block. Terminator instructions may either branch to another basic block or must be the `halt` instruction. Processes are instantiated in entities using the `inst` instruction. Processes may not contain instructions that return execution (`ret`) and may not instantiate entities/processes (`inst`).
+
+Processes may be used to behaviorally model a circuit, as is commonly done in higher-level hardware description languages such as SystemVerilog or VHDL. As such they may represent a richer and more abstract set of behaviors beyond what actual hardware can achieve. One of the tasks of a synthesizer is to transform processes into entities, resolving implicitly modeled state-keeping elements and combinatorial transfer functions into explicit register and gate instances. LLHD aims to provide a standard way for such transformations to occur.
+
+#### Example
+
+The following process computes the butterfly operation in an FFT combinatorially with a 1ns delay:
+
+    proc @bfly (i32$ %x0, i32$ %x1) -> (i32$ %y0, i32$ %y1) {
+    %entry:
+        %x0v = prb i32$ %x0
+        %x1v = prb i32$ %x1
+        %0 = add i32 %x0v, %x1v
+        %1 = sub i32 %x0v, %x1v
+        %d = const time 1ns
+        drv i32$ %y0, %0, %d
+        drv i32$ %y1, %1, %d
+        wait %entry, %x0, %x1
+    }
+
+
+### Entities
+
+Processes represent *data-flow* executing in a *timed* fashion and consist of a set of instructions. They are used to represent hierarchy in a design, as well as a data-flow description of how a circuit's output signals change in reaction to changing input signals.
+
+    entity <name> (<in_ty1> <in_arg1>, ...) -> (<out_ty1> <out_arg1>, ...) {
+        <inst1>
+        ...
+        <instN>
+    }
+
+Eventually every design consists of at least one top-level entity, which may in turn call functions or instantiate processes and entities to form a design hierarchy. There are no basic blocks in an entity. All instructions are considered to execute in a schedule implicitly defined by their data dependencies. Dependency cycles are forbidden (except for the ones formed by probing and driving a signal). The order of instructions is purely cosmetic and does not affect behaviour.
+
+#### Example
+
+The following entity computes the butterfly operation in an FFT combinatorially with a 1ns delay:
+
+    entity @bfly (i32$ %x0, i32$ %x1) -> (i32$ %y0, i32$ %y1) {
+        %x0v = prb i32$ %x0
+        %x1v = prb i32$ %x1
+        %0 = add i32 %x0v, %x1v
+        %1 = sub i32 %x0v, %x1v
+        %d = const time 1ns
+        drv i32$ %y0, %0, %d
+        drv i32$ %y1, %1, %d
+    }
+
+
+### External Units
+
+External units allow an LLHD module to refer to functions, processes, and entities declared outside of the module itself. The linker can then be used to resolve these declarations to actual definitions in another module.
+
+    declare <name> (<in_ty1>, ...) <retty>              ; function declaration
+    declare <name> (<in_ty1>, ...) -> (<out_ty1>, ...)  ; process/entity declaration
+
+
+### Basic Blocks
+
+A basic block has a name and consists of a sequence of instructions. The last instruction must be a terminator; all other instructions must *not* be a terminator. This ensures that no control flow transfer occurs within a basic block, but rather control enters at the top and leaves at the bottom. A basic block may not be empty. Functions and processes contain at least one basic block.
+
+    %<bb_name>:
+        <inst1>
+        ...
+        <instN>
+        <terminator>
+
+
 ## Type System
 
 ### Overview
