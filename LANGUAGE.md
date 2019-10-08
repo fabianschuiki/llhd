@@ -41,11 +41,11 @@ Furthermore it differentiates how time passes during the execution of a unit:
 
 The following table provides an overview of the three IR units, which are detailed in the following sections:
 
-Unit         | Paradigm     | Timing
------------- | ------------ | ---
-**Function** | control-flow | immediate
-**Process**  | control-flow | timed
-**Entity**   | data-flow    | timed
+Unit         | Paradigm     | Timing    | Models
+------------ | ------------ | --------- | ---
+**Function** | control-flow | immediate | Ephemeral computation in zero time
+**Process**  | control-flow | timed     | Behavioural circuit description
+**Entity**   | data-flow    | timed     | Structural circuit description
 
 
 ### Functions
@@ -284,47 +284,51 @@ Individual fields may be obtained or modified with the `extf`/`insf` instruction
 
 ### Overview
 
-The following table shows the full instruction set of LLHD. Instructions have limitations as to whether they can appear in an entity, function, or process.
+The following table shows the full instruction set of LLHD. Instructions have limitations as to whether they can appear in an function ("F"), process (P), or entity ("E").
 
-Instruction | Allowed In | Description
---- | --- | ---
-`const` | EFP | Construct a constant value
-`alias` | EFP | Assign a new name to a value
-`[...]` | EFP | Construct an array
-`{...}` | EFP | Construct a struct
-`not`   | EFP | Bitwise NOT
-`neg`   | EFP | Two's complement
-`add`   | EFP | Addition
-`sub`   | EFP | Subtraction
-`and`   | EFP | Bitwise AND
-`or`    | EFP | Bitwise OR
-`xor`   | EFP | Bitwise XOR
-`smul`  | EFP | Signed multiplication
-`umul`  | EFP | Unsigned multiplication
-`sdiv`  | EFP | Signed division
-`udiv`  | EFP | Unsigned division
-`smod`  | EFP | Signed modulo
-`umod`  | EFP | Unsigned modulo
-`srem`  | EFP | Signed remainder
-`urem`  | EFP | Unsigned remainder
-`eq`    | EFP | Check for equality
-`neq`   | EFP | Check for inequality
-`slt`   | EFP | Check for signed less-than ordering
-`ult`   | EFP | Check for unsigned less-than ordering
-`sgt`   | EFP | Check for signed greater-than ordering
-`ugt`   | EFP | Check for unsigned greater-than ordering
-`sle`   | EFP | Check for signed less-than-or-equal ordering
-`ule`   | EFP | Check for unsigned less-than-or-equal ordering
-`sge`   | EFP | Check for signed greater-than-or-equal ordering
-`uge`   | EFP | Check for unsigned greater-than-or-equal ordering
-`shl`   | EFP | Shift a value to the left
-`shr`   | EFP | Shift a value to the right
-`mux`   | EFP | Choose from an array of values
-`reg`   | E   | A register to provide storage for a value
-`br`    | FP  | Branch to a different block
-`insert`  | EFP | Change the value of one or more fields, elements, or bits.
-`extract` | EFP | Retrieve the value of one or more fields, elements, or bits.
-`shl`, `shr` | EFP | Shift a value to the left or right.
+Instruction                 | In    | Description
+--------------------------- | ----- | ---
+**Values**                  |       |
+`const`                     | F P E | Construct a constant value
+`alias`                     | F P E | Assign a new name to a value
+`[...]`                     | F P E | Construct an array
+`{...}`                     | F P E | Construct a struct
+`insf` `inss`               | F P E | Insert elements, fields, or bits
+`extf` `exts`               | F P E | Extract elements, fields, or bits
+`mux`                       | F P E | Choose from an array of values
+**Bitwise**                 |       |
+`not`                       | F P E | Unary logic
+`and` `or` `xor`            | F P E | Binary logic
+`shl` `shr`                 | F P E | Shift left or right
+**Arithmetic**              |       |
+`neg`                       | F P E | Unary arithmetic
+`add` `sub`                 | F P E | Binary arithmetic
+`smul` `sdiv` `smod` `srem` | F P E | Binary signed arithmetic
+`umul` `udiv` `umod` `urem` | F P E | Binary unsigned arithmetic
+**Comparison**              |       |
+`eq` `neq`                  | F P E | Equality operators
+`slt` `sgt` `sle` `sge`     | F P E | Signed relational operators
+`ult` `ugt` `ule` `uge`     | F P E | Unsigned relational operators
+**Control Flow**            |       |
+`phi`                       | F P   | Reconvergence node
+`br`                        | F P   | Branch to a different block
+`call`                      | F P   | Call a function
+`ret`                       | F P   | Return from a function
+`wait`                      | P     | Suspend execution
+`halt`                      | P     | Terminate execution
+**Memory**                  |       |
+`var`                       | F P   | Allocate memory
+`ld`                        | F P   | Load value from memory
+`st`                        | F P   | Store value in memory
+**Signals**                 |       |
+`sig`                       | E     | Create a signal
+`prb`                       | E P   | Probe value on signal
+`drv`                       | E P   | Drive value of signal
+**Structural**              |       |
+`reg`                       | E     | Create a storage element
+`del`                       | E     | Delay a signal
+`con`                       | E     | Connect two signals
+`inst`                      | E     | Instantiate a process/entity
 
 
 ### `const` - Constant Value
