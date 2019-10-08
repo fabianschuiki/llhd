@@ -161,78 +161,123 @@ A basic block has a name and consists of a sequence of instructions. The last in
 
 ## Type System
 
+
 ### Overview
 
 The following table shows the types available in LLHD. These are outlined in more detail in the following sections.
 
 Type            | Description
 --------------- | ---
+`void`          | The unit type (e.g. instruction that yields no result).
+`time`          | A simulation time value.
 `iN`            | Integer of `N` bits, signed or unsigned.
 `nN`            | Enumeration of `N` distinct values.
-`T*`            | Pointer to value of type `T`.
-`T$`            | Signal carrying a value of type `T`.
+`lN`            | Logical value of `N` bits (IEEE 1164).
+`T*`            | Pointer to a value of type `T`.
+`T$`            | Signal of a value of type `T`.
 `[N x T]`       | Array containing `N` elements of type `T`.
-`{T0,T1,...}`   | Struct containing fields of types `T0`, `T1`, etc.
-`T (T0,T1,...)` | Function returning value `T`, taking arguments of type `T0`, `T1`, etc.
-`void`          | The type of an instruction that yields no result.
-`label`         | A basic block.
-`time`          | A simulation time value.
+`{T1,T1,...}`   | Structured data containing fields of types `T0`, `T1`, etc.
 
 
-### `[N x T]` — The Array Type
+### Void Type (`void`)
 
-An array type may be constructed as follows:
-
-    [N x T]
-
-Where `N` is the number of elements in the array and `T` the type of each element. All elements have the same type.
-
-For example:
-
-    [16 x i8]
-    [9001 x {i32, i1}]
-
-#### Constant
-
-An array constant value may be constructed as follows:
-
-    (1) [T V0, V1, ...]
-    (2) [V0, V1, ...]
-    (3) [N x T V]
-    (4) [N x V]
-
-Variants 1 and 2 explicitly list the value of each element in the array. The length of the array is inferred from the number of elements provided. 3 and 4 create an array of length `N` and assigns each element the same value. Variants 1 and 3 explicitly list the value type, thus allowing for values with implicit types. Varaints 2 and 4 require the values to have explicit type. This allows for compact notation of integer arrays.
-
-For example:
-
-    [i32 42, 9001, 65]  ; type [3 x i32]
-    [{i32 16, i64 9001}, {i32 42, i64 65}]  ; type [2 x {i32, i64}]
-    [16 x i32 42]  ; type [16 x i32]
+The `void` type is used to represent the absence of a value. Instructions that do not return a value are of type `void`. There is no way to construct a `void` value.
 
 
-### `{T0,T1,...}` — The Struct Type
+### Time Type (`time`)
 
-A struct type may be constructed as follows:
+The `time` type represents a simulation time value as a combination of a real time value in seconds, a delta value representing infinitesimal time steps, and an epsilon value representing an absolute time slot within a delta step (used to model SystemVerilog scheduling regions). It may be constructed using the `const time` instruction, for example:
 
-    {T0, T1, ...}
+    %0 = const time 1ns 2d 3e
 
-Where each type corresponds to a field in the struct. The fields are anonymous and thus don't carry names.
 
-For example:
+### Integer Type (`iN`)
 
-    {i32, void, {i64, i1}}
+The `iN` type represents an integer value of `N` bits, where `N` can be any non-zero positive number. There is no sign associate with integer values. Rather, separate instructions are available to perform signed and unsigned operations, where applicable. Integer values may be constructed using the `const iN` instruction, for example:
 
-#### Constant
+    %0 = const i1 1
+    %1 = const i32 9001
+    %2 = const i1234 42
 
-A struct constant value may be constructed as follows:
 
-    {V0, V1, ...}
+### Enumeration Type (`nN`)
 
-For example:
+The `nN` type represents an enumeration value which may take one of `N` distinct states. This type is useful for modeling sum types such as the enumerations in VHDL, and may allow for more detailed circuit analysis due to the non-power-of-two number of states the value can take. The values for `nN` range from `0` to `N-1`. Enumeration values may be constructed using the `const nN` instruction, for example:
 
-    {i32 4, i32 9001, {i64 42}}  ; type {i32, i32, {i64}}
+    %0 = const n1 0  ; 0 is the only state in n1
+    %1 = const n4 3  ; 3 is the last state in n4
 
-Note that each field must have an explicit type. This means that integer constants must be prefixed with their type: `i32 4` instead of just `4`.
+
+### Logic Type (`lN`)
+
+The `lN` type represents a collection of `N` wires each carrying one of the nine logic values defined by IEEE 1164. This type is useful to model the actual behavior of a logic circuit, where individual bits may be in other states than just `0` and `1`:
+
+| Symbol | Meaning
+| ------ | --------------------------------- |
+| `U`    | uninitialized                     |
+| `X`    | strong drive, unknown logic value |
+| `0`    | strong drive, logic zero          |
+| `1`    | strong drive, logic one           |
+| `Z`    | high impedance                    |
+| `W`    | weak drive, unknown logic value   |
+| `L`    | weak drive, logic zero            |
+| `H`    | weak drive, logic one             |
+| `-`    | don't care                        |
+
+This type allows for the modeling of high-impedance and wired-AND/-OR signal lines. It is not directly used in arithmetic, but rather various conversion instructions should be used to translate between `lN` and the equivalent `iN`, explicitly handling states not representable in `iN`. Typically this would involve mapping an addition result to `X` when any of the input bits is `X`. Logic values may be constructed using the `const lN` instruction, for example:
+
+    %0 = const l1 "U"
+    %1 = const l8 "01XZHWLU"
+
+
+### Pointer Type (`T*`)
+
+The `T*` type represents a pointer to a memory location which holds a value of type `T`. LLHD offers a very limited memory model where pointers may be used to load and store data in distinct memory slots. No bit casts or reinterpretation casts are possible. Pointers are obtained by allocating variables on the stack, which may then be accessed by load and store instructions:
+
+    %init = const i8 42
+    %ptr = var i8 %init
+    %0 = ld i8* %ptr
+    %1 = mul i8 %0, %0
+    st i8* %ptr, %1
+
+*Note:* It is not yet clear whether LLHD will provide `alloc` and `free` instructions to create and destroy memory slots in an infinite heap data structure.
+
+
+### Signal Type (`T$`)
+
+The `T$` type represents a physical signal which carries a value of type `T`. Signals correspond directly to wires in a physical design, and are used to model propagation delays and timing. Signals are used to carry values across time steps in the LLHD execution model. Signals are obtained by creating them in an entity, which may then be probed for the current value and driven to a new value:
+
+    %init = const i8 42
+    %wire = sig i8 %init
+    %0 = prb i8$ %wire
+    %1 = mul i8 %0, %0
+    %1ns = const time 1ns
+    drv i8$ %wire, %1, %1ns
+
+
+### Array Type (`[N x T]`)
+
+The `[N x T]` type represents a collection of `N` values of type `T`, where `N` can be any positive number, including zero. All elements of an array have the same type. An array may be constructed using the `[...]` instruction:
+
+    %0 = const i16 1
+    %1 = const i16 42
+    %2 = const i16 9001
+    %3 = [i16 %0, i16 %1, i16 %2]  ; [1, 42, 9001]
+    %4 = [3 x i16 %0]              ; [1, 1, 1]
+
+Individual values may be obtained or modified with the `extf`/`insf` instructions. Subranges of the array may be obtained or modified with the `exts`/`inss` instructions.
+
+
+### Struct Type (`{T0,T1,...}`)
+
+The `{T0,T1,...}` type represents a struct of field types `T0`, `T1`, etc. Fields in LLHD structs are unnamed and accessed by their respective index, starting from zero. A struct may be constructed using the `{...}` instruction:
+
+    %0 = const i1 1
+    %1 = const i8 42
+    %2 = const time 10ns
+    %3 = {i1 %0, i8 %1, time %2}  ; {1, 42, 10ns}
+
+Individual fields may be obtained or modified with the `extf`/`insf` instructions.
 
 
 ## Instructions
