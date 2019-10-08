@@ -60,7 +60,7 @@ Functions represent *control-flow* executing *immediately* and consist of a sequ
 
 A function has a local or global name, input arguments, and a return type. The first basic block in a function is the entry block. Functions must contain at least one basic block. Terminator instructions may either branch to another basic block or must be the `ret` instruction. The argument to `ret` must be of the return type `<retty>`. Functions are called using the `call` instruction. Functions may not contain instructions that suspend execution (`wait` and `halt`), may not interact with signals (`prb`, `drv`, `sig`), and may not instantiate entities/processes (`inst`).
 
-#### Example
+##### Example
 
 The following function computes the Fibonacci series for a 32 bit signed integer number N:
 
@@ -96,7 +96,7 @@ A process has a local or global name, input arguments, and output arguments. Inp
 
 Processes may be used to behaviorally model a circuit, as is commonly done in higher-level hardware description languages such as SystemVerilog or VHDL. As such they may represent a richer and more abstract set of behaviors beyond what actual hardware can achieve. One of the tasks of a synthesizer is to transform processes into entities, resolving implicitly modeled state-keeping elements and combinatorial transfer functions into explicit register and gate instances. LLHD aims to provide a standard way for such transformations to occur.
 
-#### Example
+##### Example
 
 The following process computes the butterfly operation in an FFT combinatorially with a 1ns delay:
 
@@ -125,7 +125,7 @@ Processes represent *data-flow* executing in a *timed* fashion and consist of a 
 
 Eventually every design consists of at least one top-level entity, which may in turn call functions or instantiate processes and entities to form a design hierarchy. There are no basic blocks in an entity. All instructions are considered to execute in a schedule implicitly defined by their data dependencies. Dependency cycles are forbidden (except for the ones formed by probing and driving a signal). The order of instructions is purely cosmetic and does not affect behaviour.
 
-#### Example
+##### Example
 
 The following entity computes the butterfly operation in an FFT combinatorially with a 1ns delay:
 
@@ -284,65 +284,73 @@ Individual fields may be obtained or modified with the `extf`/`insf` instruction
 
 ### Overview
 
-The following table shows the full instruction set of LLHD. Instructions have limitations as to whether they can appear in an function ("F"), process (P), or entity ("E").
+The following table shows the full instruction set of LLHD. The flags indicate if an instruction
 
-Instruction                 | In    | Description
---------------------------- | ----- | ---
-**Values**                  |       |
-`const`                     | F P E | Construct a constant value
-`alias`                     | F P E | Assign a new name to a value
-`[...]`                     | F P E | Construct an array
-`{...}`                     | F P E | Construct a struct
-`insf` `inss`               | F P E | Insert elements, fields, or bits
-`extf` `exts`               | F P E | Extract elements, fields, or bits
-`mux`                       | F P E | Choose from an array of values
-**Bitwise**                 |       |
-`not`                       | F P E | Unary logic
-`and` `or` `xor`            | F P E | Binary logic
-`shl` `shr`                 | F P E | Shift left or right
-**Arithmetic**              |       |
-`neg`                       | F P E | Unary arithmetic
-`add` `sub`                 | F P E | Binary arithmetic
-`smul` `sdiv` `smod` `srem` | F P E | Binary signed arithmetic
-`umul` `udiv` `umod` `urem` | F P E | Binary unsigned arithmetic
-**Comparison**              |       |
-`eq` `neq`                  | F P E | Equality operators
-`slt` `sgt` `sle` `sge`     | F P E | Signed relational operators
-`ult` `ugt` `ule` `uge`     | F P E | Unsigned relational operators
-**Control Flow**            |       |
-`phi`                       | F P   | Reconvergence node
-`br`                        | F P   | Branch to a different block
-`call`                      | F P   | Call a function
-`ret`                       | F P   | Return from a function
-`wait`                      | P     | Suspend execution
-`halt`                      | P     | Terminate execution
-**Memory**                  |       |
-`var`                       | F P   | Allocate memory
-`ld`                        | F P   | Load value from memory
-`st`                        | F P   | Store value in memory
-**Signals**                 |       |
-`sig`                       | E     | Create a signal
-`prb`                       | E P   | Probe value on signal
-`drv`                       | E P   | Drive value of signal
-**Structural**              |       |
-`reg`                       | E     | Create a storage element
-`del`                       | E     | Delay a signal
-`con`                       | E     | Connect two signals
-`inst`                      | E     | Instantiate a process/entity
+- **F**: can appear in a function,
+- **P**: can appear in a process,
+- **E**: can appear in an entity, or
+- **T**: is a terminator.
+
+Instruction                 | Flags   | Description
+----------------------------|---------|------------
+**Values**                  |         |
+`const`                     | F P E   | Construct a constant value
+`alias`                     | F P E   | Assign a new name to a value
+`[...]`                     | F P E   | Construct an array
+`{...}`                     | F P E   | Construct a struct
+`insf` `inss`               | F P E   | Insert elements, fields, or bits
+`extf` `exts`               | F P E   | Extract elements, fields, or bits
+`mux`                       | F P E   | Choose from an array of values
+**Bitwise**                 |         |
+`not`                       | F P E   | Unary logic
+`and` `or` `xor`            | F P E   | Binary logic
+`shl` `shr`                 | F P E   | Shift left or right
+**Arithmetic**              |         |
+`neg`                       | F P E   | Unary arithmetic
+`add` `sub`                 | F P E   | Binary arithmetic
+`smul` `sdiv` `smod` `srem` | F P E   | Binary signed arithmetic
+`umul` `udiv` `umod` `urem` | F P E   | Binary unsigned arithmetic
+**Comparison**              |         |
+`eq` `neq`                  | F P E   | Equality operators
+`slt` `sgt` `sle` `sge`     | F P E   | Signed relational operators
+`ult` `ugt` `ule` `uge`     | F P E   | Unsigned relational operators
+**Control Flow**            |         |
+`phi`                       | F P     | Reconvergence node
+`br`                        | F P T   | Branch to a different block
+`call`                      | F P E   | Call a function
+`ret`                       | F P T   | Return from a function
+`wait`                      | P T     | Suspend execution
+`halt`                      | P T     | Terminate execution
+**Memory**                  |         |
+`var`                       | F P     | Allocate memory
+`ld`                        | F P     | Load value from memory
+`st`                        | F P     | Store value in memory
+**Signals**                 |         |
+`sig`                       | E       | Create a signal
+`prb`                       | E P     | Probe value on signal
+`drv`                       | E P     | Drive value of signal
+**Structural**              |         |
+`reg`                       | E       | Create a storage element
+`del`                       | E       | Delay a signal
+`con`                       | E       | Connect two signals
+`inst`                      | E       | Instantiate a process/entity
 
 
-### `const` - Constant Value
+### Working with Values
+
+
+#### Constant Value (`const`)
 
 The `const` instruction is used to introduce a constant value into the IR. The first version constructs a constant integer value, the second a constant integer signal, and the third a constant time value.
 
-    %a = const iN <int>
-    %a = const iN$ <int>
-    %a = const time <time>
+    %result = const iN <int>
+    %result = const iN$ <int>
+    %result = const time <time>
 
-- `int` is an integer literal
-- `time` is a time literal
+- `int` is an integer literal such as `0b0101`, `0o1247`, `129`, or `0x14F3E`
+- `time` is a time literal such as `1s`, `1s 2d`, or `1s 2d 3e`, where the real component may carry an SI prefix such as `as`, `fs`, `ps`, `ns`, `us`, `ms`.
 
-#### Examples
+##### Example
 
 A constant 32 bit integer with value 42 may be constructed as follows:
 
@@ -356,16 +364,17 @@ A constant time with value 1s+3d+7e may be constructed as follows:
     %0 = const time 1s 3d 7e
 
 
-### `alias` - Rename Value
+#### Value Renaming (`alias`)
 
 The `alias` instruction is used to assign a new name to a value.
 
-    %a = alias <ty> <value>
+    %result = alias T %value
 
-- `ty` is the type of the resulting value `%a` and must match the type of `value`.
-- `value` is the value to be aliased.
+- `T` is the type of the aliased `%value`.
+- `%value` is the value to be aliased and must be of type `T`.
+- `%result` is of type `T`.
 
-#### Example
+##### Example
 
 A value `%0` may be aliased under name `foo` as follows:
 
@@ -373,19 +382,20 @@ A value `%0` may be aliased under name `foo` as follows:
     %foo = alias i32 %0
 
 
-### `[...]` - Construct Array
+#### Array Construction (`[...]`)
 
 Array values may be constructed in two ways. The first constructs a uniform array where each element has the same value. The second constructs an array with different values for each element. Every element in an array must have the same type.
 
-    %a = [<N> x <ty> <value>]
-    %a = [<ty> <value1>, ..., <ty> <valueN>]
+    %result = [N x T %value]
+    %result = [T %value1, ..., T %valueN]
 
 - `N` is the number of elements in the array.
-- `ty` is the type of each element. All elements must have the same type.
-- `value` is the value each element will have.
-- `value1` to `valueN` are the values for each individual element.
+- `T` is the type of each element. All elements must have the same type.
+- `%value` is the value each element will have, and is of type `T`.
+- `%value1` to `%valueN` are the values for each individual element, each of type `T`.
+- `%result` is of type `[N x T]`
 
-#### Example
+##### Example
 
 An array of 9001 zeros of 8 bits each may be constructed as follows:
 
@@ -402,16 +412,17 @@ An array with three different 16 bit values may be constructed as follows:
     ; type(%3) = [3 x i16]
 
 
-### `{...}` - Construct Struct
+#### Struct Construction (`{...}`)
 
 Struct values may be constructed in the following way:
 
-    %a = {<ty1> <value1>, ..., <tyN> <valueN>}
+    %result = {T1 %value1, ..., TN %valueN}
 
-- `ty1` to `tyN` is the type of each field in the struct.
-- `value1` to `valueN` is the value of each field in the struct.
+- `T1` to `TN` are the types of each field in the struct.
+- `%value1` to `%valueN` is the value of each field in the struct.
+- `%result` is of type `{T1, ..., TN}`.
 
-#### Example
+##### Example
 
 A struct with three fields of different types may be constructed as follows:
 
@@ -422,191 +433,9 @@ A struct with three fields of different types may be constructed as follows:
     ; type(%3) = {i1, i42, time}
 
 
-### `not`, `neg` - Unary Arithmetic
+#### Inserting Elements, Fields, or Bits (`insf` `inss`)
 
-The `not` operation flips each bit of a value. The `neg` operation computes the two's complement of a value, effectively flipping its sign.
-
-    %a = not <ty> <value>
-    %a = neg <ty> <value>
-
-- `ty` must be `iN` or `iN$`.
-- `value` is the input argument. Must be of type `ty`.
-
-#### Example
-
-The bits of an integer value may be flipped as follows:
-
-    %0 = const i8 0x0F
-    %1 = not i8 %0
-    ; %1 = 0xF0
-
-The sign of an integer may be flipped as follows:
-
-    %0 = const i8 42
-    %1 = neg i8 %0
-    ; %1 = -42
-
-
-###  `add`, `sub`, `and`, `or`, `xor`, `smul`, `sdiv`, `smod`, `srem`, `umul`, `udiv`, `umod`, `urem` - Binary Arithmetic
-
-The `add` and `sub` operation add or subtract two values.
-
-    %a = add  <ty> <lhs>, <rhs>
-    %a = sub  <ty> <lhs>, <rhs>
-
-The `and`, `or`, and `xor` operation compute the bitwise AND, OR, and XOR of two values.
-
-    %a = and  <ty> <lhs>, <rhs>
-    %a = or   <ty> <lhs>, <rhs>
-    %a = xor  <ty> <lhs>, <rhs>
-
-The multiplicative operations are available in a signed (`s...`) and unsigned (`u...`) flavor. Choosing one or the other alters how the input operands are interpreted. The `mul` operation multiplies two values. The `div` operation divides the left-hand side by the right-hand side value. The `mod` and `rem` operation compute the modulo and remainder of the division.
-
-    %a = smul <ty> <lhs>, <rhs>
-    %a = umul <ty> <lhs>, <rhs>
-    %a = sdiv <ty> <lhs>, <rhs>
-    %a = udiv <ty> <lhs>, <rhs>
-    %a = smod <ty> <lhs>, <rhs>
-    %a = umod <ty> <lhs>, <rhs>
-    %a = srem <ty> <lhs>, <rhs>
-    %a = urem <ty> <lhs>, <rhs>
-
-- `ty` must be `iN` or `iN$`.
-- `lhs` and `rhs` are the left- and right-hand side arguments. Must be of type `ty`.
-
-
-### `eq`, `neq` - Equality Comparison of two Values
-
-The `eq` and `neq` operation checks for equality or inequality of two values.
-
-    %a = eq  <ty> <lhs>, <rhs>
-    %a = neq <ty> <lhs>, <rhs>
-
-- `ty` can be any type.
-- `lhs` and `rhs` are the left- and right-hand side arguments of the comparison. Must be of type `ty`.
-- The result of the operation is of type `i1`.
-
-
-### `slt`, `sgt`, `sle`, `sge`, `ult`, `ugt`, `ule`, `uge` - Relational Comparison of two Values
-
-The relational operators are available in a signed (`s...`) and unsigned (`u...`) flavor. Choosing one or the other alters how the input operands are interpreted. The `lt`, `gt`, `le`, and `ge` operation checks for less-than, greater-than, less-than-or-equal, and greater-than-or-equal ordering.
-
-    %a = slt <ty> <lhs>, <rhs>
-    %a = ult <ty> <lhs>, <rhs>
-    %a = sgt <ty> <lhs>, <rhs>
-    %a = ugt <ty> <lhs>, <rhs>
-    %a = sle <ty> <lhs>, <rhs>
-    %a = ule <ty> <lhs>, <rhs>
-    %a = sge <ty> <lhs>, <rhs>
-    %a = uge <ty> <lhs>, <rhs>
-
-- `ty` must be `iN` or `iN$`.
-- `lhs` and `rhs` are the left- and right-hand side arguments of the comparison. Must be of type `ty`.
-- The result of the operation is of type `i1`.
-
-
-### `shl`, `shr` - Shift a Value
-
-The `shl` and `shr` operation shifts a value to the left or right by a given amount.
-
-    %a = shl <ty1> <base>, <ty2> <hidden>, <ty3> <amount>
-    %a = shr <ty1> <base>, <ty2> <hidden>, <ty3> <amount>
-
-- `ty1` is the type of the base value and the type of the shift result. Can be `iN` or any array, or a signal/pointer of thereof.
-- `base` is the base value that is produced if the shift amount is 0.
-- `ty2` is the type of the hidden value. Must be of the same as `ty1` but may have a different number of bits or elements.
-- `hidden` is the hidden value that is uncovered by non-zero shift amounts.
-- `ty3` is the type of the shift amount. Must be `iN`.
-- `amount` determines by how many positions the value is to be shifted. Must be in the range 0 to N, where N is the width of the `hidden` value.
-- The result of the shift operation has the same type as the base value.
-
-#### Example
-
-The operation can be visualized as concatenating the base and the hidden value, then selecting a slice of the resulting bits starting at the offset determined by the `amount` value.
-
-    %0 = const i8 0b10011001
-    %1 = const i12 0b010110100101
-    %2 = const i3 6
-
-    %3 = shl i8 %0, i12 %1, i3 %2
-    ; %3 = 0b01010110
-
-    ; |%0----||%1--------|
-    ; 10011001010110100101
-    ; >>>>>>|%3----|
-
-    %4 = shr i8 %0, i12 %1, i3 %2
-    ; %4 = 0b10010110
-
-    ; |%1--------||%0----|
-    ; 01011010010110011001
-    ;       |%4----|<<<<<<
-
-
-### `mux` - Pick a Value from an Array
-
-The `mux` operation chooses one of an array of values based on a given selector value.
-
-    %a = mux <ty> <array>, <ty_sel> <sel>
-
-- `ty` is the type of the `array`.
-- `array` is a list of values from which the multiplexer selects.
-- `ty_sel` is the type of the selector. Must be `iN` or `iN$`.
-- `sel` is the selector and must be in the range 0 to M-1, where M is the number of elements in the array.
-- The result of the operation is the element type of the array `ty`.
-
-
-### `reg` - Register to Store a Value
-
-The `reg` instruction provides a storage element for a value. It may only be used inside an entity.
-
-    %a = reg <ty> <init>, <value> <mode> <trigger_ty> <trigger>, ...
-
-- `ty` is the type of the stored value. Must be a signal.
-- `init` is the initial value. Must be of type `ty`.
-- Each comma-separated triple following the initial value specifies a storage trigger:
-    - `value` is the value to be stored in the register. Must be of type `ty`.
-    - `mode` is the trigger mode and may be one of the following:
-        - `low` stores `value` while the trigger is low. Models active-low resets and low-transparent latches.
-        - `high` stores `value` while the trigger is high. Models active-high resets and high-transparent latches.
-        - `rise` stores `value` upon the rising edge of the trigger. Models rising-edge flip-flops.
-        - `fall` stores `value` upon the falling edge of the trigger. Models falling-edge flip-flops.
-        - `both` stores `value` upon either a rising or a falling edge of the trigger. Models dual-edge flip-flops.
-    - `trigger_ty` is the trigger type. Must be `i1`.
-    - `trigger` is the trigger value. Must be of type `trigger_ty`.
-    - In case multiple triggers apply the left-most takes precedence.
-
-#### Examples
-
-A rising, falling, and dual-edge triggered flip-flop:
-
-    %Q = reg i8$ %init, %D rise i1$ %CLK
-    %Q = reg i8$ %init, %D fall i1$ %CLK
-    %Q = reg i8$ %init, %D both i1$ %CLK
-
-A rising-edge triggered flip-flop with active-low reset:
-
-    %Q = reg i8$ %init, %init low i1$ %RSTB, %D rise i1$ %CLK
-
-A transparent-low and transparent-high latch:
-
-    %Q = reg i8$ %init, %D low i1$ %CLK
-    %Q = reg i8$ %init, %D high i1$ %CLK
-
-An SR latch:
-
-    %0 = const i1$ 0
-    %1 = const i1$ 1
-    %Q = reg i1$ %0, %0 high i1$ %R, %1 high i1$ %S
-
-
-### `br` - Branch
-
-    br <block>
-    br <value>, <block_if_0>, <block_if_1>
-
-
-### `insert` — Insert Value
+> TODO(fschuiki): Update to current names/semantics.
 
 The `insert` instruction may be used to change the value of fields of structs, elements of arrays, or bits of integers. It comes in two variants: `insert element` operates on single elements, while `insert slice` operates on a slice of consecutive elements.
 
@@ -622,11 +451,11 @@ The `insert` instruction may be used to change the value of fields of structs, e
 
 Note that `index`, `start`, and `length` must be integer constants. You cannot pass dynamically calculated integers for these fields.
 
-#### Result
+##### Result
 
 The `insert` instruction yields the modified `target` as a result, which is of type `ty`.
 
-#### Example
+##### Example
 
 A field of a struct may be modified as follows:
 
@@ -659,7 +488,9 @@ A slice of integer bits may be modified as follows:
     ; %1 = i32 11
 
 
-### `extract` — Extract Value
+#### Extracting Elements, Fields, or Bits (`extf` `exts`)
+
+> TODO(fschuiki): Update to current names/semantics.
 
 The `extract` instruction may be used to obtain the value of fields of structs, elements of arrays, or bits of integers. It comes in two variants: `extract element` operates on single elements, while `extract slice` operates on a slice of consecutive elements.
 
@@ -674,17 +505,17 @@ The `extract` instruction may be used to obtain the value of fields of structs, 
 
 Note that `index`, `start`, and `length` must be integer constants. You cannot pass dynamically calculated integers for these fields.
 
-#### Types
+##### Types
 
 The basic operation of `extract` is defined on integer, struct, and array types. If the target is a signal or pointer type around a struct or array, the instruction returns a signal or pointer of the selected field or elements.
 
-#### Result
+##### Result
 
 The `extract element` instruction yields the value of the selected field, element, or bit. If the target is a struct the returned type is the `index` field of the struct. If it is an array the returned type is the array's element type. If it is an integer the returned type is the single bit variant of the integer (e.g. `i1`).
 
 The `extract slice` instruction yields the values of the selected elements or bits. If the target is an array the returned type is the same array type but with length `length`. If the target is an integer the returned type is the same integer type but with width `length`.
 
-#### Example
+##### Example
 
 A field of a struct may be accessed as follows:
 
@@ -716,7 +547,7 @@ A slice of integer bits may be accessed as follows:
     %1 = extract slice i32 %0, 0, 2
     ; %1 = i2 3
 
-##### Signals
+###### Signals
 
 The `extract` instruction may be used to dissect integer, struct, and array signals into smaller subsignals that alias the selected bits, field, or elements and may then be driven individually.
 
@@ -742,7 +573,7 @@ A subsignal of an array signal may be obtained as follows:
     ; typeof(%1) = i32$
     ; typeof(%2) = [2 x i32]$
 
-##### Pointers
+###### Pointers
 
 The `extract` instruction may be used to obtain a pointer to a struct field, or a pointer to one or more array fields. These pointers alias the selected field or elements and may be used in load and store operations.
 
@@ -769,120 +600,468 @@ A pointer to specific elements of an array may be obtained as follows:
     ; typeof(%2) = [2 x i32]*
 
 
-### `shl`,`shr` — Shift a Value
+#### Value Multiplexing (`mux`)
 
-The `shl` and `shr` instructions may be used to shift the bits of a number or the elements of an array to the left or right.
+    %result = mux Ta %array, Ts %sel
 
-    %r = shl <ty> <target>, <lsb>, <amount>
-    %r = shr <ty> <target>, <msb>, <amount>
+The `mux` operation chooses one of an array of values based on a given selector value.
 
-- `ty` is the type of the target number or array.
-- `target` is the number or array to be modified.
-- `lsb` and `msb` determines the value of the bit or element that is revealed due to the shift.
-- `amount` is the number of bits or elements the value is shifted. Must be an integer and is interpreted as unsigned.
-
-The returned value is of type `ty`. The shift `amount` may exceed the bit width or number of elements of `target`, in which case the result has all bits or elements set to `lsb` or `msb`.
-
-#### Types
-
-The type of the value for inserted bits or elements, `lsb` and `msb`, must be the single-bit equivalent of `ty` if it is a number, or the element type of `ty` if it is an array.
-
-#### Examples
-
-A logical left or right shift of an integer may be performed as follows:
-
-    ; %0 = i32 42
-    %1 = shl i32 %0, i1 0, i32 3
-    %2 = shr i32 %0, i1 0, i32 3
-    ; %1 = i32 5
-    ; %2 = i32 336
-
-An arithmetic right shift of an integer which maintains sign extension may be performed as follows:
-
-    ; %0 = i32 -42
-    %sign = extract element i32 %0, 31
-    %1 = shr i32 %0, %sign, i32 3
-    ; %1 = i32 -6
-
-The elements of an array may be shifted to the left or right as follows:
-
-    ; %0 = [i32 1, 2, 3, 4]
-    %1 = shl [4 x i32] %0, i32 9, i32 3
-    %2 = shr [4 x i32] %0, i32 9, i32 3
-    ; %1 = [i32 4, 9, 9, 9]
-    ; %2 = [i32 9, 9, 9, 1]
+- `Ta` is the type of the `%array`.
+- `%array` is a list of values from which the multiplexer selects.
+- `Ts` is the type of the selector. Must be `iN`.
+- `%sel` is the selector and must be in the range 0 to M-1, where M is the number of elements in `%array`.
+- The result of the operation is the element type of `Ta`.
 
 
-## Call (*fpe*)
-
-    call <target> (<args,...>)
-
-The call instruction transfers control to a function declared in the module and yields the function's return value. If used in an entity, the function is reevaluated whenever its input arguments change.
+### Bitwise Operators
 
 
-## Instance (*e*)
+#### Unary Logic (`not`)
 
-    inst <target> (<inputs,...>) (<outputs,...>)
+    %result = not T %value
 
-The instance instruction instantiates a process or entity declared in the module and connects its inputs and outputs.
+The `not` operation flips each bit of a value.
 
+- `T` must be `iN` or `lN`.
+- `%value` is the input argument of type `T`.
+- `%result` is of type `T`.
 
-## Unary Integer Arithmetic (*fpe*)
+##### Example
 
-    not <ty> <arg>
+    %0 = const i1 0
+    %1 = not i1 %0  ; %1 = 1
 
-These instructions perform unary arithmetic operations on a single integer value `arg`. The operand and the result of the instruction are of type `ty`, which must be an integer type `iN`. The operations performed are as follows:
+##### Truth Table for `iN`
 
-- `not`: Bitwise negation of the value. Every bit that is 1 becomes a 0, and vice versa.
+| `not` | **0** | **1** |
+| ----- | ----- | ----- |
+|       | 1     | 0     |
 
+##### Truth Table for `lN`
 
-## Binary Integer Arithmetic (*fpe*)
-
-    add <ty> <lhs> <rhs>
-    sub <ty> <lhs> <rhs>
-    mul <ty> <lhs> <rhs>
-    div <ty> <lhs> <rhs>
-    mod <ty> <lhs> <rhs>
-    rem <ty> <lhs> <rhs>
-    and <ty> <lhs> <rhs>
-    or  <ty> <lhs> <rhs>
-    xor <ty> <lhs> <rhs>
-
-These instructions perform binary arithmetic operations on two integer values `lhs` and `rhs`. Both operands and the result of the instruction are of type `ty`, which must be an integer type `iN`. The operations performed are as follows:
-
-- `add`: Addition
-- `sub`: Subtraction
-- `mul`: Multiplication
-- `div`: Division rounding towards negative infinity.
-- `mod`: Modulo. The result of the operation is `lhs + x * rhs` for the smallest `x` that makes the result positive.
-- `rem`: Remainder.
-- `and`: Bitwise logic AND. Each resulting bit is 1 iff both of the argument bits are 1.
-- `or`: Bitwise logic OR. Each resulting bit is 1 iff either of the argument bits are 1.
-- `xor`: Bitwise logic XOR. Each resulting bit is 1 iff the argument bits differ.
+> TODO
 
 
-## Integer Comparison (*fpe*)
+#### Binary Logic (`and` `or` `xor`)
 
-    cmp eq  <ty> <lhs> <rhs>
-    cmp neq <ty> <lhs> <rhs>
-    cmp slt <ty> <lhs> <rhs>
-    cmp sgt <ty> <lhs> <rhs>
-    cmp sle <ty> <lhs> <rhs>
-    cmp sge <ty> <lhs> <rhs>
-    cmp ult <ty> <lhs> <rhs>
-    cmp ugt <ty> <lhs> <rhs>
-    cmp ule <ty> <lhs> <rhs>
-    cmp uge <ty> <lhs> <rhs>
+    %result = and T %lhs, %rhs
+    %result = or  T %lhs, %rhs
+    %result = xor T %lhs, %rhs
 
-These isntructions compare two integer values and yield a `i1` result. The operands are of type `ty`, which must be an integer type `iN`. The operations performed are as follows:
+The `and`, `or`, and `xor` instructions compute the bitwise AND, OR, and XOR of two values, respectively.
 
-- `eq`: Equality
-- `neq`: Inequality
-- `slt`: `lhs < rhs`, both arguments treated as signed values.
-- `sgt`: `lhs > rhs`, both arguments treated as signed values.
-- `sle`: `lhs <= rhs`, both arguments treated as signed values.
-- `sge`: `lhs >= rhs`, both arguments treated as signed values.
-- `ult`: `lhs < rhs`, both arguments treated as unsigned values.
-- `ugt`: `lhs > rhs`, both arguments treated as unsigned values.
-- `ule`: `lhs <= rhs`, both arguments treated as unsigned values.
-- `uge`: `lhs >= rhs`, both arguments treated as unsigned values.
+- `T` must be `iN` or `lN`.
+- `%lhs` and `%rhs` are the input arguments of type `T`.
+- `%result` is of type `T`.
+
+##### Example
+
+    %0 = const i4 0b0011
+    %1 = const i4 0b0101
+    %2 = and i4 %0, %1  ; %2 = 0b0001
+    %3 = or  i4 %0, %1  ; %3 = 0b0111
+    %4 = xor i4 %0, %1  ; %4 = 0b0110
+
+##### Truth Table for `iN`
+
+`and` | **0** | **1**
+----- | ----- | -----
+**0** | 0     | 0
+**1** | 0     | 1
+
+`or ` | **0** | **1**
+----- | ----- | -----
+**0** | 0     | 1
+**1** | 1     | 1
+
+`xor` | **0** | **1**
+----- | ----- | -----
+**0** | 0     | 1
+**1** | 1     | 0
+
+##### Truth Table for `lN`
+
+> TODO
+
+
+#### Shift Left/Right (`shl` `shr`)
+
+    %result = shl T %base, Th %hidden, Ta %amount
+    %result = shr T %base, Th %hidden, Ta %amount
+
+The `shl` and `shr` instruction shifts a value to the left or right by a given amount. The instruction is transparent to signals and pointers. For example, passing a signal as argument will shift the underlying value and return a signal to the shifted value.
+
+- `T` must be `iN`, `lN`, or an array; or a signal/pointer thereof.
+- `Th` must be of the same type as `T`, but may have a different number of bits or elements.
+- The *maximum shift amount* is determined by the number of bits or elements in `Th`.
+- `Ta` must be `iN`.
+- `%base` is the base value that is produced if the shift amount is 0, and must be of type `T`.
+- `%hidden` is the hidden value that is uncovered by non-zero shift amounts, and must be of type `Th`.
+- `%amount` is the unsigned shift amount and determines by how many positions the value is to be shifted. Must be of type `Ta`. Behavior for values `%amount > N` is undefined.
+- `%result` is of type `T`.
+
+##### Example
+
+The operation can be visualized as concatenating the `%base` and `%hidden` values, then selecting a slice of the resulting bits or elements starting at the offset determined by the `%amount` value. For example:
+
+    %base = const i8 0b10011001         ; base
+    %hidden = const i12 0b010110100101  ; hidden
+    %amount = const i3 6                ; amount
+
+Left shift:
+
+    %L = shl i8 %base, i12 %hidden, i3 %amount  ; %L = 0b01010110
+
+    ; |-base-||--hidden--|
+    ; 10011001010110100101
+    ; >>>>>>|--%L--|
+
+Right shift:
+
+    %R = shr i8 %base, i12 %hidden, i3 %amount  ; %R = 0b10010110
+
+    ; |--hidden--||-base-|
+    ; 01011010010110011001
+    ;       |--%R--|<<<<<<
+
+
+### Arithmetic Operators
+
+
+#### Unary Arithmetic (`neg`)
+
+    %result = neg T %value
+
+The `neg` operation computes the two's complement of a value, effectively flipping its sign.
+
+- `T` must be `iN`.
+- `%value` is the input argument of type `T`.
+- `%result` is of type `T`.
+
+##### Example
+
+    %0 = const i8 42
+    %1 = neg i8 %0  ; %1 = -42
+
+
+#### Binary Arithmetic (`add` `sub` `smul` `sdiv` `smod` `srem` `umul` `udiv` `umod` `urem`)
+
+    %result = add  T %lhs, %rhs
+    %result = sub  T %lhs, %rhs
+
+    %result = smul T %lhs, %rhs
+    %result = sdiv T %lhs, %rhs
+    %result = smod T %lhs, %rhs
+    %result = srem T %lhs, %rhs
+
+    %result = umul T %lhs, %rhs
+    %result = udiv T %lhs, %rhs
+    %result = umod T %lhs, %rhs
+    %result = urem T %lhs, %rhs
+
+The `add` and `sub` instructions add or subtract two values. The multiplicative operations are available in a signed (`s` prefix) and unsigned (`u` prefix) flavor. Input operands are interpreted according to this prefix. The `umul` `smul` instructions multiplies two values. The `udiv` `sdiv` instructions divides the left-hand side by the right-hand side value. The `umod` `smod` and `urem` `srem` operations compute the modulo and remainder of the division.
+
+- `T` must be `iN`.
+- `%lhs` and `%rhs` are the left- and right-hand side arguments and must be of type `T`.
+- `%result` is of type `T`.
+
+
+### Comparison Operators
+
+
+#### Equality Comparison (`eq` `neq`)
+
+    %result = eq  T %lhs, %rhs
+    %result = neq T %lhs, %rhs
+
+The `eq` and `neq` instruction checks for equality or inequality of two values.
+
+- `T` can be any type.
+- `%lhs` and `%rhs` are the left- and right-hand side arguments of the comparison and must be of type `T`.
+- `%result` is of type `i1`.
+
+
+#### Relational Comparison (`slt` `sgt` `sle` `sge` `ult` `ugt` `ule` `uge`)
+
+    %result = slt T %lhs, %rhs
+    %result = sgt T %lhs, %rhs
+    %result = sle T %lhs, %rhs
+    %result = sge T %lhs, %rhs
+
+    %result = ult T %lhs, %rhs
+    %result = ugt T %lhs, %rhs
+    %result = ule T %lhs, %rhs
+    %result = uge T %lhs, %rhs
+
+The relational operators are available in a signed (`s` prefix) and unsigned (`u` prefix) flavor. Input operands are interpreted according to this prefix. The operations performed are as follows:
+
+| Signed | Unsigned | Operation |
+|--------|----------|-----------|
+| `slt`  | `ult`    | `<`       |
+| `sgt`  | `ugt`    | `>`       |
+| `sle`  | `ule`    | `<=`      |
+| `sge`  | `uge`    | `>=`      |
+
+- `T` must be `iN`.
+- `%lhs` and `%rhs` are the left- and right-hand side arguments of the comparison and must be of type `T`.
+- `%result` is of type `i1`.
+
+
+### Control Flow
+
+
+#### Phi Node (`phi`)
+
+    %result = phi T [%v1, %bb1], ..., [%vN, %bbN]
+
+The `phi` instruction is used to implement the φ node in the SSA graph representing the function or process. It produces on of its arguments `%v1` to `%vN` as a result depending on which basic block control flow originated from upon entering the `phi` instruction's basic block.
+
+- `T` can be any type.
+- `%v1` to `%vN` must be of type `T`.
+- `%bb1` to `%bbN` must be a basic block label.
+- `%result` is of type `T`.
+- The instruction must provide a value for every predecessor of its containing basic block.
+
+
+#### Branch (`br`)
+
+    br %target                            ; unconditional
+    br %cond, %target_if_0, %target_if_1  ; conditional
+
+The `br` instruction transfers control flow to another basic block. In the unconditional case, control flow jumps to the `%target`. In the conditional case, `%cond` determines if control is transferred to `%target_if_0` (on 0) or `%target_if_1` (on 1).
+
+- `%cond` must be of type `i1`.
+- `%target`, `%target_if_0`, and `%target_if_1` must be a basic block label.
+- This is a terminator instruction.
+
+
+#### Call (`call`)
+
+    %result = call Tr <name> (T1 %arg1, ..., TN %argN)
+
+The `call` instruction transfers control to a function and yields its return value. If used in an entity, the function is re-evaluated whenever any of the input arguments change.
+
+- `Tr` is the return type.
+- `T1` to `TN` are the argument types.
+- `%arg1` to `%argN` are the function arguments and must be of types `T1` to `TN`, respectively.
+- `<name>` must be a local or global name of a function with signature `(T1, ..., TN) Tr`.
+- `%result` is of type `Tr`. May be omitted if the function returns `void`.
+
+
+#### Return from a Function (`ret`)
+
+    ret           ; return void
+    ret T %value  ; return a value
+
+The `ret` instruction returns from a function by transferring control flow to the caller. A function with `void` return type must contain `ret` instructions without arguments.
+
+- `T` is the return type and must match the enclosing function's return type.
+- `%value` is the return value and must be of type `T`.
+- This is a terminator instruction.
+
+
+#### Suspend Process Execution (`wait`)
+
+    wait %resume_bb, %obs1, ..., %obsN
+    wait $resume_bb for %time, %obs, ..., %obsN
+
+The `wait` instruction suspends execution of a process until any of the observed signals `%obs1` to `%obsN` change or optionally a fixed time interval `%time` has passed. Execution resumes at the basic block `%resume_bb`.
+
+- `%resume_bb` must be a basic block label.
+- `%obs1` to `%obsN` must be of signal type `T$`.
+- `%time` must be of type `time`.
+- This is a terminator instruction.
+
+
+#### Terminate Process Execution (`halt`)
+
+    halt
+
+The `halt` instruction terminates execution of a process. All processes must eventually halt or consist of an infinite loop.
+
+- This is a terminator instruction.
+
+##### Example
+
+This instruction can be used to model HDL processes that will eventually finish executing. For example the SystemVerilog
+
+    initial begin : p0
+        // ...
+    end
+
+or VHDL
+
+    p0: process
+    begin
+        -- ...
+        wait;
+    end process;
+
+would eventually translate to the following in LLHD:
+
+    proc %p0 () -> () {
+    %entry:
+        ; ...
+        halt
+    }
+
+
+### Memory
+
+
+#### Stack Allocation (`var`)
+
+    %result = var T %init
+
+The `var` instruction allocates memory on the stack with the initial value `%init` and returns a pointer to that location.
+
+- `T` may be any type.
+- `%init` is the initial value of the memory location and must be of type `T`.
+- `%result` is of type `T*`.
+
+
+#### Loading from Memory (`ld`)
+
+    %result = ld T* %ptr
+
+The `ld` instruction loads a value from the memory location `%ptr`.
+
+- `T` may be any type.
+- `%ptr` must be of type `T*`.
+- `%result` is of type `T`.
+
+
+#### Storing to Memory (`st`)
+
+    st T* %ptr, %value
+
+The `st` instruction stores a `%value` to the memory location `%ptr`.
+
+- `T` may be any type.
+- `%ptr` must be of type `T*`.
+- `%value` must be of type `T`.
+
+
+### Signals
+
+
+#### Creating a Signal (`sig`)
+
+    %result = sig T %init
+
+The `sig` instruction creates a signal in an entity with the initial value `%init` and returns that signal.
+
+- `T` may be any type.
+- `%init` is the initial value of the signal and must be of type `T`.
+- `%result` is of type `T$`.
+
+
+#### Probing the Value on a Signal (`prb`)
+
+    %result = prb T$ %sig
+
+The `prb` instruction probes the current value of a signal `%sig`.
+
+- `T` may be any type.
+- `%sig` must be of type `T$`.
+- `%result` is of type `T`.
+
+
+#### Driving a Value onto a Signal (`drv`)
+
+    drv T$ %sig, %value
+
+The `drv` instruction drives a `%value` onto a signal `%sig`.
+
+- `T` may be any type.
+- `%sig` must be of type `T$`.
+- `%value` must be of type `T`.
+
+
+### Structure and Hierarchy
+
+
+#### Storage Element (`reg`)
+
+    %result = reg T %init, %value <mode> Tt %trigger, ...
+    %result = reg T %init, %value <mode> Tt %trigger if Tg %gate, ...
+
+The `reg` instruction provides a storage element with an initial value `%init`. The storage element transitions to a new `%value` when the corresponding trigger (given by a value and mode) fires, and optionally if a gating condition is true. It may only be used inside an entity.
+
+- `T` is the type of the stored value.
+- `%init` is the initial value. Must be of type `T`.
+- Each comma-separated triple following the initial value specifies a storage trigger:
+    - `%value` is the value to be stored in the register. Must be of type `T` or `T$`.
+    - `<mode>` is the trigger mode and may be one of the following:
+        - `low` stores `%value` while the trigger is low. Models active-low resets and low-transparent latches.
+        - `high` stores `%value` while the trigger is high. Models active-high resets and high-transparent latches.
+        - `rise` stores `%value` upon the rising edge of the trigger. Models rising-edge flip-flops.
+        - `fall` stores `%value` upon the falling edge of the trigger. Models falling-edge flip-flops.
+        - `both` stores `%value` upon either a rising or a falling edge of the trigger. Models dual-edge flip-flops.
+    - `Tt` is the trigger type and must be `i1` or `i1$`.
+    - `%trigger` is the trigger value and must be of type `Tt`.
+    - `Tg` is the gate type and must be `i1` or `i1$`.
+    - `%gate` is the gate value and must be of type `Tg`.
+    - In case multiple triggers apply the left-most takes precedence.
+- `%result` is of type `T$`.
+
+##### Example
+
+A rising, falling, and dual-edge triggered flip-flop:
+
+    %Q = reg i8 %init, %D rise i1$ %CLK
+    %Q = reg i8 %init, %D fall i1$ %CLK
+    %Q = reg i8 %init, %D both i1$ %CLK
+
+A rising-edge triggered flip-flop with active-low reset:
+
+    %Q = reg i8 %init, %init low i1$ %RSTB, %D rise i1$ %CLK
+
+A rising-edge triggered enable flip-flop with active-low reset:
+
+    %Q = reg i8 %init, %init low i1$ %RSTB, %D rise i1$ %CLK if i1$ %EN
+
+A transparent-low and transparent-high latch:
+
+    %Q = reg i8 %init, %D low i1$ %CLK
+    %Q = reg i8 %init, %D high i1$ %CLK
+
+An SR latch:
+
+    %0 = const i1 0
+    %1 = const i1 1
+    %Q = reg i1 %0, %0 high i1 %R, %1 high i1 %S
+
+
+#### Wire Delay (`del`)
+
+    %result = del T$ %sig, %delay
+
+The `del` instruction delays a signal `%sig` by the `%delay`. It models a transport delay, meaning that all strictly monotonically increasing events on `%sig` will eventually be reproduced on `%result`.
+
+- `T` can be any type.
+- `%sig` must be of type `T$`.
+- `%delay` must be of type `time`.
+
+
+#### Short (`con`)
+
+    con T$ %sigA, %sigB
+
+The `con` instruction connects two signals such that they essentially become one signal. All driven values on one signal will be reflected on the other.
+
+- `T` can be any type.
+- `%sigA` and `%sigB` must be of type `T$`.
+
+
+#### Instantiate Process/Entity (`inst`)
+
+    inst <target> (Ti1 %in1, ..., TiN %inN) (To1 %out1, ..., ToN %outN)
+
+The `inst` instruction instantiates a process or entity within the current entity. The target's input and output signals are connected to `%in1, ...` and `%out1, ...`, respectively. This instruction builds design hierarchies.
+
+- `Ti1` to `TiN` are the input argument types.
+- `To1` to `ToN` are the output argument types.
+- `%in1` to `%inN` are the input arguments and must be of types `Ti1` to `TiN`, respectively.
+- `%out1` to `%outN` are the output arguments and must be of types `To1` to `ToN`, respectively.
+- `<target>` must be a local or global name referring to a process or entity with signature `(Ti1, ..., TiN) -> (To1, ..., ToN)`.
