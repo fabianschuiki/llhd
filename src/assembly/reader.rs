@@ -55,7 +55,7 @@ pub struct Inst<'a> {
 }
 
 pub enum InstData<'a> {
-    ConstInt(usize, bool, BigInt),
+    ConstInt(usize, BigInt),
     ConstTime(ConstTime),
     Aggregate(usize, Vec<TypedValue<'a>>),
     Nullary,
@@ -97,7 +97,7 @@ impl<'a> Inst<'a> {
 
     pub fn build(self, builder: &mut impl UnitBuilder, context: &mut Context<'a>) {
         let result: InstOrValue = match self.data {
-            InstData::ConstInt(width, sig, imm) => builder.ins().const_int(width, sig, imm).into(),
+            InstData::ConstInt(width, imm) => builder.ins().const_int(width, imm).into(),
             InstData::ConstTime(imm) => builder.ins().const_time(imm).into(),
             InstData::Aggregate(size, args) => {
                 let args = args

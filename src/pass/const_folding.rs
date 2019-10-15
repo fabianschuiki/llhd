@@ -131,9 +131,7 @@ fn fold_unary(
     arg: Value,
 ) -> Option<Value> {
     if ty.is_int() {
-        fold_unary_int(builder, opcode, ty.unwrap_int(), false, arg)
-    } else if ty.is_signal() && ty.unwrap_signal().is_int() {
-        fold_unary_int(builder, opcode, ty.unwrap_signal().unwrap_int(), true, arg)
+        fold_unary_int(builder, opcode, ty.unwrap_int(), arg)
     } else {
         None
     }
@@ -144,7 +142,6 @@ fn fold_unary_int(
     builder: &mut impl UnitBuilder,
     opcode: Opcode,
     width: usize,
-    signal: bool,
     arg: Value,
 ) -> Option<Value> {
     let inst = builder.dfg().get_value_inst(arg)?;
@@ -154,7 +151,7 @@ fn fold_unary_int(
         Opcode::Neg => -imm,
         _ => return None,
     };
-    Some(builder.ins().const_int(width, signal, result))
+    Some(builder.ins().const_int(width, result))
 }
 
 /// Fold a binary instruction.
@@ -165,9 +162,7 @@ fn fold_binary(
     args: [Value; 2],
 ) -> Option<Value> {
     if ty.is_int() {
-        fold_binary_int(builder, opcode, ty.unwrap_int(), false, args)
-    } else if ty.is_signal() && ty.unwrap_signal().is_int() {
-        fold_binary_int(builder, opcode, ty.unwrap_signal().unwrap_int(), true, args)
+        fold_binary_int(builder, opcode, ty.unwrap_int(), args)
     } else {
         None
     }
@@ -178,7 +173,6 @@ fn fold_binary_int(
     builder: &mut impl UnitBuilder,
     opcode: Opcode,
     width: usize,
-    signal: bool,
     args: [Value; 2],
 ) -> Option<Value> {
     let inst0 = builder.dfg().get_value_inst(args[0])?;
@@ -211,7 +205,7 @@ fn fold_binary_int(
         Opcode::Uge => ((imm0.to_biguint()? >= imm1.to_biguint()?) as usize).into(),
         _ => return None,
     };
-    Some(builder.ins().const_int(width, signal, result))
+    Some(builder.ins().const_int(width, result))
 }
 
 /// Fold a branch instruction.

@@ -176,8 +176,8 @@ Inst: ast::Inst<'input> = {
 
 // An instruction which yields a result.
 InstWithResult: ast::Inst<'input> = {
-    "const" <ty: IntType> <sig: "$"?> <imm: BigInt> => ast::Inst::new(Opcode::ConstInt)
-        .data(ast::InstData::ConstInt(ty.unwrap_int(), sig.is_some(), imm)),
+    "const" <ty: IntType> <imm: BigInt> => ast::Inst::new(Opcode::ConstInt)
+        .data(ast::InstData::ConstInt(ty.unwrap_int(), imm)),
     "const" <ty: TimeType> <imm: ConstTime> => ast::Inst::new(Opcode::ConstTime)
         .data(ast::InstData::ConstTime(imm)),
     "alias" <arg: TypedValue> => ast::Inst::new(Opcode::Alias)
