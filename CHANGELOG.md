@@ -6,7 +6,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Fixed
-- Fix `mux` instruction not accepting signal/pointer operands.
 - Limit `wait` to processes.
 - Limit `inst` to entities.
 

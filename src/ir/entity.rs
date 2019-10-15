@@ -7,7 +7,7 @@ use crate::{
         Block, ControlFlowGraph, DataFlowGraph, EntityInsertPos, FunctionLayout, Inst, InstData,
         InstLayout, Signature, Unit, UnitBuilder, UnitKind, UnitName,
     },
-    ty::{signal_ty, Type},
+    ty::Type,
     verifier::Verifier,
 };
 
@@ -144,11 +144,6 @@ impl UnitBuilder for EntityBuilder<'_> {
     }
 
     fn build_inst(&mut self, data: InstData, ty: Type) -> Inst {
-        let ty = if !ty.is_signal() && !ty.is_void() && !data.opcode().is_const() {
-            signal_ty(ty)
-        } else {
-            ty
-        };
         let inst = self.entity.dfg.add_inst(data, ty);
         match self.pos {
             EntityInsertPos::Append => self.entity.layout.append_inst(inst),

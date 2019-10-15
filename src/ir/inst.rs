@@ -280,10 +280,9 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
 
     /// `a = mux type x, y`
     pub fn mux(&mut self, x: Value, y: Value) -> Value {
-        let ty = with_unpacked_sigptr(self.value_type(x), |ty| {
-            assert!(ty.is_array(), "argument to `mux` must be of array type");
-            ty.unwrap_array().1.clone()
-        });
+        let ty = self.value_type(x);
+        assert!(ty.is_array(), "argument to `mux` must be of array type");
+        let ty = ty.unwrap_array().1.clone();
         let inst = self.build_binary(Opcode::Mux, ty, x, y);
         self.inst_result(inst)
     }
