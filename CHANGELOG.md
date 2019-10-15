@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fix `mux` instruction not accepting signal/pointer operands.
 - Fix `sig` instruction to accept const signal initial values.
+- Limit `wait` to processes.
+- Limit `inst` to entities.
 
 ## 0.8.0 - 2019-08-07
 ### Added

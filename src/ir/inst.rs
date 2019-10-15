@@ -1060,11 +1060,16 @@ impl Opcode {
     pub fn valid_in(self) -> UnitFlags {
         match self {
             Opcode::Halt => UnitFlags::PROCESS,
-            Opcode::Ret | Opcode::RetValue => UnitFlags::FUNCTION,
-            Opcode::Br | Opcode::BrCond => UnitFlags::FUNCTION | UnitFlags::PROCESS,
+            Opcode::Wait => UnitFlags::PROCESS,
+            Opcode::WaitTime => UnitFlags::PROCESS,
+            Opcode::Ret => UnitFlags::FUNCTION,
+            Opcode::RetValue => UnitFlags::FUNCTION,
+            Opcode::Br => UnitFlags::FUNCTION | UnitFlags::PROCESS,
+            Opcode::BrCond => UnitFlags::FUNCTION | UnitFlags::PROCESS,
             Opcode::Con => UnitFlags::ENTITY,
             Opcode::Del => UnitFlags::ENTITY,
             Opcode::Reg => UnitFlags::ENTITY,
+            Opcode::Inst => UnitFlags::ENTITY,
             _ => UnitFlags::ALL,
         }
     }
