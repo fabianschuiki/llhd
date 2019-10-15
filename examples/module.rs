@@ -23,7 +23,7 @@ fn main() {
         let bb = builder.block();
         builder.append_to(bb);
         let ext = builder.add_extern(UnitName::global("my_func"), func_sig);
-        let v1 = builder.ins().const_int(32, false, 9001);
+        let v1 = builder.ins().const_int(32, 9001);
         builder.ins().call(ext, vec![v1]);
     }
     md.add_process(proc2);
