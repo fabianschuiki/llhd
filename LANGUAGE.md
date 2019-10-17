@@ -262,8 +262,8 @@ The `[N x T]` type represents a collection of `N` values of type `T`, where `N` 
     %0 = const i16 1
     %1 = const i16 42
     %2 = const i16 9001
-    %3 = [i16 %0, i16 %1, i16 %2]  ; [1, 42, 9001]
-    %4 = [3 x i16 %0]              ; [1, 1, 1]
+    %3 = [i16 %0, %1, %2]  ; [1, 42, 9001]
+    %4 = [3 x i16 %0]      ; [1, 1, 1]
 
 Individual values may be obtained or modified with the `extf`/`insf` instructions. Subranges of the array may be obtained or modified with the `exts`/`inss` instructions.
 
@@ -387,7 +387,7 @@ A value `%0` may be aliased under name `foo` as follows:
 Array values may be constructed in two ways. The first constructs a uniform array where each element has the same value. The second constructs an array with different values for each element. Every element in an array must have the same type.
 
     %result = [N x T %value]
-    %result = [T %value1, ..., T %valueN]
+    %result = [T %value1, ..., %valueN]
 
 - `N` is the number of elements in the array.
 - `T` is the type of each element. All elements must have the same type.
@@ -408,7 +408,7 @@ An array with three different 16 bit values may be constructed as follows:
     %0 = const i16 9001
     %1 = const i16 42
     %2 = const i16 1337
-    %3 = [i16 %0, i16 %1, i16 %2]
+    %3 = [i16 %0, %1, %2]
     ; type(%3) = [3 x i16]
 
 
