@@ -241,8 +241,12 @@ InstWithResult: ast::Inst<'input> = {
 InstWithRequiredResult: ast::Inst<'input> = {
     "[" <length: Usize> "x" <arg: TypedValue> "]" => ast::Inst::new(Opcode::ArrayUniform)
         .data(ast::InstData::Aggregate(length, vec![arg])),
-    "[" <args: Comma<TypedValue>> "]" => ast::Inst::new(Opcode::Array)
-        .data(ast::InstData::Aggregate(0, args)),
+    "[" <head: TypedValue> <tail: ("," <Value>)*> "]" => {
+        let ty = head.ty.clone();
+        let mut args = vec![head];
+        args.extend(tail.into_iter().map(|a| a.ty(ty.clone())));
+        ast::Inst::new(Opcode::Array).data(ast::InstData::Aggregate(0, args))
+    },
     "{" <args: Comma<TypedValue>> "}" => ast::Inst::new(Opcode::Struct)
         .data(ast::InstData::Aggregate(0, args)),
 }

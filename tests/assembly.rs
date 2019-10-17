@@ -169,3 +169,18 @@ fn extract_with_signal() {
         }
     "};
 }
+
+#[test]
+fn nonuniform_array_regression() {
+    // Check that the non-uniform array syntax amitted by the writter matches
+    // the one accepted by the parser.
+    loopback! {"
+        proc @foo () -> () {
+        %entry:
+            %0 = const i32 0
+            %1 = const i32 0
+            %2 = [i32 %0, %1]
+            halt
+        }
+    "};
+}

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Limit `wait` to processes.
 - Limit `inst` to entities.
+- Fix reader not always accepting non-uniform arrays like `[i32 %0, %1]`.
 
 ## 0.8.0 - 2019-08-07
 ### Added
