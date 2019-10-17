@@ -1211,6 +1211,6 @@ fn with_unpacked_sigptr(ty: Type, f: impl FnOnce(Type) -> Type) -> Type {
     } else if ty.is_signal() {
         signal_ty(f(ty.unwrap_signal().clone()))
     } else {
-        ty
+        f(ty)
     }
 }
