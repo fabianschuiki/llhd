@@ -108,13 +108,13 @@ impl<'a> Inst<'a> {
                     Opcode::Array => builder.ins().array(args).into(),
                     Opcode::Struct => builder.ins().strukt(args).into(),
                     Opcode::ArrayUniform => builder.ins().array_uniform(size, args[0]).into(),
-                    _ => unreachable!(),
+                    x => unreachable!("aggregate {:?}", x),
                 }
             }
             InstData::Nullary => match self.opcode {
                 Opcode::Halt => builder.ins().halt().into(),
                 Opcode::Ret => builder.ins().ret().into(),
-                _ => unreachable!(),
+                x => unreachable!("nullary {:?}", x),
             },
             InstData::Unary(arg) => {
                 let arg = arg.build(builder, context);
@@ -127,7 +127,7 @@ impl<'a> Inst<'a> {
                     Opcode::Prb => builder.ins().prb(arg).into(),
                     Opcode::Var => builder.ins().var(arg).into(),
                     Opcode::Ld => builder.ins().ld(arg).into(),
-                    _ => unreachable!(),
+                    x => unreachable!("unary {:?}", x),
                 }
             }
             InstData::Binary(arg0, arg1) => {
@@ -160,7 +160,7 @@ impl<'a> Inst<'a> {
                     Opcode::Con => builder.ins().con(arg0, arg1).into(),
                     Opcode::Del => builder.ins().del(arg0, arg1).into(),
                     Opcode::St => builder.ins().st(arg0, arg1).into(),
-                    _ => unreachable!(),
+                    x => unreachable!("binary {:?}", x),
                 }
             }
             InstData::Ternary(arg0, arg1, arg2) => {
@@ -171,7 +171,7 @@ impl<'a> Inst<'a> {
                     Opcode::Drv => builder.ins().drv(arg0, arg1, arg2).into(),
                     Opcode::Shl => builder.ins().shl(arg0, arg1, arg2).into(),
                     Opcode::Shr => builder.ins().shr(arg0, arg1, arg2).into(),
-                    _ => unreachable!(),
+                    x => unreachable!("ternary {:?}", x),
                 }
             }
             InstData::Reg(init, triggers) => {
@@ -197,7 +197,7 @@ impl<'a> Inst<'a> {
                         .ins()
                         .ins_slice(target, value, imm[0], imm[1])
                         .into(),
-                    _ => unreachable!(),
+                    x => unreachable!("ins {:?}", x),
                 }
             }
             InstData::Ext(target, imm) => {
@@ -205,7 +205,7 @@ impl<'a> Inst<'a> {
                 match self.opcode {
                     Opcode::ExtField => builder.ins().ext_field(target, imm[0]).into(),
                     Opcode::ExtSlice => builder.ins().ext_slice(target, imm[0], imm[1]).into(),
-                    _ => unreachable!(),
+                    x => unreachable!("ext {:?}", x),
                 }
             }
             InstData::Call(ty, unit, args) => {
@@ -249,7 +249,7 @@ impl<'a> Inst<'a> {
                         let bb1 = bb1.unwrap().build(builder, context);
                         builder.ins().br_cond(cond, bb0, bb1).into()
                     }
-                    _ => unreachable!(),
+                    x => unreachable!("branch {:?}", x),
                 }
             }
             InstData::Wait(bb, time, args) => {
@@ -264,7 +264,7 @@ impl<'a> Inst<'a> {
                         let time = time.unwrap().build(builder, context);
                         builder.ins().wait_time(bb, time, args).into()
                     }
-                    _ => unreachable!(),
+                    x => unreachable!("wait {:?}", x),
                 }
             }
         };
