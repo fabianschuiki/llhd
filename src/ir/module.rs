@@ -322,6 +322,16 @@ impl Module {
             }
         }
     }
+
+    /// Lookup what an external unit links to.
+    ///
+    /// The module must be linked for this to work.
+    pub fn lookup_ext_unit(&self, ext_unit: ExtUnit, within: ModUnit) -> Option<ModUnit> {
+        self.link_table
+            .as_ref()
+            .and_then(|lt| lt.get(&(within, ext_unit)))
+            .cloned()
+    }
 }
 
 /// Temporary object to dump a `Module` in human-readable form for debugging.
