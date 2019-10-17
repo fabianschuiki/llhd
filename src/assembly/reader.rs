@@ -169,6 +169,8 @@ impl<'a> Inst<'a> {
                 let arg2 = arg2.build(builder, context);
                 match self.opcode {
                     Opcode::Drv => builder.ins().drv(arg0, arg1, arg2).into(),
+                    Opcode::Shl => builder.ins().shl(arg0, arg1, arg2).into(),
+                    Opcode::Shr => builder.ins().shr(arg0, arg1, arg2).into(),
                     _ => unreachable!(),
                 }
             }

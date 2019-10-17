@@ -184,3 +184,17 @@ fn nonuniform_array_regression() {
         }
     "};
 }
+
+#[test]
+fn shift_regression() {
+    // Check that the parser accepts shifts properly.
+    loopback! {"
+        func @foo () void {
+        %entry:
+            %0 = const i32 0
+            %1 = shl i32 %0, i32 %0, i32 %0
+            %2 = shr i32 %0, i32 %0, i32 %0
+            ret
+        }
+    "};
+}
