@@ -157,6 +157,7 @@ impl<'a> Inst<'a> {
                     Opcode::Ugt => builder.ins().ugt(arg0, arg1).into(),
                     Opcode::Ule => builder.ins().ule(arg0, arg1).into(),
                     Opcode::Uge => builder.ins().uge(arg0, arg1).into(),
+                    Opcode::Mux => builder.ins().mux(arg0, arg1).into(),
                     Opcode::Con => builder.ins().con(arg0, arg1).into(),
                     Opcode::Del => builder.ins().del(arg0, arg1).into(),
                     Opcode::St => builder.ins().st(arg0, arg1).into(),

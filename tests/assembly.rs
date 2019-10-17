@@ -198,3 +198,17 @@ fn shift_regression() {
         }
     "};
 }
+
+#[test]
+fn mux_regression() {
+    // Check that the parser accepts muxes properly.
+    loopback! {"
+        func @foo () void {
+        %entry:
+            %0 = const i32 0
+            %1 = [i32 %0, %0]
+            %2 = mux [2 x i32] %1, i32 %0
+            ret
+        }
+    "};
+}
