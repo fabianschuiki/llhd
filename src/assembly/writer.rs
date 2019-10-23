@@ -367,15 +367,30 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     self.write_value_use(trigger, false)?;
                 }
             }
-            Opcode::InsField | Opcode::InsSlice | Opcode::ExtField | Opcode::ExtSlice => {
+            Opcode::InsField | Opcode::InsSlice => {
                 write!(self.writer.sink, "{} ", data.opcode())?;
                 let mut first = true;
                 for &arg in data.args() {
                     if !first {
                         write!(self.writer.sink, ", ")?;
                     }
-                    self.write_value_use(arg, first)?;
+                    self.write_value_use(arg, true)?;
                     first = false;
+                }
+                for &imm in data.imms() {
+                    write!(self.writer.sink, ", {}", imm)?;
+                }
+            }
+            Opcode::ExtField | Opcode::ExtSlice => {
+                write!(
+                    self.writer.sink,
+                    "{} {}",
+                    data.opcode(),
+                    dfg.inst_type(inst)
+                )?;
+                for &arg in data.args() {
+                    write!(self.writer.sink, ", ")?;
+                    self.write_value_use(arg, true)?;
                 }
                 for &imm in data.imms() {
                     write!(self.writer.sink, ", {}", imm)?;

@@ -439,8 +439,8 @@ A struct with three fields of different types may be constructed as follows:
 
 The `insert` instruction may be used to change the value of fields of structs, elements of arrays, or bits of integers. It comes in two variants: `insert element` operates on single elements, while `insert slice` operates on a slice of consecutive elements.
 
-    %r = insert element <ty> <target>, <index>, <value>
-    %r = insert slice <ty> <target>, <start>, <length>, <value>
+    %r = insf Tt %target, Tv %value, Nindex
+    %r = inss Tt %target, Tv %value, Nstart, Nlength
 
 - `ty` is the type of the target struct, array, or integer. A type.
 - `target` is the struct, array, or integer to be modified. A value.
@@ -494,8 +494,8 @@ A slice of integer bits may be modified as follows:
 
 The `extract` instruction may be used to obtain the value of fields of structs, elements of arrays, or bits of integers. It comes in two variants: `extract element` operates on single elements, while `extract slice` operates on a slice of consecutive elements.
 
-    %r = extract element <ty> <target>, <index>
-    %r = extract slice <ty> <target>, <start>, <length>
+    %r = extf Tv, Tt %target, Nindex
+    %r = exts Tv, Tt %target, Nstart, Nlength
 
 - `ty` is the type of the target struct, array, or integer. A type.
 - `target` is the struct, array, or integer to be accessed. A struct may only be used in `extract element`. A value.

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Data flow instructions in entities are no longer automatically of signal type.
 - Leading `%` in block names may now be omitted.
+- Make types in syntax of `extf`, `exts`, `insf`, and `inss` more explicit.
 
 ### Fixed
 - Limit `wait` to processes.

@@ -67,7 +67,7 @@ pub enum InstData<'a> {
         Vec<(TypedValue<'a>, ir::RegMode, TypedValue<'a>)>,
     ),
     Ins(TypedValue<'a>, TypedValue<'a>, [usize; 2]),
-    Ext(TypedValue<'a>, [usize; 2]),
+    Ext(Type, TypedValue<'a>, [usize; 2]),
     Call(Type, UnitName, Vec<TypedValue<'a>>),
     Inst(UnitName, Vec<TypedValue<'a>>, Vec<TypedValue<'a>>),
     Branch(Option<TypedValue<'a>>, Label<'a>, Option<Label<'a>>),
@@ -201,13 +201,16 @@ impl<'a> Inst<'a> {
                     x => unreachable!("ins {:?}", x),
                 }
             }
-            InstData::Ext(target, imm) => {
+            InstData::Ext(ty, target, imm) => {
+                use crate::ir::Unit;
                 let target = target.build(builder, context);
-                match self.opcode {
-                    Opcode::ExtField => builder.ins().ext_field(target, imm[0]).into(),
-                    Opcode::ExtSlice => builder.ins().ext_slice(target, imm[0], imm[1]).into(),
+                let ins = match self.opcode {
+                    Opcode::ExtField => builder.ins().ext_field(target, imm[0]),
+                    Opcode::ExtSlice => builder.ins().ext_slice(target, imm[0], imm[1]),
                     x => unreachable!("ext {:?}", x),
-                }
+                };
+                assert_eq!(builder.unit().value_type(ins), ty);
+                ins.into()
             }
             InstData::Call(ty, unit, args) => {
                 let mut sig = Signature::new();

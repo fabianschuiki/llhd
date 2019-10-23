@@ -202,31 +202,21 @@ InstWithResult: ast::Inst<'input> = {
         ast::Inst::new(Opcode::Reg)
             .data(ast::InstData::Reg(init, triggers))
     },
-    "insf" <target: TypedValue> "," <arg: Value> "," <imm: Usize> => {
-        let arg = match *target.ty {
-            StructType(ref ftys) => arg.ty(ftys[imm].clone()),
-            ArrayType(_, ref ty) => arg.ty(ty.clone()),
-            _ => panic!("argument to `insf` must be of struct or array type"),
-        };
+    "insf" <target: TypedValue> "," <arg: TypedValue> "," <imm: Usize> => {
         ast::Inst::new(Opcode::InsField)
             .data(ast::InstData::Ins(target, arg, [imm, 0]))
     },
-    "inss" <target: TypedValue> "," <arg: Value> "," <imm0: Usize> "," <imm1: Usize> => {
-        let arg = match *target.ty {
-            ArrayType(_, ref ty) => arg.ty(array_ty(imm1, ty.clone())),
-            IntType(_) => arg.ty(int_ty(imm1)),
-            _ => panic!("argument to `inss` must be of array or integer type"),
-        };
+    "inss" <target: TypedValue> "," <arg: TypedValue> "," <imm0: Usize> "," <imm1: Usize> => {
         ast::Inst::new(Opcode::InsSlice)
             .data(ast::InstData::Ins(target, arg, [imm0, imm1]))
     },
-    "extf" <target: TypedValue> "," <imm: Usize> => {
+    "extf" <ty: Type> "," <target: TypedValue> "," <imm: Usize> => {
         ast::Inst::new(Opcode::ExtField)
-            .data(ast::InstData::Ext(target, [imm, 0]))
+            .data(ast::InstData::Ext(ty, target, [imm, 0]))
     },
-    "exts" <target: TypedValue> "," <imm0: Usize> "," <imm1: Usize> => {
+    "exts" <ty: Type> "," <target: TypedValue> "," <imm0: Usize> "," <imm1: Usize> => {
         ast::Inst::new(Opcode::ExtSlice)
-            .data(ast::InstData::Ext(target, [imm0, imm1]))
+            .data(ast::InstData::Ext(ty, target, [imm0, imm1]))
     },
     "del" <arg: TypedValue> "," <delay: Value> => {
         let delay = delay.ty(time_ty());

@@ -21,12 +21,12 @@ macro_rules! compare {
 fn empty() {
     loopback! {"
         func @a () void {
-        %0:
+        0:
             ret
         }
 
         proc @b () -> () {
-        %0:
+        0:
             halt
         }
 
@@ -39,7 +39,7 @@ fn empty() {
 fn types() {
     loopback! {"
         func @foo (i32 %v0, time %v1, i32* %v2, i32$ %v3, void %v4, {i32, i64} %v5, [9001 x i32] %v6) void {
-        %entry:
+        entry:
             ret
         }
     "};
@@ -49,18 +49,18 @@ fn types() {
 fn function() {
     loopback! {"
         func @foo (i32 %a, i32 %b) void {
-        %entry:
+        entry:
             %0 = add i32 %a, %b
             %1 = const i32 42
             %y = add i32 %0, %1
             ret
-        %schmentry:
+        schmentry:
             %2 = eq i32 %y, %a
             ret
         }
 
         func @bar (i32 %0) void {
-        %well:
+        well:
             ret
         }
     "};
@@ -70,7 +70,7 @@ fn function() {
 fn process() {
     loopback! {"
         proc @bar (i32 %0) -> (i32 %1) {
-        %entry:
+        entry:
             %k0 = const i32 21
             %k1 = const i32 42
             %2 = add i32 %0, %k0
@@ -97,12 +97,12 @@ fn entity() {
 fn call_and_inst() {
     loopback! {"
         func @foo (i32 %a, i32 %b) void {
-        %0:
+        0:
             ret
         }
 
         proc @bar (i32 %a) -> (i32 %b) {
-        %entry:
+        entry:
             call void @foo (i32 %a, i32 %a)
             halt
         }
@@ -117,7 +117,7 @@ fn call_and_inst() {
 fn regression_underscore_names() {
     loopback! {"
         proc @four_pulses () -> () {
-        %0:
+        0:
             halt
         }
     "};
@@ -127,7 +127,7 @@ fn regression_underscore_names() {
 fn regression_signal_type() {
     loopback! {"
         proc @foo (i1$ %a) -> (i1$ %b) {
-        %0:
+        0:
             halt
         }
     "};
@@ -137,19 +137,19 @@ fn regression_signal_type() {
 fn extract_with_pointer() {
     loopback! {"
         func @foo () void {
-        %entry:
+        entry:
             %k0 = const i32 0
             %k1 = const i16 0
             %a0 = var i32 %k0
-            %a1 = exts i32* %a0, 3, 1
-            %a2 = exts i32* %a0, 0, 2
+            %a1 = exts i1*, i32* %a0, 3, 1
+            %a2 = exts i2*, i32* %a0, 0, 2
             %k2 = {i32 %k0, i16 %k1}
             %b0 = var {i32, i16} %k2
-            %b1 = extf {i32, i16}* %b0, 0
+            %b1 = extf i32*, {i32, i16}* %b0, 0
             %k3 = [4 x i32 %k0]
             %c0 = var [4 x i32] %k3
-            %c1 = extf [4 x i32]* %c0, 2
-            %c2 = exts [4 x i32]* %c0, 1, 2
+            %c1 = extf i32*, [4 x i32]* %c0, 2
+            %c2 = exts [2 x i32]*, [4 x i32]* %c0, 1, 2
             ret
         }
     "};
@@ -159,12 +159,12 @@ fn extract_with_pointer() {
 fn extract_with_signal() {
     loopback! {"
         proc @foo (i32$ %a0, {i32, i16}$ %b0, [4 x i32]$ %c0) -> () {
-        %entry:
-            %a1 = exts i32$ %a0, 3, 1
-            %a2 = exts i32$ %a0, 0, 2
-            %b1 = extf {i32, i16}$ %b0, 0
-            %c1 = extf [4 x i32]$ %c0, 2
-            %c2 = exts [4 x i32]$ %c0, 1, 2
+        entry:
+            %a1 = exts i1$, i32$ %a0, 3, 1
+            %a2 = exts i2$, i32$ %a0, 0, 2
+            %b1 = extf i32$, {i32, i16}$ %b0, 0
+            %c1 = extf i32$, [4 x i32]$ %c0, 2
+            %c2 = exts [2 x i32]$, [4 x i32]$ %c0, 1, 2
             halt
         }
     "};
@@ -176,7 +176,7 @@ fn nonuniform_array_regression() {
     // the one accepted by the parser.
     loopback! {"
         proc @foo () -> () {
-        %entry:
+        entry:
             %0 = const i32 0
             %1 = const i32 0
             %2 = [i32 %0, %1]
@@ -190,7 +190,7 @@ fn shift_regression() {
     // Check that the parser accepts shifts properly.
     loopback! {"
         func @foo () void {
-        %entry:
+        entry:
             %0 = const i32 0
             %1 = shl i32 %0, i32 %0, i32 %0
             %2 = shr i32 %0, i32 %0, i32 %0
@@ -204,7 +204,7 @@ fn mux_regression() {
     // Check that the parser accepts muxes properly.
     loopback! {"
         func @foo () void {
-        %entry:
+        entry:
             %0 = const i32 0
             %1 = [i32 %0, %0]
             %2 = mux [2 x i32] %1, i32 %0
