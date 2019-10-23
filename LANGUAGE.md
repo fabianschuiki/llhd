@@ -65,13 +65,13 @@ A function has a local or global name, input arguments, and a return type. The f
 The following function computes the Fibonacci series for a 32 bit signed integer number N:
 
     func @fib (i32 %N) i32 {
-    %entry:
+    entry:
         %one = const i32 1
         %0 = sle i32 %N, %one
         br %0, %recursive, %base
-    %base:
+    base:
         ret i32 %one
-    %recursive:
+    recursive:
         %two = const i32 2
         %1 = sub i32 %N, %one
         %2 = sub i32 %N, %two
@@ -101,7 +101,7 @@ Processes may be used to behaviorally model a circuit, as is commonly done in hi
 The following process computes the butterfly operation in an FFT combinatorially with a 1ns delay:
 
     proc @bfly (i32$ %x0, i32$ %x1) -> (i32$ %y0, i32$ %y1) {
-    %entry:
+    entry:
         %x0v = prb i32$ %x0
         %x1v = prb i32$ %x1
         %0 = add i32 %x0v, %x1v
@@ -900,7 +900,7 @@ or VHDL
 would eventually translate to the following in LLHD:
 
     proc %p0 () -> () {
-    %entry:
+    entry:
         ; ...
         halt
     }

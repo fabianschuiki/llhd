@@ -387,7 +387,9 @@ UnitName: UnitName = <name: Name> => {
 };
 
 // A basic block label.
-BlockLabel: ast::LocalName<'input> = r"%[a-zA-Z0-9_\.\\]+:" => <>[1..<>.len()-1].into();
+BlockLabel: ast::LocalName<'input> = r"%?[a-zA-Z0-9_\.\\]+:" => {
+    <>.trim_start_matches('%').trim_end_matches(':').into()
+};
 
 // Any temporary, local, or global name.
 Name = r"[@%][a-zA-Z0-9_\.\\]+";

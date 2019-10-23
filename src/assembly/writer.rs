@@ -190,7 +190,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
     pub fn write_block_name(&mut self, block: Block) -> Result<()> {
         // If we have already picked a name for the value, use that.
         if let Some(name) = self.block_names.get(&block) {
-            return write!(self.writer.sink, "%{}", name);
+            return write!(self.writer.sink, "{}", name);
         }
 
         // Check if the block has an explicit name set, or if we should just
@@ -198,9 +198,15 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
         let name = self.uniquify_name(self.unit.cfg().get_name(block));
 
         // Emit the name and associate it with the block for later reuse.
-        write!(self.writer.sink, "%{}", name)?;
+        write!(self.writer.sink, "{}", name)?;
         self.block_names.insert(block, name);
         Ok(())
+    }
+
+    /// Emit the name of a BB to be used as label in an instruction.
+    pub fn write_block_value(&mut self, block: Block) -> Result<()> {
+        write!(self.writer.sink, "%")?;
+        self.write_block_name(block)
     }
 
     /// Uniquify a value or block name.
@@ -426,19 +432,19 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
             Opcode::Halt | Opcode::Ret => write!(self.writer.sink, "{}", data.opcode())?,
             Opcode::Br => {
                 write!(self.writer.sink, "{} ", data.opcode())?;
-                self.write_block_name(data.blocks()[0])?;
+                self.write_block_value(data.blocks()[0])?;
             }
             Opcode::BrCond => {
                 write!(self.writer.sink, "{} ", data.opcode())?;
                 self.write_value_use(data.args()[0], false)?;
                 write!(self.writer.sink, ", ")?;
-                self.write_block_name(data.blocks()[0])?;
+                self.write_block_value(data.blocks()[0])?;
                 write!(self.writer.sink, ", ")?;
-                self.write_block_name(data.blocks()[1])?;
+                self.write_block_value(data.blocks()[1])?;
             }
             Opcode::Wait => {
                 write!(self.writer.sink, "{} ", data.opcode())?;
-                self.write_block_name(data.blocks()[0])?;
+                self.write_block_value(data.blocks()[0])?;
                 for &arg in data.args() {
                     write!(self.writer.sink, ", ")?;
                     self.write_value_use(arg, false)?;
@@ -446,7 +452,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
             }
             Opcode::WaitTime => {
                 write!(self.writer.sink, "{} ", data.opcode())?;
-                self.write_block_name(data.blocks()[0])?;
+                self.write_block_value(data.blocks()[0])?;
                 write!(self.writer.sink, " for ")?;
                 self.write_value_use(data.args()[0], false)?;
                 for &arg in &data.args()[1..] {

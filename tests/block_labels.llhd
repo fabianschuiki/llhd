@@ -1,0 +1,6 @@
+func @foo () void {
+entry:
+	ret
+%other:
+	ret
+}
