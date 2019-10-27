@@ -1,0 +1,68 @@
+%YAML 1.2
+---
+# Syntax highlighting for LLHD assembly files.
+# See http://www.sublimetext.com/docs/3/syntax.html
+
+name: LLHD
+file_extensions:
+  - llhd
+scope: source.llhd
+
+contexts:
+  main:
+    - match: ';'
+      scope: punctuation.definition.comment.llhd
+      push: line_comment
+
+    # Units
+    - match: '\b(func|proc|entity)\s+([%@][a-zA-Z0-9_\.\\]+)'
+      scope: meta.unit.llhd
+      captures:
+        1: keyword.unit.llhd
+        2: entity.name.class.llhd
+
+    # Instructions
+    - match: '\b(const|alias|mux|reg|insf|inss|extf|exts|del|call|con|inst|drv|st|halt|ret|br|wait|not|neg|sig|prb|var|ld|add|sub|and|or|xor|smul|sdiv|smod|srem|umul|udiv|umod|urem|eq|neq|slt|sgt|sle|sge|ult|ugt|ule|uge|shl|shr)\b'
+      scope: keyword.opcode.llhd
+
+    # Modifiers
+    - match: '\b(for|low|high|rise|fall|both)\b'
+      scope: keyword.operator.llhd
+
+    # Types
+    - match: '(\bvoid\b|\btime\b|[iln]\d+|[\*\$]|\d+\s*x\s*)'
+      scope: keyword.operator.llhd
+
+    # Block names
+    - match: '[a-zA-Z0-9_\.\\]+:'
+      scope: variable.language.llhd
+
+    # Local names
+    - match: '[%][a-zA-Z0-9_\.\\]+'
+      scope: variable.local.llhd
+
+    # Global names
+    - match: '[@][a-zA-Z0-9_\.\\]+'
+      scope: entity.name.class.llhd
+
+    # Punctuation
+    - match: '[({\[]'
+      scope: punctuation.section.group.begin.llhd
+    - match: '[)}\]]'
+      scope: punctuation.section.group.end.llhd
+    - match: '(,|->)'
+      scope: punctuation.separator.llhd
+    - match: '='
+      scope: keyword.operator.llhd
+
+    # Numbers
+    - match: '\b(-)?[0-9.]+([afpnum]?s|e|d)?\b'
+      scope: constant.numeric.llhd
+
+  line_comment:
+    - meta_scope: comment.line.llhd
+    - match: $
+      pop: true
+
+# storage.type.language.llvm
+# source.llvm variable.language.llvm
