@@ -42,6 +42,14 @@ impl Unit for Function {
         UnitKind::Function
     }
 
+    fn get_function(&self) -> Option<&Function> {
+        Some(self)
+    }
+
+    fn get_function_mut(&mut self) -> Option<&mut Function> {
+        Some(self)
+    }
+
     fn dfg(&self) -> &DataFlowGraph {
         &self.dfg
     }

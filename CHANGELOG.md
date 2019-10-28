@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 - Add Sublime Text syntax highlighting.
+- Add function/process/entity and name getters to `Unit`.
 
 ## 0.9.0 - 2019-10-24
 ### Added

@@ -4,8 +4,8 @@
 
 use crate::{
     ir::{
-        Arg, Block, ControlFlowGraph, DataFlowGraph, ExtUnit, ExtUnitData, FunctionLayout, Inst,
-        InstBuilder, InstData, InstLayout, Signature, Value,
+        Arg, Block, ControlFlowGraph, DataFlowGraph, Entity, ExtUnit, ExtUnitData, Function,
+        FunctionLayout, Inst, InstBuilder, InstData, InstLayout, Process, Signature, Value,
     },
     ty::Type,
 };
@@ -55,6 +55,14 @@ impl UnitName {
         match self {
             UnitName::Global(..) => true,
             _ => false,
+        }
+    }
+
+    /// Get the underlying name.
+    pub fn get_name(&self) -> Option<&str> {
+        match self {
+            UnitName::Global(n) | UnitName::Local(n) => Some(n.as_str()),
+            _ => None,
         }
     }
 }
@@ -165,6 +173,36 @@ pub trait Unit {
     /// Check if this unit is an `Entity`.
     fn is_entity(&self) -> bool {
         self.kind() == UnitKind::Entity
+    }
+
+    /// Access this unit as a `Function`, if it is one.
+    fn get_function(&self) -> Option<&Function> {
+        None
+    }
+
+    /// Access this unit as a mutable `Function`, if it is one.
+    fn get_function_mut(&mut self) -> Option<&mut Function> {
+        None
+    }
+
+    /// Access this unit as a `Process`, if it is one.
+    fn get_process(&self) -> Option<&Process> {
+        None
+    }
+
+    /// Access this unit as a mutable `Process`, if it is one.
+    fn get_process_mut(&mut self) -> Option<&mut Process> {
+        None
+    }
+
+    /// Access this unit as an `Entity`, if it is one.
+    fn get_entity(&self) -> Option<&Entity> {
+        None
+    }
+
+    /// Access this unit as a mutablen `Entity`, if it is one.
+    fn get_entity_mut(&mut self) -> Option<&mut Entity> {
+        None
     }
 
     /// Get the value of argument `arg`.

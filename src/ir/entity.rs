@@ -39,6 +39,14 @@ impl Unit for Entity {
         UnitKind::Entity
     }
 
+    fn get_entity(&self) -> Option<&Entity> {
+        Some(self)
+    }
+
+    fn get_entity_mut(&mut self) -> Option<&mut Entity> {
+        Some(self)
+    }
+
     fn dfg(&self) -> &DataFlowGraph {
         &self.dfg
     }

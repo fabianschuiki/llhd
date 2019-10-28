@@ -41,6 +41,14 @@ impl Unit for Process {
         UnitKind::Process
     }
 
+    fn get_process(&self) -> Option<&Process> {
+        Some(self)
+    }
+
+    fn get_process_mut(&mut self) -> Option<&mut Process> {
+        Some(self)
+    }
+
     fn dfg(&self) -> &DataFlowGraph {
         &self.dfg
     }
