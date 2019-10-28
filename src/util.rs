@@ -43,11 +43,11 @@ where
 /// items from the map, in the order in which their keys appear in the slice.
 pub struct IndirectMapIter<'tf, T: Iterator + 'tf, V: 'tf> {
     refs: T,
-    map: &'tf Index<T::Item, Output = V>,
+    map: &'tf dyn Index<T::Item, Output = V>,
 }
 
 impl<'tf, T: Iterator + 'tf, V> IndirectMapIter<'tf, T, V> {
-    pub fn new(refs: T, map: &'tf Index<T::Item, Output = V>) -> IndirectMapIter<'tf, T, V> {
+    pub fn new(refs: T, map: &'tf dyn Index<T::Item, Output = V>) -> IndirectMapIter<'tf, T, V> {
         IndirectMapIter {
             refs: refs,
             map: map,

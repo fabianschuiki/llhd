@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add Sublime Text syntax highlighting.
 - Add function/process/entity and name getters to `Unit`.
 
+### Changed
+- Fix missing `dyn` keywords.
+
 ## 0.9.0 - 2019-10-24
 ### Added
 - Add function to lookup external units in a module.

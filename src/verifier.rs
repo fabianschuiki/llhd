@@ -624,7 +624,8 @@ impl Verifier {
     ) -> Option<Type> {
         let field = dfg[inst].imms()[0];
         let target_ty = dfg.value_type(dfg[inst].args()[0]);
-        let (target_ty, wrap): (_, &Fn(Type) -> Type) = if allow_deref && target_ty.is_signal() {
+        let (target_ty, wrap): (_, &dyn Fn(Type) -> Type) = if allow_deref && target_ty.is_signal()
+        {
             (target_ty.unwrap_signal(), &signal_ty)
         } else if allow_deref && target_ty.is_pointer() {
             (target_ty.unwrap_pointer(), &pointer_ty)
@@ -672,7 +673,8 @@ impl Verifier {
         let offset = dfg[inst].imms()[0];
         let length = dfg[inst].imms()[1];
         let target_ty = dfg.value_type(dfg[inst].args()[0]);
-        let (target_ty, wrap): (_, &Fn(Type) -> Type) = if allow_deref && target_ty.is_signal() {
+        let (target_ty, wrap): (_, &dyn Fn(Type) -> Type) = if allow_deref && target_ty.is_signal()
+        {
             (target_ty.unwrap_signal(), &signal_ty)
         } else if allow_deref && target_ty.is_pointer() {
             (target_ty.unwrap_pointer(), &pointer_ty)

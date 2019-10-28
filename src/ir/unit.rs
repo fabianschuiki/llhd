@@ -211,17 +211,17 @@ pub trait Unit {
     }
 
     /// Return an iterator over the unit's input arguments.
-    fn input_args<'a>(&'a self) -> Box<Iterator<Item = Value> + 'a> {
+    fn input_args<'a>(&'a self) -> Box<dyn Iterator<Item = Value> + 'a> {
         Box::new(self.sig().inputs().map(move |arg| self.arg_value(arg)))
     }
 
     /// Return an iterator over the unit's output arguments.
-    fn output_args<'a>(&'a self) -> Box<Iterator<Item = Value> + 'a> {
+    fn output_args<'a>(&'a self) -> Box<dyn Iterator<Item = Value> + 'a> {
         Box::new(self.sig().outputs().map(move |arg| self.arg_value(arg)))
     }
 
     /// Return an iterator over the unit's arguments.
-    fn args<'a>(&'a self) -> Box<Iterator<Item = Value> + 'a> {
+    fn args<'a>(&'a self) -> Box<dyn Iterator<Item = Value> + 'a> {
         Box::new(self.sig().args().map(move |arg| self.arg_value(arg)))
     }
 
