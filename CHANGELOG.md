@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `named_block()` to unit builder.
 - Add `log` dependency.
 - Add `value` module with utilities to deal with values.
+- Add `get_const*` functions to the DFG.
 
 ### Changed
 - Add missing `dyn` keywords.

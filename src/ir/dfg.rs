@@ -220,4 +220,94 @@ impl DataFlowGraph {
         }
         count
     }
+
+    /// Resolve a constant value.
+    ///
+    /// Returns `None` if the value is not constant. Note that this *does not*
+    /// perform constant folding. Rather, the value must resolve to an
+    /// instruction which produces a constant value.
+    pub fn get_const(&self, value: Value) -> Option<crate::Value> {
+        use super::Opcode;
+        let inst = self.get_value_inst(value)?;
+        match self[inst].opcode() {
+            Opcode::ConstInt => self.get_const_int(value).map(Into::into),
+            Opcode::ConstTime => self.get_const_time(value).map(Into::into),
+            Opcode::Array | Opcode::ArrayUniform => self.get_const_array(value).map(Into::into),
+            Opcode::Struct => self.get_const_struct(value).map(Into::into),
+            _ => None,
+        }
+    }
+
+    /// Resolve a constant time value.
+    ///
+    /// Returns `None` if the value is not constant. Note that this *does not*
+    /// perform constant folding. Rather, the value must resolve to an
+    /// instruction which produces a constant value.
+    pub fn get_const_time(&self, value: Value) -> Option<crate::TimeValue> {
+        let inst = self.get_value_inst(value)?;
+        let v = self[inst].get_const_time()?;
+        Some(crate::TimeValue::new(
+            v.time().clone(),
+            v.delta(),
+            v.epsilon(),
+        ))
+    }
+
+    /// Resolve a constant integer value.
+    ///
+    /// Returns `None` if the value is not constant. Note that this *does not*
+    /// perform constant folding. Rather, the value must resolve to an
+    /// instruction which produces a constant value.
+    pub fn get_const_int(&self, value: Value) -> Option<crate::IntValue> {
+        let inst = self.get_value_inst(value)?;
+        let v = self[inst].get_const_int()?;
+        let width = self.value_type(value).unwrap_int();
+        Some(crate::IntValue::from_signed(width, v.clone()))
+    }
+
+    /// Resolve a constant array value.
+    ///
+    /// Returns `None` if the value is not constant. Note that this *does not*
+    /// perform constant folding. Rather, the value must resolve to an
+    /// instruction which produces a constant value.
+    pub fn get_const_array(&self, value: Value) -> Option<crate::ArrayValue> {
+        use super::Opcode;
+        let inst = self.get_value_inst(value)?;
+        match self[inst].opcode() {
+            Opcode::Array => {
+                let args: Option<Vec<_>> = self[inst]
+                    .args()
+                    .iter()
+                    .map(|&a| self.get_const(a))
+                    .collect();
+                Some(crate::ArrayValue::new(args?))
+            }
+            Opcode::ArrayUniform => Some(crate::ArrayValue::new_uniform(
+                self[inst].imms()[0],
+                self.get_const(self[inst].args()[0])?,
+            )),
+            _ => None,
+        }
+    }
+
+    /// Resolve a constant struct value.
+    ///
+    /// Returns `None` if the value is not constant. Note that this *does not*
+    /// perform constant folding. Rather, the value must resolve to an
+    /// instruction which produces a constant value.
+    pub fn get_const_struct(&self, value: Value) -> Option<crate::StructValue> {
+        use super::Opcode;
+        let inst = self.get_value_inst(value)?;
+        match self[inst].opcode() {
+            Opcode::Struct => {
+                let args: Option<Vec<_>> = self[inst]
+                    .args()
+                    .iter()
+                    .map(|&a| self.get_const(a))
+                    .collect();
+                Some(crate::StructValue::new(args?))
+            }
+            _ => None,
+        }
+    }
 }
