@@ -6,7 +6,7 @@
 #[macro_use]
 extern crate log;
 
-mod ty;
+pub mod ty;
 pub mod verifier;
 #[macro_use]
 pub mod assembly;

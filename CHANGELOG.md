@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use names when dumping values.
 - Make `Unit` object-safe.
 - Allow comments in certain locations in the assembly.
+- Make `ty` module visible.
 
 ## 0.9.0 - 2019-10-24
 ### Added
