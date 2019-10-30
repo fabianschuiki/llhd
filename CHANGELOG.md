@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add function/process/entity and name getters to `Unit`.
 - Add `--dump` option to `llhd-check`.
 - Add `name()` and `suffix()` to instruction builder.
+- Add `named_block()` to unit builder.
 
 ### Changed
 - Add missing `dyn` keywords.

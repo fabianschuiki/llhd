@@ -8,7 +8,7 @@ fn main() {
     let mut func = Function::new(name, sig);
     {
         let mut builder = FunctionBuilder::new(&mut func);
-        let bb = builder.block();
+        let bb = builder.named_block("entry");
         builder.append_to(bb);
         let mut sig = Signature::new();
         sig.add_input(llhd::int_ty(1));

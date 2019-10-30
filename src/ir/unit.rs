@@ -307,6 +307,16 @@ pub trait UnitBuilder {
     /// Panics if the unit is an `Entity`.
     fn block(&mut self) -> Block;
 
+    /// Create a new named BB.
+    ///
+    /// Panics if the unit is an `Entity`. This is a convenience wrapper around
+    /// `block()` followed by `unit_mut().cfg_mut().set_name(..)`.
+    fn named_block(&mut self, name: impl Into<String>) -> Block {
+        let bb = self.block();
+        self.unit_mut().cfg_mut().set_name(bb, name.into());
+        bb
+    }
+
     /// Remove a BB.
     ///
     /// Panics if the unit is an `Entity`.
