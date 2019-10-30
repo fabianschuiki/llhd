@@ -4,10 +4,8 @@
 //!
 //! This module implements integer value arithmetic.
 
-use crate::{
-    ir::prelude::*,
-    ty::{int_ty, Type},
-};
+use crate::ir::prelude::*;
+use crate::ty::{int_ty, Type};
 use num::{bigint::ToBigInt, traits::*, BigInt, BigUint};
 use std::fmt::{Debug, Display};
 
@@ -277,19 +275,27 @@ impl IntValue {
 /// Opcode implementations.
 impl IntValue {
     /// Execute a unary opcode.
-    pub fn unary_op(op: Opcode, arg: &IntValue) -> IntValue {
+    pub fn try_unary_op(op: Opcode, arg: &IntValue) -> Option<IntValue> {
         // trace!("{} ({}, {})", op, lhs, rhs);
-        match op {
+        Some(match op {
             Opcode::Not => arg.not(),
             Opcode::Neg => arg.neg(),
-            _ => panic!("{} is not a unary op", op),
+            _ => return None,
+        })
+    }
+
+    /// Execute a unary opcode.
+    pub fn unary_op(op: Opcode, arg: &IntValue) -> IntValue {
+        match Self::try_unary_op(op, arg) {
+            Some(r) => r,
+            None => panic!("{} is not a unary op", op),
         }
     }
 
     /// Execute a binary opcode.
-    pub fn binary_op(op: Opcode, lhs: &IntValue, rhs: &IntValue) -> IntValue {
-        trace!("{} ({}, {})", op, lhs, rhs);
-        match op {
+    pub fn try_binary_op(op: Opcode, lhs: &IntValue, rhs: &IntValue) -> Option<IntValue> {
+        // trace!("{} ({}, {})", op, lhs, rhs);
+        Some(match op {
             Opcode::Add => lhs.add(rhs),
             Opcode::Sub => lhs.sub(rhs),
             Opcode::And => lhs.and(rhs),
@@ -303,12 +309,20 @@ impl IntValue {
             Opcode::Udiv => lhs.udiv(rhs),
             Opcode::Umod => lhs.umod(rhs),
             Opcode::Urem => lhs.urem(rhs),
-            _ => panic!("{} is not a binary op", op),
+            _ => return None,
+        })
+    }
+
+    /// Execute a binary opcode.
+    pub fn binary_op(op: Opcode, lhs: &IntValue, rhs: &IntValue) -> IntValue {
+        match Self::try_binary_op(op, lhs, rhs) {
+            Some(r) => r,
+            None => panic!("{} is not a binary op", op),
         }
     }
 
     /// Execute a comparison opcode.
-    pub fn compare_op(op: Opcode, lhs: &IntValue, rhs: &IntValue) -> IntValue {
+    pub fn try_compare_op(op: Opcode, lhs: &IntValue, rhs: &IntValue) -> Option<IntValue> {
         // trace!("{} ({}, {})", op, lhs, rhs);
         let v = match op {
             Opcode::Eq => lhs.eq(rhs),
@@ -321,8 +335,16 @@ impl IntValue {
             Opcode::Sgt => lhs.sgt(rhs),
             Opcode::Sle => lhs.sle(rhs),
             Opcode::Sge => lhs.sge(rhs),
-            _ => panic!("{} is not a compare op", op),
+            _ => return None,
         };
-        IntValue::from_usize(1, v as usize)
+        Some(IntValue::from_usize(1, v as usize))
+    }
+
+    /// Execute a comparison opcode.
+    pub fn compare_op(op: Opcode, lhs: &IntValue, rhs: &IntValue) -> IntValue {
+        match Self::try_compare_op(op, lhs, rhs) {
+            Some(r) => r,
+            None => panic!("{} is not a compare op", op),
+        }
     }
 }
