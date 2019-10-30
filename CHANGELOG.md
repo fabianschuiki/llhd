@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add Sublime Text syntax highlighting.
 - Add function/process/entity and name getters to `Unit`.
 - Add `--dump` option to `llhd-check`.
-- Add `name()` and `suffix()` to instruction builder.
+- Add `name()`, `const_zero()`, and `suffix()` to instruction builder.
 - Add `named_block()` to unit builder.
 - Add `log` dependency.
 - Add `value` module with utilities to deal with values.

@@ -36,6 +36,32 @@ impl<B> InstBuilder<B> {
 }
 
 impl<B: UnitBuilder> InstBuilder<&mut B> {
+    /// Construct the zero value for a type.
+    ///
+    /// This is a convenience function that creates the appropriate instruction
+    /// sequence to generate the given zero value. Note that arrays and structs
+    /// emit multiple instructions.
+    pub fn const_zero(&mut self, ty: &Type) -> Value {
+        use crate::ty::TypeKind::*;
+        match ty.as_ref() {
+            TimeType => self.const_time(TimeValue::zero()),
+            IntType(w) => self.const_int(IntValue::zero(*w)),
+            ArrayType(l, ty) => {
+                let name = self.name.take();
+                let elem = self.const_zero(ty);
+                self.name = name;
+                self.array_uniform(*l, elem)
+            }
+            StructType(tys) => {
+                let name = self.name.take();
+                let elems = tys.iter().map(|ty| self.const_zero(ty)).collect();
+                self.name = name;
+                self.strukt(elems)
+            }
+            _ => panic!("no zero value for {}", ty),
+        }
+    }
+
     pub fn const_int(&mut self, value: impl Into<IntValue>) -> Value {
         let value = value.into();
         let ty = value.ty();
