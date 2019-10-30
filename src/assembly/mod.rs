@@ -3,7 +3,7 @@
 //! Facilities to emit a module as human-readable assembly, or to parse such
 //! assembly back into a module.
 
-use crate::{ir::Module, konst::ConstTime, ty::Type};
+use crate::{ir::Module, ty::Type, value::TimeValue};
 
 mod reader;
 mod writer;
@@ -32,8 +32,8 @@ pub fn parse_type(input: impl AsRef<str>) -> Result<Type, String> {
 /// Parse a time.
 ///
 /// Parses the `input` string into a time constant.
-pub fn parse_time(input: impl AsRef<str>) -> Result<ConstTime, String> {
-    reader::ConstTimeParser::new()
+pub fn parse_time(input: impl AsRef<str>) -> Result<TimeValue, String> {
+    reader::TimeValueParser::new()
         .parse(input.as_ref())
         .map_err(|e| format!("{}", e))
 }

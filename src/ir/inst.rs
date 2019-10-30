@@ -7,11 +7,10 @@
 
 use crate::{
     ir::{Block, ControlFlowGraph, DataFlowGraph, ExtUnit, Inst, Unit, UnitBuilder, Value},
-    ty::{array_ty, int_ty, pointer_ty, signal_ty, struct_ty, time_ty, void_ty, Type},
-    ConstTime,
+    ty::{array_ty, int_ty, pointer_ty, signal_ty, struct_ty, void_ty, Type},
+    value::{IntValue, TimeValue},
 };
 use bitflags::bitflags;
-use num::BigInt;
 use std::borrow::Cow;
 
 /// A temporary object used to construct a single instruction.
@@ -37,21 +36,25 @@ impl<B> InstBuilder<B> {
 }
 
 impl<B: UnitBuilder> InstBuilder<&mut B> {
-    pub fn const_int(&mut self, width: usize, value: impl Into<BigInt>) -> Value {
+    pub fn const_int(&mut self, value: impl Into<IntValue>) -> Value {
+        let value = value.into();
+        let ty = value.ty();
         let data = InstData::ConstInt {
             opcode: Opcode::ConstInt,
-            imm: value.into(),
+            imm: value,
         };
-        let inst = self.build(data, int_ty(width));
+        let inst = self.build(data, ty);
         self.inst_result(inst)
     }
 
-    pub fn const_time(&mut self, value: impl Into<ConstTime>) -> Value {
+    pub fn const_time(&mut self, value: impl Into<TimeValue>) -> Value {
+        let value = value.into();
+        let ty = value.ty();
         let data = InstData::ConstTime {
             opcode: Opcode::ConstTime,
-            imm: value.into(),
+            imm: value,
         };
-        let inst = self.build(data, time_ty());
+        let inst = self.build(data, ty);
         self.inst_result(inst)
     }
 
@@ -550,9 +553,9 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
 #[derive(Debug, Clone)]
 pub enum InstData {
     /// `a = const iN imm`
-    ConstInt { opcode: Opcode, imm: BigInt },
+    ConstInt { opcode: Opcode, imm: IntValue },
     /// `a = const time imm`
-    ConstTime { opcode: Opcode, imm: ConstTime },
+    ConstTime { opcode: Opcode, imm: TimeValue },
     /// `opcode imm, type x`
     Array {
         opcode: Opcode,
@@ -820,7 +823,7 @@ impl InstData {
     }
 
     /// Return the const int constructed by this instruction.
-    pub fn get_const_int(&self) -> Option<&BigInt> {
+    pub fn get_const_int(&self) -> Option<&IntValue> {
         match self {
             InstData::ConstInt { imm, .. } => Some(imm),
             _ => None,
@@ -828,7 +831,7 @@ impl InstData {
     }
 
     /// Return the const time constructed by this instruction.
-    pub fn get_const_time(&self) -> Option<&ConstTime> {
+    pub fn get_const_time(&self) -> Option<&TimeValue> {
         match self {
             InstData::ConstTime { imm, .. } => Some(imm),
             _ => None,

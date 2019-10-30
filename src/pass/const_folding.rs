@@ -9,8 +9,8 @@ use crate::ir::prelude::*;
 use crate::{
     ir::{InstData, ModUnitData},
     ty::Type,
+    value::IntValue,
 };
-use num::{BigInt, Zero};
 
 /// Fold a module.
 pub fn run_on_module(module: &mut Module) -> bool {
@@ -116,7 +116,7 @@ pub fn run_on_inst(builder: &mut impl UnitBuilder, inst: Inst) -> bool {
             dfg.clear_name(value);
         }
         dfg.replace_use(value, replacement);
-        builder.prune_if_unused(inst);
+        // builder.prune_if_unused(inst);
         true
     } else {
         false
@@ -131,27 +131,17 @@ fn fold_unary(
     arg: Value,
 ) -> Option<Value> {
     if ty.is_int() {
-        fold_unary_int(builder, opcode, ty.unwrap_int(), arg)
+        fold_unary_int(builder, opcode, arg)
     } else {
         None
     }
 }
 
 /// Fold a unary instruction on integers.
-fn fold_unary_int(
-    builder: &mut impl UnitBuilder,
-    opcode: Opcode,
-    width: usize,
-    arg: Value,
-) -> Option<Value> {
-    let inst = builder.dfg().get_value_inst(arg)?;
-    let imm = builder.dfg()[inst].get_const_int()?;
-    let result = match opcode {
-        Opcode::Not => (BigInt::from(1) << width) - 1 - imm,
-        Opcode::Neg => -imm,
-        _ => return None,
-    };
-    Some(builder.ins().const_int(width, result))
+fn fold_unary_int(builder: &mut impl UnitBuilder, opcode: Opcode, arg: Value) -> Option<Value> {
+    let imm = builder.dfg().get_const_int(arg)?;
+    let result = IntValue::try_unary_op(opcode, imm)?;
+    Some(builder.ins().const_int(result))
 }
 
 /// Fold a binary instruction.
@@ -162,7 +152,7 @@ fn fold_binary(
     args: [Value; 2],
 ) -> Option<Value> {
     if ty.is_int() {
-        fold_binary_int(builder, opcode, ty.unwrap_int(), args)
+        fold_binary_int(builder, opcode, args)
     } else {
         None
     }
@@ -172,40 +162,13 @@ fn fold_binary(
 fn fold_binary_int(
     builder: &mut impl UnitBuilder,
     opcode: Opcode,
-    width: usize,
     args: [Value; 2],
 ) -> Option<Value> {
-    let inst0 = builder.dfg().get_value_inst(args[0])?;
-    let inst1 = builder.dfg().get_value_inst(args[1])?;
-    let imm0 = builder.dfg()[inst0].get_const_int()?;
-    let imm1 = builder.dfg()[inst1].get_const_int()?;
-    let result = match opcode {
-        Opcode::Add => imm0 + imm1,
-        Opcode::Sub => imm0 - imm1,
-        Opcode::And => imm0 & imm1,
-        Opcode::Or => imm0 | imm1,
-        Opcode::Xor => imm0 ^ imm1,
-        Opcode::Smul => imm0 * imm1,
-        Opcode::Sdiv => imm0 / imm1,
-        Opcode::Smod => imm0 % imm1,
-        Opcode::Srem => imm0 % imm1,
-        Opcode::Umul => (imm0.to_biguint()? * imm1.to_biguint()?).into(),
-        Opcode::Udiv => (imm0.to_biguint()? / imm1.to_biguint()?).into(),
-        Opcode::Umod => (imm0.to_biguint()? % imm1.to_biguint()?).into(),
-        Opcode::Urem => (imm0.to_biguint()? % imm1.to_biguint()?).into(),
-        Opcode::Eq => ((imm0 == imm1) as usize).into(),
-        Opcode::Neq => ((imm0 != imm1) as usize).into(),
-        Opcode::Slt => ((imm0 < imm1) as usize).into(),
-        Opcode::Sgt => ((imm0 > imm1) as usize).into(),
-        Opcode::Sle => ((imm0 <= imm1) as usize).into(),
-        Opcode::Sge => ((imm0 >= imm1) as usize).into(),
-        Opcode::Ult => ((imm0.to_biguint()? < imm1.to_biguint()?) as usize).into(),
-        Opcode::Ugt => ((imm0.to_biguint()? > imm1.to_biguint()?) as usize).into(),
-        Opcode::Ule => ((imm0.to_biguint()? <= imm1.to_biguint()?) as usize).into(),
-        Opcode::Uge => ((imm0.to_biguint()? >= imm1.to_biguint()?) as usize).into(),
-        _ => return None,
-    };
-    Some(builder.ins().const_int(width, result))
+    let imm0 = builder.dfg().get_const_int(args[0])?;
+    let imm1 = builder.dfg().get_const_int(args[1])?;
+    let result = IntValue::try_binary_op(opcode, imm0, imm1)
+        .or_else(|| IntValue::try_compare_op(opcode, imm0, imm1))?;
+    Some(builder.ins().const_int(result))
 }
 
 /// Fold a branch instruction.
@@ -215,11 +178,10 @@ fn fold_branch(
     arg: Value,
     bbs: [Block; 2],
 ) -> Option<bool> {
-    let arg_inst = builder.dfg().get_value_inst(arg)?;
-    let imm = builder.dfg()[arg_inst].get_const_int()?;
+    let imm = builder.dfg().get_const_int(arg)?;
     let bb = bbs[!imm.is_zero() as usize];
     builder.ins().br(bb);
     builder.remove_inst(inst);
-    builder.prune_if_unused(arg_inst);
+    // builder.prune_if_unused(arg_inst);
     Some(true)
 }

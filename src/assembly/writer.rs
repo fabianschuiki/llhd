@@ -258,7 +258,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                 "{} {} {}",
                 data.opcode(),
                 dfg.value_type(dfg.inst_result(inst)),
-                data.get_const_int().unwrap()
+                data.get_const_int().unwrap().value
             )?,
             Opcode::ConstTime => write!(
                 self.writer.sink,

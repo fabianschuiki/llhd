@@ -230,8 +230,8 @@ impl DataFlowGraph {
         use super::Opcode;
         let inst = self.get_value_inst(value)?;
         match self[inst].opcode() {
-            Opcode::ConstInt => self.get_const_int(value).map(Into::into),
-            Opcode::ConstTime => self.get_const_time(value).map(Into::into),
+            Opcode::ConstInt => self.get_const_int(value).cloned().map(Into::into),
+            Opcode::ConstTime => self.get_const_time(value).cloned().map(Into::into),
             Opcode::Array | Opcode::ArrayUniform => self.get_const_array(value).map(Into::into),
             Opcode::Struct => self.get_const_struct(value).map(Into::into),
             _ => None,
@@ -243,14 +243,9 @@ impl DataFlowGraph {
     /// Returns `None` if the value is not constant. Note that this *does not*
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
-    pub fn get_const_time(&self, value: Value) -> Option<crate::TimeValue> {
+    pub fn get_const_time(&self, value: Value) -> Option<&crate::TimeValue> {
         let inst = self.get_value_inst(value)?;
-        let v = self[inst].get_const_time()?;
-        Some(crate::TimeValue::new(
-            v.time().clone(),
-            v.delta(),
-            v.epsilon(),
-        ))
+        self[inst].get_const_time()
     }
 
     /// Resolve a constant integer value.
@@ -258,11 +253,9 @@ impl DataFlowGraph {
     /// Returns `None` if the value is not constant. Note that this *does not*
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
-    pub fn get_const_int(&self, value: Value) -> Option<crate::IntValue> {
+    pub fn get_const_int(&self, value: Value) -> Option<&crate::IntValue> {
         let inst = self.get_value_inst(value)?;
-        let v = self[inst].get_const_int()?;
-        let width = self.value_type(value).unwrap_int();
-        Some(crate::IntValue::from_signed(width, v.clone()))
+        self[inst].get_const_int()
     }
 
     /// Resolve a constant array value.

@@ -15,8 +15,8 @@ fn main() {
         sig.add_input(llhd::int_ty(42));
         sig.set_return_type(llhd::int_ty(32));
         let ext = builder.add_extern(UnitName::global("bar"), sig);
-        let v1 = builder.ins().name("one").const_int(1, 0);
-        let v2 = builder.ins().const_int(42, 9001);
+        let v1 = builder.ins().name("one").const_int((1, 0));
+        let v2 = builder.ins().const_int((42, 9001));
         let v3 = builder.ins().suffix(v1, "called").call(ext, vec![v1, v2]);
         let v3 = builder.dfg().inst_result(v3);
         builder.ins().ret_value(v3);

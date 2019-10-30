@@ -1,5 +1,5 @@
 use crate::assembly::reader as ast;
-use crate::{ty::*, ir::prelude::*, konst::ConstTime};
+use crate::{ty::*, ir::prelude::*, value::{IntValue, TimeValue}};
 use num::BigInt;
 
 grammar;
@@ -177,8 +177,8 @@ Inst: ast::Inst<'input> = {
 // An instruction which yields a result.
 InstWithResult: ast::Inst<'input> = {
     "const" <ty: IntType> <imm: BigInt> => ast::Inst::new(Opcode::ConstInt)
-        .data(ast::InstData::ConstInt(ty.unwrap_int(), imm)),
-    "const" <ty: TimeType> <imm: ConstTime> => ast::Inst::new(Opcode::ConstTime)
+        .data(ast::InstData::ConstInt(IntValue::from_signed(ty.unwrap_int(), imm))),
+    "const" <ty: TimeType> <imm: TimeValue> => ast::Inst::new(Opcode::ConstTime)
         .data(ast::InstData::ConstTime(imm)),
     "alias" <arg: TypedValue> => ast::Inst::new(Opcode::Alias)
         .data(ast::InstData::Unary(arg)),
@@ -385,9 +385,9 @@ BlockLabel: ast::LocalName<'input> = r"%?[a-zA-Z0-9_\.\\]+:" => {
 Name = r"[@%][a-zA-Z0-9_\.\\]+";
 Usize: usize = r"[-+]?\d+" => <>.parse().unwrap();
 BigInt: BigInt = r"[-+]?\d+" => <>.parse().unwrap();
-pub ConstTime: ConstTime = <time: RegularTime> <delta: DeltaTime?> <epsilon: EpsilonTime?> => {
+pub TimeValue: TimeValue = <time: RegularTime> <delta: DeltaTime?> <epsilon: EpsilonTime?> => {
     let (v, delta, epsilon) = ast::parse_time_triple(time, delta, epsilon);
-    ConstTime::new(v, delta, epsilon)
+    TimeValue::new(v, delta, epsilon)
 };
 RegularTime = r"[-+]?\d+(\.\d+)?[afpnumkMGTPE]?s";
 DeltaTime = r"[0-9]+d";

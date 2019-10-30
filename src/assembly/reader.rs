@@ -4,8 +4,8 @@
 
 use crate::{
     ir::{self, Opcode, Signature, UnitBuilder, UnitName},
-    konst::ConstTime,
     ty::Type,
+    value::{IntValue, TimeValue},
 };
 use num::{BigInt, BigRational};
 use std::collections::HashMap;
@@ -56,8 +56,8 @@ pub struct Inst<'a> {
 }
 
 pub enum InstData<'a> {
-    ConstInt(usize, BigInt),
-    ConstTime(ConstTime),
+    ConstInt(IntValue),
+    ConstTime(TimeValue),
     Aggregate(usize, Vec<TypedValue<'a>>),
     Nullary,
     Unary(TypedValue<'a>),
@@ -98,7 +98,7 @@ impl<'a> Inst<'a> {
 
     pub fn build(self, builder: &mut impl UnitBuilder, context: &mut Context<'a>) {
         let result: InstOrValue = match self.data {
-            InstData::ConstInt(width, imm) => builder.ins().const_int(width, imm).into(),
+            InstData::ConstInt(imm) => builder.ins().const_int(imm).into(),
             InstData::ConstTime(imm) => builder.ins().const_time(imm).into(),
             InstData::Aggregate(size, args) => {
                 let args = args
@@ -494,4 +494,4 @@ mod grammar {
     include!(concat!(env!("OUT_DIR"), "/assembly/grammar.rs"));
 }
 
-pub use grammar::{ConstTimeParser, ModuleParser, TypeParser};
+pub use grammar::{ModuleParser, TimeValueParser, TypeParser};

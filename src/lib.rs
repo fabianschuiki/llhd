@@ -3,6 +3,7 @@
 //! The Low Level Hardware Description language. This library provides tools to
 //! create, modify, store, and load LLHD graphs.
 
+#[allow(unused_imports)]
 #[macro_use]
 extern crate log;
 
