@@ -4,7 +4,7 @@ use num::BigInt;
 
 grammar;
 
-pub Module: Module = <units: Unit*> => {
+pub Module: Module = <units: Unit*> Comment => {
     let mut module = Module::new();
     for unit in units {
         match unit {
@@ -21,10 +21,10 @@ pub Module: Module = <units: Unit*> => {
 
 // A unit.
 Unit: ast::Unit = {
-    Function => ast::Unit::Function(<>),
-    Process => ast::Unit::Process(<>),
-    Entity => ast::Unit::Entity(<>),
-    "declare" <name: UnitName> <sig: Signature> => ast::Unit::Declare(name, sig),
+    Comment <Function> => ast::Unit::Function(<>),
+    Comment <Process> => ast::Unit::Process(<>),
+    Comment <Entity> => ast::Unit::Entity(<>),
+    Comment "declare" <name: UnitName> <sig: Signature> => ast::Unit::Declare(name, sig),
 };
 
 Signature: Signature = {
@@ -53,7 +53,7 @@ Function: Function =
     "func" <name: UnitName>
     "(" <args: Args> ")"
     <retty: Type>
-    "{" <blocks: Block*> "}" => {
+    "{" Comment <blocks: Block*> "}" => {
 
     let mut sig = Signature::new();
     let args: Vec<_> = args
@@ -83,7 +83,7 @@ Process: Process =
     "(" <input_args: Args> ")"
     "->"
     "(" <output_args: Args> ")"
-    "{" <blocks: Block*> "}" => {
+    "{" Comment <blocks: Block*> "}" => {
 
     let mut sig = Signature::new();
     let input_args: Vec<_> = input_args
@@ -123,7 +123,7 @@ Entity: Entity =
     "(" <input_args: Args> ")"
     "->"
     "(" <output_args: Args> ")"
-    "{" <insts: Inst*> "}" => {
+    "{" Comment <insts: Inst*> "}" => {
 
     let mut sig = Signature::new();
     let input_args: Vec<_> = input_args
@@ -161,17 +161,17 @@ Entity: Entity =
 Args = Comma<(Type LocalName)>;
 
 // A basic block.
-Block: ast::Block<'input> = <name: BlockLabel> <insts: Inst*> => ast::Block {
+Block: ast::Block<'input> = <name: BlockLabel> Comment <insts: Inst*> => ast::Block {
     name: name,
     insts
 };
 
 // An instruction.
 Inst: ast::Inst<'input> = {
-    <name: LocalName> "=" <inst: InstWithRequiredResult> => inst.name(name),
-    <name: LocalName> "=" <inst: InstWithResult> => inst.name(name),
-    <inst: InstWithResult> => inst,
-    <inst: InstWithoutResult> => inst,
+    <name: LocalName> "=" <inst: InstWithRequiredResult> Comment => inst.name(name),
+    <name: LocalName> "=" <inst: InstWithResult> Comment => inst.name(name),
+    <inst: InstWithResult> Comment => inst,
+    <inst: InstWithoutResult> Comment => inst,
 };
 
 // An instruction which yields a result.
@@ -402,3 +402,6 @@ Comma<T>: Vec<T> = <head: (<T> ",")*> <tail: T?> => match tail {
     }
     None => head,
 };
+
+// A comment.
+Comment: () = r";.*"* => ();

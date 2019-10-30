@@ -1,0 +1,5 @@
+; bar
+func @foo () void { ; tail
+0: ; tail
+	ret ; tail
+} ; tail
