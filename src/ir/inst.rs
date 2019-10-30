@@ -12,16 +12,27 @@ use crate::{
 };
 use bitflags::bitflags;
 use num::BigInt;
+use std::borrow::Cow;
 
 /// A temporary object used to construct a single instruction.
 pub struct InstBuilder<B> {
     builder: B,
+    name: Option<String>,
 }
 
 impl<B> InstBuilder<B> {
     /// Create a new instruction builder that inserts into `builder`.
     pub fn new(builder: B) -> Self {
-        Self { builder }
+        Self {
+            builder,
+            name: None,
+        }
+    }
+
+    /// Assign a name to the instruction being built.
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
     }
 }
 
@@ -553,7 +564,15 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
 impl<B: UnitBuilder> InstBuilder<&mut B> {
     /// Convenience forward to `UnitBuilder`.
     fn build(&mut self, data: InstData, ty: Type) -> Inst {
-        self.builder.build_inst(data, ty)
+        let has_result = !ty.is_void();
+        let inst = self.builder.build_inst(data, ty);
+        if let Some(name) = self.name.take() {
+            if has_result {
+                let value = self.inst_result(inst);
+                self.builder.dfg_mut().set_name(value, name);
+            }
+        }
+        inst
     }
 
     /// Convenience forward to `Unit`.
@@ -564,6 +583,21 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
     /// Convenience forward to `Unit`.
     fn inst_result(&self, inst: Inst) -> Value {
         self.builder.unit().inst_result(inst)
+    }
+
+    /// Assign another value's name plus a suffix to the instruction being
+    /// built.
+    ///
+    /// If `value` has a name, the instruction's name will be
+    /// `<value>.<suffix>`. Otherwise it will just be `<suffix>`.
+    pub fn suffix<'a>(mut self, value: Value, suffix: impl Into<Cow<'a, str>>) -> Self {
+        let suffix = suffix.into(); // moooh
+        self.name = if let Some(name) = self.builder.dfg().get_name(value) {
+            Some(format!("{}.{}", name, suffix))
+        } else {
+            Some(suffix.into_owned())
+        };
+        self
     }
 }
 
