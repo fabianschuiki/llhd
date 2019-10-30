@@ -1,0 +1,56 @@
+proc @foo (i32$ %consec_pc, i32$ %alu_result, i2$ %rd_select, i32$ %rd_bypass) -> (i32$ %alu_writeback) {
+0:
+    br %body
+body:
+    %rd_select1 = prb i2$ %rd_select
+    %1 = const i1 0
+    %2 = const i2 0
+    %3 = const i2 3
+    %4 = and i2 %rd_select1, %3
+    %5 = and i2 %2, %3
+    %6 = eq i2 %4, %5
+    %7 = or i1 %1, %6
+    br %7, %8, %case_body
+check:
+    wait %body, %consec_pc, %alu_result, %rd_select, %rd_bypass
+case_exit:
+    br %check
+case_body:
+    %alu_result1 = prb i32$ %alu_result
+    %9 = const time 0s 1e
+    drv i32$ %alu_writeback, %alu_result1, %9
+    br %case_exit
+8:
+    %10 = const i1 0
+    %11 = const i2 1
+    %12 = const i2 3
+    %13 = and i2 %rd_select1, %12
+    %14 = and i2 %11, %12
+    %15 = eq i2 %13, %14
+    %16 = or i1 %10, %15
+    br %16, %17, %case_body1
+case_body1:
+    %consec_pc1 = prb i32$ %consec_pc
+    %18 = const time 0s 1e
+    drv i32$ %alu_writeback, %consec_pc1, %18
+    br %case_exit
+17:
+    %19 = const i1 0
+    %20 = const i2 2
+    %21 = const i2 3
+    %22 = and i2 %rd_select1, %21
+    %23 = and i2 %20, %21
+    %24 = eq i2 %22, %23
+    %25 = or i1 %19, %24
+    br %25, %26, %case_body2
+case_body2:
+    %rd_bypass1 = prb i32$ %rd_bypass
+    %27 = const time 0s 1e
+    drv i32$ %alu_writeback, %rd_bypass1, %27
+    br %case_exit
+26:
+    %alu_result2 = prb i32$ %alu_result
+    %28 = const time 0s 1e
+    drv i32$ %alu_writeback, %alu_result2, %28
+    br %case_exit
+}

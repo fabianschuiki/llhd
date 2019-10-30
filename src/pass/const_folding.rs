@@ -152,7 +152,7 @@ fn fold_binary(
     args: [Value; 2],
 ) -> Option<Value> {
     if ty.is_int() {
-        fold_binary_int(builder, opcode, args)
+        fold_binary_int(builder, opcode, ty.unwrap_int(), args)
     } else {
         None
     }
@@ -162,11 +162,56 @@ fn fold_binary(
 fn fold_binary_int(
     builder: &mut impl UnitBuilder,
     opcode: Opcode,
+    width: usize,
     args: [Value; 2],
 ) -> Option<Value> {
-    let imm0 = builder.dfg().get_const_int(args[0])?;
-    let imm1 = builder.dfg().get_const_int(args[1])?;
-    let result = IntValue::try_binary_op(opcode, imm0, imm1)
+    let imm0 = builder.dfg().get_const_int(args[0]);
+    let imm1 = builder.dfg().get_const_int(args[1]);
+
+    // Handle symmetric operations between a constant and a variable argument.
+    let (arg_kon, arg_var) = match (imm0, imm1) {
+        (None, Some(_)) => (imm1, args[0]),
+        (Some(_), None) => (imm0, args[1]),
+        _ => (None, args[0]),
+    };
+    if let Some(a) = arg_kon {
+        match opcode {
+            Opcode::And | Opcode::Smul | Opcode::Umul if a.is_zero() => {
+                return Some(builder.ins().const_int(IntValue::zero(width)))
+            }
+            Opcode::Or | Opcode::Xor | Opcode::Add | Opcode::Sub if a.is_zero() => {
+                return Some(arg_var)
+            }
+            Opcode::Smul | Opcode::Umul if a.is_one() => return Some(arg_var),
+            Opcode::Or if a.is_all_ones() => {
+                return Some(builder.ins().const_int(IntValue::all_ones(width)))
+            }
+            Opcode::And if a.is_all_ones() => return Some(arg_var),
+            Opcode::Xor if a.is_all_ones() => return Some(builder.ins().not(arg_var)),
+            _ => (),
+        }
+    }
+
+    // Handle asymmetric operations between a variable argument on the left and
+    // a constant argument on the right.
+    let (arg_kon, arg_var) = match (imm0, imm1) {
+        (None, Some(_)) => (imm1, args[0]),
+        _ => (None, args[0]),
+    };
+    if let Some(a) = arg_kon {
+        match opcode {
+            Opcode::Sdiv | Opcode::Udiv if a.is_one() => return Some(arg_var),
+            Opcode::Smod | Opcode::Umod | Opcode::Srem | Opcode::Urem if a.is_one() => {
+                return Some(builder.ins().const_int(IntValue::zero(width)))
+            }
+            _ => (),
+        }
+    }
+
+    // Try full constant folding.
+    let (imm0, imm1) = (imm0?, imm1?);
+    let result = None
+        .or_else(|| IntValue::try_binary_op(opcode, imm0, imm1))
         .or_else(|| IntValue::try_compare_op(opcode, imm0, imm1))?;
     Some(builder.ins().const_int(result))
 }
