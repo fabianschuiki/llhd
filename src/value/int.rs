@@ -77,6 +77,11 @@ impl IntValue {
         self.value.is_one()
     }
 
+    /// Check if the value has every bit set to one.
+    pub fn is_all_ones(&self) -> bool {
+        self.value == (BigUint::one() << self.width) - 1usize
+    }
+
     /// Get the type of the value.
     pub fn ty(&self) -> Type {
         int_ty(self.width)
