@@ -25,6 +25,11 @@ impl ArrayValue {
         ArrayValue(values)
     }
 
+    /// Create a new zero-valued array.
+    pub fn zero(length: usize, ty: &Type) -> Self {
+        ArrayValue::new_uniform(length, Value::zero(ty))
+    }
+
     /// Get the type of the value.
     pub fn ty(&self) -> Type {
         array_ty(

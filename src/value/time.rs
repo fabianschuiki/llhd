@@ -5,7 +5,7 @@
 //! This module implements time arithmetic.
 
 use crate::ty::{time_ty, Type};
-use num::{BigInt, BigRational};
+use num::{traits::*, BigInt, BigRational};
 use std::fmt::{Debug, Display};
 
 /// A constant time value.
@@ -23,9 +23,18 @@ impl TimeValue {
     /// Create a new time.
     pub fn new(time: BigRational, delta: usize, epsilon: usize) -> Self {
         TimeValue {
-            time: time,
-            delta: delta,
-            epsilon: epsilon,
+            time,
+            delta,
+            epsilon,
+        }
+    }
+
+    /// Create the zero time.
+    pub fn zero() -> Self {
+        TimeValue {
+            time: BigRational::zero(),
+            delta: 0,
+            epsilon: 0,
         }
     }
 
@@ -51,14 +60,12 @@ impl TimeValue {
 
     /// Check whether all components of this time are zero.
     pub fn is_zero(&self) -> bool {
-        use num::Zero;
         self.time.is_zero() && self.delta.is_zero() && self.epsilon.is_zero()
     }
 }
 
 impl Display for TimeValue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use num::Zero;
         write_ratio_as_si(&self.time, f)?;
         if !self.delta.is_zero() {
             write!(f, " {}d", self.delta)?;
@@ -77,7 +84,6 @@ impl Debug for TimeValue {
 }
 
 fn write_ratio_as_si(ratio: &BigRational, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    use num::{One, Zero};
     if ratio.is_zero() {
         return write!(f, "0s");
     }

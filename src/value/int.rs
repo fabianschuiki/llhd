@@ -19,6 +19,14 @@ pub struct IntValue {
 }
 
 impl IntValue {
+    /// Create a zero value.
+    pub fn zero(width: usize) -> Self {
+        Self {
+            width,
+            value: BigUint::zero(),
+        }
+    }
+
     /// Create a new integer value from a `usize`.
     pub fn from_usize(width: usize, value: usize) -> Self {
         Self {

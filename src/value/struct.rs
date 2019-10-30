@@ -20,6 +20,11 @@ impl StructValue {
         StructValue(values)
     }
 
+    /// Create a new zero-valued struct.
+    pub fn zero<'a>(tys: impl IntoIterator<Item = &'a Type>) -> Self {
+        StructValue::new(tys.into_iter().map(Value::zero).collect())
+    }
+
     /// Get the type of the value.
     pub fn ty(&self) -> Type {
         struct_ty(self.0.iter().map(Value::ty).collect())

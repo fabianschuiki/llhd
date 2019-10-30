@@ -29,6 +29,19 @@ pub enum Value {
 }
 
 impl Value {
+    /// Create the zero value for a type.
+    pub fn zero(ty: &Type) -> Value {
+        use crate::ty::TypeKind::*;
+        match ty.as_ref() {
+            VoidType => Value::Void,
+            IntType(w) => IntValue::zero(*w).into(),
+            EnumType(_) => unimplemented!("zero value for {}", ty),
+            ArrayType(l, ty) => ArrayValue::zero(*l, ty).into(),
+            StructType(tys) => StructValue::zero(tys).into(),
+            _ => panic!("no zero value for {}", ty),
+        }
+    }
+
     /// If this value is a time, access it.
     pub fn get_time(&self) -> Option<&TimeValue> {
         match self {
