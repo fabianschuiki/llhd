@@ -147,7 +147,10 @@ pub trait Unit {
     fn inst_layout_mut(&mut self) -> &mut InstLayout;
 
     /// Dump the unit in human-readable form.
-    fn dump(&self) -> UnitDumper<&Self> {
+    fn dump(&self) -> UnitDumper
+    where
+        Self: Sized,
+    {
         UnitDumper(self)
     }
 
@@ -272,9 +275,9 @@ pub trait Unit {
 }
 
 /// Temporary object to dump an `Entity` in human-readable form for debugging.
-pub struct UnitDumper<U>(U);
+pub struct UnitDumper<'a>(&'a dyn Unit);
 
-impl<U: Unit> std::fmt::Display for UnitDumper<&U> {
+impl std::fmt::Display for UnitDumper<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.0.dump_fmt(f)
     }
@@ -422,4 +425,10 @@ pub trait UnitBuilder {
             false
         }
     }
+}
+
+// Check that `Unit` is object safe. Will abort with a compiler error otherwise.
+#[allow(dead_code, unused_variables)]
+fn is_object_safe() {
+    let unit_ref: &dyn Unit;
 }
