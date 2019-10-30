@@ -10,6 +10,7 @@ use crate::{
     ir::{Block, BlockData},
     table::PrimaryTable,
 };
+use std::collections::HashMap;
 
 /// A control flow graph.
 ///
@@ -19,6 +20,8 @@ use crate::{
 pub struct ControlFlowGraph {
     /// The basic blocks in the graph.
     pub(crate) blocks: PrimaryTable<Block, BlockData>,
+    /// The anonymous name hints assigned to basic blocks.
+    pub(crate) anonymous_hints: HashMap<Block, u32>,
 }
 
 impl_table_indexing!(ControlFlowGraph, blocks, Block, BlockData);
@@ -52,5 +55,20 @@ impl ControlFlowGraph {
     /// Clear the name of a BB.
     pub fn clear_name(&mut self, bb: Block) -> Option<String> {
         std::mem::replace(&mut self[bb].name, None)
+    }
+
+    /// Return the anonymous name hint of a BB.
+    pub fn get_anonymous_hint(&self, bb: Block) -> Option<u32> {
+        self.anonymous_hints.get(&bb).cloned()
+    }
+
+    /// Set the anonymous name hint of a BB.
+    pub fn set_anonymous_hint(&mut self, bb: Block, hint: u32) {
+        self.anonymous_hints.insert(bb, hint);
+    }
+
+    /// Clear the anonymous name hint of a BB.
+    pub fn clear_anonymous_hint(&mut self, bb: Block) -> Option<u32> {
+        self.anonymous_hints.remove(&bb)
     }
 }

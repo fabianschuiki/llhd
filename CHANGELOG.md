@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Fix missing `dyn` keywords.
+- Preserve anonymous names as hints in the DFG.
 
 ## 0.9.0 - 2019-10-24
 ### Added

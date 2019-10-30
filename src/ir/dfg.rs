@@ -32,6 +32,8 @@ pub struct DataFlowGraph {
     pub(crate) ext_units: PrimaryTable<ExtUnit, ExtUnitData>,
     /// The names assigned to values.
     pub(crate) names: HashMap<Value, String>,
+    /// The anonymous name hints assigned to values.
+    pub(crate) anonymous_hints: HashMap<Value, u32>,
 }
 
 impl_table_indexing!(DataFlowGraph, insts, Inst, InstData);
@@ -157,6 +159,21 @@ impl DataFlowGraph {
     /// Clear the name of a value.
     pub fn clear_name(&mut self, value: Value) -> Option<String> {
         self.names.remove(&value)
+    }
+
+    /// Return the anonymous name hint of a value.
+    pub fn get_anonymous_hint(&self, value: Value) -> Option<u32> {
+        self.anonymous_hints.get(&value).cloned()
+    }
+
+    /// Set the anonymous name hint of a value.
+    pub fn set_anonymous_hint(&mut self, value: Value, hint: u32) {
+        self.anonymous_hints.insert(value, hint);
+    }
+
+    /// Clear the anonymous name hint of a value.
+    pub fn clear_anonymous_hint(&mut self, value: Value) -> Option<u32> {
+        self.anonymous_hints.remove(&value)
     }
 
     /// Replace all uses of a value with another.

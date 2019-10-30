@@ -38,8 +38,9 @@ impl<'a> Block<'a> {
                 bb
             }
         };
-        if let LocalName::Named(name) = self.name {
-            builder.cfg_mut().set_name(bb, name.to_owned());
+        match self.name {
+            LocalName::Anonymous(index) => builder.cfg_mut().set_anonymous_hint(bb, index),
+            LocalName::Named(name) => builder.cfg_mut().set_name(bb, name.to_owned()),
         }
         builder.append_to(bb);
         for inst in self.insts {
@@ -282,8 +283,9 @@ impl<'a> Inst<'a> {
                     panic!("`{}` defined multiple times", name);
                 }
             }
-            if let LocalName::Named(name) = name {
-                builder.dfg_mut().set_name(value, name.to_owned());
+            match name {
+                LocalName::Anonymous(index) => builder.dfg_mut().set_anonymous_hint(value, index),
+                LocalName::Named(name) => builder.dfg_mut().set_name(value, name.to_owned()),
             }
         }
     }
