@@ -89,6 +89,24 @@ impl Debug for IntValue {
     }
 }
 
+impl From<(usize, usize)> for IntValue {
+    fn from(v: (usize, usize)) -> Self {
+        IntValue::from_usize(v.0, v.1)
+    }
+}
+
+impl From<(usize, BigInt)> for IntValue {
+    fn from(v: (usize, BigInt)) -> Self {
+        IntValue::from_signed(v.0, v.1)
+    }
+}
+
+impl From<(usize, BigUint)> for IntValue {
+    fn from(v: (usize, BigUint)) -> Self {
+        IntValue::from_unsigned(v.0, v.1)
+    }
+}
+
 /// Slicing.
 impl IntValue {
     /// Extract a slice of bits from the value.
