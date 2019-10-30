@@ -101,9 +101,9 @@ impl Unit for Function {
     fn dump_fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "func {} {} {{\n", self.name, self.sig.dump(&self.dfg))?;
         for bb in self.layout.blocks() {
-            write!(f, "%{}:\n", bb)?;
+            write!(f, "{}:\n", bb.dump(&self.cfg))?;
             for inst in self.layout.insts(bb) {
-                write!(f, "    {}\n", inst.dump(&self.dfg))?;
+                write!(f, "    {}\n", inst.dump(&self.dfg, Some(&self.cfg)))?;
             }
         }
         write!(f, "}}")?;

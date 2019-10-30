@@ -6,7 +6,7 @@
 //! representation.
 
 use crate::{
-    ir::{Block, DataFlowGraph, ExtUnit, Inst, Unit, UnitBuilder, Value},
+    ir::{Block, ControlFlowGraph, DataFlowGraph, ExtUnit, Inst, Unit, UnitBuilder, Value},
     ty::{array_ty, int_ty, pointer_ty, signal_ty, struct_ty, time_ty, void_ty, Type},
     ConstTime,
 };
@@ -1111,13 +1111,17 @@ impl Opcode {
 }
 
 impl Inst {
-    pub fn dump(self, dfg: &DataFlowGraph) -> InstDumper {
-        InstDumper(self, dfg)
+    pub fn dump<'a>(
+        self,
+        dfg: &'a DataFlowGraph,
+        cfg: Option<&'a ControlFlowGraph>,
+    ) -> InstDumper<'a> {
+        InstDumper(self, dfg, cfg)
     }
 }
 
 /// Temporary object to dump an `Inst` in human-readable form for debugging.
-pub struct InstDumper<'a>(Inst, &'a DataFlowGraph);
+pub struct InstDumper<'a>(Inst, &'a DataFlowGraph, Option<&'a ControlFlowGraph>);
 
 impl std::fmt::Display for InstDumper<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -1128,8 +1132,8 @@ impl std::fmt::Display for InstDumper<'_> {
             let result = dfg.inst_result(inst);
             write!(
                 f,
-                "%{} = {} {}",
-                result,
+                "{} = {} {}",
+                result.dump(dfg),
                 data.opcode(),
                 dfg.value_type(result)
             )?;
@@ -1144,7 +1148,7 @@ impl std::fmt::Display for InstDumper<'_> {
                 if comma {
                     write!(f, ", ")?;
                 }
-                write!(f, "%{}", arg)?;
+                write!(f, "{}", arg.dump(dfg))?;
                 comma = true;
             }
             write!(f, ")")?;
@@ -1155,7 +1159,7 @@ impl std::fmt::Display for InstDumper<'_> {
                     if comma {
                         write!(f, ", ")?;
                     }
-                    write!(f, "%{}", arg)?;
+                    write!(f, "{}", arg.dump(dfg))?;
                     comma = true;
                 }
                 write!(f, ")")?;
@@ -1163,13 +1167,13 @@ impl std::fmt::Display for InstDumper<'_> {
         } else if let InstData::Reg { .. } = *data {
             write!(f, " {}", data.args()[0])?;
             for arg in data.data_args() {
-                write!(f, ", %{}", arg)?;
+                write!(f, ", {}", arg.dump(dfg))?;
             }
             for arg in data.mode_args() {
                 write!(f, ", {}", arg)?;
             }
             for arg in data.trigger_args() {
-                write!(f, ", %{}", arg)?;
+                write!(f, ", {}", arg.dump(dfg))?;
             }
         } else {
             let mut comma = false;
@@ -1177,14 +1181,14 @@ impl std::fmt::Display for InstDumper<'_> {
                 if comma {
                     write!(f, ",")?;
                 }
-                write!(f, " %{}", arg)?;
+                write!(f, " {}", arg.dump(dfg))?;
                 comma = true;
             }
             for block in data.blocks() {
                 if comma {
                     write!(f, ",")?;
                 }
-                write!(f, " %{}", block)?;
+                write!(f, " {}", block.dump(self.2.unwrap()))?;
                 comma = true;
             }
             for imm in data.imms() {

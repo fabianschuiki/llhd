@@ -159,3 +159,47 @@ impl std::fmt::Display for AnyObject {
         }
     }
 }
+
+impl Value {
+    /// Dump the value in human-readable form.
+    pub fn dump(self, dfg: &DataFlowGraph) -> ValueDumper {
+        ValueDumper(self, dfg)
+    }
+}
+
+/// Temporary object to dump a `Value` in human-readable form for debugging.
+pub struct ValueDumper<'a>(Value, &'a DataFlowGraph);
+
+impl std::fmt::Display for ValueDumper<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        if let Some(name) = self.1.get_name(self.0) {
+            write!(f, "%{}", name)
+        } else if let Some(index) = self.1.get_anonymous_hint(self.0) {
+            write!(f, "%{}", index)
+        } else {
+            write!(f, "%{}", self.0)
+        }
+    }
+}
+
+impl Block {
+    /// Dump the basic block in human-readable form.
+    pub fn dump(self, cfg: &ControlFlowGraph) -> BlockDumper {
+        BlockDumper(self, cfg)
+    }
+}
+
+/// Temporary object to dump a `Block` in human-readable form for debugging.
+pub struct BlockDumper<'a>(Block, &'a ControlFlowGraph);
+
+impl std::fmt::Display for BlockDumper<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        if let Some(name) = self.1.get_name(self.0) {
+            write!(f, "%{}", name)
+        } else if let Some(index) = self.1.get_anonymous_hint(self.0) {
+            write!(f, "%{}", index)
+        } else {
+            write!(f, "%{}", self.0)
+        }
+    }
+}

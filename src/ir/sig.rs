@@ -172,14 +172,26 @@ impl std::fmt::Display for SignatureDumper<'_> {
         write!(f, "(")?;
         for (arg, sep) in self.0.inputs().zip(once("").chain(repeat(", "))) {
             let value = self.1.arg_value(arg);
-            write!(f, "{}{} %{}", sep, self.1.value_type(value), value)?;
+            write!(
+                f,
+                "{}{} {}",
+                sep,
+                self.1.value_type(value),
+                value.dump(self.1)
+            )?;
         }
         write!(f, ")")?;
         if self.0.has_outputs() {
             write!(f, " -> (")?;
             for (arg, sep) in self.0.outputs().zip(once("").chain(repeat(", "))) {
                 let value = self.1.arg_value(arg);
-                write!(f, "{}{} %{}", sep, self.1.value_type(value), value)?;
+                write!(
+                    f,
+                    "{}{} {}",
+                    sep,
+                    self.1.value_type(value),
+                    value.dump(self.1)
+                )?;
             }
             write!(f, ")")?;
         }

@@ -11,8 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `--dump` option to `llhd-check`.
 
 ### Changed
-- Fix missing `dyn` keywords.
+- Add missing `dyn` keywords.
 - Preserve anonymous names as hints in the DFG.
+- Use names when dumping values.
 
 ## 0.9.0 - 2019-10-24
 ### Added

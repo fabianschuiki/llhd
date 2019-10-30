@@ -98,7 +98,7 @@ impl Unit for Entity {
     fn dump_fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "entity {} {} {{\n", self.name, self.sig.dump(&self.dfg))?;
         for inst in self.layout.insts() {
-            write!(f, "    {}\n", inst.dump(&self.dfg))?;
+            write!(f, "    {}\n", inst.dump(&self.dfg, None))?;
         }
         write!(f, "}}")?;
         Ok(())

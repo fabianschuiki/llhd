@@ -1,8 +1,10 @@
-func @foo () void {
+func @foo (i8 %blarg) void {
 %entry:
-	%0 = const i32 0
-	%1 = var i32* %0
-	%2 = var i32* %0
-	eq i32* %1, %2
+	%2 = const i32 0
+	%magic = var i32* %2
+	%4 = var i32* %2
+	eq i32* %magic, %4
+	br %42
+%42:
 	ret
 }
