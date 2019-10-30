@@ -7,15 +7,14 @@
 #[macro_use]
 extern crate log;
 
-pub mod ty;
-pub mod verifier;
 #[macro_use]
 pub mod assembly;
 pub mod ir;
-mod konst;
 pub mod pass;
 pub mod table;
+pub mod ty;
 pub mod util;
 pub mod value;
+pub mod verifier;
 
-pub use crate::{konst::*, ty::*, value::*};
+pub use crate::{ty::*, value::*};

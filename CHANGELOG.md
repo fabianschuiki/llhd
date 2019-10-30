@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Make `ty` module visible.
 - Change `const` instructions to use `IntValue` and `TimeValue`.
 
+### Removed
+- Remove `konst` module.
+
 ## 0.9.0 - 2019-10-24
 ### Added
 - Add function to lookup external units in a module.
