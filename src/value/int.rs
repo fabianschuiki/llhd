@@ -26,6 +26,13 @@ impl IntValue {
             value: BigUint::zero(),
         }
     }
+    /// Create a value with all bits set to one.
+    pub fn all_ones(width: usize) -> Self {
+        Self {
+            width,
+            value: (BigUint::one() << width) - 1usize,
+        }
+    }
 
     /// Create a new integer value from a `usize`.
     pub fn from_usize(width: usize, value: usize) -> Self {
@@ -79,7 +86,7 @@ impl IntValue {
 
     /// Check if the value has every bit set to one.
     pub fn is_all_ones(&self) -> bool {
-        self.value == (BigUint::one() << self.width) - 1usize
+        self.value == Self::all_ones(self.width).value
     }
 
     /// Get the type of the value.
