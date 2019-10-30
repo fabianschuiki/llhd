@@ -37,7 +37,6 @@ impl<B> InstBuilder<B> {
 }
 
 impl<B: UnitBuilder> InstBuilder<&mut B> {
-    /// `a = const iN[$]? imm`
     pub fn const_int(&mut self, width: usize, value: impl Into<BigInt>) -> Value {
         let data = InstData::ConstInt {
             opcode: Opcode::ConstInt,
@@ -47,7 +46,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `a = const time imm`
     pub fn const_time(&mut self, value: impl Into<ConstTime>) -> Value {
         let data = InstData::ConstTime {
             opcode: Opcode::ConstTime,
@@ -57,14 +55,12 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `a = x`
     pub fn alias(&mut self, x: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_unary(Opcode::Alias, ty, x);
         self.inst_result(inst)
     }
 
-    /// `a = array imm, type x`
     pub fn array_uniform(&mut self, imm: usize, x: Value) -> Value {
         let ty = array_ty(imm, self.value_type(x));
         let inst = self.build(
@@ -78,7 +74,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `a = array args`
     pub fn array(&mut self, args: Vec<Value>) -> Value {
         assert!(!args.is_empty());
         let ty = array_ty(args.len(), self.value_type(args[0]));
@@ -92,7 +87,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `a = struct args`
     pub fn strukt(&mut self, args: Vec<Value>) -> Value {
         let ty = struct_ty(
             args.iter()
@@ -110,186 +104,158 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `a = not type x, y`
     pub fn not(&mut self, x: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_unary(Opcode::Not, ty, x);
         self.inst_result(inst)
     }
 
-    /// `a = neg type x, y`
     pub fn neg(&mut self, x: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_unary(Opcode::Neg, ty, x);
         self.inst_result(inst)
     }
 
-    /// `a = add type x, y`
     pub fn add(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Add, ty, x, y);
         self.inst_result(inst)
     }
 
-    /// `a = sub type x, y`
     pub fn sub(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Sub, ty, x, y);
         self.inst_result(inst)
     }
 
-    /// `a = and type x, y`
     pub fn and(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::And, ty, x, y);
         self.inst_result(inst)
     }
 
-    /// `a = or type x, y`
     pub fn or(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Or, ty, x, y);
         self.inst_result(inst)
     }
 
-    /// `a = xor type x, y`
     pub fn xor(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Xor, ty, x, y);
         self.inst_result(inst)
     }
 
-    /// `a = smul type x, y`
     pub fn smul(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Smul, ty, x, y);
         self.inst_result(inst)
     }
 
-    /// `a = sdiv type x, y`
     pub fn sdiv(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Sdiv, ty, x, y);
         self.inst_result(inst)
     }
 
-    /// `a = smod type x, y`
     pub fn smod(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Smod, ty, x, y);
         self.inst_result(inst)
     }
 
-    /// `a = srem type x, y`
     pub fn srem(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Srem, ty, x, y);
         self.inst_result(inst)
     }
 
-    /// `a = umul type x, y`
     pub fn umul(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Umul, ty, x, y);
         self.inst_result(inst)
     }
 
-    /// `a = udiv type x, y`
     pub fn udiv(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Udiv, ty, x, y);
         self.inst_result(inst)
     }
 
-    /// `a = umod type x, y`
     pub fn umod(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Umod, ty, x, y);
         self.inst_result(inst)
     }
 
-    /// `a = urem type x, y`
     pub fn urem(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Urem, ty, x, y);
         self.inst_result(inst)
     }
 
-    /// `a = eq type x, y`
     pub fn eq(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Eq, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
-    /// `a = neq type x, y`
     pub fn neq(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Neq, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
-    /// `a = slt type x, y`
     pub fn slt(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Slt, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
-    /// `a = sgt type x, y`
     pub fn sgt(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Sgt, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
-    /// `a = sle type x, y`
     pub fn sle(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Sle, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
-    /// `a = sge type x, y`
     pub fn sge(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Sge, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
-    /// `a = ult type x, y`
     pub fn ult(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Ult, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
-    /// `a = ugt type x, y`
     pub fn ugt(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Ugt, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
-    /// `a = ule type x, y`
     pub fn ule(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Ule, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
-    /// `a = uge type x, y`
     pub fn uge(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Uge, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
-    /// `a = shl type x, y, z`
     pub fn shl(&mut self, x: Value, y: Value, z: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_ternary(Opcode::Shl, ty, x, y, z);
         self.inst_result(inst)
     }
 
-    /// `a = shr type x, y, z`
     pub fn shr(&mut self, x: Value, y: Value, z: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_ternary(Opcode::Shr, ty, x, y, z);
         self.inst_result(inst)
     }
 
-    /// `a = mux type x, y`
     pub fn mux(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         assert!(ty.is_array(), "argument to `mux` must be of array type");
@@ -298,7 +264,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `a = reg type init (, data mode trigger)*`
     pub fn reg(&mut self, x: Value, data: Vec<(Value, RegMode, Value)>) -> Value {
         let ty = self.value_type(x);
         let mut args = vec![x];
@@ -318,7 +283,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `a = insf type x, y, imm`
     pub fn ins_field(&mut self, x: Value, y: Value, imm: usize) -> Value {
         let ty = self.value_type(x);
         let inst = self.build(
@@ -332,7 +296,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `a = inss type x, y, imm0, imm1`
     pub fn ins_slice(&mut self, x: Value, y: Value, imm0: usize, imm1: usize) -> Value {
         let ty = self.value_type(x);
         let inst = self.build(
@@ -346,7 +309,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `a = extf type x, imm`
     pub fn ext_field(&mut self, x: Value, imm: usize) -> Value {
         let ty = with_unpacked_sigptr(self.value_type(x), |ty| {
             if ty.is_struct() {
@@ -370,7 +332,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `a = exts type x, imm0, imm1`
     pub fn ext_slice(&mut self, x: Value, imm0: usize, imm1: usize) -> Value {
         let ty = with_unpacked_sigptr(self.value_type(x), |ty| {
             if ty.is_array() {
@@ -392,18 +353,15 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `con type x, y`
     pub fn con(&mut self, x: Value, y: Value) -> Inst {
         self.build_binary(Opcode::Con, void_ty(), x, y)
     }
 
-    /// `a = del type x, y`
     pub fn del(&mut self, x: Value, y: Value) -> Inst {
         let ty = self.value_type(x);
         self.build_binary(Opcode::Del, ty, x, y)
     }
 
-    /// `a = call type unit (args...)`
     pub fn call(&mut self, unit: ExtUnit, args: Vec<Value>) -> Inst {
         let ty = self.builder.unit().extern_sig(unit).return_type();
         let data = InstData::Call {
@@ -415,7 +373,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.build(data, ty)
     }
 
-    /// `inst unit (inputs...) -> (outputs...)`
     pub fn inst(&mut self, unit: ExtUnit, mut inputs: Vec<Value>, outputs: Vec<Value>) -> Inst {
         let ins = inputs.len() as u16;
         inputs.extend(outputs);
@@ -428,7 +385,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.build(data, void_ty())
     }
 
-    /// `a = sig type x`
     pub fn sig(&mut self, x: Value) -> Value {
         let ty = self.value_type(x);
         let ty = if ty.is_signal() { ty } else { signal_ty(ty) };
@@ -436,7 +392,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `a = prb type x`
     pub fn prb(&mut self, x: Value) -> Value {
         let ty = self.value_type(x);
         assert!(ty.is_signal(), "argument to `prb` must be of signal type");
@@ -445,19 +400,16 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `drv type x, y, z`
     pub fn drv(&mut self, x: Value, y: Value, z: Value) -> Inst {
         self.build_ternary(Opcode::Drv, void_ty(), x, y, z)
     }
 
-    /// `a = var type x`
     pub fn var(&mut self, x: Value) -> Value {
         let ty = pointer_ty(self.value_type(x));
         let inst = self.build_unary(Opcode::Var, ty, x);
         self.inst_result(inst)
     }
 
-    /// `a = ld type x`
     pub fn ld(&mut self, x: Value) -> Value {
         let ty = self.value_type(x);
         assert!(ty.is_pointer(), "argument to `ld` must be of pointer type");
@@ -466,27 +418,22 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    /// `st type x, y`
     pub fn st(&mut self, x: Value, y: Value) -> Inst {
         self.build_binary(Opcode::St, void_ty(), x, y)
     }
 
-    /// `halt`
     pub fn halt(&mut self) -> Inst {
         self.build_nullary(Opcode::Halt)
     }
 
-    /// `ret`
     pub fn ret(&mut self) -> Inst {
         self.build_nullary(Opcode::Ret)
     }
 
-    /// `ret type x`
     pub fn ret_value(&mut self, x: Value) -> Inst {
         self.build_unary(Opcode::RetValue, void_ty(), x)
     }
 
-    /// `br bb`
     pub fn br(&mut self, bb: Block) -> Inst {
         let data = InstData::Jump {
             opcode: Opcode::Br,
@@ -495,7 +442,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.build(data, void_ty())
     }
 
-    /// `br x, bb0, bb1`
     pub fn br_cond(&mut self, x: Value, bb0: Block, bb1: Block) -> Inst {
         let data = InstData::Branch {
             opcode: Opcode::BrCond,
@@ -505,7 +451,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.build(data, void_ty())
     }
 
-    /// `wait bb, args`
     pub fn wait(&mut self, bb: Block, args: Vec<Value>) -> Inst {
         let data = InstData::Wait {
             opcode: Opcode::Wait,
@@ -515,7 +460,6 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.build(data, void_ty())
     }
 
-    /// `wait bb, time, args`
     pub fn wait_time(&mut self, bb: Block, time: Value, mut args: Vec<Value>) -> Inst {
         args.insert(0, time);
         let data = InstData::Wait {
