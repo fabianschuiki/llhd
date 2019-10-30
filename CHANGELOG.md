@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `name()` and `suffix()` to instruction builder.
 - Add `named_block()` to unit builder.
 - Add `log` dependency.
+- Add `value` module with utilities to deal with values.
 
 ### Changed
 - Add missing `dyn` keywords.

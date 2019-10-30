@@ -15,5 +15,6 @@ mod konst;
 pub mod pass;
 pub mod table;
 pub mod util;
+pub mod value;
 
-pub use crate::{konst::*, ty::*};
+pub use crate::{konst::*, ty::*, value::*};
