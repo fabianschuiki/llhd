@@ -14,12 +14,18 @@ fn main() {
                 .multiple(true)
                 .help("LLHD files to verify"),
         )
+        .arg(
+            Arg::with_name("dump")
+                .short("d")
+                .long("dump")
+                .help("Dump parsed LLHD to stdout"),
+        )
         .get_matches();
 
     let mut num_errors = 0;
     for path in matches.values_of("inputs").into_iter().flat_map(|x| x) {
         match check(path) {
-            Ok(()) => (),
+            Ok(module) => println!("{}", module.dump()),
             Err(msg) => {
                 println!("{}:", path);
                 println!("{}", msg);
@@ -31,7 +37,7 @@ fn main() {
     std::process::exit(num_errors);
 }
 
-fn check(path: &str) -> Result<(), String> {
+fn check(path: &str) -> Result<llhd::ir::Module, String> {
     let mut input = File::open(path).map_err(|e| format!("{}", e))?;
     let mut contents = String::new();
     input
@@ -41,7 +47,7 @@ fn check(path: &str) -> Result<(), String> {
     let mut verifier = Verifier::new();
     verifier.verify_module(&module);
     match verifier.finish() {
-        Ok(()) => Ok(()),
+        Ok(()) => Ok(module),
         Err(errs) => Err(format!("{}", errs)),
     }
 }
