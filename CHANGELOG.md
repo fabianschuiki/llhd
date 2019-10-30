@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `--dump` option to `llhd-check`.
 - Add `name()` and `suffix()` to instruction builder.
 - Add `named_block()` to unit builder.
+- Add `log` dependency.
 
 ### Changed
 - Add missing `dyn` keywords.
