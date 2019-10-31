@@ -13,7 +13,7 @@ pub mod ir;
 pub mod pass;
 pub mod table;
 pub mod ty;
-pub mod util;
+mod util;
 pub mod value;
 pub mod verifier;
 
