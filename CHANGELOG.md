@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Remove `konst` module.
 
+### Fixed
+- Fix issue in `insert_inst_before` of block layouts.
+
 ## 0.9.0 - 2019-10-24
 ### Added
 - Add function to lookup external units in a module.

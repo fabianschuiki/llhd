@@ -311,10 +311,10 @@ impl InstLayout {
                 next: Some(before),
             },
         );
-        self.insts[before].prev = Some(inst);
         if let Some(prev) = self.insts[before].prev {
             self.insts[prev].next = Some(inst);
         }
+        self.insts[before].prev = Some(inst);
         if self.first_inst == Some(before) {
             self.first_inst = Some(inst);
         }
