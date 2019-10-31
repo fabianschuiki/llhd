@@ -1,77 +1,56 @@
 // Copyright (c) 2017-2019 Fabian Schuiki
 
 //! Dead Code Elimination
-//!
-//! This module implements dead code elimination. It removes instructions whose
-//! value is never used, trivial blocks, and blocks which cannot be reached.
 
 use crate::ir::prelude::*;
-use crate::ir::{InstData, ModUnitData};
+use crate::ir::InstData;
+use crate::opt::prelude::*;
 use std::collections::HashSet;
 
-/// Eliminate dead code in a module.
-pub fn run_on_module(module: &mut Module) -> bool {
-    let mut modified = false;
-    let units: Vec<_> = module.units().collect();
-    for unit in units {
-        modified |= match module[unit] {
-            ModUnitData::Function(ref mut u) => run_on_function(u),
-            ModUnitData::Process(ref mut u) => run_on_process(u),
-            ModUnitData::Entity(ref mut u) => run_on_entity(u),
-            _ => false,
-        };
-    }
-    modified
-}
-
-/// Eliminate dead code in a function.
+/// Dead Code Elimination
 ///
-/// Returns `true` if the function was modified.
-pub fn run_on_function(func: &mut Function) -> bool {
-    let mut builder = FunctionBuilder::new(func);
-    let mut modified = false;
-    let mut insts = vec![];
-    for bb in builder.func.layout.blocks() {
-        for inst in builder.func.layout.insts(bb) {
-            insts.push(inst);
+/// This pass implements dead code elimination. It removes instructions whose
+/// value is never used, trivial blocks, and blocks which cannot be reached.
+pub struct DeadCodeElim;
+
+impl Pass for DeadCodeElim {
+    fn run_on_function(_ctx: &PassContext, builder: &mut FunctionBuilder) -> bool {
+        let mut modified = false;
+        let mut insts = vec![];
+        for bb in builder.func.layout.blocks() {
+            for inst in builder.func.layout.insts(bb) {
+                insts.push(inst);
+            }
         }
-    }
-    for inst in insts {
-        modified |= builder.prune_if_unused(inst);
-    }
-    prune_blocks(&mut builder);
-    modified
-}
-
-/// Eliminate dead code in a process.
-///
-/// Returns `true` if the process was modified.
-pub fn run_on_process(prok: &mut Process) -> bool {
-    let mut builder = ProcessBuilder::new(prok);
-    let mut modified = false;
-    let mut insts = vec![];
-    for bb in builder.prok.layout.blocks() {
-        for inst in builder.prok.layout.insts(bb) {
-            insts.push(inst);
+        for inst in insts {
+            modified |= builder.prune_if_unused(inst);
         }
+        modified |= prune_blocks(builder);
+        modified
     }
-    for inst in insts {
-        modified |= builder.prune_if_unused(inst);
-    }
-    prune_blocks(&mut builder);
-    modified
-}
 
-/// Eliminate dead code in an entity.
-///
-/// Returns `true` if the entity was modified.
-pub fn run_on_entity(entity: &mut Entity) -> bool {
-    let mut builder = EntityBuilder::new(entity);
-    let mut modified = false;
-    for inst in builder.entity.layout.insts().collect::<Vec<_>>() {
-        modified |= builder.prune_if_unused(inst);
+    fn run_on_process(_ctx: &PassContext, builder: &mut ProcessBuilder) -> bool {
+        let mut modified = false;
+        let mut insts = vec![];
+        for bb in builder.prok.layout.blocks() {
+            for inst in builder.prok.layout.insts(bb) {
+                insts.push(inst);
+            }
+        }
+        for inst in insts {
+            modified |= builder.prune_if_unused(inst);
+        }
+        modified |= prune_blocks(builder);
+        modified
     }
-    modified
+
+    fn run_on_entity(_ctx: &PassContext, builder: &mut EntityBuilder) -> bool {
+        let mut modified = false;
+        for inst in builder.entity.layout.insts().collect::<Vec<_>>() {
+            modified |= builder.prune_if_unused(inst);
+        }
+        modified
+    }
 }
 
 /// Eliminate unreachable and trivial blocks in a function layout.

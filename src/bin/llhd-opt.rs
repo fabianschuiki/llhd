@@ -6,7 +6,7 @@ extern crate clap;
 extern crate log;
 
 use clap::Arg;
-use llhd::{assembly::parse_module, verifier::Verifier};
+use llhd::{assembly::parse_module, opt::prelude::*, verifier::Verifier};
 use std::{
     fs::File,
     io::{BufWriter, Read},
@@ -96,12 +96,13 @@ fn main_inner() -> Result<(), String> {
     };
 
     // Apply optimization pass.
+    let ctx = PassContext;
     let t1 = time::precise_time_ns();
-    llhd::pass::const_folding::run_on_module(&mut module);
+    llhd::pass::ConstFolding::run_on_module(&ctx, &mut module);
     let t2 = time::precise_time_ns();
     // GCSE will go here
     let t3 = t2;
-    llhd::pass::dead_code_elim::run_on_module(&mut module);
+    llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module);
     let t4 = time::precise_time_ns();
 
     // Verify modified module.

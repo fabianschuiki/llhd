@@ -1,79 +1,22 @@
 // Copyright (c) 2017-2019 Fabian Schuiki
 
 //! Constant Folding
-//!
-//! This module implements constant folding. It replaces instructions with
-//! constant arguments with the corresponding result.
 
 use crate::ir::prelude::*;
-use crate::{
-    ir::{InstData, ModUnitData},
-    ty::*,
-    value::IntValue,
-};
+use crate::opt::prelude::*;
+use crate::{ir::InstData, ty::*, value::IntValue};
 use std::cmp::min;
 
-/// Fold a module.
-pub fn run_on_module(module: &mut Module) -> bool {
-    let mut modified = false;
-    let units: Vec<_> = module.units().collect();
-    for unit in units {
-        modified |= match module[unit] {
-            ModUnitData::Function(ref mut u) => run_on_function(u),
-            ModUnitData::Process(ref mut u) => run_on_process(u),
-            ModUnitData::Entity(ref mut u) => run_on_entity(u),
-            _ => false,
-        };
-    }
-    modified
-}
-
-/// Fold a function.
+/// Constant Folding
 ///
-/// Returns `true` if the function was modified.
-pub fn run_on_function(func: &mut Function) -> bool {
-    let mut builder = FunctionBuilder::new(func);
-    let mut modified = false;
-    let mut insts = vec![];
-    for bb in builder.func.layout.blocks() {
-        for inst in builder.func.layout.insts(bb) {
-            insts.push(inst);
-        }
-    }
-    for inst in insts {
-        modified |= run_on_inst(&mut builder, inst);
-    }
-    modified
-}
+/// This pass implements constant folding. It replaces instructions with
+/// constant arguments with the corresponding result.
+pub struct ConstFolding;
 
-/// Fold a process.
-///
-/// Returns `true` if the process was modified.
-pub fn run_on_process(prok: &mut Process) -> bool {
-    let mut builder = ProcessBuilder::new(prok);
-    let mut modified = false;
-    let mut insts = vec![];
-    for bb in builder.prok.layout.blocks() {
-        for inst in builder.prok.layout.insts(bb) {
-            insts.push(inst);
-        }
+impl Pass for ConstFolding {
+    fn run_on_inst(_ctx: &PassContext, inst: Inst, unit: &mut impl UnitBuilder) -> bool {
+        run_on_inst(unit, inst)
     }
-    for inst in insts {
-        modified |= run_on_inst(&mut builder, inst);
-    }
-    modified
-}
-
-/// Fold an entity.
-///
-/// Returns `true` if the entity was modified.
-pub fn run_on_entity(entity: &mut Entity) -> bool {
-    let mut builder = EntityBuilder::new(entity);
-    let mut modified = false;
-    for inst in builder.entity.layout.insts().collect::<Vec<_>>() {
-        modified |= run_on_inst(&mut builder, inst);
-    }
-    modified
 }
 
 /// Fold a single instruction.
@@ -268,37 +211,38 @@ fn fold_shift(builder: &mut impl UnitBuilder, inst: Inst, ty: &Type) -> Option<V
         let amount = amount.to_usize();
         let base_width = dfg.value_type(base).len();
         let hidden_width = dfg.value_type(hidden).len();
+        let amount = min(amount, hidden_width);
 
         // Handle the case where the amount fully shifts out the base.
         if amount >= base_width {
-            let r = builder.ins().ext_slice(
-                hidden,
-                min(hidden_width - amount, hidden_width - base_width),
-                base_width,
-            );
+            let offset = if left {
+                amount - base_width
+            } else {
+                hidden_width + base_width - amount
+            };
+            let r = builder.ins().ext_slice(hidden, offset, base_width);
             Some(fold_ext_slice(builder, builder.dfg().value_inst(r)).unwrap_or(r));
         }
         // Handle the case where the result is a mixture of the base and the
         // hidden value.
-        else if left {
-            let b = builder.ins().ext_slice(base, 0, base_width - amount);
-            let h = builder
-                .ins()
-                .ext_slice(hidden, hidden_width - amount, amount);
-            let z0 = builder.ins().const_zero(ty);
-            let z1 = builder.ins().ins_slice(z0, b, amount, base_width - amount);
-            let z2 = builder.ins().ins_slice(z1, h, 0, amount);
-            run_on_value(builder, h);
-            run_on_value(builder, b);
-            run_on_value(builder, z0);
-            run_on_value(builder, z1);
-            return Some(fold_ins_slice(builder, builder.dfg().value_inst(z2)).unwrap_or(z2));
-        } else {
-            let h = builder.ins().ext_slice(hidden, 0, amount);
-            let b = builder.ins().ext_slice(base, amount, base_width - amount);
-            let z0 = builder.ins().const_zero(ty);
-            let z1 = builder.ins().ins_slice(z0, h, base_width - amount, amount);
-            let z2 = builder.ins().ins_slice(z1, b, 0, base_width - amount);
+        else {
+            let (b, h, z0, z1, z2) = if left {
+                let b = builder.ins().ext_slice(base, 0, base_width - amount);
+                let h = builder
+                    .ins()
+                    .ext_slice(hidden, hidden_width - amount, amount);
+                let z0 = builder.ins().const_zero(ty);
+                let z1 = builder.ins().ins_slice(z0, b, amount, base_width - amount);
+                let z2 = builder.ins().ins_slice(z1, h, 0, amount);
+                (b, h, z0, z1, z2)
+            } else {
+                let h = builder.ins().ext_slice(hidden, 0, amount);
+                let b = builder.ins().ext_slice(base, amount, base_width - amount);
+                let z0 = builder.ins().const_zero(ty);
+                let z1 = builder.ins().ins_slice(z0, h, base_width - amount, amount);
+                let z2 = builder.ins().ins_slice(z1, b, 0, base_width - amount);
+                (b, h, z0, z1, z2)
+            };
             run_on_value(builder, h);
             run_on_value(builder, b);
             run_on_value(builder, z0);
