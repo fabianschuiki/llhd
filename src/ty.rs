@@ -220,6 +220,23 @@ impl TypeKind {
             _ => false,
         }
     }
+
+    /// Extract the length of the type.
+    ///
+    /// This is the number of:
+    /// - bits in an integer
+    /// - states in an enum
+    /// - elements in an array
+    /// - fields in a struct
+    ///
+    /// Returns zero for all other types.
+    pub fn len(&self) -> usize {
+        match *self {
+            IntType(l) | EnumType(l) | ArrayType(l, _) => l,
+            StructType(ref f) => f.len(),
+            _ => 0,
+        }
+    }
 }
 
 /// Create a void type.

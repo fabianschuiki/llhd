@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `value` module with utilities to deal with values.
 - Add `get_const*` functions to the DFG.
 - Add fallible `try_cfg*` functions to units.
+- Add `len()` for types.
 
 ### Changed
 - Add missing `dyn` keywords.
