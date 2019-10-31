@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `get_const*` functions to the DFG.
 - Add fallible `try_cfg*` functions to units.
 - Add `len()` for types.
+- Add `stderrlog` dependency.
 
 ### Changed
 - Add missing `dyn` keywords.
