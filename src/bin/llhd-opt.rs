@@ -85,7 +85,7 @@ fn main_inner() -> Result<(), String> {
         .map_err(|errs| format!("Verification failed after optimization:\n{}", errs))?;
 
     // Write the output.
-    if let Some(path) = matches.value_of("output)") {
+    if let Some(path) = matches.value_of("output") {
         let output = File::create(path).map_err(|e| format!("{}", e))?;
         let output = BufWriter::with_capacity(1 << 20, output);
         llhd::assembly::write_module(output, &module);
