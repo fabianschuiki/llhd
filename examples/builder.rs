@@ -1,20 +1,10 @@
 // Copyright (c) 2017-2019 Fabian Schuiki
 use llhd::ir::prelude::*;
-use llhd::pass::const_folding;
 
 fn main() {
-    let mut func = build_function(UnitName::Global("foo".to_owned()));
-    let mut prok = build_process(UnitName::Global("bar".to_owned()));
-    let mut ent = build_entity(UnitName::Global("top".to_owned()));
-    println!("{}", func.dump());
-    println!("{}", prok.dump());
-    println!("{}", ent.dump());
-    println!("");
-    println!("Constant Folding");
-    println!("");
-    const_folding::run_on_function(&mut func);
-    const_folding::run_on_process(&mut prok);
-    const_folding::run_on_entity(&mut ent);
+    let func = build_function(UnitName::Global("foo".to_owned()));
+    let prok = build_process(UnitName::Global("bar".to_owned()));
+    let ent = build_entity(UnitName::Global("top".to_owned()));
     println!("{}", func.dump());
     println!("{}", prok.dump());
     println!("{}", ent.dump());
