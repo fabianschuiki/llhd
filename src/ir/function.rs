@@ -58,12 +58,12 @@ impl Unit for Function {
         &mut self.dfg
     }
 
-    fn cfg(&self) -> &ControlFlowGraph {
-        &self.cfg
+    fn try_cfg(&self) -> Option<&ControlFlowGraph> {
+        Some(&self.cfg)
     }
 
-    fn cfg_mut(&mut self) -> &mut ControlFlowGraph {
-        &mut self.cfg
+    fn try_cfg_mut(&mut self) -> Option<&mut ControlFlowGraph> {
+        Some(&mut self.cfg)
     }
 
     fn sig(&self) -> &Signature {

@@ -100,11 +100,29 @@ pub trait Unit {
 
     /// Get the unit's CFG.
     #[inline]
-    fn cfg(&self) -> &ControlFlowGraph;
+    fn try_cfg(&self) -> Option<&ControlFlowGraph>;
 
     /// Get the unit's mutable CFG.
     #[inline]
-    fn cfg_mut(&mut self) -> &mut ControlFlowGraph;
+    fn try_cfg_mut(&mut self) -> Option<&mut ControlFlowGraph>;
+
+    /// Get the unit's CFG.
+    #[inline]
+    fn cfg(&self) -> &ControlFlowGraph {
+        match self.try_cfg() {
+            Some(cfg) => cfg,
+            None => panic!("cfg() called on entity"),
+        }
+    }
+
+    /// Get the unit's mutable CFG.
+    #[inline]
+    fn cfg_mut(&mut self) -> &mut ControlFlowGraph {
+        match self.try_cfg_mut() {
+            Some(cfg) => cfg,
+            None => panic!("cfg_mut() called on entity"),
+        }
+    }
 
     /// Get the unit's signature.
     #[inline]
@@ -369,6 +387,16 @@ pub trait UnitBuilder {
     /// Get the mutable CFG of the unit being built.
     fn cfg_mut(&mut self) -> &mut ControlFlowGraph {
         self.unit_mut().cfg_mut()
+    }
+
+    /// Get the CFG of the unit being built.
+    fn try_cfg(&self) -> Option<&ControlFlowGraph> {
+        self.unit().try_cfg()
+    }
+
+    /// Get the mutable CFG of the unit being built.
+    fn try_cfg_mut(&mut self) -> Option<&mut ControlFlowGraph> {
+        self.unit_mut().try_cfg_mut()
     }
 
     /// Get the function/process layout of the unit being built.

@@ -55,12 +55,12 @@ impl Unit for Entity {
         &mut self.dfg
     }
 
-    fn cfg(&self) -> &ControlFlowGraph {
-        panic!("cfg() called on entity");
+    fn try_cfg(&self) -> Option<&ControlFlowGraph> {
+        None
     }
 
-    fn cfg_mut(&mut self) -> &mut ControlFlowGraph {
-        panic!("cfg_mut() called on entity");
+    fn try_cfg_mut(&mut self) -> Option<&mut ControlFlowGraph> {
+        None
     }
 
     fn sig(&self) -> &Signature {
