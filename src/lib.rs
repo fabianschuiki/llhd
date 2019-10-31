@@ -10,6 +10,7 @@ extern crate log;
 #[macro_use]
 pub mod assembly;
 pub mod ir;
+pub mod opt;
 pub mod pass;
 pub mod table;
 pub mod ty;

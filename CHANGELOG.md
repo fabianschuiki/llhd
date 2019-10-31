@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `rayon` dependency.
 - Add `time` dependency.
 - Add `-v`, `-t`, and `-s` options to `llhd-opt`.
+- Add `opt` module for optimization infrastructure.
 
 ### Changed
 - Add missing `dyn` keywords.

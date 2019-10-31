@@ -21,7 +21,7 @@ use std::collections::{BTreeSet, HashMap};
 /// `Function`, `Process`, and `Entity` declarations and definitions.
 pub struct Module {
     /// The units in this module.
-    units: PrimaryTable<ModUnit, ModUnitData>,
+    pub(crate) units: PrimaryTable<ModUnit, ModUnitData>,
     /// The order of units in the module.
     unit_order: BTreeSet<ModUnit>,
     /// The local link table. Maps an external unit declared within a unit to a
