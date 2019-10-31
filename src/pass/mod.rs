@@ -7,6 +7,8 @@
 
 pub mod const_folding;
 pub mod dead_code_elim;
+pub mod gcse;
 
 pub use const_folding::ConstFolding;
 pub use dead_code_elim::DeadCodeElim;
+pub use gcse::GlobalCommonSubexprElim;

@@ -100,8 +100,8 @@ fn main_inner() -> Result<(), String> {
     let t1 = time::precise_time_ns();
     llhd::pass::ConstFolding::run_on_module(&ctx, &mut module);
     let t2 = time::precise_time_ns();
-    // GCSE will go here
-    let t3 = t2;
+    llhd::pass::GlobalCommonSubexprElim::run_on_module(&ctx, &mut module);
+    let t3 = time::precise_time_ns();
     llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module);
     let t4 = time::precise_time_ns();
 
@@ -128,7 +128,7 @@ fn main_inner() -> Result<(), String> {
         eprintln!("Execution Time Statistics:");
         eprintln!("  Parse:   {:8.3} ms", (t1 - t0) as f64 * 1.0e-6);
         eprintln!("  CF:      {:8.3} ms", (t2 - t1) as f64 * 1.0e-6);
-        // GCSE will go here
+        eprintln!("  GCSE:    {:8.3} ms", (t3 - t2) as f64 * 1.0e-6);
         eprintln!("  DCE:     {:8.3} ms", (t4 - t3) as f64 * 1.0e-6);
         eprintln!("  Verify:  {:8.3} ms", (t5 - t4) as f64 * 1.0e-6);
         eprintln!("  Output:  {:8.3} ms", (t6 - t5) as f64 * 1.0e-6);
