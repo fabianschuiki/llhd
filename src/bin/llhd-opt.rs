@@ -51,6 +51,12 @@ fn main_inner() -> Result<(), String> {
                 .long("time")
                 .help("Print execution time statistics per pass"),
         )
+        .arg(
+            Arg::with_name("single-threaded")
+                .short("s")
+                .long("--no-parallel")
+                .help("Do not parallelize execution"),
+        )
         .get_matches();
 
     // Configure the logger.
@@ -63,6 +69,15 @@ fn main_inner() -> Result<(), String> {
         .verbosity(verbose)
         .init()
         .unwrap();
+
+    // Configure rayon to be single-threaded if requested.
+    if matches.is_present("single-threaded") {
+        info!("Limiting to one rayon worker thread");
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(1)
+            .build_global()
+            .unwrap();
+    }
 
     // Read the input.
     let t0 = time::precise_time_ns();
@@ -118,6 +133,9 @@ fn main_inner() -> Result<(), String> {
         eprintln!("  Output:  {:8.3} ms", (t6 - t5) as f64 * 1.0e-6);
         eprintln!("  Total:   {:8.3} ms", (t6 - t0) as f64 * 1.0e-6);
     }
+
+    // Dump some threading statistics.
+    info!("Used {} rayon worker threads", rayon::current_num_threads());
 
     Ok(())
 }
