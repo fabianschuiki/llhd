@@ -9,10 +9,10 @@ mod int;
 mod r#struct;
 mod time;
 
+pub use self::time::*;
 pub use array::*;
 pub use int::*;
 pub use r#struct::*;
-pub use time::*;
 
 use crate::ty::Type;
 use std::fmt::{Debug, Display};
