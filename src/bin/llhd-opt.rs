@@ -2,6 +2,9 @@
 
 #[macro_use]
 extern crate clap;
+#[macro_use]
+extern crate log;
+
 use clap::Arg;
 use llhd::{assembly::parse_module, verifier::Verifier};
 use std::{
@@ -24,6 +27,13 @@ fn main_inner() -> Result<(), String> {
     let matches = app_from_crate!()
         .about("Optimizes LLHD assembly.")
         .arg(
+            Arg::with_name("verbosity")
+                .short("v")
+                .multiple(true)
+                .help(HELP_VERBOSITY.lines().next().unwrap())
+                .long_help(HELP_VERBOSITY),
+        )
+        .arg(
             Arg::with_name("input")
                 .help("LLHD file to optimize")
                 .required(true),
@@ -36,6 +46,17 @@ fn main_inner() -> Result<(), String> {
                 .help("File to write output to; stdout if omitted"),
         )
         .get_matches();
+
+    // Configure the logger.
+    let verbose = std::cmp::max(1, matches.occurrences_of("verbosity") as usize) - 1;
+    let quiet = !matches.is_present("verbosity");
+    stderrlog::new()
+        .module("llhd")
+        .module("llhd_opt")
+        .quiet(quiet)
+        .verbosity(verbose)
+        .init()
+        .unwrap();
 
     // Read the input.
     let mut module = {
@@ -74,3 +95,15 @@ fn main_inner() -> Result<(), String> {
 
     Ok(())
 }
+
+static HELP_VERBOSITY: &str = "Increase message verbosity
+
+This option can be specified multiple times to increase the level of verbosity \
+in the output:
+
+-v      Only print errors
+-vv     Also print warnings
+-vvv    Also print info messages
+-vvvv   Also print debug messages
+-vvvvv  Also print detailed tracing messages
+";

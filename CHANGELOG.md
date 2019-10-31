@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `stderrlog` dependency.
 - Add `rayon` dependency.
 - Add `time` dependency.
+- Add `-v` verbosity options to `llhd-opt`.
 
 ### Changed
 - Add missing `dyn` keywords.
