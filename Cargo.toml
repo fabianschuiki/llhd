@@ -20,6 +20,7 @@ lalrpop-util = "0.16.3"
 regex = "0.2.0"
 log = { version = "0.4", features = ["release_max_level_warn"] }
 stderrlog = "0.4"
+rayon = "1.2"
 
 [dev-dependencies]
 indoc = "0.3"

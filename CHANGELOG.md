@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add fallible `try_cfg*` functions to units.
 - Add `len()` for types.
 - Add `stderrlog` dependency.
+- Add `rayon` dependency.
 
 ### Changed
 - Add missing `dyn` keywords.
