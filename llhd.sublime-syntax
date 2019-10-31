@@ -22,7 +22,7 @@ contexts:
         2: entity.name.class.llhd
 
     # Instructions
-    - match: '\b(const|alias|mux|reg|insf|inss|extf|exts|del|call|con|inst|drv|st|halt|ret|br|wait|not|neg|sig|prb|var|ld|add|sub|and|or|xor|smul|sdiv|smod|srem|umul|udiv|umod|urem|eq|neq|slt|sgt|sle|sge|ult|ugt|ule|uge|shl|shr)\b'
+    - match: '\b(const|alias|mux|reg|insf|inss|extf|exts|del|call|con|inst|drv|st|halt|ret|br|wait|not|neg|sig|prb|var|ld|add|sub|and|or|xor|smul|sdiv|smod|srem|umul|udiv|umod|urem|eq|neq|slt|sgt|sle|sge|ult|ugt|ule|uge|shl|shr|phi)\b'
       scope: keyword.opcode.llhd
 
     # Modifiers
