@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allow comments in certain locations in the assembly.
 - Make `ty` module visible.
 - Change `const` instructions to use `IntValue` and `TimeValue`.
+- Improve constant folding.
 
 ### Removed
 - Remove `konst` module.
