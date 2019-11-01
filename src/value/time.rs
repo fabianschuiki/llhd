@@ -9,7 +9,7 @@ use num::{traits::*, BigInt, BigRational};
 use std::fmt::{Debug, Display};
 
 /// A constant time value.
-#[derive(Clone, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct TimeValue {
     /// The real time value, in seconds, as a rational number.
     pub time: BigRational,

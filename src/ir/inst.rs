@@ -576,7 +576,7 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
 
 /// An instruction format.
 #[allow(missing_docs)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum InstData {
     /// `a = const iN imm`
     ConstInt { opcode: Opcode, imm: IntValue },
@@ -886,7 +886,7 @@ bitflags! {
 }
 
 /// The trigger modes for register data acquisition.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum RegMode {
     /// The register is transparent if the trigger is low.
     Low,
@@ -916,7 +916,7 @@ impl std::fmt::Display for RegMode {
 ///
 /// This enum represents the actual instruction, whereas `InstData` covers the
 /// format and arguments of the instruction.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Opcode {
     ConstInt,
     ConstTime,
