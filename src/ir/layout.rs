@@ -217,6 +217,13 @@ impl FunctionLayout {
     pub fn next_block(&self, bb: Block) -> Option<Block> {
         self.bbs[bb].next
     }
+
+    /// Get the entry block in the layout.
+    ///
+    /// The fallible alternative is `first_block(bb)`.
+    pub fn entry(&self) -> Block {
+        self.first_block().expect("entry block is required")
+    }
 }
 
 /// Determines the order of instructions.
