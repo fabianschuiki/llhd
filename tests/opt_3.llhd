@@ -1,0 +1,490 @@
+proc %fifo_v3.param6.always_comb.2379.6 (i1$ %full_o, i1$ %empty_o, {i5, i1, i3, i2}$ %data_i, i1$ %push_i, i1$ %pop_i, i1$ %read_pointer_n, i1$ %read_pointer_q, i1$ %write_pointer_q, i2$ %status_cnt_q, [1 x {i5, i1, i3, i2}]$ %mem_q) -> ({i5, i1, i3, i2}$ %data_o, i1$ %gate_clock, i1$ %read_pointer_n1, i1$ %write_pointer_n, i2$ %status_cnt_n, [1 x {i5, i1, i3, i2}]$ %mem_n) {
+0:
+    %1 = prb i1$ %read_pointer_n1
+    %read_pointer_n.shadow = var i1 %1
+    br %body
+body:
+    %2 = prb i1$ %read_pointer_n1
+    st i1* %read_pointer_n.shadow, %2
+    %read_pointer_q1 = prb i1$ %read_pointer_q
+    %3 = const time 0s 1e
+    drv i1$ %read_pointer_n1, %read_pointer_q1, %3
+    st i1* %read_pointer_n.shadow, %read_pointer_q1
+    %write_pointer_q1 = prb i1$ %write_pointer_q
+    %4 = const time 0s 1e
+    drv i1$ %write_pointer_n, %write_pointer_q1, %4
+    %status_cnt_q1 = prb i2$ %status_cnt_q
+    %5 = const time 0s 1e
+    drv i2$ %status_cnt_n, %status_cnt_q1, %5
+    %6 = const i32 1
+    %7 = const i32 0
+    %8 = eq i32 %6, %7
+    %9 = const i11 0
+    %data_i1 = prb {i5, i1, i3, i2}$ %data_i
+    %10 = extf i2, {i5, i1, i3, i2} %data_i1, 3
+    %11 = inss i11 %9, i2 %10, 0, 2
+    %data_i2 = prb {i5, i1, i3, i2}$ %data_i
+    %12 = extf i3, {i5, i1, i3, i2} %data_i2, 2
+    %13 = inss i11 %11, i3 %12, 2, 3
+    %data_i3 = prb {i5, i1, i3, i2}$ %data_i
+    %14 = extf i1, {i5, i1, i3, i2} %data_i3, 1
+    %15 = inss i11 %13, i1 %14, 5, 1
+    %data_i4 = prb {i5, i1, i3, i2}$ %data_i
+    %16 = extf i5, {i5, i1, i3, i2} %data_i4, 0
+    %17 = inss i11 %15, i5 %16, 6, 5
+    %18 = const i11 0
+    %mem_q1 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q2 = prb i1$ %read_pointer_q
+    %19 = const i5 0
+    %20 = const i1 0
+    %21 = const i3 0
+    %22 = const i2 0
+    %23 = {i5 %19, i1 %20, i3 %21, i2 %22}
+    %24 = [1 x {i5, i1, i3, i2} %23]
+    %25 = shr [1 x {i5, i1, i3, i2}] %mem_q1, [1 x {i5, i1, i3, i2}] %24, i1 %read_pointer_q2
+    %26 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %25, 0
+    %27 = extf i2, {i5, i1, i3, i2} %26, 3
+    %28 = inss i11 %18, i2 %27, 0, 2
+    %mem_q2 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q3 = prb i1$ %read_pointer_q
+    %29 = const i5 0
+    %30 = const i1 0
+    %31 = const i3 0
+    %32 = const i2 0
+    %33 = {i5 %29, i1 %30, i3 %31, i2 %32}
+    %34 = [1 x {i5, i1, i3, i2} %33]
+    %35 = shr [1 x {i5, i1, i3, i2}] %mem_q2, [1 x {i5, i1, i3, i2}] %34, i1 %read_pointer_q3
+    %36 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %35, 0
+    %37 = extf i3, {i5, i1, i3, i2} %36, 2
+    %38 = inss i11 %28, i3 %37, 2, 3
+    %mem_q3 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q4 = prb i1$ %read_pointer_q
+    %39 = const i5 0
+    %40 = const i1 0
+    %41 = const i3 0
+    %42 = const i2 0
+    %43 = {i5 %39, i1 %40, i3 %41, i2 %42}
+    %44 = [1 x {i5, i1, i3, i2} %43]
+    %45 = shr [1 x {i5, i1, i3, i2}] %mem_q3, [1 x {i5, i1, i3, i2}] %44, i1 %read_pointer_q4
+    %46 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %45, 0
+    %47 = extf i1, {i5, i1, i3, i2} %46, 1
+    %48 = inss i11 %38, i1 %47, 5, 1
+    %mem_q4 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q5 = prb i1$ %read_pointer_q
+    %49 = const i5 0
+    %50 = const i1 0
+    %51 = const i3 0
+    %52 = const i2 0
+    %53 = {i5 %49, i1 %50, i3 %51, i2 %52}
+    %54 = [1 x {i5, i1, i3, i2} %53]
+    %55 = shr [1 x {i5, i1, i3, i2}] %mem_q4, [1 x {i5, i1, i3, i2}] %54, i1 %read_pointer_q5
+    %56 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %55, 0
+    %57 = extf i5, {i5, i1, i3, i2} %56, 0
+    %58 = inss i11 %48, i5 %57, 6, 5
+    %59 = [i11 %58, %17]
+    %60 = mux [2 x i11] %59, i1 %8
+    %61 = const i32 0
+    %62 = const i11 0
+    %63 = shr i11 %60, i11 %62, i32 %61
+    %64 = exts i5, i11 %63, 0, 5
+    %65 = const i32 1
+    %66 = const i32 0
+    %67 = eq i32 %65, %66
+    %68 = const i11 0
+    %data_i5 = prb {i5, i1, i3, i2}$ %data_i
+    %69 = extf i2, {i5, i1, i3, i2} %data_i5, 3
+    %70 = inss i11 %68, i2 %69, 0, 2
+    %data_i6 = prb {i5, i1, i3, i2}$ %data_i
+    %71 = extf i3, {i5, i1, i3, i2} %data_i6, 2
+    %72 = inss i11 %70, i3 %71, 2, 3
+    %data_i7 = prb {i5, i1, i3, i2}$ %data_i
+    %73 = extf i1, {i5, i1, i3, i2} %data_i7, 1
+    %74 = inss i11 %72, i1 %73, 5, 1
+    %data_i8 = prb {i5, i1, i3, i2}$ %data_i
+    %75 = extf i5, {i5, i1, i3, i2} %data_i8, 0
+    %76 = inss i11 %74, i5 %75, 6, 5
+    %77 = const i11 0
+    %mem_q5 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q6 = prb i1$ %read_pointer_q
+    %78 = const i5 0
+    %79 = const i1 0
+    %80 = const i3 0
+    %81 = const i2 0
+    %82 = {i5 %78, i1 %79, i3 %80, i2 %81}
+    %83 = [1 x {i5, i1, i3, i2} %82]
+    %84 = shr [1 x {i5, i1, i3, i2}] %mem_q5, [1 x {i5, i1, i3, i2}] %83, i1 %read_pointer_q6
+    %85 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %84, 0
+    %86 = extf i2, {i5, i1, i3, i2} %85, 3
+    %87 = inss i11 %77, i2 %86, 0, 2
+    %mem_q6 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q7 = prb i1$ %read_pointer_q
+    %88 = const i5 0
+    %89 = const i1 0
+    %90 = const i3 0
+    %91 = const i2 0
+    %92 = {i5 %88, i1 %89, i3 %90, i2 %91}
+    %93 = [1 x {i5, i1, i3, i2} %92]
+    %94 = shr [1 x {i5, i1, i3, i2}] %mem_q6, [1 x {i5, i1, i3, i2}] %93, i1 %read_pointer_q7
+    %95 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %94, 0
+    %96 = extf i3, {i5, i1, i3, i2} %95, 2
+    %97 = inss i11 %87, i3 %96, 2, 3
+    %mem_q7 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q8 = prb i1$ %read_pointer_q
+    %98 = const i5 0
+    %99 = const i1 0
+    %100 = const i3 0
+    %101 = const i2 0
+    %102 = {i5 %98, i1 %99, i3 %100, i2 %101}
+    %103 = [1 x {i5, i1, i3, i2} %102]
+    %104 = shr [1 x {i5, i1, i3, i2}] %mem_q7, [1 x {i5, i1, i3, i2}] %103, i1 %read_pointer_q8
+    %105 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %104, 0
+    %106 = extf i1, {i5, i1, i3, i2} %105, 1
+    %107 = inss i11 %97, i1 %106, 5, 1
+    %mem_q8 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q9 = prb i1$ %read_pointer_q
+    %108 = const i5 0
+    %109 = const i1 0
+    %110 = const i3 0
+    %111 = const i2 0
+    %112 = {i5 %108, i1 %109, i3 %110, i2 %111}
+    %113 = [1 x {i5, i1, i3, i2} %112]
+    %114 = shr [1 x {i5, i1, i3, i2}] %mem_q8, [1 x {i5, i1, i3, i2}] %113, i1 %read_pointer_q9
+    %115 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %114, 0
+    %116 = extf i5, {i5, i1, i3, i2} %115, 0
+    %117 = inss i11 %107, i5 %116, 6, 5
+    %118 = [i11 %117, %76]
+    %119 = mux [2 x i11] %118, i1 %67
+    %120 = const i32 5
+    %121 = const i11 0
+    %122 = shr i11 %119, i11 %121, i32 %120
+    %123 = exts i1, i11 %122, 0, 1
+    %124 = const i32 1
+    %125 = const i32 0
+    %126 = eq i32 %124, %125
+    %127 = const i11 0
+    %data_i9 = prb {i5, i1, i3, i2}$ %data_i
+    %128 = extf i2, {i5, i1, i3, i2} %data_i9, 3
+    %129 = inss i11 %127, i2 %128, 0, 2
+    %data_i10 = prb {i5, i1, i3, i2}$ %data_i
+    %130 = extf i3, {i5, i1, i3, i2} %data_i10, 2
+    %131 = inss i11 %129, i3 %130, 2, 3
+    %data_i11 = prb {i5, i1, i3, i2}$ %data_i
+    %132 = extf i1, {i5, i1, i3, i2} %data_i11, 1
+    %133 = inss i11 %131, i1 %132, 5, 1
+    %data_i12 = prb {i5, i1, i3, i2}$ %data_i
+    %134 = extf i5, {i5, i1, i3, i2} %data_i12, 0
+    %135 = inss i11 %133, i5 %134, 6, 5
+    %136 = const i11 0
+    %mem_q9 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q10 = prb i1$ %read_pointer_q
+    %137 = const i5 0
+    %138 = const i1 0
+    %139 = const i3 0
+    %140 = const i2 0
+    %141 = {i5 %137, i1 %138, i3 %139, i2 %140}
+    %142 = [1 x {i5, i1, i3, i2} %141]
+    %143 = shr [1 x {i5, i1, i3, i2}] %mem_q9, [1 x {i5, i1, i3, i2}] %142, i1 %read_pointer_q10
+    %144 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %143, 0
+    %145 = extf i2, {i5, i1, i3, i2} %144, 3
+    %146 = inss i11 %136, i2 %145, 0, 2
+    %mem_q10 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q11 = prb i1$ %read_pointer_q
+    %147 = const i5 0
+    %148 = const i1 0
+    %149 = const i3 0
+    %150 = const i2 0
+    %151 = {i5 %147, i1 %148, i3 %149, i2 %150}
+    %152 = [1 x {i5, i1, i3, i2} %151]
+    %153 = shr [1 x {i5, i1, i3, i2}] %mem_q10, [1 x {i5, i1, i3, i2}] %152, i1 %read_pointer_q11
+    %154 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %153, 0
+    %155 = extf i3, {i5, i1, i3, i2} %154, 2
+    %156 = inss i11 %146, i3 %155, 2, 3
+    %mem_q11 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q12 = prb i1$ %read_pointer_q
+    %157 = const i5 0
+    %158 = const i1 0
+    %159 = const i3 0
+    %160 = const i2 0
+    %161 = {i5 %157, i1 %158, i3 %159, i2 %160}
+    %162 = [1 x {i5, i1, i3, i2} %161]
+    %163 = shr [1 x {i5, i1, i3, i2}] %mem_q11, [1 x {i5, i1, i3, i2}] %162, i1 %read_pointer_q12
+    %164 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %163, 0
+    %165 = extf i1, {i5, i1, i3, i2} %164, 1
+    %166 = inss i11 %156, i1 %165, 5, 1
+    %mem_q12 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q13 = prb i1$ %read_pointer_q
+    %167 = const i5 0
+    %168 = const i1 0
+    %169 = const i3 0
+    %170 = const i2 0
+    %171 = {i5 %167, i1 %168, i3 %169, i2 %170}
+    %172 = [1 x {i5, i1, i3, i2} %171]
+    %173 = shr [1 x {i5, i1, i3, i2}] %mem_q12, [1 x {i5, i1, i3, i2}] %172, i1 %read_pointer_q13
+    %174 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %173, 0
+    %175 = extf i5, {i5, i1, i3, i2} %174, 0
+    %176 = inss i11 %166, i5 %175, 6, 5
+    %177 = [i11 %176, %135]
+    %178 = mux [2 x i11] %177, i1 %126
+    %179 = const i32 6
+    %180 = const i11 0
+    %181 = shr i11 %178, i11 %180, i32 %179
+    %182 = exts i3, i11 %181, 0, 3
+    %183 = const i32 1
+    %184 = const i32 0
+    %185 = eq i32 %183, %184
+    %186 = const i11 0
+    %data_i13 = prb {i5, i1, i3, i2}$ %data_i
+    %187 = extf i2, {i5, i1, i3, i2} %data_i13, 3
+    %188 = inss i11 %186, i2 %187, 0, 2
+    %data_i14 = prb {i5, i1, i3, i2}$ %data_i
+    %189 = extf i3, {i5, i1, i3, i2} %data_i14, 2
+    %190 = inss i11 %188, i3 %189, 2, 3
+    %data_i15 = prb {i5, i1, i3, i2}$ %data_i
+    %191 = extf i1, {i5, i1, i3, i2} %data_i15, 1
+    %192 = inss i11 %190, i1 %191, 5, 1
+    %data_i16 = prb {i5, i1, i3, i2}$ %data_i
+    %193 = extf i5, {i5, i1, i3, i2} %data_i16, 0
+    %194 = inss i11 %192, i5 %193, 6, 5
+    %195 = const i11 0
+    %mem_q13 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q14 = prb i1$ %read_pointer_q
+    %196 = const i5 0
+    %197 = const i1 0
+    %198 = const i3 0
+    %199 = const i2 0
+    %200 = {i5 %196, i1 %197, i3 %198, i2 %199}
+    %201 = [1 x {i5, i1, i3, i2} %200]
+    %202 = shr [1 x {i5, i1, i3, i2}] %mem_q13, [1 x {i5, i1, i3, i2}] %201, i1 %read_pointer_q14
+    %203 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %202, 0
+    %204 = extf i2, {i5, i1, i3, i2} %203, 3
+    %205 = inss i11 %195, i2 %204, 0, 2
+    %mem_q14 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q15 = prb i1$ %read_pointer_q
+    %206 = const i5 0
+    %207 = const i1 0
+    %208 = const i3 0
+    %209 = const i2 0
+    %210 = {i5 %206, i1 %207, i3 %208, i2 %209}
+    %211 = [1 x {i5, i1, i3, i2} %210]
+    %212 = shr [1 x {i5, i1, i3, i2}] %mem_q14, [1 x {i5, i1, i3, i2}] %211, i1 %read_pointer_q15
+    %213 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %212, 0
+    %214 = extf i3, {i5, i1, i3, i2} %213, 2
+    %215 = inss i11 %205, i3 %214, 2, 3
+    %mem_q15 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q16 = prb i1$ %read_pointer_q
+    %216 = const i5 0
+    %217 = const i1 0
+    %218 = const i3 0
+    %219 = const i2 0
+    %220 = {i5 %216, i1 %217, i3 %218, i2 %219}
+    %221 = [1 x {i5, i1, i3, i2} %220]
+    %222 = shr [1 x {i5, i1, i3, i2}] %mem_q15, [1 x {i5, i1, i3, i2}] %221, i1 %read_pointer_q16
+    %223 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %222, 0
+    %224 = extf i1, {i5, i1, i3, i2} %223, 1
+    %225 = inss i11 %215, i1 %224, 5, 1
+    %mem_q16 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %read_pointer_q17 = prb i1$ %read_pointer_q
+    %226 = const i5 0
+    %227 = const i1 0
+    %228 = const i3 0
+    %229 = const i2 0
+    %230 = {i5 %226, i1 %227, i3 %228, i2 %229}
+    %231 = [1 x {i5, i1, i3, i2} %230]
+    %232 = shr [1 x {i5, i1, i3, i2}] %mem_q16, [1 x {i5, i1, i3, i2}] %231, i1 %read_pointer_q17
+    %233 = extf {i5, i1, i3, i2}, [1 x {i5, i1, i3, i2}] %232, 0
+    %234 = extf i5, {i5, i1, i3, i2} %233, 0
+    %235 = inss i11 %225, i5 %234, 6, 5
+    %236 = [i11 %235, %194]
+    %237 = mux [2 x i11] %236, i1 %185
+    %238 = const i32 9
+    %239 = const i11 0
+    %240 = shr i11 %237, i11 %239, i32 %238
+    %241 = exts i2, i11 %240, 0, 2
+    %242 = {i5 %64, i1 %123, i3 %182, i2 %241}
+    %243 = const time 0s 1e
+    drv {i5, i1, i3, i2}$ %data_o, %242, %243
+    %mem_q17 = prb [1 x {i5, i1, i3, i2}]$ %mem_q
+    %244 = const time 0s 1e
+    drv [1 x {i5, i1, i3, i2}]$ %mem_n, %mem_q17, %244
+    %245 = const i1 1
+    %246 = const time 0s 1e
+    drv i1$ %gate_clock, %245, %246
+    %push_i1 = prb i1$ %push_i
+    %full_o1 = prb i1$ %full_o
+    %247 = not i1 %full_o1
+    %248 = and i1 %push_i1, %247
+    br %248, %if_false, %if_true
+check:
+    wait %body, %full_o, %empty_o, %data_i, %push_i, %pop_i, %read_pointer_n1, %read_pointer_q, %write_pointer_q, %status_cnt_q, %mem_q
+if_true:
+    %write_pointer_q2 = prb i1$ %write_pointer_q
+    %249 = const i5 0
+    %250 = const i1 0
+    %251 = const i3 0
+    %252 = const i2 0
+    %253 = {i5 %249, i1 %250, i3 %251, i2 %252}
+    %254 = [1 x {i5, i1, i3, i2} %253]
+    %255 = sig [1 x {i5, i1, i3, i2}] %254
+    %256 = shr [1 x {i5, i1, i3, i2}]$ %mem_n, [1 x {i5, i1, i3, i2}]$ %255, i1 %write_pointer_q2
+    %257 = extf {i5, i1, i3, i2}$, [1 x {i5, i1, i3, i2}]$ %256, 0
+    %data_i17 = prb {i5, i1, i3, i2}$ %data_i
+    %258 = const time 0s 1e
+    drv {i5, i1, i3, i2}$ %257, %data_i17, %258
+    %259 = const i1 0
+    %260 = const time 0s 1e
+    drv i1$ %gate_clock, %259, %260
+    %261 = const i32 0
+    %write_pointer_q3 = prb i1$ %write_pointer_q
+    %262 = inss i32 %261, i1 %write_pointer_q3, 0, 1
+    %263 = const i32 1
+    %264 = const i1 0
+    %265 = const i32 0
+    %266 = shr i32 %263, i32 %265, i1 %264
+    %267 = exts i1, i32 %266, 0, 1
+    %268 = exts i1, i1 %267, 0, 1
+    %269 = const i32 0
+    %270 = not i32 %269
+    %271 = [i32 %269, %270]
+    %272 = mux [2 x i32] %271, i1 %268
+    %273 = inss i32 %272, i1 %267, 0, 1
+    %274 = const i32 1
+    %275 = sub i32 %273, %274
+    %276 = eq i32 %262, %275
+    br %276, %if_false1, %if_true1
+if_false:
+    br %if_exit
+if_exit:
+    %pop_i1 = prb i1$ %pop_i
+    %empty_o1 = prb i1$ %empty_o
+    %277 = not i1 %empty_o1
+    %278 = and i1 %pop_i1, %277
+    br %278, %if_false2, %if_true2
+if_true1:
+    %279 = const i1 0
+    %280 = const time 0s 1e
+    drv i1$ %write_pointer_n, %279, %280
+    br %if_exit1
+if_false1:
+    %281 = const i32 0
+    %write_pointer_q4 = prb i1$ %write_pointer_q
+    %282 = inss i32 %281, i1 %write_pointer_q4, 0, 1
+    %283 = const i32 1
+    %284 = add i32 %282, %283
+    %285 = exts i1, i32 %284, 0, 1
+    %286 = const time 0s 1e
+    drv i1$ %write_pointer_n, %285, %286
+    br %if_exit1
+if_exit1:
+    %287 = const i32 0
+    %status_cnt_q2 = prb i2$ %status_cnt_q
+    %288 = inss i32 %287, i2 %status_cnt_q2, 0, 2
+    %289 = const i32 1
+    %290 = add i32 %288, %289
+    %291 = exts i2, i32 %290, 0, 2
+    %292 = const time 0s 1e
+    drv i2$ %status_cnt_n, %291, %292
+    br %if_exit
+if_true2:
+    %293 = const i32 0
+    %read_pointer_n2 = ld i1* %read_pointer_n.shadow
+    %294 = inss i32 %293, i1 %read_pointer_n2, 0, 1
+    %295 = const i32 1
+    %296 = const i1 0
+    %297 = const i32 0
+    %298 = shr i32 %295, i32 %297, i1 %296
+    %299 = exts i1, i32 %298, 0, 1
+    %300 = exts i1, i1 %299, 0, 1
+    %301 = const i32 0
+    %302 = not i32 %301
+    %303 = [i32 %301, %302]
+    %304 = mux [2 x i32] %303, i1 %300
+    %305 = inss i32 %304, i1 %299, 0, 1
+    %306 = const i32 1
+    %307 = sub i32 %305, %306
+    %308 = eq i32 %294, %307
+    br %308, %if_false3, %if_true3
+if_false2:
+    br %if_exit2
+if_exit2:
+    %push_i2 = prb i1$ %push_i
+    %pop_i2 = prb i1$ %pop_i
+    %full_o2 = prb i1$ %full_o
+    %309 = not i1 %full_o2
+    %empty_o2 = prb i1$ %empty_o
+    %310 = not i1 %empty_o2
+    %311 = and i1 %309, %310
+    %312 = and i1 %pop_i2, %311
+    %313 = and i1 %push_i2, %312
+    br %313, %if_false4, %if_true4
+if_true3:
+    %314 = const i1 0
+    %315 = const time 0s 1e
+    drv i1$ %read_pointer_n1, %314, %315
+    st i1* %read_pointer_n.shadow, %314
+    br %if_exit3
+if_false3:
+    %316 = const i32 0
+    %read_pointer_q18 = prb i1$ %read_pointer_q
+    %317 = inss i32 %316, i1 %read_pointer_q18, 0, 1
+    %318 = const i32 1
+    %319 = add i32 %317, %318
+    %320 = exts i1, i32 %319, 0, 1
+    %321 = const time 0s 1e
+    drv i1$ %read_pointer_n1, %320, %321
+    st i1* %read_pointer_n.shadow, %320
+    br %if_exit3
+if_exit3:
+    %322 = const i32 0
+    %status_cnt_q3 = prb i2$ %status_cnt_q
+    %323 = inss i32 %322, i2 %status_cnt_q3, 0, 2
+    %324 = const i32 1
+    %325 = sub i32 %323, %324
+    %326 = exts i2, i32 %325, 0, 2
+    %327 = const time 0s 1e
+    drv i2$ %status_cnt_n, %326, %327
+    br %if_exit2
+if_true4:
+    %status_cnt_q4 = prb i2$ %status_cnt_q
+    %328 = const time 0s 1e
+    drv i2$ %status_cnt_n, %status_cnt_q4, %328
+    br %if_exit4
+if_false4:
+    br %if_exit4
+if_exit4:
+    %329 = const i1 0
+    %330 = const i32 0
+    %status_cnt_q5 = prb i2$ %status_cnt_q
+    %331 = inss i32 %330, i2 %status_cnt_q5, 0, 2
+    %332 = const i32 0
+    %333 = eq i32 %331, %332
+    %push_i3 = prb i1$ %push_i
+    %334 = and i1 %333, %push_i3
+    %335 = and i1 %329, %334
+    br %335, %if_false5, %if_true5
+if_true5:
+    %data_i18 = prb {i5, i1, i3, i2}$ %data_i
+    %336 = const time 0s 1e
+    drv {i5, i1, i3, i2}$ %data_o, %data_i18, %336
+    %pop_i3 = prb i1$ %pop_i
+    br %pop_i3, %if_false6, %if_true6
+if_false5:
+    br %if_exit5
+if_exit5:
+    br %check
+if_true6:
+    %status_cnt_q6 = prb i2$ %status_cnt_q
+    %337 = const time 0s 1e
+    drv i2$ %status_cnt_n, %status_cnt_q6, %337
+    %read_pointer_q19 = prb i1$ %read_pointer_q
+    %338 = const time 0s 1e
+    drv i1$ %read_pointer_n1, %read_pointer_q19, %338
+    st i1* %read_pointer_n.shadow, %read_pointer_q19
+    %write_pointer_q5 = prb i1$ %write_pointer_q
+    %339 = const time 0s 1e
+    drv i1$ %write_pointer_n, %write_pointer_q5, %339
+    br %if_exit6
+if_false6:
+    br %if_exit6
+if_exit6:
+    br %if_exit5
+}
