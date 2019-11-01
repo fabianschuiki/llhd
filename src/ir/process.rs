@@ -170,6 +170,7 @@ impl UnitBuilder for ProcessBuilder<'_> {
 
     fn remove_inst(&mut self, inst: Inst) {
         self.prok.dfg.remove_inst(inst);
+        self.pos.remove_inst(inst, &self.prok.layout);
         self.prok.layout.remove_inst(inst);
     }
 

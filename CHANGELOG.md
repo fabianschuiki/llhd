@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix issue in `insert_inst_before` of block layouts.
+- Fix instruction insertion position being invalidated on instruction removal.
 
 ## 0.9.0 - 2019-10-24
 ### Added

@@ -171,6 +171,7 @@ impl UnitBuilder for FunctionBuilder<'_> {
 
     fn remove_inst(&mut self, inst: Inst) {
         self.func.dfg.remove_inst(inst);
+        self.pos.remove_inst(inst, &self.func.layout);
         self.func.layout.remove_inst(inst);
     }
 

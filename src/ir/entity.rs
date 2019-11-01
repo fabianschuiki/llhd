@@ -164,6 +164,7 @@ impl UnitBuilder for EntityBuilder<'_> {
 
     fn remove_inst(&mut self, inst: Inst) {
         self.entity.dfg.remove_inst(inst);
+        self.pos.remove_inst(inst, &self.entity.layout);
         self.entity.layout.remove_inst(inst);
     }
 

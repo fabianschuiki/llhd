@@ -41,6 +41,33 @@ enum FunctionInsertPos {
     Before(Inst),
 }
 
+impl FunctionInsertPos {
+    /// Update the insertion position in response to removing an instruction.
+    fn remove_inst(&mut self, inst: Inst, layout: &FunctionLayout) {
+        use FunctionInsertPos::*;
+        match *self {
+            // If we inserted after i, now insert before i's successor, or if i
+            // was the last inst in the block, at the end of the block.
+            After(i) if i == inst => {
+                *self = layout
+                    .next_inst(i)
+                    .map(Before)
+                    .unwrap_or(Append(layout.inst_block(i).unwrap()))
+            }
+            // If we inserted before i, now insert after i's predecessor, or if
+            // i was the first inst in the block, at the beginning of the block.
+            Before(i) if i == inst => {
+                *self = layout
+                    .prev_inst(i)
+                    .map(After)
+                    .unwrap_or(Prepend(layout.inst_block(i).unwrap()))
+            }
+            // Everything else we just keep as is.
+            _ => (),
+        }
+    }
+}
+
 /// The position where new instructions will be inserted into an `Entity`.
 #[derive(Clone, Copy)]
 enum EntityInsertPos {
@@ -48,6 +75,23 @@ enum EntityInsertPos {
     Prepend,
     After(Inst),
     Before(Inst),
+}
+
+impl EntityInsertPos {
+    /// Update the insertion position in response to removing an instruction.
+    fn remove_inst(&mut self, inst: Inst, layout: &InstLayout) {
+        use EntityInsertPos::*;
+        match *self {
+            // If we inserted after i, now insert before i's successor, or if i
+            // was the last inst, at the end of the entity.
+            After(i) if i == inst => *self = layout.next_inst(i).map(Before).unwrap_or(Append),
+            // If we inserted before i, now insert after i's predecessor, or if
+            // i was the first inst, at the beginning of the entity.
+            Before(i) if i == inst => *self = layout.prev_inst(i).map(After).unwrap_or(Prepend),
+            // Everything else we just keep as is.
+            _ => (),
+        }
+    }
 }
 
 impl_table_key! {
