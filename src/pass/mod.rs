@@ -5,10 +5,10 @@
 //! This module implements various passes that analyze or mutate an LLHD
 //! intermediate representation.
 
-pub mod const_folding;
-pub mod dead_code_elim;
+pub mod cf;
+pub mod dce;
 pub mod gcse;
 
-pub use const_folding::ConstFolding;
-pub use dead_code_elim::DeadCodeElim;
+pub use cf::ConstFolding;
+pub use dce::DeadCodeElim;
 pub use gcse::GlobalCommonSubexprElim;
