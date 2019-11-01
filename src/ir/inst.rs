@@ -1115,6 +1115,14 @@ impl Opcode {
             _ => false,
         }
     }
+
+    /// Check if this is a temporal instruction.
+    pub fn is_temporal(self) -> bool {
+        match self {
+            Opcode::Halt | Opcode::Wait | Opcode::WaitTime => true,
+            _ => false,
+        }
+    }
 }
 
 impl Inst {
