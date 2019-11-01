@@ -165,6 +165,13 @@ impl Index<TemporalRegion> for TemporalRegionGraph {
     }
 }
 
+impl Index<Block> for TemporalRegionGraph {
+    type Output = TemporalRegion;
+    fn index(&self, idx: Block) -> &Self::Output {
+        &self.blocks[&idx]
+    }
+}
+
 /// A unique identifier for a temporal region.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TemporalRegion(usize);

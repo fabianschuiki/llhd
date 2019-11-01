@@ -18,6 +18,8 @@ pub struct GlobalCommonSubexprElim;
 
 impl Pass for GlobalCommonSubexprElim {
     fn run_on_cfg(_ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+        info!("GCSE [{}]", unit.unit().name());
+
         // Build the predecessor table.
         let mut pred = HashMap::<Block, HashSet<Block>>::new();
         for bb in unit.func_layout().blocks() {
@@ -102,6 +104,9 @@ impl Pass for GlobalCommonSubexprElim {
         // Check if a dominates b.
         let dominates = |a, b| dom[&b].contains(&a);
 
+        // Compute the TRG to allow for `prb` instructions to be eliminated.
+        let trg = crate::pass::tcm::TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
+
         // Collect instructions.
         let mut insts = vec![];
         for bb in unit.func_layout().blocks() {
@@ -117,7 +122,7 @@ impl Pass for GlobalCommonSubexprElim {
             // Don't mess with instructions that produce no result or have side
             // effects.
             let opcode = unit.dfg()[inst].opcode();
-            if !unit.dfg().has_result(inst) || opcode == Opcode::Prb || opcode == Opcode::Ld {
+            if !unit.dfg().has_result(inst) || opcode == Opcode::Ld {
                 continue;
             }
             let value = unit.dfg().inst_result(inst);
@@ -130,6 +135,13 @@ impl Pass for GlobalCommonSubexprElim {
                     let cv_inst = unit.dfg().value_inst(cv);
                     let inst_bb = unit.func_layout().inst_block(inst).unwrap();
                     let cv_bb = unit.func_layout().inst_block(cv_inst).unwrap();
+
+                    // Make sure that we don't merge `prb` instructions in
+                    // different temporal regions.
+                    if trg[inst_bb] != trg[cv_bb] {
+                        trace!("    Skipping because in other temporal region");
+                        continue;
+                    }
 
                     // Replace the current inst with the recorded value if the
                     // latter dominates the former.
@@ -167,9 +179,6 @@ impl Pass for GlobalCommonSubexprElim {
                     // which is only possible if they are both dominated by the
                     // args.
 
-                    // TODO(fschuiki): For `prb` insts check if they are in the
-                    // same instant (same block between wait/halt), and then
-                    // also allow this.
                     trace!(
                         "    Intersect(Dom({}), Dom({})):",
                         inst_bb.dump(unit.cfg()),
