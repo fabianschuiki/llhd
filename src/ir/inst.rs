@@ -1206,7 +1206,7 @@ impl std::fmt::Display for InstDumper<'_> {
                 comma = true;
             }
             match data {
-                InstData::ConstInt { imm, .. } => write!(f, " {}", imm)?,
+                InstData::ConstInt { imm, .. } => write!(f, " {}", imm.value)?,
                 InstData::ConstTime { imm, .. } => write!(f, " {}", imm)?,
                 InstData::Array { imms, .. } => write!(f, ", {}", imms[0])?,
                 _ => (),
