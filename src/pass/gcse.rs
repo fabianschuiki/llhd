@@ -3,11 +3,13 @@
 //! Global Common Subexpression Elimination
 
 use crate::ir::prelude::*;
-use crate::ir::InstData;
+use crate::ir::{DataFlowGraph, FunctionLayout, InstData};
 use crate::opt::prelude::*;
+use crate::pass::tcm::TemporalRegionGraph;
 use std::{
     collections::{HashMap, HashSet},
     iter::once,
+    ops::Index,
 };
 
 /// Global Common Subexpression Elimination
@@ -20,92 +22,12 @@ impl Pass for GlobalCommonSubexprElim {
     fn run_on_cfg(_ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
         info!("GCSE [{}]", unit.unit().name());
 
-        // Build the predecessor table.
-        let mut pred = HashMap::<Block, HashSet<Block>>::new();
-        for bb in unit.func_layout().blocks() {
-            pred.insert(bb, Default::default());
-        }
-        for bb in unit.func_layout().blocks() {
-            let term = unit.func_layout().terminator(bb);
-            for to_bb in unit.dfg()[term].blocks() {
-                pred.get_mut(&to_bb).unwrap().insert(bb);
-            }
-        }
-        trace!("Predecessor table: {:?}", pred);
-
-        // Build the dominator tree.
-        trace!("Building dominator tree");
-
-        let all_blocks: HashSet<Block> = unit.func_layout().blocks().collect();
-        let mut dom = HashMap::<Block, HashSet<Block>>::new();
-
-        // Dominator of the entry block is the block itself.
-        let entry_bb = unit.func_layout().first_block().unwrap();
-        dom.insert(entry_bb, Some(entry_bb).into_iter().collect());
-
-        // For all other blocks, set all blocks as the dominators.
-        for &bb in all_blocks.iter().filter(|&&bb| bb != entry_bb) {
-            dom.insert(bb, all_blocks.clone());
-        }
-
-        // Iteratively eliminate nodes that are not dominators.
-        loop {
-            let mut changes = false;
-            for &bb in all_blocks.iter().filter(|&&bb| bb != entry_bb) {
-                // Intersect all Dom(p), where p in pred(bb).
-                let preds = &pred[&bb];
-                let mut isect = HashMap::<Block, usize>::new();
-                for &p in preds.iter().flat_map(|p| dom[p].iter()) {
-                    *isect.entry(p).or_insert_with(Default::default) += 1;
-                }
-                let isect = isect
-                    .into_iter()
-                    .filter(|&(_, c)| c == preds.len())
-                    .map(|(bb, _)| bb);
-
-                // Add the block back in an update the entry Dom(bb).
-                let new_dom: HashSet<Block> = isect.chain(once(bb)).collect();
-                if dom[&bb] != new_dom {
-                    changes |= true;
-                    dom.insert(bb, new_dom);
-                    trace!("  Updated {}", bb);
-                }
-            }
-            if !changes {
-                break;
-            }
-        }
-
-        // Invert the tree.
-        let mut dom_inv: HashMap<Block, HashSet<Block>> =
-            all_blocks.iter().map(|&bb| (bb, HashSet::new())).collect();
-        for (&bb, dom_by) in &dom {
-            for d in dom_by {
-                dom_inv.get_mut(d).unwrap().insert(bb);
-            }
-        }
-
-        // Dump the tree.
-        trace!("Domination Tree:");
-        for (bb, dom_by) in &dom {
-            trace!("  {} dominated by:", bb.dump(unit.cfg()),);
-            for d in dom_by {
-                trace!("    {}", d.dump(unit.cfg()));
-            }
-        }
-        trace!("Dominator Tree:");
-        for (bb, dom_to) in &dom_inv {
-            trace!("  {} dominates:", bb.dump(unit.cfg()),);
-            for d in dom_to {
-                trace!("    {}", d.dump(unit.cfg()));
-            }
-        }
-
-        // Check if a dominates b.
-        let dominates = |a, b| dom[&b].contains(&a);
+        // Build the predecessor table and dominator tree.
+        let pred = PredecessorTable::new(unit.dfg(), unit.func_layout());
+        let dt = DominatorTree::new(unit.func_layout(), &pred);
 
         // Compute the TRG to allow for `prb` instructions to be eliminated.
-        let trg = crate::pass::tcm::TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
+        let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
 
         // Collect instructions.
         let mut insts = vec![];
@@ -145,7 +67,7 @@ impl Pass for GlobalCommonSubexprElim {
 
                     // Replace the current inst with the recorded value if the
                     // latter dominates the former.
-                    if dominates(cv_bb, inst_bb) {
+                    if dt.dominates(cv_bb, inst_bb) {
                         debug!(
                             "Replace {} with {}",
                             inst.dump(unit.dfg(), unit.try_cfg()),
@@ -159,7 +81,7 @@ impl Pass for GlobalCommonSubexprElim {
 
                     // Replace the recorded value with the current inst if the
                     // latter dominates the former.
-                    if dominates(inst_bb, cv_bb) {
+                    if dt.dominates(inst_bb, cv_bb) {
                         debug!(
                             "Replace {} with {}",
                             cv.dump(unit.dfg()),
@@ -184,19 +106,19 @@ impl Pass for GlobalCommonSubexprElim {
                         inst_bb.dump(unit.cfg()),
                         cv_bb.dump(unit.cfg())
                     );
-                    for bb in dom[&inst_bb].intersection(&dom[&cv_bb]) {
+                    for bb in dt.dominators(inst_bb).intersection(&dt.dominators(cv_bb)) {
                         trace!("      {}", bb.dump(unit.cfg()));
                     }
-                    let target_bb =
-                        dom[&inst_bb]
-                            .intersection(&dom[&cv_bb])
-                            .max_by(|&&bb_a, &&bb_b| {
-                                if dominates(bb_a, bb_b) {
-                                    std::cmp::Ordering::Less
-                                } else {
-                                    std::cmp::Ordering::Greater
-                                }
-                            });
+                    let target_bb = dt
+                        .dominators(inst_bb)
+                        .intersection(dt.dominators(cv_bb))
+                        .max_by(|&&bb_a, &&bb_b| {
+                            if dt.dominates(bb_a, bb_b) {
+                                std::cmp::Ordering::Less
+                            } else {
+                                std::cmp::Ordering::Greater
+                            }
+                        });
                     let target_bb = match target_bb {
                         Some(&bb) => bb,
                         None => panic!("no target bb"),
@@ -239,5 +161,123 @@ impl Pass for GlobalCommonSubexprElim {
                 .insert(value);
         }
         modified
+    }
+}
+
+/// A table of basic block predecessors.
+#[derive(Debug, Clone)]
+pub struct PredecessorTable(HashMap<Block, HashSet<Block>>);
+
+impl PredecessorTable {
+    /// Compute the predecessor table for a function or process.
+    pub fn new(dfg: &DataFlowGraph, layout: &FunctionLayout) -> Self {
+        let mut pred = HashMap::new();
+        for bb in layout.blocks() {
+            pred.insert(bb, HashSet::new());
+        }
+        for bb in layout.blocks() {
+            let term = layout.terminator(bb);
+            for to_bb in dfg[term].blocks() {
+                pred.get_mut(&to_bb).unwrap().insert(bb);
+            }
+        }
+        Self(pred)
+    }
+}
+
+impl Index<Block> for PredecessorTable {
+    type Output = HashSet<Block>;
+    fn index(&self, idx: Block) -> &Self::Output {
+        &self.0[&idx]
+    }
+}
+
+/// A block dominator tree.
+///
+/// Records for every block which other blocks in the CFG *have* to be traversed
+/// to reach it. And vice versa, which blocks a block precedeces in all cases.
+#[derive(Debug, Clone)]
+pub struct DominatorTree {
+    /// Map from a block to the blocks it dominates.
+    dominates: HashMap<Block, HashSet<Block>>,
+    /// Map from a block to the blocks that dominate it.
+    dominated: HashMap<Block, HashSet<Block>>,
+}
+
+impl DominatorTree {
+    /// Compute the dominator tree of a function or process.
+    pub fn new(layout: &FunctionLayout, pred: &PredecessorTable) -> Self {
+        // This is a pretty inefficient implementation, but it gets the job done
+        // for now.
+        let all_blocks: HashSet<Block> = layout.blocks().collect();
+        let mut dominated = HashMap::<Block, HashSet<Block>>::new();
+
+        // Dominator of the entry block is the block itself.
+        let entry_bb = layout.entry();
+        dominated.insert(entry_bb, Some(entry_bb).into_iter().collect());
+
+        // For all other blocks, set all blocks as the dominators.
+        for &bb in all_blocks.iter().filter(|&&bb| bb != entry_bb) {
+            dominated.insert(bb, all_blocks.clone());
+        }
+
+        // Iteratively eliminate nodes that are not dominators.
+        loop {
+            let mut changes = false;
+            for &bb in all_blocks.iter().filter(|&&bb| bb != entry_bb) {
+                // Intersect all Dom(p), where p in pred(bb).
+                let preds = &pred[bb];
+                let mut isect = HashMap::<Block, usize>::new();
+                for &p in preds.iter().flat_map(|p| dominated[p].iter()) {
+                    *isect.entry(p).or_insert_with(Default::default) += 1;
+                }
+                let isect = isect
+                    .into_iter()
+                    .filter(|&(_, c)| c == preds.len())
+                    .map(|(bb, _)| bb);
+
+                // Add the block back in an update the entry Dom(bb).
+                let new_dom: HashSet<Block> = isect.chain(once(bb)).collect();
+                if dominated[&bb] != new_dom {
+                    changes |= true;
+                    dominated.insert(bb, new_dom);
+                }
+            }
+            if !changes {
+                break;
+            }
+        }
+
+        // Invert the tree.
+        let mut dominates: HashMap<Block, HashSet<Block>> =
+            all_blocks.iter().map(|&bb| (bb, HashSet::new())).collect();
+        for (&bb, dom) in &dominated {
+            for d in dom {
+                dominates.get_mut(d).unwrap().insert(bb);
+            }
+        }
+
+        Self {
+            dominates,
+            dominated,
+        }
+    }
+
+    /// Check if a block dominates another.
+    pub fn dominates(&self, dominator: Block, follower: Block) -> bool {
+        self.dominates
+            .get(&dominator)
+            .map(|d| d.contains(&follower))
+            .unwrap_or(false)
+    }
+
+    /// Get the dominators of a block.
+    pub fn dominators(&self, follower: Block) -> &HashSet<Block> {
+        &self.dominated[&follower]
+    }
+
+    /// Get the followers of a block, i.e. the blocks it dominates.
+    pub fn dominated_by(&self, dominator: Block) -> &HashSet<Block> {
+        &self.dominates[&dominator]
     }
 }
