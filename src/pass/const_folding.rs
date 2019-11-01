@@ -25,16 +25,6 @@ impl Pass for ConstFolding {
 pub fn run_on_inst(builder: &mut impl UnitBuilder, inst: Inst) -> bool {
     builder.insert_before(inst);
 
-    // Fold branches.
-    if let InstData::Branch {
-        opcode: Opcode::BrCond,
-        args,
-        bbs,
-    } = builder.dfg()[inst]
-    {
-        return fold_branch(builder, inst, args[0], bbs).unwrap_or(false);
-    }
-
     // Don't bother folding instructions which don't yield a result.
     if !builder.dfg().has_result(inst) {
         return false;
@@ -174,21 +164,6 @@ fn fold_binary_int(
         .or_else(|| IntValue::try_binary_op(op, imm0, imm1))
         .or_else(|| IntValue::try_compare_op(op, imm0, imm1))?;
     Some(builder.ins().const_int(result))
-}
-
-/// Fold a branch instruction.
-fn fold_branch(
-    builder: &mut impl UnitBuilder,
-    inst: Inst,
-    arg: Value,
-    bbs: [Block; 2],
-) -> Option<bool> {
-    let imm = builder.dfg().get_const_int(arg)?;
-    let bb = bbs[!imm.is_zero() as usize];
-    builder.ins().br(bb);
-    builder.remove_inst(inst);
-    // builder.prune_if_unused(arg_inst);
-    Some(true)
 }
 
 /// Fold a shift instruction.

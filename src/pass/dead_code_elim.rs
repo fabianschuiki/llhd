@@ -23,6 +23,7 @@ impl Pass for DeadCodeElim {
             }
         }
         for inst in insts {
+            modified |= fold_inst(inst, builder);
             modified |= builder.prune_if_unused(inst);
         }
         modified |= prune_blocks(builder);
@@ -38,6 +39,7 @@ impl Pass for DeadCodeElim {
             }
         }
         for inst in insts {
+            modified |= fold_inst(inst, builder);
             modified |= builder.prune_if_unused(inst);
         }
         modified |= prune_blocks(builder);
@@ -51,6 +53,45 @@ impl Pass for DeadCodeElim {
         }
         modified
     }
+}
+
+fn fold_inst(inst: Inst, builder: &mut impl UnitBuilder) -> bool {
+    // Fold branches.
+    if let InstData::Branch {
+        opcode: Opcode::BrCond,
+        args,
+        bbs,
+    } = builder.dfg()[inst]
+    {
+        return fold_branch(builder, inst, args[0], bbs).unwrap_or(false);
+    }
+    false
+}
+
+/// Fold a branch instruction.
+///
+/// If the branch's condition is a constant, replaces the branch with a jump to
+/// the corresponding target.
+fn fold_branch(
+    builder: &mut impl UnitBuilder,
+    inst: Inst,
+    arg: Value,
+    bbs: [Block; 2],
+) -> Option<bool> {
+    let imm = builder.dfg().get_const_int(arg)?;
+    let bb = bbs[!imm.is_zero() as usize];
+    debug!(
+        "Replacing {} with br {}",
+        inst.dump(builder.dfg(), builder.try_cfg()),
+        bb.dump(builder.cfg())
+    );
+    builder.insert_before(inst);
+    builder.ins().br(bb);
+    builder.remove_inst(inst);
+    if let Some(arg_inst) = builder.dfg().get_value_inst(arg) {
+        builder.prune_if_unused(arg_inst);
+    }
+    Some(true)
 }
 
 /// Eliminate unreachable and trivial blocks in a function layout.
@@ -80,6 +121,7 @@ fn prune_blocks(builder: &mut impl UnitBuilder) -> bool {
         }
     }
     for (from, to) in trivial {
+        debug!("Prune trivial block {}", from.dump(builder.cfg()));
         modified |= true;
         builder.dfg_mut().replace_block_use(from, to);
         // If this is the entry block, hoist the target up as the first block.
@@ -105,6 +147,7 @@ fn prune_blocks(builder: &mut impl UnitBuilder) -> bool {
 
     // Remove all unreachable blocks.
     for bb in unreachable {
+        debug!("Prune unreachable block {}", bb.dump(builder.cfg()));
         modified |= true;
         builder.remove_block(bb);
     }
