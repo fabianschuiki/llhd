@@ -34,32 +34,12 @@ pub trait Pass {
 
     /// Run this pass on an entire function.
     fn run_on_function(ctx: &PassContext, func: &mut FunctionBuilder) -> bool {
-        let mut modified = false;
-        let mut insts = vec![];
-        for bb in func.func.layout.blocks() {
-            for inst in func.func.layout.insts(bb) {
-                insts.push(inst);
-            }
-        }
-        for inst in insts {
-            modified |= Self::run_on_inst(ctx, inst, func);
-        }
-        modified
+        Self::run_on_cfg(ctx, func)
     }
 
     /// Run this pass on an entire process.
     fn run_on_process(ctx: &PassContext, prok: &mut ProcessBuilder) -> bool {
-        let mut modified = false;
-        let mut insts = vec![];
-        for bb in prok.prok.layout.blocks() {
-            for inst in prok.prok.layout.insts(bb) {
-                insts.push(inst);
-            }
-        }
-        for inst in insts {
-            modified |= Self::run_on_inst(ctx, inst, prok);
-        }
-        modified
+        Self::run_on_cfg(ctx, prok)
     }
 
     /// Run this pass on an entire entity.
@@ -67,6 +47,21 @@ pub trait Pass {
         let mut modified = false;
         for inst in entity.entity.layout.insts().collect::<Vec<_>>() {
             modified |= Self::run_on_inst(ctx, inst, entity);
+        }
+        modified
+    }
+
+    /// Run this pass on an entire function or process.
+    fn run_on_cfg(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+        let mut modified = false;
+        let mut insts = vec![];
+        for bb in unit.func_layout().blocks() {
+            for inst in unit.func_layout().insts(bb) {
+                insts.push(inst);
+            }
+        }
+        for inst in insts {
+            modified |= Self::run_on_inst(ctx, inst, unit);
         }
         modified
     }

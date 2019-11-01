@@ -14,27 +14,11 @@ use std::collections::HashSet;
 pub struct DeadCodeElim;
 
 impl Pass for DeadCodeElim {
-    fn run_on_function(_ctx: &PassContext, builder: &mut FunctionBuilder) -> bool {
+    fn run_on_cfg(_ctx: &PassContext, builder: &mut impl UnitBuilder) -> bool {
         let mut modified = false;
         let mut insts = vec![];
-        for bb in builder.func.layout.blocks() {
-            for inst in builder.func.layout.insts(bb) {
-                insts.push(inst);
-            }
-        }
-        for inst in insts {
-            modified |= fold_inst(inst, builder);
-            modified |= builder.prune_if_unused(inst);
-        }
-        modified |= prune_blocks(builder);
-        modified
-    }
-
-    fn run_on_process(_ctx: &PassContext, builder: &mut ProcessBuilder) -> bool {
-        let mut modified = false;
-        let mut insts = vec![];
-        for bb in builder.prok.layout.blocks() {
-            for inst in builder.prok.layout.insts(bb) {
+        for bb in builder.func_layout().blocks() {
+            for inst in builder.func_layout().insts(bb) {
                 insts.push(inst);
             }
         }
