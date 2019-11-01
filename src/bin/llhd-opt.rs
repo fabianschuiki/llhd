@@ -104,6 +104,8 @@ fn main_inner() -> Result<(), String> {
     let t3 = time::precise_time_ns();
     llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module);
     let t4 = time::precise_time_ns();
+    llhd::pass::TemporalCodeMotion::run_on_module(&ctx, &mut module);
+    let t5 = time::precise_time_ns();
 
     // Verify modified module.
     let mut verifier = Verifier::new();
@@ -111,7 +113,7 @@ fn main_inner() -> Result<(), String> {
     verifier
         .finish()
         .map_err(|errs| format!("Verification failed after optimization:\n{}", errs))?;
-    let t5 = time::precise_time_ns();
+    let t6 = time::precise_time_ns();
 
     // Write the output.
     if let Some(path) = matches.value_of("output") {
@@ -121,7 +123,7 @@ fn main_inner() -> Result<(), String> {
     } else {
         llhd::assembly::write_module(std::io::stdout().lock(), &module);
     }
-    let t6 = time::precise_time_ns();
+    let t7 = time::precise_time_ns();
 
     // Print execution time statistics if requested by the user.
     if matches.is_present("time-passes") {
@@ -130,9 +132,10 @@ fn main_inner() -> Result<(), String> {
         eprintln!("  CF:      {:8.3} ms", (t2 - t1) as f64 * 1.0e-6);
         eprintln!("  GCSE:    {:8.3} ms", (t3 - t2) as f64 * 1.0e-6);
         eprintln!("  DCE:     {:8.3} ms", (t4 - t3) as f64 * 1.0e-6);
-        eprintln!("  Verify:  {:8.3} ms", (t5 - t4) as f64 * 1.0e-6);
-        eprintln!("  Output:  {:8.3} ms", (t6 - t5) as f64 * 1.0e-6);
-        eprintln!("  Total:   {:8.3} ms", (t6 - t0) as f64 * 1.0e-6);
+        eprintln!("  TCM:     {:8.3} ms", (t5 - t4) as f64 * 1.0e-6);
+        eprintln!("  Verify:  {:8.3} ms", (t6 - t5) as f64 * 1.0e-6);
+        eprintln!("  Output:  {:8.3} ms", (t7 - t6) as f64 * 1.0e-6);
+        eprintln!("  Total:   {:8.3} ms", (t7 - t0) as f64 * 1.0e-6);
     }
 
     // Dump some threading statistics.

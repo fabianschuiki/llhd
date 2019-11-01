@@ -8,7 +8,9 @@
 pub mod cf;
 pub mod dce;
 pub mod gcse;
+pub mod tcm;
 
 pub use cf::ConstFolding;
 pub use dce::DeadCodeElim;
 pub use gcse::GlobalCommonSubexprElim;
+pub use tcm::TemporalCodeMotion;

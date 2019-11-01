@@ -21,7 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `time` dependency.
 - Add `-v`, `-t`, and `-s` options to `llhd-opt`.
 - Add `opt` module for optimization infrastructure.
-- Add Global Common Subexpression Elimination.
+- Add Global Common Subexpression Elimination pass.
+- Add Temporal Code Motion pass.
 
 ### Changed
 - Add missing `dyn` keywords.
