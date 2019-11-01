@@ -26,12 +26,18 @@ macro_rules! impl_table_key {
     ($($(#[$m:meta])* struct $name:ident($ity:ty) as $display_prefix:expr;)*) => {
         $(
             $(#[$m])*
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+            #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
             pub struct $name($ity);
 
             impl std::fmt::Display for $name {
                 fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                     write!(f, "{}{}", $display_prefix, self.0)
+                }
+            }
+
+            impl std::fmt::Debug for $name {
+                fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                    write!(f, "{}", self)
                 }
             }
 
