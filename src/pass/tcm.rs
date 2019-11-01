@@ -3,7 +3,7 @@
 //! Temporal Code Motion
 
 use crate::ir::prelude::*;
-use crate::ir::{DataFlowGraph, FunctionLayout};
+use crate::ir::{DataFlowGraph, FunctionLayout, InstData};
 use crate::opt::prelude::*;
 use std::{
     cmp::{max, min},
@@ -39,11 +39,11 @@ impl Pass for TemporalCodeMotion {
             let dfg = unit.dfg();
             let layout = unit.func_layout();
             if tr.head_blocks.len() != 1 {
-                trace!("Skipping {} (multiple head blocks)", tr.id);
+                trace!("Skipping {} for prb move (multiple head blocks)", tr.id);
                 continue;
             }
             let mut hoist = vec![];
-            for &bb in &tr.blocks {
+            for bb in tr.blocks() {
                 for inst in layout.insts(bb) {
                     if dfg[inst].opcode() == Opcode::Prb
                         && dfg.get_value_inst(dfg[inst].args()[0]).is_none()
@@ -53,7 +53,7 @@ impl Pass for TemporalCodeMotion {
                 }
             }
             hoist.sort();
-            let head_bb = *tr.head_blocks.iter().next().unwrap();
+            let head_bb = tr.head_blocks().next().unwrap();
             for inst in hoist {
                 debug!(
                     "Hoisting {} into {}",
@@ -63,6 +63,49 @@ impl Pass for TemporalCodeMotion {
                 let layout = unit.func_layout_mut();
                 layout.remove_inst(inst);
                 layout.prepend_inst(inst, head_bb);
+            }
+        }
+
+        // Fuse equivalent wait instructions.
+        for tr in &trg.regions {
+            if tr.tail_insts.len() <= 1 {
+                trace!("Skipping {} for wait merge (single wait inst)", tr.id);
+                continue;
+            }
+            let mut merge = HashMap::<&InstData, Vec<Inst>>::new();
+            for inst in tr.tail_insts() {
+                merge.entry(&unit.dfg()[inst]).or_default().push(inst);
+            }
+            let merge: Vec<_> = merge.into_iter().map(|(_, is)| is).collect();
+            for insts in merge {
+                if insts.len() <= 1 {
+                    trace!(
+                        "Skipping {} (no equivalents)",
+                        insts[0].dump(unit.dfg(), unit.try_cfg())
+                    );
+                    continue;
+                }
+                trace!("Merging:",);
+                for i in &insts {
+                    trace!("  {}", i.dump(unit.dfg(), unit.try_cfg()));
+                }
+
+                // Create a new basic block for the singleton wait inst.
+                let unified_bb = unit.block();
+
+                // Replace all waits with branches into the unified block.
+                for &inst in &insts {
+                    unit.insert_after(inst);
+                    unit.ins().br(unified_bb);
+                }
+
+                // Add one of the instructions to the unified block and delete
+                // the rest.
+                unit.func_layout_mut().remove_inst(insts[0]);
+                unit.func_layout_mut().append_inst(insts[0], unified_bb);
+                for &inst in &insts[1..] {
+                    unit.remove_inst(inst);
+                }
             }
         }
 
@@ -220,4 +263,31 @@ pub struct TemporalRegionData {
     /// These are the last blocks in this region, where execution either ends
     /// in a `wait` or `halt` instruction.
     pub tail_blocks: HashSet<Block>,
+}
+
+impl TemporalRegionData {
+    /// An iterator over the blocks in this region.
+    pub fn blocks(&self) -> impl Iterator<Item = Block> + '_ {
+        self.blocks.iter().cloned()
+    }
+
+    /// An iterator over the head instructions in this region.
+    pub fn head_insts(&self) -> impl Iterator<Item = Inst> + '_ {
+        self.head_insts.iter().cloned()
+    }
+
+    /// An iterator over the head blocks in this region.
+    pub fn head_blocks(&self) -> impl Iterator<Item = Block> + '_ {
+        self.head_blocks.iter().cloned()
+    }
+
+    /// An iterator over the tail instructions in this region.
+    pub fn tail_insts(&self) -> impl Iterator<Item = Inst> + '_ {
+        self.tail_insts.iter().cloned()
+    }
+
+    /// An iterator over the tail blocks in this region.
+    pub fn tail_blocks(&self) -> impl Iterator<Item = Block> + '_ {
+        self.tail_blocks.iter().cloned()
+    }
 }
