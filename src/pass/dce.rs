@@ -121,7 +121,7 @@ fn prune_blocks(builder: &mut impl UnitBuilder) -> bool {
     todo.push(first_bb);
     unreachable.remove(&first_bb);
     while let Some(block) = todo.pop() {
-        let term_inst = builder.func_layout().last_inst(block).unwrap();
+        let term_inst = builder.func_layout().terminator(block);
         for &bb in builder.dfg()[term_inst].blocks() {
             if unreachable.remove(&bb) {
                 todo.push(bb);

@@ -24,7 +24,7 @@ impl Pass for GlobalCommonSubexprElim {
             pred.insert(bb, Default::default());
         }
         for bb in unit.func_layout().blocks() {
-            let term = unit.func_layout().last_inst(bb).unwrap();
+            let term = unit.func_layout().terminator(bb);
             for to_bb in unit.dfg()[term].blocks() {
                 pred.get_mut(&to_bb).unwrap().insert(bb);
             }
@@ -204,7 +204,7 @@ impl Pass for GlobalCommonSubexprElim {
                         target_bb.dump(unit.cfg())
                     );
                     let fl = unit.func_layout_mut();
-                    let term = fl.last_inst(target_bb).unwrap();
+                    let term = fl.terminator(target_bb);
                     fl.remove_inst(inst);
                     fl.insert_inst_before(inst, term);
 

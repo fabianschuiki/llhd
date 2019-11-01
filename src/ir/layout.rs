@@ -432,4 +432,11 @@ impl FunctionLayout {
         let bb = self.inst_block(inst).unwrap();
         self.bbs[bb].layout.next_inst(inst)
     }
+
+    /// Get the terminator instruction in the layout.
+    ///
+    /// The fallible alternative is `last_inst(bb)`.
+    pub fn terminator(&self, bb: Block) -> Inst {
+        self.last_inst(bb).expect("block must have terminator")
+    }
 }
