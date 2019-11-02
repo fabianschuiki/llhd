@@ -114,6 +114,7 @@ impl Pass for TemporalCodeMotion {
 }
 
 /// A data structure that temporally groups blocks and instructions.
+#[derive(Debug)]
 pub struct TemporalRegionGraph {
     /// All temporal instructions.
     breaks: Vec<Inst>,
@@ -126,6 +127,8 @@ pub struct TemporalRegionGraph {
 impl TemporalRegionGraph {
     /// Compute the TRG of a process.
     pub fn new(dfg: &DataFlowGraph, layout: &FunctionLayout) -> Self {
+        trace!("Constructing TRG:");
+
         // In a first pass assign ids to each block, and mark the ids of two
         // blocks equivalent if they are connected by a branch instruction.
         let mut replace = HashMap::<TemporalRegion, TemporalRegion>::new();
@@ -137,33 +140,52 @@ impl TemporalRegionGraph {
             let id = *blocks.entry(bb).or_insert_with(|| {
                 let k = next_id;
                 next_id += 1;
+                trace!("  Assigned {} to {}", k, bb);
                 TemporalRegion(k)
             });
             if dfg[term].opcode().is_temporal() {
                 breaks.push(term);
-            } else {
+            } else if dfg[term].opcode().is_terminator() {
                 for &to_bb in dfg[term].blocks() {
+                    trace!("  Forcing {} onto {}", id.0, to_bb);
                     if let Some(old_id) = blocks.insert(to_bb, id) {
                         if old_id != id {
-                            replace.insert(max(old_id, id), min(old_id, id));
+                            trace!("    Replace {} with {}", old_id.0, id.0);
+                            replace.insert(old_id, id);
                         }
                     }
                 }
             }
         }
 
+        trace!("  Breaks: {:#?}", breaks);
+        trace!("  Replace: {:#?}", replace);
+        trace!("  Blocks: {:#?}", blocks);
+
         // In a second pass apply all replacements noted above, which assigns
         // the lowest ids possible to each region.
         let mut max_id = 0;
+        let mut final_ids = HashMap::new();
         for (_, id) in &mut blocks {
+            let first = *id;
             while let Some(&new_id) = replace.get(id) {
+                if final_ids.contains_key(&*id) {
+                    break; // accept existing ids
+                }
                 *id = new_id;
+                if first == *id {
+                    break; // cycle breaker
+                }
             }
-            max_id = max(max_id, id.0);
+            *id = *final_ids.entry(*id).or_insert_with(|| {
+                let k = max_id;
+                max_id += 1;
+                TemporalRegion(k)
+            });
         }
 
         // Create a data struct for each region.
-        let mut regions: Vec<_> = (0..max_id + 1)
+        let mut regions: Vec<_> = (0..max_id)
             .map(|id| TemporalRegionData {
                 id: TemporalRegion(id),
                 blocks: Default::default(),
