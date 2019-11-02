@@ -5,6 +5,7 @@
 use crate::ir::prelude::*;
 use crate::ir::{DataFlowGraph, FunctionLayout, InstData};
 use crate::opt::prelude::*;
+use crate::pass::gcse::{DominatorTree, PredecessorTable};
 use std::{
     cmp::{max, min},
     collections::{HashMap, HashSet},
@@ -26,6 +27,7 @@ pub struct TemporalCodeMotion;
 impl Pass for TemporalCodeMotion {
     fn run_on_cfg(_ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
         info!("TCM [{}]", unit.unit().name());
+        let mut modified = false;
 
         // Build the temporal region graph.
         let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
@@ -35,6 +37,8 @@ impl Pass for TemporalCodeMotion {
 
         // Hoist `prb` instructions which directly operate on input signals to
         // the head block of their region.
+        let temp_pt = PredecessorTable::new_temporal(unit.dfg(), unit.func_layout());
+        let temp_dt = DominatorTree::new(unit.func_layout(), &temp_pt);
         for tr in &trg.regions {
             let dfg = unit.dfg();
             let layout = unit.func_layout();
@@ -42,18 +46,36 @@ impl Pass for TemporalCodeMotion {
                 trace!("Skipping {} for prb move (multiple head blocks)", tr.id);
                 continue;
             }
+            let head_bb = tr.head_blocks().next().unwrap();
             let mut hoist = vec![];
             for bb in tr.blocks() {
                 for inst in layout.insts(bb) {
                     if dfg[inst].opcode() == Opcode::Prb
                         && dfg.get_value_inst(dfg[inst].args()[0]).is_none()
                     {
-                        hoist.push(inst);
+                        // Check if the new prb location would dominate its old
+                        // location temporally.
+                        let mut dominates = temp_dt.dominates(head_bb, bb);
+
+                        // Only move when the move instruction would still
+                        // dominate all its uses.
+                        for (user_inst, _) in dfg.uses(dfg.inst_result(inst)) {
+                            let user_bb = unit.func_layout().inst_block(user_inst).unwrap();
+                            let dom = temp_dt.dominates(head_bb, user_bb);
+                            dominates &= dom;
+                        }
+                        if dominates {
+                            hoist.push(inst);
+                        } else {
+                            trace!(
+                                "Skipping {} for prb move (would not dominate uses)",
+                                inst.dump(dfg, unit.try_cfg())
+                            );
+                        }
                     }
                 }
             }
             hoist.sort();
-            let head_bb = tr.head_blocks().next().unwrap();
             for inst in hoist {
                 debug!(
                     "Hoisting {} into {}",
@@ -63,10 +85,12 @@ impl Pass for TemporalCodeMotion {
                 let layout = unit.func_layout_mut();
                 layout.remove_inst(inst);
                 layout.prepend_inst(inst, head_bb);
+                modified = true;
             }
         }
 
         // Fuse equivalent wait instructions.
+        let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
         for tr in &trg.regions {
             if tr.tail_insts.len() <= 1 {
                 trace!("Skipping {} for wait merge (single wait inst)", tr.id);
