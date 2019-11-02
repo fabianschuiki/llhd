@@ -47,7 +47,11 @@ impl Pass for GlobalCommonSubexprElim {
             // Don't mess with instructions that produce no result or have side
             // effects.
             let opcode = unit.dfg()[inst].opcode();
-            if !unit.dfg().has_result(inst) || opcode == Opcode::Ld {
+            if !unit.dfg().has_result(inst)
+                || opcode == Opcode::Ld
+                || opcode == Opcode::Var
+                || opcode == Opcode::Sig
+            {
                 continue;
             }
             let value = unit.dfg().inst_result(inst);
