@@ -9,7 +9,6 @@ use crate::pass::tcm::TemporalRegionGraph;
 use std::{
     collections::{HashMap, HashSet},
     iter::once,
-    ops::Index,
 };
 
 /// Global Common Subexpression Elimination
@@ -188,12 +187,35 @@ impl PredecessorTable {
         }
         Self { pred, succ }
     }
-}
 
-impl Index<Block> for PredecessorTable {
-    type Output = HashSet<Block>;
-    fn index(&self, idx: Block) -> &Self::Output {
-        &self.entry[&idx]
+    /// Get the predecessors of a block.
+    pub fn pred_set(&self, bb: Block) -> &HashSet<Block> {
+        &self.pred[&bb]
+    }
+
+    /// Get the successors of a block.
+    pub fn succ_set(&self, bb: Block) -> &HashSet<Block> {
+        &self.succ[&bb]
+    }
+
+    /// Get the predecessors of a block.
+    pub fn pred(&self, bb: Block) -> impl Iterator<Item = Block> + Clone + '_ {
+        self.pred[&bb].iter().cloned()
+    }
+
+    /// Get the successors of a block.
+    pub fn succ(&self, bb: Block) -> impl Iterator<Item = Block> + Clone + '_ {
+        self.succ[&bb].iter().cloned()
+    }
+
+    /// Check if a block is the sole predecessor of another block.
+    pub fn is_sole_pred(&self, bb: Block, pred_of: Block) -> bool {
+        self.pred(pred_of).all(|x| x == bb)
+    }
+
+    /// Check if a block is the sole successor of another block.
+    pub fn is_sole_succ(&self, bb: Block, succ_of: Block) -> bool {
+        self.succ(succ_of).all(|x| x == bb)
     }
 }
 
@@ -231,14 +253,13 @@ impl DominatorTree {
             let mut changes = false;
             for &bb in all_blocks.iter().filter(|&&bb| bb != entry_bb) {
                 // Intersect all Dom(p), where p in pred(bb).
-                let preds = &pred[bb];
                 let mut isect = HashMap::<Block, usize>::new();
-                for &p in preds.iter().flat_map(|p| dominated[p].iter()) {
+                for &p in pred.pred(bb).flat_map(|p| dominated[&p].iter()) {
                     *isect.entry(p).or_insert_with(Default::default) += 1;
                 }
                 let isect = isect
                     .into_iter()
-                    .filter(|&(_, c)| c == preds.len())
+                    .filter(|&(_, c)| c == pred.pred_set(bb).len())
                     .map(|(bb, _)| bb);
 
                 // Add the block back in an update the entry Dom(bb).
