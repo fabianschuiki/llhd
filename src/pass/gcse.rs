@@ -175,6 +175,49 @@ impl Pass for GlobalCommonSubexprElim {
         }
         modified
     }
+
+    fn run_on_entity(_ctx: &PassContext, unit: &mut EntityBuilder) -> bool {
+        info!("GCSE [{}]", unit.unit().name());
+
+        // Collect instructions.
+        let mut insts = vec![];
+        for inst in unit.inst_layout().insts() {
+            insts.push(inst);
+        }
+
+        // Perform GCSE.
+        let mut modified = false;
+        let mut values = HashMap::<InstData, Value>::new();
+        'outer: for inst in insts {
+            // Don't mess with instructions that produce no result or have side
+            // effects.
+            let opcode = unit.dfg()[inst].opcode();
+            if !unit.dfg().has_result(inst) || opcode == Opcode::Var || opcode == Opcode::Sig {
+                continue;
+            }
+            let value = unit.dfg().inst_result(inst);
+            trace!("Examining {}", inst.dump(unit.dfg(), unit.try_cfg()));
+
+            // Replace the current inst with the recorded value, if there is
+            // one.
+            if let Some(&cv) = values.get(&unit.dfg()[inst]) {
+                debug!(
+                    "Replace {} with {}",
+                    inst.dump(unit.dfg(), unit.try_cfg()),
+                    cv.dump(unit.dfg()),
+                );
+                unit.dfg_mut().replace_use(value, cv);
+                unit.prune_if_unused(inst);
+                modified = true;
+            }
+            // Otherwise insert the instruction into the table.
+            else {
+                values.insert(unit.dfg()[inst].clone(), value);
+            }
+        }
+
+        modified
+    }
 }
 
 /// A table of basic block predecessors.
