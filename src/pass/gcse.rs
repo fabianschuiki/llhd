@@ -25,6 +25,10 @@ impl Pass for GlobalCommonSubexprElim {
         let pred = PredecessorTable::new(unit.dfg(), unit.func_layout());
         let dt = DominatorTree::new(unit.func_layout(), &pred);
 
+        // Build the temporal predecessor table and dominator tree.
+        let temp_pt = PredecessorTable::new_temporal(unit.dfg(), unit.func_layout());
+        let temp_dt = DominatorTree::new(unit.func_layout(), &temp_pt);
+
         // Compute the TRG to allow for `prb` instructions to be eliminated.
         let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
 
@@ -64,9 +68,12 @@ impl Pass for GlobalCommonSubexprElim {
                         continue;
                     }
 
+                    // Decide which dominator tree to use.
+                    let which_dt = if opcode == Opcode::Prb { &temp_dt } else { &dt };
+
                     // Replace the current inst with the recorded value if the
                     // latter dominates the former.
-                    if dt.dominates(cv_bb, inst_bb) {
+                    if which_dt.dominates(cv_bb, inst_bb) {
                         debug!(
                             "Replace {} with {}",
                             inst.dump(unit.dfg(), unit.try_cfg()),
@@ -80,7 +87,7 @@ impl Pass for GlobalCommonSubexprElim {
 
                     // Replace the recorded value with the current inst if the
                     // latter dominates the former.
-                    if dt.dominates(inst_bb, cv_bb) {
+                    if which_dt.dominates(inst_bb, cv_bb) {
                         debug!(
                             "Replace {} with {}",
                             cv.dump(unit.dfg()),
@@ -105,14 +112,17 @@ impl Pass for GlobalCommonSubexprElim {
                         inst_bb.dump(unit.cfg()),
                         cv_bb.dump(unit.cfg())
                     );
-                    for bb in dt.dominators(inst_bb).intersection(&dt.dominators(cv_bb)) {
+                    for bb in which_dt
+                        .dominators(inst_bb)
+                        .intersection(&which_dt.dominators(cv_bb))
+                    {
                         trace!("      {}", bb.dump(unit.cfg()));
                     }
-                    let target_bb = dt
+                    let target_bb = which_dt
                         .dominators(inst_bb)
-                        .intersection(dt.dominators(cv_bb))
+                        .intersection(which_dt.dominators(cv_bb))
                         .max_by(|&&bb_a, &&bb_b| {
-                            if dt.dominates(bb_a, bb_b) {
+                            if which_dt.dominates(bb_a, bb_b) {
                                 std::cmp::Ordering::Less
                             } else {
                                 std::cmp::Ordering::Greater
@@ -120,7 +130,7 @@ impl Pass for GlobalCommonSubexprElim {
                         });
                     let target_bb = match target_bb {
                         Some(&bb) => bb,
-                        None => panic!("no target bb"),
+                        None => continue,
                     };
                     trace!(
                         "    Latest common dominator: {}",
@@ -184,6 +194,29 @@ impl PredecessorTable {
                 pred.get_mut(&to_bb).unwrap().insert(bb);
             }
             succ.insert(bb, dfg[term].blocks().iter().cloned().collect());
+        }
+        Self { pred, succ }
+    }
+
+    /// Compute the temporal predecessor table for a process.
+    ///
+    /// This is a special form of predecessor table which ignores edges in the
+    /// CFG that cross a temporal instruction. As such all connected blocks in
+    /// the table are guaranteed to execute within the same instant of time.
+    pub fn new_temporal(dfg: &DataFlowGraph, layout: &FunctionLayout) -> Self {
+        let mut pred = HashMap::new();
+        let mut succ = HashMap::new();
+        for bb in layout.blocks() {
+            pred.insert(bb, HashSet::new());
+        }
+        for bb in layout.blocks() {
+            let term = layout.terminator(bb);
+            if !dfg[term].opcode().is_temporal() {
+                for to_bb in dfg[term].blocks() {
+                    pred.get_mut(&to_bb).unwrap().insert(bb);
+                }
+                succ.insert(bb, dfg[term].blocks().iter().cloned().collect());
+            }
         }
         Self { pred, succ }
     }
