@@ -1,0 +1,147 @@
+proc @broken_in_tcm (i64$ %acc_pdata_i, i5$ %acc_pid_i, i1$ %acc_pvalid_i, i5$ %rd, i64$ %ld_result, i1$ %lsu_pvalid, i5$ %lsu_rd, i1$ %retire_i, i32$ %alu_writeback) -> (i1$ %acc_pready_o, [1 x i5]$ %gpr_waddr, [1 x i32]$ %gpr_wdata, i1$ %gpr_we, i1$ %lsu_pready, i1$ %retire_load, i1$ %retire_acc) {
+0:
+    br %body
+body:
+    %1 = const i32 0
+    %2 = const i1 0
+    %3 = sig i1 %2
+    %4 = shr i1$ %gpr_we, i1$ %3, i32 %1
+    %5 = exts i1$, i1$ %4, 0, 1
+    %6 = const i1 0
+    %7 = const time 0s 1e
+    drv i1$ %5, %6, %7
+    %8 = const i32 0
+    %9 = const i5 0
+    %10 = [1 x i5 %9]
+    %11 = sig [1 x i5] %10
+    %12 = shr [1 x i5]$ %gpr_waddr, [1 x i5]$ %11, i32 %8
+    %13 = extf i5$, [1 x i5]$ %12, 0
+    %rd1 = prb i5$ %rd
+    %14 = const time 0s 1e
+    drv i5$ %13, %rd1, %14
+    %15 = const i32 0
+    %16 = const i32 0
+    %17 = [1 x i32 %16]
+    %18 = sig [1 x i32] %17
+    %19 = shr [1 x i32]$ %gpr_wdata, [1 x i32]$ %18, i32 %15
+    %20 = extf i32$, [1 x i32]$ %19, 0
+    %alu_writeback1 = prb i32$ %alu_writeback
+    %21 = const time 0s 1e
+    drv i32$ %20, %alu_writeback1, %21
+    %22 = const i1 0
+    %23 = const time 0s 1e
+    drv i1$ %lsu_pready, %22, %23
+    %24 = const i1 0
+    %25 = const time 0s 1e
+    drv i1$ %acc_pready_o, %24, %25
+    %26 = const i1 0
+    %27 = const time 0s 1e
+    drv i1$ %retire_acc, %26, %27
+    %28 = const i1 0
+    %29 = const time 0s 1e
+    drv i1$ %retire_load, %28, %29
+    %retire_i1 = prb i1$ %retire_i
+    br %retire_i1, %if_false, %if_true
+check:
+    wait %body, %acc_pdata_i, %acc_pid_i, %acc_pvalid_i, %rd, %ld_result, %lsu_pvalid, %lsu_rd, %retire_i, %alu_writeback
+if_true:
+    %30 = const i32 0
+    %31 = const i1 0
+    %32 = sig i1 %31
+    %33 = shr i1$ %gpr_we, i1$ %32, i32 %30
+    %34 = exts i1$, i1$ %33, 0, 1
+    %35 = const i1 1
+    %36 = const time 0s 1e
+    drv i1$ %34, %35, %36
+    br %if_exit
+if_false:
+    %lsu_pvalid1 = prb i1$ %lsu_pvalid
+    br %lsu_pvalid1, %if_false1, %if_true1
+if_exit:
+    br %check
+if_true1:
+    %37 = const i1 1
+    %38 = const time 0s 1e
+    drv i1$ %retire_load, %37, %38
+    %39 = const i32 0
+    %40 = const i1 0
+    %41 = sig i1 %40
+    %42 = shr i1$ %gpr_we, i1$ %41, i32 %39
+    %43 = exts i1$, i1$ %42, 0, 1
+    %44 = const i1 1
+    %45 = const time 0s 1e
+    drv i1$ %43, %44, %45
+    %46 = const i32 0
+    %47 = const i5 0
+    %48 = [1 x i5 %47]
+    %49 = sig [1 x i5] %48
+    %50 = shr [1 x i5]$ %gpr_waddr, [1 x i5]$ %49, i32 %46
+    %51 = extf i5$, [1 x i5]$ %50, 0
+    %lsu_rd1 = prb i5$ %lsu_rd
+    %52 = const time 0s 1e
+    drv i5$ %51, %lsu_rd1, %52
+    %53 = const i32 0
+    %54 = const i32 0
+    %55 = [1 x i32 %54]
+    %56 = sig [1 x i32] %55
+    %57 = shr [1 x i32]$ %gpr_wdata, [1 x i32]$ %56, i32 %53
+    %58 = extf i32$, [1 x i32]$ %57, 0
+    %ld_result1 = prb i64$ %ld_result
+    %59 = const i1 0
+    %60 = const i64 0
+    %61 = shr i64 %ld_result1, i64 %60, i1 %59
+    %62 = exts i32, i64 %61, 0, 32
+    %63 = const time 0s 1e
+    drv i32$ %58, %62, %63
+    %64 = const i1 1
+    %65 = const time 0s 1e
+    drv i1$ %lsu_pready, %64, %65
+    br %if_exit1
+if_false1:
+    %acc_pvalid_i1 = prb i1$ %acc_pvalid_i
+    br %acc_pvalid_i1, %if_false2, %if_true2
+if_exit1:
+    br %if_exit
+if_true2:
+    %66 = const i1 1
+    %67 = const time 0s 1e
+    drv i1$ %retire_acc, %66, %67
+    %68 = const i32 0
+    %69 = const i1 0
+    %70 = sig i1 %69
+    %71 = shr i1$ %gpr_we, i1$ %70, i32 %68
+    %72 = exts i1$, i1$ %71, 0, 1
+    %73 = const i1 1
+    %74 = const time 0s 1e
+    drv i1$ %72, %73, %74
+    %75 = const i32 0
+    %76 = const i5 0
+    %77 = [1 x i5 %76]
+    %78 = sig [1 x i5] %77
+    %79 = shr [1 x i5]$ %gpr_waddr, [1 x i5]$ %78, i32 %75
+    %80 = extf i5$, [1 x i5]$ %79, 0
+    %acc_pid_i1 = prb i5$ %acc_pid_i
+    %81 = const time 0s 1e
+    drv i5$ %80, %acc_pid_i1, %81
+    %82 = const i32 0
+    %83 = const i32 0
+    %84 = [1 x i32 %83]
+    %85 = sig [1 x i32] %84
+    %86 = shr [1 x i32]$ %gpr_wdata, [1 x i32]$ %85, i32 %82
+    %87 = extf i32$, [1 x i32]$ %86, 0
+    %acc_pdata_i1 = prb i64$ %acc_pdata_i
+    %88 = const i1 0
+    %89 = const i64 0
+    %90 = shr i64 %acc_pdata_i1, i64 %89, i1 %88
+    %91 = exts i32, i64 %90, 0, 32
+    %92 = const time 0s 1e
+    drv i32$ %87, %91, %92
+    %93 = const i1 1
+    %94 = const time 0s 1e
+    drv i1$ %acc_pready_o, %93, %94
+    br %if_exit2
+if_false2:
+    br %if_exit2
+if_exit2:
+    br %if_exit1
+}
