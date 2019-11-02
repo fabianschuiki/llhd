@@ -153,12 +153,7 @@ impl UnitBuilder for EntityBuilder<'_> {
 
     fn build_inst(&mut self, data: InstData, ty: Type) -> Inst {
         let inst = self.entity.dfg.add_inst(data, ty);
-        match self.pos {
-            EntityInsertPos::Append => self.entity.layout.append_inst(inst),
-            EntityInsertPos::Prepend => self.entity.layout.prepend_inst(inst),
-            EntityInsertPos::After(other) => self.entity.layout.insert_inst_after(inst, other),
-            EntityInsertPos::Before(other) => self.entity.layout.insert_inst_before(inst, other),
-        }
+        self.pos.add_inst(inst, &mut self.entity.layout);
         inst
     }
 

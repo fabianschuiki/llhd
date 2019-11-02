@@ -42,6 +42,24 @@ enum FunctionInsertPos {
 }
 
 impl FunctionInsertPos {
+    /// Insert an instruction and update the insertion postition.
+    fn add_inst(&mut self, inst: Inst, layout: &mut FunctionLayout) {
+        use FunctionInsertPos::*;
+        match *self {
+            None => panic!("no block selected to insert instruction"),
+            Append(bb) => layout.append_inst(inst, bb),
+            Prepend(bb) => {
+                layout.prepend_inst(inst, bb);
+                *self = After(inst);
+            }
+            After(other) => {
+                layout.insert_inst_after(inst, other);
+                *self = After(inst);
+            }
+            Before(other) => layout.insert_inst_before(inst, other),
+        }
+    }
+
     /// Update the insertion position in response to removing an instruction.
     fn remove_inst(&mut self, inst: Inst, layout: &FunctionLayout) {
         use FunctionInsertPos::*;
@@ -78,6 +96,23 @@ enum EntityInsertPos {
 }
 
 impl EntityInsertPos {
+    /// Insert an instruction and update the insertion postition.
+    fn add_inst(&mut self, inst: Inst, layout: &mut InstLayout) {
+        use EntityInsertPos::*;
+        match *self {
+            Append => layout.append_inst(inst),
+            Prepend => {
+                layout.prepend_inst(inst);
+                *self = After(inst);
+            }
+            After(other) => {
+                layout.insert_inst_after(inst, other);
+                *self = After(inst);
+            }
+            Before(other) => layout.insert_inst_before(inst, other),
+        }
+    }
+
     /// Update the insertion position in response to removing an instruction.
     fn remove_inst(&mut self, inst: Inst, layout: &InstLayout) {
         use EntityInsertPos::*;

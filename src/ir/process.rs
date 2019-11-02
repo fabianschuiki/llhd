@@ -158,13 +158,7 @@ impl UnitBuilder for ProcessBuilder<'_> {
 
     fn build_inst(&mut self, data: InstData, ty: Type) -> Inst {
         let inst = self.prok.dfg.add_inst(data, ty);
-        match self.pos {
-            FunctionInsertPos::None => panic!("no block selected to insert instruction"),
-            FunctionInsertPos::Append(bb) => self.prok.layout.append_inst(inst, bb),
-            FunctionInsertPos::Prepend(bb) => self.prok.layout.prepend_inst(inst, bb),
-            FunctionInsertPos::After(other) => self.prok.layout.insert_inst_after(inst, other),
-            FunctionInsertPos::Before(other) => self.prok.layout.insert_inst_before(inst, other),
-        }
+        self.pos.add_inst(inst, &mut self.prok.layout);
         inst
     }
 

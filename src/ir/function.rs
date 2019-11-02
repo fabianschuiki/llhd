@@ -159,13 +159,7 @@ impl UnitBuilder for FunctionBuilder<'_> {
 
     fn build_inst(&mut self, data: InstData, ty: Type) -> Inst {
         let inst = self.func.dfg.add_inst(data, ty);
-        match self.pos {
-            FunctionInsertPos::None => panic!("no block selected to insert instruction"),
-            FunctionInsertPos::Append(bb) => self.func.layout.append_inst(inst, bb),
-            FunctionInsertPos::Prepend(bb) => self.func.layout.prepend_inst(inst, bb),
-            FunctionInsertPos::After(other) => self.func.layout.insert_inst_after(inst, other),
-            FunctionInsertPos::Before(other) => self.func.layout.insert_inst_before(inst, other),
-        }
+        self.pos.add_inst(inst, &mut self.func.layout);
         inst
     }
 
