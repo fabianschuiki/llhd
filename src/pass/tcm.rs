@@ -221,6 +221,16 @@ impl TemporalRegionGraph {
             regions,
         }
     }
+
+    /// Check if a block is a temporal head block.
+    pub fn is_head(&self, bb: Block) -> bool {
+        self[self[bb]].is_head(bb)
+    }
+
+    /// Check if a block is a temporal tail block.
+    pub fn is_tail(&self, bb: Block) -> bool {
+        self[self[bb]].is_tail(bb)
+    }
 }
 
 impl Index<TemporalRegion> for TemporalRegionGraph {
@@ -289,27 +299,37 @@ pub struct TemporalRegionData {
 
 impl TemporalRegionData {
     /// An iterator over the blocks in this region.
-    pub fn blocks(&self) -> impl Iterator<Item = Block> + '_ {
+    pub fn blocks(&self) -> impl Iterator<Item = Block> + Clone + '_ {
         self.blocks.iter().cloned()
     }
 
     /// An iterator over the head instructions in this region.
-    pub fn head_insts(&self) -> impl Iterator<Item = Inst> + '_ {
+    pub fn head_insts(&self) -> impl Iterator<Item = Inst> + Clone + '_ {
         self.head_insts.iter().cloned()
     }
 
     /// An iterator over the head blocks in this region.
-    pub fn head_blocks(&self) -> impl Iterator<Item = Block> + '_ {
+    pub fn head_blocks(&self) -> impl Iterator<Item = Block> + Clone + '_ {
         self.head_blocks.iter().cloned()
     }
 
     /// An iterator over the tail instructions in this region.
-    pub fn tail_insts(&self) -> impl Iterator<Item = Inst> + '_ {
+    pub fn tail_insts(&self) -> impl Iterator<Item = Inst> + Clone + '_ {
         self.tail_insts.iter().cloned()
     }
 
     /// An iterator over the tail blocks in this region.
-    pub fn tail_blocks(&self) -> impl Iterator<Item = Block> + '_ {
+    pub fn tail_blocks(&self) -> impl Iterator<Item = Block> + Clone + '_ {
         self.tail_blocks.iter().cloned()
+    }
+
+    /// Check if a block is a temporal head block.
+    pub fn is_head(&self, bb: Block) -> bool {
+        self.head_blocks.contains(&bb)
+    }
+
+    /// Check if a block is a temporal tail block.
+    pub fn is_tail(&self, bb: Block) -> bool {
+        self.tail_blocks.contains(&bb)
     }
 }
