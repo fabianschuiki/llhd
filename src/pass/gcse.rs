@@ -166,12 +166,16 @@ impl Pass for GlobalCommonSubexprElim {
 
 /// A table of basic block predecessors.
 #[derive(Debug, Clone)]
-pub struct PredecessorTable(HashMap<Block, HashSet<Block>>);
+pub struct PredecessorTable {
+    pred: HashMap<Block, HashSet<Block>>,
+    succ: HashMap<Block, HashSet<Block>>,
+}
 
 impl PredecessorTable {
     /// Compute the predecessor table for a function or process.
     pub fn new(dfg: &DataFlowGraph, layout: &FunctionLayout) -> Self {
         let mut pred = HashMap::new();
+        let mut succ = HashMap::new();
         for bb in layout.blocks() {
             pred.insert(bb, HashSet::new());
         }
@@ -180,15 +184,16 @@ impl PredecessorTable {
             for to_bb in dfg[term].blocks() {
                 pred.get_mut(&to_bb).unwrap().insert(bb);
             }
+            succ.insert(bb, dfg[term].blocks().iter().cloned().collect());
         }
-        Self(pred)
+        Self { pred, succ }
     }
 }
 
 impl Index<Block> for PredecessorTable {
     type Output = HashSet<Block>;
     fn index(&self, idx: Block) -> &Self::Output {
-        &self.0[&idx]
+        &self.entry[&idx]
     }
 }
 
