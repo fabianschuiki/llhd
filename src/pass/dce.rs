@@ -5,7 +5,7 @@
 use crate::ir::prelude::*;
 use crate::ir::InstData;
 use crate::opt::prelude::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 /// Dead Code Elimination
 ///
@@ -15,6 +15,7 @@ pub struct DeadCodeElim;
 
 impl Pass for DeadCodeElim {
     fn run_on_cfg(_ctx: &PassContext, builder: &mut impl UnitBuilder) -> bool {
+        info!("DCE [{}]", builder.unit().name());
         let mut modified = false;
         let mut insts = vec![];
         for bb in builder.func_layout().blocks() {
@@ -31,6 +32,7 @@ impl Pass for DeadCodeElim {
     }
 
     fn run_on_entity(_ctx: &PassContext, builder: &mut EntityBuilder) -> bool {
+        info!("DCE [{}]", builder.unit().name());
         let mut modified = false;
         for inst in builder.entity.layout.insts().collect::<Vec<_>>() {
             modified |= builder.prune_if_unused(inst);
@@ -85,6 +87,7 @@ fn prune_blocks(builder: &mut impl UnitBuilder) -> bool {
     // Find all trivially empty blocks and cause all predecessors to directly
     // jump to the successor.
     let first_bb = builder.func_layout().first_block().unwrap();
+    let mut incident_phi_edges = HashMap::<Block, HashSet<Block>>::new();
     let mut trivial: Vec<(Block, Block)> = vec![];
     for bb in builder.func_layout().blocks() {
         let first_inst = builder.func_layout().first_inst(bb).unwrap();
@@ -94,6 +97,20 @@ fn prune_blocks(builder: &mut impl UnitBuilder) -> bool {
         }
         match builder.dfg()[last_inst] {
             InstData::Jump { bbs, .. } => {
+                // Make sure that this branch is not part of a phi edge.
+                let edges = incident_phi_edges.entry(bbs[0]).or_insert_with(|| {
+                    let mut edges = HashSet::new();
+                    for inst in builder.func_layout().insts(bbs[0]) {
+                        if builder.dfg()[inst].opcode().is_phi() {
+                            edges.extend(builder.dfg()[inst].blocks());
+                        }
+                    }
+                    edges
+                });
+                if edges.contains(&bb) {
+                    continue;
+                }
+
                 for (_, to) in &mut trivial {
                     if *to == bb {
                         *to = bbs[0];
