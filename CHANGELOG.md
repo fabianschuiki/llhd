@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `opt` module for optimization infrastructure.
 - Add Global Common Subexpression Elimination pass.
 - Add Temporal Code Motion pass.
+- Add `phi` instruction.
 
 ### Changed
 - Add missing `dyn` keywords.

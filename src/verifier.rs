@@ -342,6 +342,10 @@ impl<'a> InstVerifier<'a> {
                 self.assert_inst_unary(inst);
                 self.verify_return_type(inst, &self.dfg.value_type(self.dfg[inst].args()[0]));
             }
+            Opcode::Phi => {
+                self.assert_inst_phi(inst);
+                self.verify_args_match_inst_ty(inst);
+            }
             Opcode::Br => {
                 self.assert_inst_jump(inst);
             }
@@ -413,6 +417,18 @@ impl<'a> InstVerifier<'a> {
             InstData::Jump { .. } => (),
             fmt => panic!(
                 "{0:?} ({0}) should have jump format, but has {1:?}",
+                fmt.opcode(),
+                fmt
+            ),
+        }
+    }
+
+    /// Assert that an instruction has phi format.
+    fn assert_inst_phi(&mut self, inst: Inst) {
+        match &self.dfg[inst] {
+            InstData::Phi { .. } => (),
+            fmt => panic!(
+                "{0:?} ({0}) should have phi format, but has {1:?}",
                 fmt.opcode(),
                 fmt
             ),

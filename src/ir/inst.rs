@@ -463,6 +463,19 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.build_unary(Opcode::RetValue, void_ty(), x)
     }
 
+    pub fn phi(&mut self, args: Vec<Value>, bbs: Vec<Block>) -> Value {
+        assert!(args.len() > 0);
+        assert_eq!(args.len(), bbs.len());
+        let ty = self.value_type(args[0]);
+        let data = InstData::Phi {
+            opcode: Opcode::Phi,
+            args,
+            bbs,
+        };
+        let inst = self.build(data, ty);
+        self.inst_result(inst)
+    }
+
     pub fn br(&mut self, bb: Block) -> Inst {
         let data = InstData::Jump {
             opcode: Opcode::Br,
@@ -600,6 +613,12 @@ pub enum InstData {
     Ternary { opcode: Opcode, args: [Value; 3] },
     /// `opcode bb`
     Jump { opcode: Opcode, bbs: [Block; 1] },
+    /// `opcode type [x, bb],*`
+    Phi {
+        opcode: Opcode,
+        args: Vec<Value>,
+        bbs: Vec<Block>,
+    },
     /// `opcode x, bb0, bb1`
     Branch {
         opcode: Opcode,
@@ -645,6 +664,7 @@ impl InstData {
             InstData::Unary { opcode, .. } => opcode,
             InstData::Binary { opcode, .. } => opcode,
             InstData::Ternary { opcode, .. } => opcode,
+            InstData::Phi { opcode, .. } => opcode,
             InstData::Jump { opcode, .. } => opcode,
             InstData::Branch { opcode, .. } => opcode,
             InstData::Wait { opcode, .. } => opcode,
@@ -665,6 +685,7 @@ impl InstData {
             InstData::Unary { args, .. } => args,
             InstData::Binary { args, .. } => args,
             InstData::Ternary { args, .. } => args,
+            InstData::Phi { args, .. } => args,
             InstData::Jump { .. } => &[],
             InstData::Branch { args, .. } => args,
             InstData::Wait { args, .. } => args,
@@ -695,6 +716,7 @@ impl InstData {
             InstData::Unary { args, .. } => args,
             InstData::Binary { args, .. } => args,
             InstData::Ternary { args, .. } => args,
+            InstData::Phi { args, .. } => args,
             InstData::Jump { .. } => &mut [],
             InstData::Branch { args, .. } => args,
             InstData::Wait { args, .. } => args,
@@ -725,6 +747,7 @@ impl InstData {
             InstData::Unary { .. } => &[],
             InstData::Binary { .. } => &[],
             InstData::Ternary { .. } => &[],
+            InstData::Phi { .. } => &[],
             InstData::Jump { .. } => &[],
             InstData::Branch { .. } => &[],
             InstData::Wait { .. } => &[],
@@ -795,6 +818,7 @@ impl InstData {
             InstData::Unary { .. } => &[],
             InstData::Binary { .. } => &[],
             InstData::Ternary { .. } => &[],
+            InstData::Phi { bbs, .. } => bbs,
             InstData::Jump { bbs, .. } => bbs,
             InstData::Branch { bbs, .. } => bbs,
             InstData::Wait { bbs, .. } => bbs,
@@ -815,6 +839,7 @@ impl InstData {
             InstData::Unary { .. } => &mut [],
             InstData::Binary { .. } => &mut [],
             InstData::Ternary { .. } => &mut [],
+            InstData::Phi { bbs, .. } => bbs,
             InstData::Jump { bbs, .. } => bbs,
             InstData::Branch { bbs, .. } => bbs,
             InstData::Wait { bbs, .. } => bbs,
@@ -978,6 +1003,7 @@ pub enum Opcode {
     Halt,
     Ret,
     RetValue,
+    Phi,
     Br,
     BrCond,
     Wait,
@@ -1042,6 +1068,7 @@ impl std::fmt::Display for Opcode {
                 Opcode::Halt => "halt",
                 Opcode::Ret => "ret",
                 Opcode::RetValue => "ret",
+                Opcode::Phi => "phi",
                 Opcode::Br => "br",
                 Opcode::BrCond => "br",
                 Opcode::Wait => "wait",
@@ -1060,6 +1087,7 @@ impl Opcode {
             Opcode::WaitTime => UnitFlags::PROCESS,
             Opcode::Ret => UnitFlags::FUNCTION,
             Opcode::RetValue => UnitFlags::FUNCTION,
+            Opcode::Phi => UnitFlags::FUNCTION | UnitFlags::PROCESS,
             Opcode::Br => UnitFlags::FUNCTION | UnitFlags::PROCESS,
             Opcode::BrCond => UnitFlags::FUNCTION | UnitFlags::PROCESS,
             Opcode::Con => UnitFlags::ENTITY,
@@ -1090,6 +1118,14 @@ impl Opcode {
         match self {
             Opcode::ConstInt => true,
             Opcode::ConstTime => true,
+            _ => false,
+        }
+    }
+
+    /// Check if this instruction is a phi node.
+    pub fn is_phi(self) -> bool {
+        match self {
+            Opcode::Phi => true,
             _ => false,
         }
     }
@@ -1189,6 +1225,15 @@ impl std::fmt::Display for InstDumper<'_> {
             }
             for arg in data.trigger_args() {
                 write!(f, ", {}", arg.dump(dfg))?;
+            }
+        } else if let InstData::Phi { .. } = *data {
+            let mut comma = false;
+            for (arg, block) in data.args().iter().zip(data.blocks().iter()) {
+                if comma {
+                    write!(f, ", ")?;
+                }
+                write!(f, "[{}, {}]", arg.dump(dfg), block.dump(self.2.unwrap()))?;
+                comma = true;
             }
         } else {
             let mut comma = false;

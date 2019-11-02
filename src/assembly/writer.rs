@@ -445,6 +445,26 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                 write!(self.writer.sink, ")")?;
             }
             Opcode::Halt | Opcode::Ret => write!(self.writer.sink, "{}", data.opcode())?,
+            Opcode::Phi => {
+                write!(
+                    self.writer.sink,
+                    "{} {} ",
+                    data.opcode(),
+                    dfg.value_type(dfg.inst_result(inst))
+                )?;
+                let mut comma = false;
+                for (&arg, &block) in data.args().iter().zip(data.blocks().iter()) {
+                    if comma {
+                        write!(self.writer.sink, ", ")?;
+                    }
+                    comma = true;
+                    write!(self.writer.sink, "[")?;
+                    self.write_value_use(arg, false)?;
+                    write!(self.writer.sink, ", ")?;
+                    self.write_block_value(block)?;
+                    write!(self.writer.sink, "]")?;
+                }
+            }
             Opcode::Br => {
                 write!(self.writer.sink, "{} ", data.opcode())?;
                 self.write_block_value(data.blocks()[0])?;

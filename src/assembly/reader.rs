@@ -71,6 +71,7 @@ pub enum InstData<'a> {
     Ext(Type, TypedValue<'a>, [usize; 2]),
     Call(Type, UnitName, Vec<TypedValue<'a>>),
     Inst(UnitName, Vec<TypedValue<'a>>, Vec<TypedValue<'a>>),
+    Phi(Type, Vec<(TypedValue<'a>, Label<'a>)>),
     Branch(Option<TypedValue<'a>>, Label<'a>, Option<Label<'a>>),
     Wait(Label<'a>, Option<TypedValue<'a>>, Vec<Value<'a>>),
 }
@@ -244,6 +245,15 @@ impl<'a> Inst<'a> {
                     .map(|v| v.build(builder, context))
                     .collect();
                 builder.ins().inst(ext, input_args, output_args).into()
+            }
+            InstData::Phi(_, edges) => {
+                let mut args = vec![];
+                let mut bbs = vec![];
+                for (arg, bb) in edges {
+                    args.push(arg.build(builder, context));
+                    bbs.push(bb.build(builder, context));
+                }
+                builder.ins().phi(args, bbs).into()
             }
             InstData::Branch(cond, bb0, bb1) => {
                 let bb0 = bb0.build(builder, context);

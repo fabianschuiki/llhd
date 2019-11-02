@@ -225,6 +225,10 @@ InstWithResult: ast::Inst<'input> = {
     },
     "call" <retty: Type> <unit: UnitName> "(" <args: Comma<TypedValue>> ")" => ast::Inst::new(Opcode::Call)
         .data(ast::InstData::Call(retty, unit, args)),
+    "phi" <ty: Type> <edges: Comma<("[" <Value> "," <Label> "]")>> => {
+        let edges = edges.into_iter().map(|(v, bb)| (v.ty(ty.clone()), bb)).collect();
+        ast::Inst::new(Opcode::Phi).data(ast::InstData::Phi(ty, edges))
+    },
 };
 
 // An instruction which yields a result that must be used.
