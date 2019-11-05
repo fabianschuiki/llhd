@@ -50,7 +50,7 @@ impl Pass for ControlFlowSimplification {
                 if !unit.dfg()[inst].opcode().is_phi() {
                     continue;
                 }
-                let ways = prepare_phi(ctx, unit, block, inst, &pt, &bn, imm_dom);
+                let ways = prepare_phi(ctx, unit, block, inst, &pt, imm_dom);
                 phi_ways.push((inst, ways));
             }
         }
@@ -68,6 +68,7 @@ impl Pass for ControlFlowSimplification {
             for (v, _) in ways {
                 unit.dfg_mut()[inst].replace_value(v, disc);
             }
+            modified |= true;
         }
 
         // Finally simplify phi nodes which produce the same value irrelevant of
@@ -92,6 +93,7 @@ impl Pass for ControlFlowSimplification {
             let inst_value = unit.dfg().inst_result(inst);
             unit.dfg_mut().replace_use(inst_value, with);
             unit.prune_if_unused(inst);
+            modified |= true;
         }
 
         modified
@@ -106,7 +108,6 @@ fn prepare_phi(
     block: Block,
     inst: Inst,
     pt: &PredecessorTable,
-    bn: &BlockNumbering,
     immediate_dominator: Block,
 ) -> Vec<(Value, Vec<Cond>)> {
     trace!(
@@ -219,7 +220,7 @@ fn build_discriminator(
             e.1 += tick;
         }
     }
-    let (disc, (uses, imbalance)) = table
+    let (disc, (_uses, _imbalance)) = table
         .into_iter()
         .map(|(v, (n, tick))| (v, (n, -tick.abs())))
         .max_by_key(|&(_, x)| x)
@@ -254,7 +255,7 @@ fn build_discriminator(
 
 /// Check if a phi node can be elided because it produces the same value no
 /// matter what the incoming edge is.
-fn maybe_elide_phi(ctx: &PassContext, unit: &impl UnitBuilder, inst: Inst) -> Option<Value> {
+fn maybe_elide_phi(_ctx: &PassContext, unit: &impl UnitBuilder, inst: Inst) -> Option<Value> {
     let set: HashSet<Value> = unit.dfg()[inst].args().iter().cloned().collect();
     if set.len() == 1 {
         set.into_iter().next()

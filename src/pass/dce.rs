@@ -3,9 +3,8 @@
 //! Dead Code Elimination
 
 use crate::ir::prelude::*;
-use crate::ir::InstData;
 use crate::opt::prelude::*;
-use crate::pass::gcse::{DominatorTree, PredecessorTable};
+use crate::pass::gcse::PredecessorTable;
 use std::collections::{HashMap, HashSet};
 
 /// Dead Code Elimination
@@ -130,7 +129,7 @@ impl Pass for DeadCodeElim {
 /// Check if a branch that terminates a block is trivial.
 fn check_branch_trivial(
     unit: &impl UnitBuilder,
-    block: Block,
+    _block: Block,
     inst: Inst,
     triv_bb: &mut HashMap<Block, Option<Block>>,
     triv_br: &mut HashMap<Inst, Option<Block>>,
