@@ -18,7 +18,7 @@ bitflags = "1"
 clap = "2"
 lalrpop-util = "0.16.3"
 regex = "0.2.0"
-log = { version = "0.4", features = ["release_max_level_warn"] }
+log = { version = "0.4", features = ["release_max_level_info"] }
 stderrlog = "0.4"
 rayon = "1.2"
 time = "0.1"
