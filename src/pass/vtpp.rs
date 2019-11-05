@@ -168,7 +168,9 @@ fn materialize_value(
     // Check if a phi node is needed by evaluating whether we need to
     // differentiate from different distinct values.
     let distinct_values: HashSet<Value> = incoming_values.iter().map(|&(_, v)| v).collect();
-    let value = if distinct_values.len() == 1 {
+    let value = if distinct_values.is_empty() {
+        None
+    } else if distinct_values.len() == 1 {
         distinct_values.into_iter().next()
     } else {
         trace!("  Insert phi node in {}", block.dump(unit.cfg()));
