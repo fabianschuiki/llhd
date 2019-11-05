@@ -100,20 +100,22 @@ fn main_inner() -> Result<(), String> {
     let t1 = time::precise_time_ns();
     llhd::pass::ConstFolding::run_on_module(&ctx, &mut module);
     let t2 = time::precise_time_ns();
-    llhd::pass::GlobalCommonSubexprElim::run_on_module(&ctx, &mut module);
+    llhd::pass::VarToPhiPromotion::run_on_module(&ctx, &mut module);
     let t3 = time::precise_time_ns();
-    llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module);
+    llhd::pass::GlobalCommonSubexprElim::run_on_module(&ctx, &mut module);
     let t4 = time::precise_time_ns();
-    llhd::pass::TemporalCodeMotion::run_on_module(&ctx, &mut module);
+    llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module);
     let t5 = time::precise_time_ns();
-    llhd::pass::LoopIndepCodeMotion::run_on_module(&ctx, &mut module);
+    llhd::pass::TemporalCodeMotion::run_on_module(&ctx, &mut module);
     let t6 = time::precise_time_ns();
-    llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module);
+    llhd::pass::LoopIndepCodeMotion::run_on_module(&ctx, &mut module);
     let t7 = time::precise_time_ns();
-    llhd::pass::ControlFlowSimplification::run_on_module(&ctx, &mut module);
-    let t8 = time::precise_time_ns();
     llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module);
+    let t8 = time::precise_time_ns();
+    llhd::pass::ControlFlowSimplification::run_on_module(&ctx, &mut module);
     let t9 = time::precise_time_ns();
+    llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module);
+    let t10 = time::precise_time_ns();
 
     // Verify modified module.
     let mut verifier = Verifier::new();
@@ -121,7 +123,7 @@ fn main_inner() -> Result<(), String> {
     verifier
         .finish()
         .map_err(|errs| format!("Verification failed after optimization:\n{}", errs))?;
-    let t10 = time::precise_time_ns();
+    let t11 = time::precise_time_ns();
 
     // Write the output.
     if let Some(path) = matches.value_of("output") {
@@ -131,23 +133,24 @@ fn main_inner() -> Result<(), String> {
     } else {
         llhd::assembly::write_module(std::io::stdout().lock(), &module);
     }
-    let t11 = time::precise_time_ns();
+    let t12 = time::precise_time_ns();
 
     // Print execution time statistics if requested by the user.
     if matches.is_present("time-passes") {
         eprintln!("Execution Time Statistics:");
         eprintln!("  Parse:   {:8.3} ms", (t1 - t0) as f64 * 1.0e-6);
         eprintln!("  CF:      {:8.3} ms", (t2 - t1) as f64 * 1.0e-6);
-        eprintln!("  GCSE:    {:8.3} ms", (t3 - t2) as f64 * 1.0e-6);
-        eprintln!("  DCE:     {:8.3} ms", (t4 - t3) as f64 * 1.0e-6);
-        eprintln!("  TCM:     {:8.3} ms", (t5 - t4) as f64 * 1.0e-6);
-        eprintln!("  LICM:    {:8.3} ms", (t6 - t5) as f64 * 1.0e-6);
-        eprintln!("  DCE:     {:8.3} ms", (t7 - t6) as f64 * 1.0e-6);
-        eprintln!("  CFS:     {:8.3} ms", (t8 - t7) as f64 * 1.0e-6);
-        eprintln!("  DCE:     {:8.3} ms", (t9 - t8) as f64 * 1.0e-6);
-        eprintln!("  Verify:  {:8.3} ms", (t10 - t9) as f64 * 1.0e-6);
-        eprintln!("  Output:  {:8.3} ms", (t11 - t10) as f64 * 1.0e-6);
-        eprintln!("  Total:   {:8.3} ms", (t11 - t0) as f64 * 1.0e-6);
+        eprintln!("  VTPP:    {:8.3} ms", (t3 - t2) as f64 * 1.0e-6);
+        eprintln!("  GCSE:    {:8.3} ms", (t4 - t3) as f64 * 1.0e-6);
+        eprintln!("  DCE:     {:8.3} ms", (t5 - t4) as f64 * 1.0e-6);
+        eprintln!("  TCM:     {:8.3} ms", (t6 - t5) as f64 * 1.0e-6);
+        eprintln!("  LICM:    {:8.3} ms", (t7 - t6) as f64 * 1.0e-6);
+        eprintln!("  DCE:     {:8.3} ms", (t8 - t7) as f64 * 1.0e-6);
+        eprintln!("  CFS:     {:8.3} ms", (t9 - t8) as f64 * 1.0e-6);
+        eprintln!("  DCE:     {:8.3} ms", (t10 - t9) as f64 * 1.0e-6);
+        eprintln!("  Verify:  {:8.3} ms", (t11 - t10) as f64 * 1.0e-6);
+        eprintln!("  Output:  {:8.3} ms", (t12 - t11) as f64 * 1.0e-6);
+        eprintln!("  Total:   {:8.3} ms", (t12 - t0) as f64 * 1.0e-6);
     }
 
     // Dump some threading statistics.

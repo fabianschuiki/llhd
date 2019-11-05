@@ -11,6 +11,7 @@ pub mod dce;
 pub mod gcse;
 pub mod licm;
 pub mod tcm;
+pub mod vtpp;
 
 pub use cf::ConstFolding;
 pub use cfs::ControlFlowSimplification;
@@ -18,3 +19,4 @@ pub use dce::DeadCodeElim;
 pub use gcse::GlobalCommonSubexprElim;
 pub use licm::LoopIndepCodeMotion;
 pub use tcm::TemporalCodeMotion;
+pub use vtpp::VarToPhiPromotion;

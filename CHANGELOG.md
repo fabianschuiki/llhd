@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `phi` instruction.
 - Add Loop Independent Code Motion Pass.
 - Add Control Flow Simplification Pass.
+- Add Variable to Phi Promotion Pass.
 
 ### Changed
 - Add missing `dyn` keywords.
