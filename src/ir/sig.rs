@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// A description of the input and output arguments of a unit.
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct Signature {
     args: PrimaryTable<Arg, ArgData>,
     inp: Vec<Arg>,
@@ -19,14 +19,14 @@ pub struct Signature {
 }
 
 /// Argument direction.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 enum ArgDir {
     Input,
     Output,
 }
 
 /// A single argument of a `Function`, `Process`, or `Entity`.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct ArgData {
     ty: Type,
     dir: ArgDir,

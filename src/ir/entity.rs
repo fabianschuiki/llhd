@@ -12,6 +12,7 @@ use crate::{
 };
 
 /// An entity.
+#[derive(Serialize, Deserialize)]
 pub struct Entity {
     pub name: UnitName,
     pub sig: Signature,

@@ -12,6 +12,7 @@ use crate::{
 };
 
 /// A function.
+#[derive(Serialize, Deserialize)]
 pub struct Function {
     pub name: UnitName,
     pub sig: Signature,

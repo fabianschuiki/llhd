@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// A name of a function, process, or entity.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum UnitName {
     /// An anonymous name, like `%42`.
     Anonymous(u32),
@@ -78,7 +78,7 @@ impl std::fmt::Display for UnitName {
 }
 
 /// The three different units that may appear in LLHD IR.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UnitKind {
     /// A `Function`.
     Function,

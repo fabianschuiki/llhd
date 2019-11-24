@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add Loop Independent Code Motion Pass.
 - Add Control Flow Simplification Pass.
 - Add Variable to Phi Promotion Pass.
+- Add `serde` dependency.
+- Add serialization/deserialization for the IR.
 
 ### Changed
 - Add missing `dyn` keywords.

@@ -589,7 +589,7 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
 
 /// An instruction format.
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InstData {
     /// `a = const iN imm`
     ConstInt { opcode: Opcode, imm: IntValue },
@@ -901,7 +901,7 @@ impl InstData {
 
 bitflags! {
     /// A set of flags identifying a unit.
-    #[derive(Default)]
+    #[derive(Default, Serialize, Deserialize)]
     pub struct UnitFlags: u8 {
         const FUNCTION = 0b001;
         const PROCESS = 0b010;
@@ -911,7 +911,7 @@ bitflags! {
 }
 
 /// The trigger modes for register data acquisition.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RegMode {
     /// The register is transparent if the trigger is low.
     Low,
@@ -941,7 +941,7 @@ impl std::fmt::Display for RegMode {
 ///
 /// This enum represents the actual instruction, whereas `InstData` covers the
 /// format and arguments of the instruction.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Opcode {
     ConstInt,
     ConstTime,

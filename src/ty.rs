@@ -10,7 +10,7 @@ use std::sync::Arc;
 pub type Type = Arc<TypeKind>;
 
 /// The different kinds of types.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TypeKind {
     /// The `void` type.
     VoidType,

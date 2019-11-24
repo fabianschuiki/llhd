@@ -26,7 +26,7 @@ macro_rules! impl_table_key {
     ($($(#[$m:meta])* struct $name:ident($ity:ty) as $display_prefix:expr;)*) => {
         $(
             $(#[$m])*
-            #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+            #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
             pub struct $name($ity);
 
             impl std::fmt::Display for $name {
@@ -75,7 +75,7 @@ macro_rules! impl_table_indexing {
 }
 
 /// A primary table that provides dense key-based storage.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PrimaryTable<I, V> {
     next: usize,
     pub(crate) storage: HashMap<usize, V>,
@@ -151,7 +151,7 @@ impl<I: TableKey, V> IndexMut<I> for PrimaryTable<I, V> {
 
 /// A secondary table that associates additional information with entries in a
 /// primary table.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct SecondaryTable<I, V> {
     pub(crate) storage: HashMap<usize, V>,
     unused: PhantomData<I>,

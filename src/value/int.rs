@@ -10,7 +10,7 @@ use num::{bigint::ToBigInt, traits::*, BigInt, BigUint};
 use std::fmt::{Debug, Display};
 
 /// An integer value.
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct IntValue {
     /// The width of the value in bits.
     pub width: usize,

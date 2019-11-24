@@ -18,7 +18,7 @@ use std::collections::HashMap;
 /// This is the main container for instructions, values, and the relationship
 /// between them. Every `Function`, `Process`, and `Entity` has an associated
 /// data flow graph.
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct DataFlowGraph {
     /// The instructions in the graph.
     pub(crate) insts: PrimaryTable<Inst, InstData>,

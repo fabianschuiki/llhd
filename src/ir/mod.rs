@@ -156,7 +156,7 @@ impl Value {
 }
 
 /// Internal table storage for values.
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ValueData {
     /// The value is the result of an instruction.
     Inst { ty: Type, inst: Inst },
@@ -177,7 +177,7 @@ impl ValueData {
 }
 
 /// Internal table storage for blocks.
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BlockData {
     /// The name of the block.
     pub name: Option<String>,
@@ -187,7 +187,7 @@ pub struct BlockData {
 ///
 /// The linker will hook up external units to the actual counterparts as
 /// appropriate.
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ExtUnitData {
     /// The name of the referenced unit.
     pub name: UnitName,

@@ -11,7 +11,7 @@ use crate::{
 use std::fmt::{Debug, Display};
 
 /// An array value.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArrayValue(pub Vec<Value>);
 
 impl ArrayValue {

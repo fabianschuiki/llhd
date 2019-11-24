@@ -19,6 +19,7 @@ use std::collections::{BTreeSet, HashMap};
 ///
 /// This is the root node of an LLHD intermediate representation. Contains
 /// `Function`, `Process`, and `Entity` declarations and definitions.
+#[derive(Serialize, Deserialize)]
 pub struct Module {
     /// The units in this module.
     pub(crate) units: PrimaryTable<ModUnit, ModUnitData>,
@@ -364,6 +365,7 @@ impl_table_key! {
 }
 
 /// Internal table storage for units in a module.
+#[derive(Serialize, Deserialize)]
 pub enum ModUnitData {
     /// The unit is a function.
     Function(Function),

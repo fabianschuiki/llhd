@@ -12,6 +12,7 @@ use crate::{
 };
 
 /// A process.
+#[derive(Serialize, Deserialize)]
 pub struct Process {
     pub name: UnitName,
     pub sig: Signature,

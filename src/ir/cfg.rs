@@ -16,7 +16,7 @@ use std::collections::HashMap;
 ///
 /// This is the main container for BBs and control flow related information.
 /// Every `Function` and `Process` has an associated control flow graph.
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct ControlFlowGraph {
     /// The basic blocks in the graph.
     pub(crate) blocks: PrimaryTable<Block, BlockData>,

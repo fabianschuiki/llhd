@@ -8,6 +8,9 @@
 extern crate log;
 
 #[macro_use]
+extern crate serde;
+
+#[macro_use]
 pub mod assembly;
 pub mod ir;
 pub mod opt;

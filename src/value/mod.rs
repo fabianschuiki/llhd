@@ -18,7 +18,7 @@ use crate::ty::Type;
 use std::fmt::{Debug, Display};
 
 /// A value.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[allow(missing_docs)]
 pub enum Value {
     Void,
