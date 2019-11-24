@@ -54,7 +54,7 @@ fn main() -> Result<()> {
         }
         Format::Liberty => {
             let input = File::open(input_path).map_err(|e| eprintln!("{}", e))?;
-            let input = BufReader::with_capacity(1 << 20, input);
+            let input = BufReader::with_capacity(1 << 16, input);
             let mut lexer = liberty::Lexer::new(input.bytes());
             let mut module = Module::new();
             let mut visitor = liberty::RootVisitor::new(&mut module);
@@ -73,10 +73,10 @@ fn main() -> Result<()> {
     match output_format {
         Format::Assembly => {
             let output = File::create(output_path).map_err(|e| eprintln!("{}", e))?;
-            let output = BufWriter::with_capacity(1 << 20, output);
+            let output = BufWriter::with_capacity(1 << 16, output);
             llhd::assembly::write_module(output, &module);
         }
-        f => panic!("{} inputs not supported", f),
+        f => panic!("{} outputs not supported", f),
     }
 
     Ok(())
