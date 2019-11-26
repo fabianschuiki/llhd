@@ -159,6 +159,10 @@ impl<'m> Unit<'m> {
         unsafe { &*self.1 }
     }
 
+    pub fn name(self) -> &'m UnitName {
+        &self.data().name
+    }
+
     pub fn values(self) -> impl Iterator<Item = Value<'m>> {
         (&self.data().values_used)
             .iter()
@@ -264,6 +268,7 @@ impl<'m, 'u> UnitBuilder<'m, 'u> {
         target: Value,
         value: Value,
         delay: Value,
+        when: Value,
         in_bb: Block,
         after: impl Into<TimeNodeId>,
     ) -> Value<'m> {
@@ -271,7 +276,7 @@ impl<'m, 'u> UnitBuilder<'m, 'u> {
             Opcode::Drv,
             llhd::void_ty(),
             InstData::Drive(
-                [target.into(), value.into(), delay.into()],
+                [target.into(), value.into(), delay.into(), when.into()],
                 in_bb.into(),
                 after.into(),
             ),
@@ -348,6 +353,15 @@ impl<'m, 'u> UnitBuilder<'m, 'u> {
 
     pub fn remove_entry(&self) {
         self.data().entry = None;
+    }
+
+    pub fn move_to_block(&self, inst: Value<'m>, to: Block<'m>) {
+        let _old_bb = std::mem::replace(
+            self.data().values[(inst.0).0 as usize]
+                .as_mut()
+                .in_block_mut(),
+            to.into(),
+        );
     }
 }
 
@@ -541,7 +555,7 @@ pub enum InstData {
     Binary([ValueId; 2]),
     Ternary([ValueId; 3]),
     Probe([ValueId; 1], TimeNodeId),
-    Drive([ValueId; 3], BlockId, TimeNodeId),
+    Drive([ValueId; 4], BlockId, TimeNodeId),
     Jump([BlockId; 1], BlockId),
     Branch([ValueId; 1], [BlockId; 2], BlockId),
     Wait(Vec<ValueId>, [BlockId; 1], BlockId, TimeNodeId),
@@ -632,6 +646,26 @@ impl InstData {
         self.get_in_block().unwrap()
     }
 
+    fn get_in_block_mut(&mut self) -> Option<&mut BlockId> {
+        match self {
+            InstData::Nullary
+            | InstData::ConstInt(..)
+            | InstData::ConstTime(..)
+            | InstData::Unary(..)
+            | InstData::Binary(..)
+            | InstData::Ternary(..)
+            | InstData::Probe(..) => None,
+            InstData::Drive(_, bb, _)
+            | InstData::Jump(_, bb)
+            | InstData::Branch(_, _, bb)
+            | InstData::Wait(_, _, bb, _) => Some(bb),
+        }
+    }
+
+    fn in_block_mut(&mut self) -> &mut BlockId {
+        self.get_in_block_mut().unwrap()
+    }
+
     pub fn get_after_time(&self) -> Option<TimeNodeId> {
         match self {
             InstData::Nullary
@@ -681,6 +715,15 @@ impl<'m> Block<'m> {
     pub fn name(self) -> &'m str {
         &self.data().name
     }
+
+    pub fn is_entry(self) -> bool {
+        self.unit().get_entry() == Some(self.0)
+    }
+
+    pub fn preds(self) -> impl Iterator<Item = Block<'m>> {
+        unimplemented!();
+        vec![].into_iter()
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -701,6 +744,7 @@ impl std::fmt::Display for BlockId {
 #[derive(Debug)]
 pub struct BlockData {
     name: String,
+    term: Option<ValueId>,
 }
 
 #[derive(Clone, Copy)]
@@ -750,51 +794,97 @@ impl std::fmt::Display for TimeNodeId {
 }
 
 pub fn plot_unit(unit: Unit) {
-    println!("digraph {{");
+    static UNIQUE_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let id = format!(
+        "u{}_",
+        UNIQUE_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    );
+    println!("subgraph {{");
     for block in unit.blocks() {
-        println!("    {} [label=\"{}\", color=red]", block.0, block.name());
+        println!(
+            "    {}{} [label=\"{}\", color=red]",
+            id,
+            block.0,
+            block.name()
+        );
     }
     for value in unit.values() {
         println!(
-            "    {} [label=\"{} {}\"]",
+            "    {}{} [label=\"{} {}\"]",
+            id,
             value.0,
             value.opcode(),
             value.ty()
         );
         for (i, arg) in value.args().enumerate() {
-            println!("    {} -> {} [label={}]", arg.0, value.0, i);
+            println!("    {}{} -> {}{} [label={}]", id, arg.0, id, value.0, i);
         }
         for (i, bb) in value.blocks().enumerate() {
-            println!("    {} -> {} [label={}, color=red]", value.0, bb.0, i);
+            println!(
+                "    {}{} -> {}{} [label={}, color=red]",
+                id, value.0, id, bb.0, i
+            );
         }
         if let Some(in_bb) = value.get_in_block() {
             println!(
-                "    {} -> {} [color=red, style=dotted, dir=none]",
-                in_bb.0, value.0
+                "    {}{} -> {}{} [color=red, style=dotted, dir=none]",
+                id, in_bb.0, id, value.0
             );
         }
         if let Some(after) = value.get_after_time() {
-            println!("    {} -> {} [color=green, style=dotted]", after.0, value.0);
+            println!("    {}{} -> {}{} [color=green]", id, after.0, id, value.0);
         }
     }
-    println!("    Rbb [label=\"E\", fillcolor=red, style=filled, shape=circle]");
+    println!(
+        "    {}Rbb [label=\"E\", fillcolor=red, style=filled, shape=circle]",
+        id
+    );
     if let Some(entry) = unit.get_entry() {
-        println!("    Rbb -> {} [color=red]", entry.0);
+        println!("    {}Rbb -> {}{} [color=red]", id, id, entry.0);
     }
-    println!("    Rtime [label=\"T\", fillcolor=green, style=filled, shape=circle]");
+    println!(
+        "    {}Rtime [label=\"T\", fillcolor=green, style=filled, shape=circle]",
+        id
+    );
     println!("}}");
 }
 
+// Make sure we can use rayon to parallelize.
 fn optimize(m: &mut Module) {
     use rayon::prelude::*;
     m.modify()
         .modify_units()
         .into_par_iter()
-        .for_each(optimize_unit);
+        .for_each(|mut ub| optimize_tcm(&mut ub));
 }
-fn optimize_unit(u: UnitBuilder) {}
+
+fn optimize_canonicalize(ub: &mut UnitBuilder) {
+    // Ensure all waits reside in blocks that have a single predecessor.
+    for value in ub.values().filter(|v| v.opcode() == Opcode::Wait) {
+        let bb = value.in_block();
+        if bb.preds().count() != 1 {
+            eprintln!("Isolating wait {}", value);
+            let aux_bb = ub.build_block(format!("{}_aux", bb.name()));
+            ub.move_to_block(value, aux_bb);
+            ub.build_jump(aux_bb, bb);
+        }
+    }
+}
+
+fn optimize_tcm(ub: &mut UnitBuilder) {
+    eprintln!("optimizing unit {}", ub.name());
+    for value in ub.values().filter(|v| v.opcode() == Opcode::Drv) {
+        eprintln!("Considering drive {}", value);
+    }
+}
 
 fn main() {
+    // eprintln!("ValueData is {} B", std::mem::size_of::<ValueData>());
+    // eprintln!("InstData is {} B", std::mem::size_of::<InstData>());
+    // eprintln!("Vec<ValueId> is {} B", std::mem::size_of::<Vec<ValueId>>());
+    // eprintln!("IntValue is {} B", std::mem::size_of::<IntValue>());
+    // eprintln!("TimeValue is {} B", std::mem::size_of::<TimeValue>());
+
     let mut m = Module::new();
     let mut mb = m.modify();
     let mut eb = mb.new_entity(UnitName::global("foo"));
@@ -829,11 +919,21 @@ fn main() {
         q,
         dval,
         pb.build_const_time(TimeValue::new(num::zero(), 1, 0)),
+        pb.build_const_int(IntValue::all_ones(1)),
         bb_event,
         clk1,
     );
 
     let p = pb.finish();
     let e = eb.finish();
+    println!("digraph {{");
     plot_unit(p);
+
+    // Try to optimize stuff.
+    let pb = &mut mb.modify_unit(p);
+    optimize_canonicalize(pb);
+    optimize_tcm(pb);
+
+    plot_unit(p);
+    println!("}}");
 }
