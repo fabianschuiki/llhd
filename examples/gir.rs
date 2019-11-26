@@ -13,6 +13,10 @@
 //! - Data structures use lightweight id references underneath (dense vec).
 //! - User-facing handles carry id and pointer to data structure.
 //! - Use `mut` not strictly for mutating, but to preserve consistency.
+//! - Things *may* change underneath the users feet while they hold handles to
+//!   nodes in the graph. E.g. an instruction might move to a different block.
+//! - Changes *never* invalidate existing handles or pointers.
+//! - Space efficient graph through the use of smallvec where possible.
 //!
 //! Instruction construction shall occur via the following traits:
 //! - `BuildInst` covers all purely data flow instructions
@@ -29,7 +33,9 @@ use llhd::ir::{Opcode, UnitName};
 use llhd::ty::Type;
 use llhd::value::{IntValue, TimeValue};
 use std::cell::{RefCell, UnsafeCell};
+use std::collections::HashSet;
 use std::marker::PhantomData;
+use std::mem::replace;
 use std::ops::{Deref, DerefMut};
 
 pub struct Module {
@@ -184,6 +190,14 @@ impl<'m> Unit<'m> {
     pub fn entry(self) -> Block<'m> {
         self.get_entry().unwrap()
     }
+
+    fn value(&'m self, value: impl Into<ValueId>) -> &'m ValueData {
+        &self.data().values[value.into().0 as usize]
+    }
+
+    fn block(&'m self, block: impl Into<BlockId>) -> &'m BlockData {
+        &self.data().blocks[block.into().0 as usize]
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -222,7 +236,13 @@ impl<'m, 'u> UnitBuilder<'m, 'u> {
     }
 
     pub fn build_block(&self, name: impl Into<String>) -> Block<'m> {
-        let id = self.data().alloc_block(BlockData { name: name.into() });
+        let id = self.data().alloc_block(BlockData {
+            name: name.into(),
+            term: None,
+            preds: Default::default(),
+            succs: Default::default(),
+            uses: Default::default(),
+        });
         Block(id, self.1 as *const _, PhantomData)
     }
 
@@ -272,7 +292,7 @@ impl<'m, 'u> UnitBuilder<'m, 'u> {
         in_bb: Block,
         after: impl Into<TimeNodeId>,
     ) -> Value<'m> {
-        self.add_inst(
+        let i = self.add_inst(
             Opcode::Drv,
             llhd::void_ty(),
             InstData::Drive(
@@ -280,23 +300,29 @@ impl<'m, 'u> UnitBuilder<'m, 'u> {
                 in_bb.into(),
                 after.into(),
             ),
-        )
+        );
+        self.post_inst_moved(i, None, in_bb);
+        i
     }
 
     pub fn build_jump(&self, bb: Block, in_bb: Block) -> Value<'m> {
-        self.add_inst(
+        let i = self.add_inst(
             Opcode::Br,
             llhd::void_ty(),
             InstData::Jump([bb.into()], in_bb.into()),
-        )
+        );
+        self.post_inst_moved(i, None, in_bb);
+        i
     }
 
     pub fn build_branch(&self, cond: Value, bb0: Block, bb1: Block, in_bb: Block) -> Value<'m> {
-        self.add_inst(
+        let i = self.add_inst(
             Opcode::BrCond,
             llhd::void_ty(),
             InstData::Branch([cond.into()], [bb0.into(), bb1.into()], in_bb.into()),
-        )
+        );
+        self.post_inst_moved(i, None, in_bb);
+        i
     }
 
     pub fn build_wait(
@@ -306,11 +332,23 @@ impl<'m, 'u> UnitBuilder<'m, 'u> {
         in_bb: Block,
         after: impl Into<TimeNodeId>,
     ) -> Value<'m> {
-        self.add_inst(
+        let i = self.add_inst(
             Opcode::Wait,
             llhd::void_ty(),
             InstData::Wait(sigs, [bb.into()], in_bb.into(), after.into()),
-        )
+        );
+        self.post_inst_moved(i, None, in_bb);
+        i
+    }
+
+    pub fn build_phi(&self, args: Vec<ValueId>, bbs: Vec<BlockId>, in_bb: Block) -> Value<'m> {
+        let i = self.add_inst(
+            Opcode::Phi,
+            self.value(args[0]).ty.clone(),
+            InstData::Phi(args, bbs, in_bb.into()),
+        );
+        self.post_inst_moved(i, None, in_bb);
+        i
     }
 
     fn add_unary_inst(&self, opcode: Opcode, ty: Type, arg: impl Into<ValueId>) -> Value<'m> {
@@ -344,6 +382,9 @@ impl<'m, 'u> UnitBuilder<'m, 'u> {
 
     fn add_inst(&self, opcode: Opcode, ty: Type, inst: InstData) -> Value<'m> {
         let id = self.data().alloc_value(ValueData { opcode, ty, inst });
+        for &bb in self.value(id).blocks() {
+            self.block_mut(bb).uses.insert(id);
+        }
         Value(id, self.1 as *const _, PhantomData)
     }
 
@@ -355,13 +396,84 @@ impl<'m, 'u> UnitBuilder<'m, 'u> {
         self.data().entry = None;
     }
 
+    // TODO(fschuiki): This should be marked unsafe, because it allows one to
+    // obtain mutable refs while other refs may already exist.
+    fn value_mut(&'u self, value: impl Into<ValueId>) -> &'u mut ValueData {
+        &mut self.data().values[value.into().0 as usize]
+    }
+
+    // TODO(fschuiki): This should be marked unsafe, because it allows one to
+    // obtain mutable refs while other refs may already exist.
+    fn block_mut(&'u self, block: impl Into<BlockId>) -> &'u mut BlockData {
+        &mut self.data().blocks[block.into().0 as usize]
+    }
+
     pub fn move_to_block(&self, inst: Value<'m>, to: Block<'m>) {
-        let _old_bb = std::mem::replace(
-            self.data().values[(inst.0).0 as usize]
-                .as_mut()
-                .in_block_mut(),
-            to.into(),
-        );
+        let from = replace(self.value_mut(inst).in_block_mut(), to.into());
+        self.post_inst_moved(inst, Some(from), to);
+    }
+
+    // Reinstates invariants after an instruct has moved between blocks.
+    fn post_inst_moved(
+        &self,
+        inst: Value,
+        from: impl Into<Option<BlockId>>,
+        to: impl Into<BlockId>,
+    ) {
+        let from = from.into();
+        let to = to.into();
+        if inst.is_term() {
+            if let Some(from) = from {
+                let old_term = replace(&mut self.block_mut(from).term, None);
+                self.handle_term_changed(
+                    from,
+                    old_term.map(|v| Value(v, self.1, PhantomData)),
+                    None,
+                );
+            }
+            let old_term = replace(&mut self.block_mut(to).term, Some(inst.into()));
+            self.handle_term_changed(
+                to,
+                old_term.map(|v| Value(v, self.1, PhantomData)),
+                Some(inst),
+            );
+        }
+    }
+
+    // Call this whenever the terminator of a block changes.
+    fn handle_term_changed(&self, bb: impl Into<BlockId>, from: Option<Value>, to: Option<Value>) {
+        let bb = bb.into();
+        if let Some(from) = from {
+            for to_bb in from.blocks() {
+                self.block_mut(to_bb).preds.remove(&bb);
+                self.block_mut(bb).succs.remove(&to_bb.0);
+            }
+        }
+        if let Some(to) = to {
+            for to_bb in to.blocks() {
+                self.block_mut(to_bb).preds.insert(bb);
+                self.block_mut(bb).succs.insert(to_bb.0);
+            }
+        }
+    }
+
+    pub fn replace_value_uses(&self, from: Value, to: Value) -> usize {
+        0
+    }
+
+    pub fn replace_block_uses(&self, from: Block, to: Block) -> usize {
+        let mut count = 0;
+        let uses = replace(&mut self.block_mut(from).uses, Default::default());
+        self.block_mut(to).uses.extend(uses.iter().cloned());
+        for u in uses {
+            for bb in self.value_mut(u).blocks_mut() {
+                if *bb == from.0 {
+                    *bb = to.0;
+                    count += 1;
+                }
+            }
+        }
+        count
     }
 }
 
@@ -442,7 +554,7 @@ impl UnitData {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Value<'m>(ValueId, *const UnitData, PhantomData<&'m ()>);
 
 impl std::fmt::Display for Value<'_> {
@@ -508,6 +620,10 @@ impl<'m> Value<'m> {
     pub fn after_time(self) -> TimeNode<'m> {
         self.get_after_time().unwrap()
     }
+
+    pub fn is_term(self) -> bool {
+        self.opcode().is_terminator()
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -559,6 +675,7 @@ pub enum InstData {
     Jump([BlockId; 1], BlockId),
     Branch([ValueId; 1], [BlockId; 2], BlockId),
     Wait(Vec<ValueId>, [BlockId; 1], BlockId, TimeNodeId),
+    Phi(Vec<ValueId>, Vec<BlockId>, BlockId),
 }
 
 impl InstData {
@@ -575,6 +692,7 @@ impl InstData {
             InstData::Drive(args, _, _) => args,
             InstData::Branch(args, _, _) => args,
             InstData::Wait(args, _, _, _) => args,
+            InstData::Phi(args, _, _) => args,
         }
     }
 
@@ -591,6 +709,7 @@ impl InstData {
             InstData::Drive(args, _, _) => args,
             InstData::Branch(args, _, _) => args,
             InstData::Wait(args, _, _, _) => args,
+            InstData::Phi(args, _, _) => args,
         }
     }
 
@@ -607,6 +726,7 @@ impl InstData {
             InstData::Jump(bbs, _) => bbs,
             InstData::Branch(_, bbs, _) => bbs,
             InstData::Wait(_, bbs, _, _) => bbs,
+            InstData::Phi(_, bbs, _) => bbs,
         }
     }
 
@@ -623,6 +743,7 @@ impl InstData {
             InstData::Jump(bbs, _) => bbs,
             InstData::Branch(_, bbs, _) => bbs,
             InstData::Wait(_, bbs, _, _) => bbs,
+            InstData::Phi(_, bbs, _) => bbs,
         }
     }
 
@@ -635,10 +756,11 @@ impl InstData {
             | InstData::Binary(..)
             | InstData::Ternary(..)
             | InstData::Probe(..) => None,
-            InstData::Drive(_, bb, _)
-            | InstData::Jump(_, bb)
-            | InstData::Branch(_, _, bb)
-            | InstData::Wait(_, _, bb, _) => Some(*bb),
+            InstData::Drive(_, bb, _) => Some(*bb),
+            InstData::Jump(_, bb) => Some(*bb),
+            InstData::Branch(_, _, bb) => Some(*bb),
+            InstData::Wait(_, _, bb, _) => Some(*bb),
+            InstData::Phi(_, _, bb) => Some(*bb),
         }
     }
 
@@ -655,10 +777,11 @@ impl InstData {
             | InstData::Binary(..)
             | InstData::Ternary(..)
             | InstData::Probe(..) => None,
-            InstData::Drive(_, bb, _)
-            | InstData::Jump(_, bb)
-            | InstData::Branch(_, _, bb)
-            | InstData::Wait(_, _, bb, _) => Some(bb),
+            InstData::Drive(_, bb, _) => Some(bb),
+            InstData::Jump(_, bb) => Some(bb),
+            InstData::Branch(_, _, bb) => Some(bb),
+            InstData::Wait(_, _, bb, _) => Some(bb),
+            InstData::Phi(_, _, bb) => Some(bb),
         }
     }
 
@@ -675,10 +798,11 @@ impl InstData {
             | InstData::Binary(..)
             | InstData::Ternary(..)
             | InstData::Jump(..)
-            | InstData::Branch(..) => None,
-            InstData::Probe(_, time)
-            | InstData::Drive(_, _, time)
-            | InstData::Wait(_, _, _, time) => Some(*time),
+            | InstData::Branch(..)
+            | InstData::Phi(..) => None,
+            InstData::Probe(_, time) => Some(*time),
+            InstData::Drive(_, _, time) => Some(*time),
+            InstData::Wait(_, _, _, time) => Some(*time),
         }
     }
 
@@ -717,12 +841,45 @@ impl<'m> Block<'m> {
     }
 
     pub fn is_entry(self) -> bool {
-        self.unit().get_entry() == Some(self.0)
+        self.unit().entry == Some(self.0)
     }
 
+    pub fn get_term(self) -> Option<Value<'m>> {
+        self.data()
+            .term
+            .map(|term| Value(term, self.1, PhantomData))
+    }
+
+    pub fn term(self) -> Value<'m> {
+        self.get_term().unwrap()
+    }
+
+    /// An iterator over the predecessors of this block.
+    ///
+    /// # Safety
+    /// It is critical that this function *does not* return a reference into the
+    /// `preds` field, as that may get changed by instructions being added.
     pub fn preds(self) -> impl Iterator<Item = Block<'m>> {
-        unimplemented!();
-        vec![].into_iter()
+        self.data()
+            .preds
+            .iter()
+            .map(|&bb| Block(bb, self.1, PhantomData))
+            .collect::<Vec<_>>()
+            .into_iter()
+    }
+
+    /// An iterator over the successors of this block.
+    ///
+    /// # Safety
+    /// It is critical that this function *does not* return a reference into the
+    /// `succs` field, as that may get changed by instructions being added.
+    pub fn succs(self) -> impl Iterator<Item = Block<'m>> {
+        self.data()
+            .succs
+            .iter()
+            .map(|&bb| Block(bb, self.1, PhantomData))
+            .collect::<Vec<_>>()
+            .into_iter()
     }
 }
 
@@ -745,6 +902,9 @@ impl std::fmt::Display for BlockId {
 pub struct BlockData {
     name: String,
     term: Option<ValueId>,
+    preds: HashSet<BlockId>,
+    succs: HashSet<BlockId>,
+    uses: HashSet<ValueId>,
 }
 
 #[derive(Clone, Copy)]
@@ -826,9 +986,13 @@ pub fn plot_unit(unit: Unit) {
             );
         }
         if let Some(in_bb) = value.get_in_block() {
+            let style = match in_bb.term() == value {
+                true => "",
+                false => " style=dotted dir=none",
+            };
             println!(
-                "    {}{} -> {}{} [color=red, style=dotted, dir=none]",
-                id, in_bb.0, id, value.0
+                "    {}{} -> {}{} [color=red {}]",
+                id, in_bb.0, id, value.0, style
             );
         }
         if let Some(after) = value.get_after_time() {
@@ -859,20 +1023,22 @@ fn optimize(m: &mut Module) {
 }
 
 fn optimize_canonicalize(ub: &mut UnitBuilder) {
-    // Ensure all waits reside in blocks that have a single predecessor.
+    // Ensure all routes into a wait converge in a single block that acts as a
+    // container for drives moved during TCM.
     for value in ub.values().filter(|v| v.opcode() == Opcode::Wait) {
         let bb = value.in_block();
-        if bb.preds().count() != 1 {
+        if bb.preds().count() > 1 {
             eprintln!("Isolating wait {}", value);
             let aux_bb = ub.build_block(format!("{}_aux", bb.name()));
-            ub.move_to_block(value, aux_bb);
-            ub.build_jump(aux_bb, bb);
+            let num = ub.replace_block_uses(bb, aux_bb);
+            eprintln!("Rewired {} cfg edges", num);
+            ub.build_jump(bb, aux_bb);
         }
     }
 }
 
 fn optimize_tcm(ub: &mut UnitBuilder) {
-    eprintln!("optimizing unit {}", ub.name());
+    eprintln!("Optimizing unit {}", ub.name());
     for value in ub.values().filter(|v| v.opcode() == Opcode::Drv) {
         eprintln!("Considering drive {}", value);
     }
