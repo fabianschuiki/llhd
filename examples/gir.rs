@@ -37,6 +37,7 @@ use std::collections::HashSet;
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::ops::{Deref, DerefMut};
+use std::sync::{Arc, Mutex};
 
 pub struct Module {
     present_units: UnsafeCell<BitSet>,
@@ -189,6 +190,21 @@ impl<'m> Unit<'m> {
 
     pub fn entry(self) -> Block<'m> {
         self.get_entry().unwrap()
+    }
+
+    pub fn domtree(self) -> Arc<DomTree> {
+        let mut cache = self.data().cache.lock().unwrap();
+        if let Some(ref dt) = cache.domtree {
+            return dt.clone();
+        }
+        eprintln!("Computing domtree for {}", self.name());
+        let dt = Arc::new(DomTree);
+        cache.domtree = Some(dt.clone());
+        dt
+    }
+
+    fn invalidate_domtree(self) {
+        self.data().cache.lock().unwrap().domtree = None;
     }
 
     fn value(&'m self, value: impl Into<ValueId>) -> &'m ValueData {
@@ -493,6 +509,12 @@ pub struct UnitData {
     blocks_used: BitSet,
     blocks_free: BitSet,
     entry: Option<BlockId>,
+    cache: Mutex<UnitDataCache>,
+}
+
+#[derive(Default)]
+pub struct UnitDataCache {
+    domtree: Option<Arc<DomTree>>,
 }
 
 impl UnitData {
@@ -507,6 +529,7 @@ impl UnitData {
             blocks_used: Default::default(),
             blocks_free: Default::default(),
             entry: None,
+            cache: Mutex::new(Default::default()),
         }
     }
 
@@ -553,6 +576,8 @@ impl UnitData {
         x.name.clear();
     }
 }
+
+pub struct DomTree;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Value<'m>(ValueId, *const UnitData, PhantomData<&'m ()>);
@@ -1039,6 +1064,7 @@ fn optimize_canonicalize(ub: &mut UnitBuilder) {
 
 fn optimize_tcm(ub: &mut UnitBuilder) {
     eprintln!("Optimizing unit {}", ub.name());
+    let dt = ub.domtree();
     for value in ub.values().filter(|v| v.opcode() == Opcode::Drv) {
         eprintln!("Considering drive {}", value);
     }
