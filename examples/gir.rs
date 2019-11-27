@@ -171,15 +171,15 @@ impl<'m> Unit<'m> {
     }
 
     pub fn values(self) -> impl Iterator<Item = Value<'m>> {
-        (&self.data().values_used)
-            .iter()
-            .map(move |id| Value(ValueId(id), self.1, PhantomData))
+        self.data()
+            .values()
+            .map(move |id| Value(id, self.1, PhantomData))
     }
 
     pub fn blocks(self) -> impl Iterator<Item = Block<'m>> {
-        (&self.data().blocks_used)
-            .iter()
-            .map(move |id| Block(BlockId(id), self.1, PhantomData))
+        self.data()
+            .blocks()
+            .map(move |id| Block(id, self.1, PhantomData))
     }
 
     pub fn get_entry(self) -> Option<Block<'m>> {
@@ -192,15 +192,15 @@ impl<'m> Unit<'m> {
         self.get_entry().unwrap()
     }
 
-    pub fn domtree(self) -> Arc<DomTree> {
+    pub fn domtree(self) -> DomTree<'m> {
         let mut cache = self.data().cache.lock().unwrap();
         if let Some(ref dt) = cache.domtree {
-            return dt.clone();
+            return DomTree(self, dt.clone());
         }
         eprintln!("Computing domtree for {}", self.name());
-        let dt = Arc::new(DomTree);
+        let dt = Arc::new(self.compute_domtree());
         cache.domtree = Some(dt.clone());
-        dt
+        DomTree(self, dt)
     }
 
     fn invalidate_domtree(self) {
@@ -213,6 +213,115 @@ impl<'m> Unit<'m> {
 
     fn block(&'m self, block: impl Into<BlockId>) -> &'m BlockData {
         &self.data().blocks[block.into().0 as usize]
+    }
+
+    fn compute_domtree(self) -> DomTreeData {
+        let data = self.data();
+        let post_order = self.blocks_post_order();
+        let length = data.blocks.len();
+        eprintln!("[DomTree] post-order {:?}", post_order);
+
+        let undef = std::u32::MAX;
+        let mut doms = vec![undef; length];
+        let mut inv_post_order = vec![undef; length];
+        for (i, &bb) in post_order.iter().enumerate() {
+            inv_post_order[bb.0 as usize] = i as u32;
+        }
+        eprintln!("[DomTree] inv-post-order {:?}", inv_post_order);
+
+        for root in data
+            .entry
+            .into_iter()
+            .chain(data.blocks().filter(|&id| self.block(id).preds.is_empty()))
+        {
+            let poidx = inv_post_order[root.0 as usize];
+            doms[poidx as usize] = poidx; // root nodes
+        }
+        eprintln!("[DomTree] initial {:?}", doms);
+
+        let mut changed = true;
+        while changed {
+            changed = false;
+            eprintln!("[DomTree] iteration");
+
+            for idx in (0..length).rev() {
+                if doms[idx] == idx as u32 {
+                    continue; // skip root nodes
+                }
+                let bb = post_order[idx];
+
+                let mut preds = data.blocks[bb.0 as usize]
+                    .preds
+                    .iter()
+                    .map(|id| inv_post_order[id.0 as usize])
+                    .filter(|&p| doms[p as usize] != undef);
+                let new_idom = preds.next().unwrap();
+                let new_idom = preds.fold(new_idom, |i1, i2| {
+                    let mut i1 = inv_post_order[i1 as usize]; // bb id to poidx`
+                    let mut i2 = inv_post_order[i2 as usize]; // bb id to poidx`
+                    while i1 != i2 {
+                        if i1 < i2 {
+                            i1 = doms[i1 as usize];
+                        } else if i2 < i1 {
+                            i2 = doms[i2 as usize];
+                        }
+                    }
+                    i1
+                });
+                debug_assert!(new_idom < length as u32);
+                if doms[idx] != new_idom {
+                    eprintln!("[DomTree] doms[{}] = {}", idx, new_idom);
+                    doms[idx] = new_idom;
+                    changed = true;
+                }
+            }
+        }
+        eprintln!("[DomTree] converged {:?}", doms);
+
+        // let mut dom_final = inv_post_order; // just reuse this
+        // for (i, dom) in doms.into_iter().enumerate() {
+        //     assert!(dom != undef, "domtree should have converged on all nodes");
+        //     dom_final[post_order[i].0 as usize] = post_order[dom as usize].0;
+        // }
+
+        let dom_final = (0..length)
+            .map(|i| post_order[doms[inv_post_order[i] as usize] as usize])
+            .collect();
+        eprintln!("[DomTree] final {:?}", dom_final);
+
+        DomTreeData {
+            doms: dom_final,
+            post_order: inv_post_order,
+        }
+    }
+
+    fn blocks_post_order(self) -> Vec<BlockId> {
+        let data = self.data();
+        let mut order = Vec::with_capacity(data.blocks_count);
+
+        let mut stack = Vec::with_capacity(8);
+        let mut discovered = BitSet::with_capacity(data.blocks.len() as u32);
+        let mut finished = BitSet::with_capacity(data.blocks.len() as u32);
+
+        stack.extend(data.entry);
+        stack.extend(data.blocks().filter(|&id| self.block(id).preds.is_empty()));
+
+        while let Some(&next) = stack.last() {
+            if !discovered.add(next.0) {
+                for &succ in &self.block(next).succs {
+                    if !discovered.contains(succ.0) {
+                        stack.push(succ);
+                    }
+                }
+            } else {
+                stack.pop();
+                if !finished.add(next.0) {
+                    order.push(next);
+                }
+            }
+        }
+
+        order
     }
 }
 
@@ -273,6 +382,10 @@ impl<'m, 'u> UnitBuilder<'m, 'u> {
         let value = value.into();
         let data = InstData::ConstTime(value);
         self.add_inst(Opcode::ConstInt, llhd::time_ty(), data)
+    }
+
+    pub fn build_not(&self, arg: Value) -> Value<'m> {
+        self.add_unary_inst(Opcode::Not, arg.ty().clone(), arg)
     }
 
     pub fn build_add(&self, lhs: Value, rhs: Value) -> Value<'m> {
@@ -471,16 +584,28 @@ impl<'m, 'u> UnitBuilder<'m, 'u> {
                 self.block_mut(bb).succs.insert(to_bb.0);
             }
         }
+        self.invalidate_domtree();
     }
 
     pub fn replace_value_uses(&self, from: Value, to: Value) -> usize {
         0
     }
 
+    pub fn replace_value_use(&self, value: Value, idx: usize, to: Value) {
+        self.value_mut(value).args_mut()[idx] = to.into();
+    }
+
     pub fn replace_block_uses(&self, from: Block, to: Block) -> usize {
         let mut count = 0;
-        let uses = replace(&mut self.block_mut(from).uses, Default::default());
-        self.block_mut(to).uses.extend(uses.iter().cloned());
+
+        let mut from_data = self.block_mut(from);
+        let uses = replace(&mut from_data.uses, Default::default());
+        let preds = replace(&mut from_data.preds, Default::default());
+
+        let mut to_data = self.block_mut(to);
+        to_data.uses.extend(uses.iter().cloned());
+        to_data.preds.extend(preds.iter().cloned());
+
         for u in uses {
             for bb in self.value_mut(u).blocks_mut() {
                 if *bb == from.0 {
@@ -489,6 +614,14 @@ impl<'m, 'u> UnitBuilder<'m, 'u> {
                 }
             }
         }
+
+        for bb in preds {
+            let mut p = self.block_mut(bb);
+            p.succs.remove(&from.0);
+            p.succs.insert(to.0);
+        }
+
+        self.invalidate_domtree();
         count
     }
 }
@@ -503,9 +636,11 @@ pub struct UnitData {
     kind: UnitKind,
     name: UnitName,
     values: Vec<Box<ValueData>>,
+    values_count: usize,
     values_used: BitSet,
     values_free: BitSet,
     blocks: Vec<Box<BlockData>>,
+    blocks_count: usize,
     blocks_used: BitSet,
     blocks_free: BitSet,
     entry: Option<BlockId>,
@@ -514,7 +649,7 @@ pub struct UnitData {
 
 #[derive(Default)]
 pub struct UnitDataCache {
-    domtree: Option<Arc<DomTree>>,
+    domtree: Option<Arc<DomTreeData>>,
 }
 
 impl UnitData {
@@ -523,9 +658,11 @@ impl UnitData {
             kind,
             name,
             values: Default::default(),
+            values_count: 0,
             values_used: Default::default(),
             values_free: Default::default(),
             blocks: Default::default(),
+            blocks_count: 0,
             blocks_used: Default::default(),
             blocks_free: Default::default(),
             entry: None,
@@ -534,6 +671,7 @@ impl UnitData {
     }
 
     fn alloc_value(&mut self, data: ValueData) -> ValueId {
+        self.values_count += 1;
         if let Some(id) = (&self.values_free).iter().next() {
             self.values_used.add(id);
             self.values_free.remove(id);
@@ -548,6 +686,7 @@ impl UnitData {
     }
 
     fn dealloc_value(&mut self, inst: ValueId) {
+        self.values_count -= 1;
         self.values_used.remove(inst.0);
         self.values_free.add(inst.0);
         let x = &mut self.values[inst.0 as usize];
@@ -556,6 +695,7 @@ impl UnitData {
     }
 
     fn alloc_block(&mut self, data: BlockData) -> BlockId {
+        self.blocks_count += 1;
         if let Some(id) = (&self.blocks_free).iter().next() {
             self.blocks_used.add(id);
             self.blocks_free.remove(id);
@@ -570,14 +710,51 @@ impl UnitData {
     }
 
     fn dealloc_block(&mut self, inst: BlockId) {
+        self.blocks_count -= 1;
         self.blocks_used.remove(inst.0);
         self.blocks_free.add(inst.0);
         let x = &mut self.blocks[inst.0 as usize];
         x.name.clear();
     }
+
+    fn values(&self) -> impl Iterator<Item = ValueId> + '_ {
+        (&self.values_used).iter().map(ValueId)
+    }
+
+    fn blocks(&self) -> impl Iterator<Item = BlockId> + '_ {
+        (&self.blocks_used).iter().map(BlockId)
+    }
 }
 
-pub struct DomTree;
+#[derive(Clone)]
+pub struct DomTree<'m>(Unit<'m>, Arc<DomTreeData>);
+
+struct DomTreeData {
+    doms: Vec<BlockId>,
+    post_order: Vec<u32>,
+}
+
+impl<'m> DomTree<'m> {
+    pub fn dominator(&self, bb: Block<'m>) -> Block<'m> {
+        Block(self.1.doms[(bb.0).0 as usize], (self.0).1, PhantomData)
+    }
+
+    /// Get the reverse post order index for a block.
+    ///
+    /// Establishes an ordering among blocks such that a block's index is always
+    /// smaller than that of its successors.
+    pub fn order(&self, bb: Block<'m>) -> usize {
+        self.0.data().blocks_count - self.post_order(bb) - 1
+    }
+
+    /// Get the post order index for a block.
+    ///
+    /// Establishes an ordering among blocks such that a block's index is always
+    /// larger than all of its successors.
+    pub fn post_order(&self, bb: Block<'m>) -> usize {
+        self.1.post_order[(bb.0).0 as usize] as usize
+    }
+}
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Value<'m>(ValueId, *const UnitData, PhantomData<&'m ()>);
@@ -585,6 +762,12 @@ pub struct Value<'m>(ValueId, *const UnitData, PhantomData<&'m ()>);
 impl std::fmt::Display for Value<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl std::fmt::Debug for Value<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self)
     }
 }
 
@@ -619,11 +802,19 @@ impl<'m> Value<'m> {
             .map(move |&id| Value(id, self.1, PhantomData))
     }
 
+    pub fn arg(self, idx: usize) -> Value<'m> {
+        Value(self.data().args()[idx], self.1, PhantomData)
+    }
+
     pub fn blocks(self) -> impl Iterator<Item = Block<'m>> {
         self.data()
             .blocks()
             .iter()
             .map(move |&id| Block(id, self.1, PhantomData))
+    }
+
+    pub fn block(self, idx: usize) -> Block<'m> {
+        Block(self.data().blocks()[idx], self.1, PhantomData)
     }
 
     pub fn get_in_block(self) -> Option<Block<'m>> {
@@ -651,12 +842,18 @@ impl<'m> Value<'m> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ValueId(u32);
 
 impl std::fmt::Display for ValueId {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "v{}", self.0)
+    }
+}
+
+impl std::fmt::Debug for ValueId {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self)
     }
 }
 
@@ -845,6 +1042,18 @@ impl std::fmt::Display for Block<'_> {
     }
 }
 
+impl std::fmt::Debug for Block<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl PartialEq for Block<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
 impl<'m> Block<'m> {
     /// Access the block's unit.
     ///
@@ -908,7 +1117,7 @@ impl<'m> Block<'m> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BlockId(u32);
 
 impl From<Block<'_>> for BlockId {
@@ -920,6 +1129,12 @@ impl From<Block<'_>> for BlockId {
 impl std::fmt::Display for BlockId {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "bb{}", self.0)
+    }
+}
+
+impl std::fmt::Debug for BlockId {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self)
     }
 }
 
@@ -979,6 +1194,7 @@ impl std::fmt::Display for TimeNodeId {
 }
 
 pub fn plot_unit(unit: Unit) {
+    let plot_preds_succs = false;
     static UNIQUE_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let id = format!(
         "u{}_",
@@ -992,6 +1208,20 @@ pub fn plot_unit(unit: Unit) {
             block.0,
             block.name()
         );
+        if plot_preds_succs {
+            for bb in block.preds() {
+                println!(
+                    "    {}{} -> {}{} [label=P color=blue style=dotted]",
+                    id, block.0, id, bb.0
+                );
+            }
+            for bb in block.succs() {
+                println!(
+                    "    {}{} -> {}{} [label=S color=blue style=dotted]",
+                    id, block.0, id, bb.0
+                );
+            }
+        }
     }
     for value in unit.values() {
         println!(
@@ -1063,10 +1293,80 @@ fn optimize_canonicalize(ub: &mut UnitBuilder) {
 }
 
 fn optimize_tcm(ub: &mut UnitBuilder) {
-    eprintln!("Optimizing unit {}", ub.name());
+    eprintln!("[TCM] Optimizing unit {}", ub.name());
     let dt = ub.domtree();
+
+    // Pick a basic block where the drives should land. Just cowardly refuse to
+    // do anything if the result does not look *exactly* right.
+    let mut target_bbs = ub
+        .values()
+        .filter(|v| v.opcode() == Opcode::Wait)
+        .flat_map(|v| v.in_block().preds());
+    let target_bb = match target_bbs.next() {
+        Some(bb) => {
+            if target_bbs.next().is_some() {
+                eprintln!("[TCM] Skipping TCM; multiple potential destinations");
+                return;
+            }
+            bb
+        }
+        None => {
+            eprintln!("[TCM] Skipping TCM; no waits");
+            return;
+        }
+    };
+    eprintln!("[TCM] Lowering drives into {}", target_bb);
+
+    // TODO(fschuiki): Use post-order to iterate over the drives.
     for value in ub.values().filter(|v| v.opcode() == Opcode::Drv) {
-        eprintln!("Considering drive {}", value);
+        eprintln!("[TCM] Considering drive {}", value);
+
+        // Iteratively step up along the dominators until we find a common one.
+        let mut chain = vec![];
+        let mut drv_bb = value.in_block();
+        let mut tgt_bb = target_bb;
+        eprintln!("[TCM] Finding common dominator of {}, {}", drv_bb, tgt_bb);
+
+        let mut i = 0;
+        while drv_bb != tgt_bb {
+            if dt.order(drv_bb) < dt.order(tgt_bb) {
+                tgt_bb = dt.dominator(tgt_bb);
+                eprintln!("[TCM] tgt_bb = {}", tgt_bb);
+            } else {
+                let bb = dt.dominator(drv_bb);
+                eprintln!("[TCM] drv_bb: {} -> {}", bb, drv_bb);
+
+                // Justify the edge.
+                if bb
+                    .get_term()
+                    .map(|t| t.opcode() == Opcode::BrCond)
+                    .unwrap_or(false)
+                {
+                    let way = bb.term().blocks().position(|b| b == drv_bb).unwrap();
+                    chain.push((way != 0, bb.term().arg(0)));
+                }
+                drv_bb = bb;
+            }
+        }
+
+        eprintln!(
+            "[TCM] Moving {} to {} requires justifying to {}, as follows: {:?}",
+            value.in_block(),
+            target_bb,
+            drv_bb,
+            chain
+        );
+
+        // Assemble the justification condition.
+        let mut cond = value.arg(3);
+        for (pos, c) in chain {
+            let k = if pos { c } else { ub.build_not(c) };
+            cond = ub.build_and(cond, k);
+        }
+
+        // Update the drive.
+        ub.replace_value_use(value, 3, cond);
+        ub.move_to_block(value, target_bb);
     }
 }
 
