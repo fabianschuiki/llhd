@@ -9,7 +9,10 @@
 
 use crate::{
     impl_table_key,
-    ir::{DataFlowGraph, Entity, ExtUnit, Function, Process, Signature, Unit, UnitName},
+    ir::{
+        ControlFlowGraph, DataFlowGraph, Entity, ExtUnit, Function, FunctionLayout, InstLayout,
+        Process, Signature, Unit, UnitName,
+    },
     table::PrimaryTable,
     verifier::Verifier,
 };
@@ -111,6 +114,11 @@ impl Module {
     /// Return an iterator over the entities in this module.
     pub fn entities<'a>(&'a self) -> impl Iterator<Item = &'a Entity> + 'a {
         self.units().flat_map(move |unit| self[unit].get_entity())
+    }
+
+    /// Return an iterator over the units in this module.
+    pub fn all_units<'a>(&'a self) -> impl Iterator<Item = &'a dyn Unit> + 'a {
+        self.units().flat_map(move |unit| self[unit].get_unit())
     }
 
     /// Return an iterator over the external unit declarations in this module.
@@ -224,6 +232,29 @@ impl Module {
     pub fn entity_mut(&mut self, unit: ModUnit) -> &mut Entity {
         self.link_table = None;
         self[unit].get_entity_mut().expect("unit is not an entity")
+    }
+
+    /// Return a unit in the module, or `None` if the unit is a declaration.
+    pub fn get_unit(&self, unit: ModUnit) -> Option<&dyn Unit> {
+        self[unit].get_unit()
+    }
+
+    /// Return a mutable entity in the module, or `None` if the unit is a
+    /// declaration.
+    pub fn get_unit_mut(&mut self, unit: ModUnit) -> Option<&mut dyn Unit> {
+        self.link_table = None;
+        self[unit].get_unit_mut()
+    }
+
+    /// Return an unit in the module. Panic if the unit is a declaration.
+    pub fn unit(&self, unit: ModUnit) -> &dyn Unit {
+        self[unit].get_unit().expect("unit is a declaration")
+    }
+
+    /// Return a mutable unit in the module. Panic if the unit is a declaration.
+    pub fn unit_mut(&mut self, unit: ModUnit) -> &mut dyn Unit {
+        self.link_table = None;
+        self[unit].get_unit_mut().expect("unit is a declaration")
     }
 
     /// Return an iterator over the symbols in the module.
@@ -418,6 +449,26 @@ impl ModUnitData {
         }
     }
 
+    /// If this unit is not a declaration, return it. Otherwise return `None`.
+    pub fn get_unit_mut(&mut self) -> Option<&mut dyn Unit> {
+        match self {
+            ModUnitData::Function(unit) => Some(unit),
+            ModUnitData::Process(unit) => Some(unit),
+            ModUnitData::Entity(unit) => Some(unit),
+            _ => None,
+        }
+    }
+
+    /// If this unit is not a declaration, return it. Otherwise return `None`.
+    pub fn get_unit(&self) -> Option<&dyn Unit> {
+        match self {
+            ModUnitData::Function(unit) => Some(unit),
+            ModUnitData::Process(unit) => Some(unit),
+            ModUnitData::Entity(unit) => Some(unit),
+            _ => None,
+        }
+    }
+
     /// If this unit is an entity, return it. Otherwise return `None`.
     pub fn get_entity_mut(&mut self) -> Option<&mut Entity> {
         match self {
@@ -512,6 +563,60 @@ impl ModUnitData {
             ModUnitData::Function(unit) => Some(unit.dfg_mut()),
             ModUnitData::Process(unit) => Some(unit.dfg_mut()),
             ModUnitData::Entity(unit) => Some(unit.dfg_mut()),
+            _ => None,
+        }
+    }
+
+    /// Return the control flow graph of the unit, if there is one.
+    pub fn get_cfg(&self) -> Option<&ControlFlowGraph> {
+        match self {
+            ModUnitData::Function(unit) => Some(unit.cfg()),
+            ModUnitData::Process(unit) => Some(unit.cfg()),
+            _ => None,
+        }
+    }
+
+    /// Return the mutable control flow graph of the unit, if there is one.
+    pub fn get_cfg_mut(&mut self) -> Option<&mut ControlFlowGraph> {
+        match self {
+            ModUnitData::Function(unit) => Some(unit.cfg_mut()),
+            ModUnitData::Process(unit) => Some(unit.cfg_mut()),
+            _ => None,
+        }
+    }
+
+    /// Return the function layout of the unit, if there is one.
+    pub fn get_func_layout(&self) -> Option<&FunctionLayout> {
+        match self {
+            ModUnitData::Function(unit) => Some(unit.func_layout()),
+            ModUnitData::Process(unit) => Some(unit.func_layout()),
+            _ => None,
+        }
+    }
+
+    /// Return the mutable function layout of the unit, if there is one.
+    pub fn get_func_layout_mut(&mut self) -> Option<&mut FunctionLayout> {
+        match self {
+            ModUnitData::Function(unit) => Some(unit.func_layout_mut()),
+            ModUnitData::Process(unit) => Some(unit.func_layout_mut()),
+            _ => None,
+        }
+    }
+
+    /// Return the function layout of the unit, if there is one.
+    pub fn get_inst_layout(&self) -> Option<&InstLayout> {
+        match self {
+            ModUnitData::Function(unit) => Some(unit.inst_layout()),
+            ModUnitData::Process(unit) => Some(unit.inst_layout()),
+            _ => None,
+        }
+    }
+
+    /// Return the mutable function layout of the unit, if there is one.
+    pub fn get_inst_layout_mut(&mut self) -> Option<&mut InstLayout> {
+        match self {
+            ModUnitData::Function(unit) => Some(unit.inst_layout_mut()),
+            ModUnitData::Process(unit) => Some(unit.inst_layout_mut()),
             _ => None,
         }
     }
