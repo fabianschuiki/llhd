@@ -2,6 +2,9 @@
 
 #[macro_use]
 extern crate clap;
+#[macro_use]
+extern crate log;
+
 use clap::Arg;
 use llhd::{assembly::parse_module, pass::tcm::TemporalRegionGraph, verifier::Verifier};
 use std::{fs::File, io::Read, result::Result};
@@ -9,6 +12,12 @@ use std::{fs::File, io::Read, result::Result};
 fn main() {
     let matches = app_from_crate!()
         .about("A tool to verify the internal consistency of LLHD assembly.")
+        .arg(
+            Arg::with_name("verbosity")
+                .short("v")
+                .multiple(true)
+                .help("Increase message verbosity"),
+        )
         .arg(
             Arg::with_name("inputs")
                 .multiple(true)
@@ -27,8 +36,20 @@ fn main() {
         )
         .get_matches();
 
+    // Configure the logger.
+    let verbose = std::cmp::max(1, matches.occurrences_of("verbosity") as usize) - 1;
+    let quiet = !matches.is_present("verbosity");
+    stderrlog::new()
+        .module("llhd")
+        .module("llhd_check")
+        .quiet(quiet)
+        .verbosity(verbose)
+        .init()
+        .unwrap();
+
     let mut num_errors = 0;
     for path in matches.values_of("inputs").into_iter().flat_map(|x| x) {
+        debug!("Parsing {}", path);
         let module = match parse_and_verify(path) {
             Ok(module) => module,
             Err(msg) => {
