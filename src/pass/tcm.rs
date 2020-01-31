@@ -7,7 +7,7 @@ use crate::ir::{DataFlowGraph, FunctionLayout, InstData};
 use crate::opt::prelude::*;
 use crate::pass::gcse::{DominatorTree, PredecessorTable};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, VecDeque},
     ops::Index,
 };
 
@@ -30,9 +30,6 @@ impl Pass for TemporalCodeMotion {
 
         // Build the temporal region graph.
         let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
-        trace!("Breaks: {:#?}", trg.breaks);
-        trace!("Blocks: {:#?}", trg.blocks);
-        trace!("Regions: {:#?}", trg.regions);
 
         // Hoist `prb` instructions which directly operate on input signals to
         // the head block of their region.
@@ -524,8 +521,6 @@ fn reconverge_drives(
 /// A data structure that temporally groups blocks and instructions.
 #[derive(Debug)]
 pub struct TemporalRegionGraph {
-    /// All temporal instructions.
-    breaks: Vec<Inst>,
     /// Map that assigns blocks into a region.
     blocks: HashMap<Block, TemporalRegion>,
     /// Actual region information.
@@ -537,63 +532,66 @@ impl TemporalRegionGraph {
     pub fn new(dfg: &DataFlowGraph, layout: &FunctionLayout) -> Self {
         trace!("Constructing TRG:");
 
-        // In a first pass assign ids to each block, and mark the ids of two
-        // blocks equivalent if they are connected by a branch instruction.
-        let mut replace = HashMap::<TemporalRegion, TemporalRegion>::new();
-        let mut blocks = HashMap::<Block, TemporalRegion>::new();
-        let mut breaks = vec![];
-        let mut next_id = 0;
+        // Populate the worklist with the entry block, as well as any blocks
+        // that are targeted by `wait` instructions.
+        let mut todo = VecDeque::new();
+        let mut seen = HashSet::new();
+        todo.push_back(layout.entry());
+        seen.insert(layout.entry());
+        trace!("  Root {:?} (entry)", layout.entry());
         for bb in layout.blocks() {
             let term = layout.terminator(bb);
-            let id = *blocks.entry(bb).or_insert_with(|| {
-                let k = next_id;
-                next_id += 1;
-                trace!("  Assigned {} to {}", k, bb);
-                TemporalRegion(k)
-            });
             if dfg[term].opcode().is_temporal() {
-                breaks.push(term);
-            } else if dfg[term].opcode().is_terminator() {
-                for &to_bb in dfg[term].blocks() {
-                    trace!("  Forcing {} onto {}", id.0, to_bb);
-                    if let Some(old_id) = blocks.insert(to_bb, id) {
-                        if old_id != id {
-                            trace!("    Replace {} with {}", old_id.0, id.0);
-                            replace.insert(old_id, id);
-                        }
+                for &target in dfg[term].blocks() {
+                    if seen.insert(target) {
+                        trace!("  Root {:?} (wait target)", target);
+                        todo.push_back(target);
                     }
                 }
             }
         }
 
-        trace!("  Breaks: {:#?}", breaks);
-        trace!("  Replace: {:#?}", replace);
-        trace!("  Blocks: {:#?}", blocks);
-
-        // In a second pass apply all replacements noted above, which assigns
-        // the lowest ids possible to each region.
-        let mut max_id = 0;
-        let mut final_ids = HashMap::new();
-        for (_, id) in &mut blocks {
-            let first = *id;
-            while let Some(&new_id) = replace.get(id) {
-                if final_ids.contains_key(&*id) {
-                    break; // accept existing ids
-                }
-                *id = new_id;
-                if first == *id {
-                    break; // cycle breaker
-                }
-            }
-            *id = *final_ids.entry(*id).or_insert_with(|| {
-                let k = max_id;
-                max_id += 1;
-                TemporalRegion(k)
-            });
+        // Assign the root temporal regions.
+        let mut next_id = 0;
+        let mut blocks = HashMap::<Block, TemporalRegion>::new();
+        let mut head_blocks = HashSet::new();
+        let mut tail_blocks = HashSet::new();
+        let mut breaks = vec![];
+        for &bb in &todo {
+            blocks.insert(bb, TemporalRegion(next_id));
+            head_blocks.insert(bb);
+            next_id += 1;
         }
 
+        // Assign temporal regions to the blocks.
+        while let Some(bb) = todo.pop_front() {
+            let tr = blocks[&bb];
+            trace!("  Pushing {:?} ({})", bb, tr);
+            let term = layout.terminator(bb);
+            if dfg[term].opcode().is_temporal() {
+                breaks.push(term);
+                tail_blocks.insert(bb);
+                continue;
+            }
+            for &target in dfg[term].blocks() {
+                if seen.insert(target) {
+                    todo.push_back(target);
+                    trace!("    Assigning {:?} <- {:?}", target, tr);
+                    if blocks.insert(target, tr).is_some() {
+                        let tr = TemporalRegion(next_id);
+                        blocks.insert(target, tr);
+                        head_blocks.insert(target);
+                        tail_blocks.insert(bb);
+                        trace!("    Assigning {:?} <- {:?} (override)", target, tr);
+                        next_id += 1;
+                    }
+                }
+            }
+        }
+        trace!("  Blocks: {:#?}", blocks);
+
         // Create a data struct for each region.
-        let mut regions: Vec<_> = (0..max_id)
+        let mut regions: Vec<_> = (0..next_id)
             .map(|id| TemporalRegionData {
                 id: TemporalRegion(id),
                 blocks: Default::default(),
@@ -613,21 +611,23 @@ impl TemporalRegionGraph {
         // region.
         for &inst in &breaks {
             let bb = layout.inst_block(inst).unwrap();
-            for &to_bb in dfg[inst].blocks() {
-                let data = &mut regions[blocks[&to_bb].0];
+            for &target in dfg[inst].blocks() {
+                let data = &mut regions[blocks[&target].0];
                 data.head_insts.insert(inst);
-                data.head_blocks.insert(to_bb);
+                // data.head_blocks.insert(target);
             }
             let data = &mut regions[blocks[&bb].0];
             data.tail_insts.insert(inst);
-            data.tail_blocks.insert(bb);
+            // data.tail_blocks.insert(bb);
+        }
+        for bb in head_blocks {
+            regions[blocks[&bb].0].head_blocks.insert(bb);
+        }
+        for bb in tail_blocks {
+            regions[blocks[&bb].0].tail_blocks.insert(bb);
         }
 
-        Self {
-            breaks,
-            blocks,
-            regions,
-        }
+        Self { blocks, regions }
     }
 
     /// Check if a block is a temporal head block.

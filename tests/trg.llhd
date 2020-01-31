@@ -1,0 +1,14 @@
+proc @foo () -> () {
+A:
+    br %B
+B:
+    br %C
+C:
+    wait %B
+}
+
+; Temporal Regions:
+;   - @foo:
+;     - %A = t0
+;     - %B = t1
+;     - %C = t1
