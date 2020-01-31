@@ -3,7 +3,7 @@
 #[macro_use]
 extern crate clap;
 use clap::Arg;
-use llhd::{assembly::parse_module, verifier::Verifier};
+use llhd::{assembly::parse_module, pass::tcm::TemporalRegionGraph, verifier::Verifier};
 use std::{fs::File, io::Read, result::Result};
 
 fn main() {
@@ -19,6 +19,11 @@ fn main() {
                 .short("d")
                 .long("dump")
                 .help("Dump parsed LLHD to stdout"),
+        )
+        .arg(
+            Arg::with_name("emit-trg")
+                .long("emit-trg")
+                .help("Analyze and emit the temporal regions"),
         )
         .get_matches();
 
@@ -37,6 +42,21 @@ fn main() {
         // Dump the module to stdout if requested by the user.
         if matches.is_present("dump") {
             println!("{}", module.dump());
+        }
+
+        // Dump the temporal regions if requested by the user.
+        if matches.is_present("emit-trg") {
+            println!("Temporal Regions:");
+            for u in module.all_units() {
+                if u.is_entity() {
+                    continue;
+                }
+                let trg = TemporalRegionGraph::new(u.dfg(), u.func_layout());
+                println!("  - {}:", u.name());
+                for bb in u.func_layout().blocks() {
+                    println!("    - {} = {}", bb.dump(u.cfg()), trg[bb]);
+                }
+            }
         }
     }
 

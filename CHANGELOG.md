@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - ir: Add various `unit()`, `unit_mut()`, `get_unit()`, and `get_unit_mut()` functions.
+- llhd-check: Add `--emit-trg` option.
 
 ### Fixed
 - llhd-check: Honor dump flag `-d`.
