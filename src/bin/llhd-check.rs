@@ -24,20 +24,26 @@ fn main() {
 
     let mut num_errors = 0;
     for path in matches.values_of("inputs").into_iter().flat_map(|x| x) {
-        match check(path) {
-            Ok(module) => println!("{}", module.dump()),
+        let module = match parse_and_verify(path) {
+            Ok(module) => module,
             Err(msg) => {
                 println!("{}:", path);
                 println!("{}", msg);
                 num_errors += 1;
+                continue;
             }
+        };
+
+        // Dump the module to stdout if requested by the user.
+        if matches.is_present("dump") {
+            println!("{}", module.dump());
         }
     }
 
     std::process::exit(num_errors);
 }
 
-fn check(path: &str) -> Result<llhd::ir::Module, String> {
+fn parse_and_verify(path: &str) -> Result<llhd::ir::Module, String> {
     let mut input = File::open(path).map_err(|e| format!("{}", e))?;
     let mut contents = String::new();
     input
