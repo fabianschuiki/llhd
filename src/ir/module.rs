@@ -31,6 +31,10 @@ pub struct Module {
     /// The local link table. Maps an external unit declared within a unit to a
     /// unit in the module.
     link_table: Option<HashMap<(ModUnit, ExtUnit), ModUnit>>,
+    /// The location of units in the input file. If the module was read from a
+    /// file, this table *may* contain additional hints on the byte offsets
+    /// where the units were located.
+    location_hints: HashMap<ModUnit, usize>,
 }
 
 impl std::ops::Index<ModUnit> for Module {
@@ -54,6 +58,7 @@ impl Module {
             units: PrimaryTable::new(),
             unit_order: BTreeSet::new(),
             link_table: None,
+            location_hints: Default::default(),
         }
     }
 
@@ -363,6 +368,21 @@ impl Module {
             .as_ref()
             .and_then(|lt| lt.get(&(within, ext_unit)))
             .cloned()
+    }
+
+    /// Add a location hint to a unit.
+    ///
+    /// Annotates the byte offset of a unit in the input file.
+    pub fn set_location_hint(&mut self, mod_unit: ModUnit, loc: usize) {
+        self.location_hints.insert(mod_unit, loc);
+    }
+
+    /// Get the location hint associated with a unit.
+    ///
+    /// Returns the byte offset of the unit in the input file, or None if there
+    /// is no hint for the value.
+    pub fn location_hint(&self, mod_unit: ModUnit) -> Option<usize> {
+        self.location_hints.get(&mod_unit).cloned()
     }
 }
 

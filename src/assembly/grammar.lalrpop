@@ -7,12 +7,13 @@ grammar;
 pub Module: Module = <units: Unit*> Comment => {
     let mut module = Module::new();
     for unit in units {
-        match unit {
-            ast::Unit::Function(x) => { module.add_function(x); },
-            ast::Unit::Process(x) => { module.add_process(x); },
-            ast::Unit::Entity(x) => { module.add_entity(x); },
-            ast::Unit::Declare(name, sig) => { module.declare(name, sig); },
-        }
+        let (mu, loc) = match unit {
+            ast::Unit::Function(x, loc) => (module.add_function(x), loc),
+            ast::Unit::Process(x, loc) => (module.add_process(x), loc),
+            ast::Unit::Entity(x, loc) => (module.add_entity(x), loc),
+            ast::Unit::Declare(name, sig, loc) => (module.declare(name, sig), loc),
+        };
+        module.set_location_hint(mu, loc);
     }
     module.link();
     module.verify();
@@ -21,10 +22,10 @@ pub Module: Module = <units: Unit*> Comment => {
 
 // A unit.
 Unit: ast::Unit = {
-    Comment <Function> => ast::Unit::Function(<>),
-    Comment <Process> => ast::Unit::Process(<>),
-    Comment <Entity> => ast::Unit::Entity(<>),
-    Comment "declare" <name: UnitName> <sig: Signature> => ast::Unit::Declare(name, sig),
+    Comment <loc:@L> <u:Function> => ast::Unit::Function(u, loc),
+    Comment <loc:@L> <u:Process> => ast::Unit::Process(u, loc),
+    Comment <loc:@L> <u:Entity> => ast::Unit::Entity(u, loc),
+    Comment <loc:@L> "declare" <name: UnitName> <sig: Signature> => ast::Unit::Declare(name, sig, loc),
 };
 
 Signature: Signature = {
@@ -168,10 +169,10 @@ Block: ast::Block<'input> = <name: BlockLabel> Comment <insts: Inst*> => ast::Bl
 
 // An instruction.
 Inst: ast::Inst<'input> = {
-    <name: LocalName> "=" <inst: InstWithRequiredResult> Comment => inst.name(name),
-    <name: LocalName> "=" <inst: InstWithResult> Comment => inst.name(name),
-    <inst: InstWithResult> Comment => inst,
-    <inst: InstWithoutResult> Comment => inst,
+    <loc:@L> <name: LocalName> "=" <inst: InstWithRequiredResult> Comment => inst.name(name).location(loc),
+    <loc:@L> <name: LocalName> "=" <inst: InstWithResult> Comment => inst.name(name).location(loc),
+    <loc:@L> <inst: InstWithResult> Comment => inst.location(loc),
+    <loc:@L> <inst: InstWithoutResult> Comment => inst.location(loc),
 };
 
 // An instruction which yields a result.

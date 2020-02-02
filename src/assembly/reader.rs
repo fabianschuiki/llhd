@@ -17,10 +17,10 @@ pub struct Context<'a> {
 }
 
 pub enum Unit {
-    Function(ir::Function),
-    Process(ir::Process),
-    Entity(ir::Entity),
-    Declare(ir::UnitName, ir::Signature),
+    Function(ir::Function, usize),
+    Process(ir::Process, usize),
+    Entity(ir::Entity, usize),
+    Declare(ir::UnitName, ir::Signature, usize),
 }
 
 pub struct Block<'a> {
@@ -53,6 +53,7 @@ pub struct Inst<'a> {
     pub opcode: Opcode,
     pub name: Option<LocalName<'a>>,
     pub data: InstData<'a>,
+    pub loc: Option<usize>,
 }
 
 pub enum InstData<'a> {
@@ -82,12 +83,19 @@ impl<'a> Inst<'a> {
             opcode,
             name: None,
             data: InstData::Nullary,
+            loc: None,
         }
     }
 
     pub fn name(self, name: LocalName<'a>) -> Self {
         let mut x = self;
         x.name = Some(name);
+        x
+    }
+
+    pub fn location(self, loc: usize) -> Self {
+        let mut x = self;
+        x.loc = Some(loc);
         x
     }
 
@@ -298,9 +306,17 @@ impl<'a> Inst<'a> {
                 LocalName::Named(name) => builder.dfg_mut().set_name(value, name.to_owned()),
             }
         }
+        if let Some(loc) = self.loc {
+            let inst = match result {
+                InstOrValue::Inst(inst) => inst,
+                InstOrValue::Value(value) => builder.dfg().value_inst(value),
+            };
+            builder.dfg_mut().set_location_hint(inst, loc);
+        }
     }
 }
 
+#[derive(Copy, Clone)]
 pub enum InstOrValue {
     Inst(ir::Inst),
     Value(ir::Value),

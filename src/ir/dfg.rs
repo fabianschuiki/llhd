@@ -34,6 +34,8 @@ pub struct DataFlowGraph {
     pub(crate) names: HashMap<Value, String>,
     /// The anonymous name hints assigned to values.
     pub(crate) anonymous_hints: HashMap<Value, u32>,
+    /// The location hints assigned to instructions.
+    pub(crate) location_hints: HashMap<Inst, usize>,
 }
 
 impl_table_indexing!(DataFlowGraph, insts, Inst, InstData);
@@ -302,5 +304,20 @@ impl DataFlowGraph {
             }
             _ => None,
         }
+    }
+
+    /// Add a location hint to an instruction.
+    ///
+    /// Annotates the byte offset of an instruction in the input file.
+    pub fn set_location_hint(&mut self, inst: Inst, loc: usize) {
+        self.location_hints.insert(inst, loc);
+    }
+
+    /// Get the location hint associated with an instruction.
+    ///
+    /// Returns the byte offset of the instruction in the input file, or None if there
+    /// is no hint for the instruction.
+    pub fn location_hint(&self, inst: Inst) -> Option<usize> {
+        self.location_hints.get(&inst).cloned()
     }
 }
