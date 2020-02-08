@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ir: Add location hint tracking for units and values.
 - llhd-check: Add `--emit-trg` option.
 - llhd-check: Add verbosity options.
+- Add `Layout` trait with functionality shared between `InstLayout` and `FunctionLayout`.
+
+### Changed
+- Extend verifier to check if used values and blocks have a definition.
 
 ### Fixed
 - llhd-check: Honor dump flag `-d`.

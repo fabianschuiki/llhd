@@ -8,6 +8,15 @@ use crate::{
 };
 use std::collections::HashMap;
 
+/// Common functionality between CFG and DFG unit layouts.
+pub trait Layout {
+    /// Check if an instruction is inserted.
+    fn is_inst_inserted(&self, inst: Inst) -> bool;
+
+    /// Check if a block is inserted.
+    fn is_block_inserted(&self, block: Block) -> bool;
+}
+
 /// Determines the order of instructions and BBs in a `Function` or `Process`.
 #[derive(Default, Serialize, Deserialize)]
 pub struct FunctionLayout {
@@ -36,16 +45,21 @@ impl FunctionLayout {
     }
 }
 
+impl Layout for FunctionLayout {
+    fn is_inst_inserted(&self, inst: Inst) -> bool {
+        self.inst_map.contains_key(&inst)
+    }
+
+    fn is_block_inserted(&self, bb: Block) -> bool {
+        self.bbs.contains(bb)
+    }
+}
+
 /// Basic block arrangement.
 ///
 /// The following functions are used for laying out the basic blocks within a
 /// `Function` or `Process`.
 impl FunctionLayout {
-    /// Check whether a BB has been placed in the layout.
-    pub fn is_block_inserted(&self, bb: Block) -> bool {
-        self.bbs.contains(bb)
-    }
-
     /// Append a BB to the end of the function.
     pub fn append_block(&mut self, bb: Block) {
         self.bbs.add(
@@ -244,15 +258,20 @@ struct InstNode {
     next: Option<Inst>,
 }
 
+impl Layout for InstLayout {
+    fn is_inst_inserted(&self, inst: Inst) -> bool {
+        self.insts.contains(inst)
+    }
+
+    fn is_block_inserted(&self, _: Block) -> bool {
+        false
+    }
+}
+
 impl InstLayout {
     /// Create a new instruction layout.
     pub fn new() -> Self {
         Default::default()
-    }
-
-    /// Check whether an instruction has been placed in the layout.
-    pub fn is_inst_inserted(&self, inst: Inst) -> bool {
-        self.insts.contains(inst)
     }
 
     /// Append an instruction to the end of the function.

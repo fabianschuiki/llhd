@@ -121,7 +121,7 @@ impl Verifier {
                 }
 
                 // Check the instruction itself.
-                self.verify_inst(inst, dfg, Some(cfg));
+                self.verify_inst(inst, dfg, Some(cfg), layout);
             }
         }
     }
@@ -134,7 +134,7 @@ impl Verifier {
         cfg: Option<&ControlFlowGraph>,
     ) {
         for inst in layout.insts() {
-            self.verify_inst(inst, dfg, cfg);
+            self.verify_inst(inst, dfg, cfg, layout);
         }
     }
 
@@ -160,37 +160,60 @@ impl Verifier {
     }
 
     /// Verify the integrity of a single instruction.
-    pub fn verify_inst(&mut self, inst: Inst, dfg: &DataFlowGraph, cfg: Option<&ControlFlowGraph>) {
+    pub fn verify_inst(
+        &mut self,
+        inst: Inst,
+        dfg: &DataFlowGraph,
+        cfg: Option<&ControlFlowGraph>,
+        layout: &impl Layout,
+    ) {
         InstVerifier {
             verifier: self,
             dfg,
             cfg,
+            layout,
         }
-        .verify_inst(inst)
+        .verify_inst(inst);
     }
 }
 
 /// An instruction verifier.
-struct InstVerifier<'a> {
+struct InstVerifier<'a, L> {
     verifier: &'a mut Verifier,
     dfg: &'a DataFlowGraph,
     cfg: Option<&'a ControlFlowGraph>,
+    layout: &'a L,
 }
 
-impl<'a> Deref for InstVerifier<'a> {
+impl<'a, L> Deref for InstVerifier<'a, L> {
     type Target = Verifier;
     fn deref(&self) -> &Verifier {
         self.verifier
     }
 }
 
-impl<'a> DerefMut for InstVerifier<'a> {
+impl<'a, L> DerefMut for InstVerifier<'a, L> {
     fn deref_mut(&mut self) -> &mut Verifier {
         self.verifier
     }
 }
 
-impl<'a> InstVerifier<'a> {
+impl<'a, L> InstVerifier<'a, L>
+where
+    L: Layout,
+{
+    fn is_value_defined(&self, value: Value) -> bool {
+        match self.dfg[value] {
+            ValueData::Inst { inst, .. } => self.layout.is_inst_inserted(inst),
+            ValueData::Arg { .. } => true,
+            ValueData::Placeholder { .. } => false,
+        }
+    }
+
+    fn is_block_defined(&self, block: Block) -> bool {
+        self.layout.is_block_inserted(block)
+    }
+
     /// Verify the integrity of a single instruction.
     pub fn verify_inst(&mut self, inst: Inst) {
         // Check that the instruction may appear in the surrounding unit.
@@ -202,7 +225,8 @@ impl<'a> InstVerifier<'a> {
             });
         }
 
-        // Check that none of the arguments are invalid.
+        // Check that none of the arguments are invalid, and all have a
+        // definition.
         let mut args_invalid = false;
         for &value in self.dfg[inst].args() {
             if value.is_invalid() {
@@ -213,6 +237,13 @@ impl<'a> InstVerifier<'a> {
                     message: format!("{} uses invalid value", self.dfg[inst].opcode()),
                 });
             }
+            if !self.is_value_defined(value) {
+                self.verifier.errors.push(VerifierError {
+                    unit: self.verifier.unit.clone(),
+                    object: Some(inst.dump(self.dfg, self.cfg).to_string()),
+                    message: format!("value {} has no definition", value.dump(self.dfg)),
+                });
+            }
         }
         for &block in self.dfg[inst].blocks() {
             if block.is_invalid() {
@@ -221,6 +252,13 @@ impl<'a> InstVerifier<'a> {
                     unit: self.verifier.unit.clone(),
                     object: Some(inst.dump(self.dfg, self.cfg).to_string()),
                     message: format!("{} uses invalid block", self.dfg[inst].opcode()),
+                });
+            }
+            if !self.is_block_defined(block) {
+                self.verifier.errors.push(VerifierError {
+                    unit: self.verifier.unit.clone(),
+                    object: Some(inst.dump(self.dfg, self.cfg).to_string()),
+                    message: format!("block {} has no definition", block.dump(self.cfg.unwrap())),
                 });
             }
         }

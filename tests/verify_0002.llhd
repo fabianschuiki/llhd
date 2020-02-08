@@ -1,0 +1,8 @@
+; FAIL
+
+func @foo () void {
+entry:
+    %0 = const i32 42
+    %2 = add i32 %0, %1
+	ret
+}
