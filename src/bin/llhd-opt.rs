@@ -11,6 +11,7 @@ use std::{
     fs::File,
     io::{BufWriter, Read},
     result::Result,
+    sync::atomic::Ordering,
 };
 
 fn main() {
@@ -151,6 +152,12 @@ fn main_inner() -> Result<(), String> {
         eprintln!("  Verify:  {:8.3} ms", (t11 - t10) as f64 * 1.0e-6);
         eprintln!("  Output:  {:8.3} ms", (t12 - t11) as f64 * 1.0e-6);
         eprintln!("  Total:   {:8.3} ms", (t12 - t0) as f64 * 1.0e-6);
+        eprintln!("");
+        eprintln!("Structure Statistics:");
+        eprintln!(
+            "  Dominator Tree Construction: {:8.3} ms",
+            llhd::pass::gcse::DOMINATOR_TREE_TIME.load(Ordering::SeqCst) as f64 * 1.0e-6
+        );
     }
 
     // Dump some threading statistics.

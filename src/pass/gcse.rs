@@ -9,6 +9,7 @@ use crate::pass::tcm::TemporalRegionGraph;
 use std::{
     collections::{HashMap, HashSet},
     iter::once,
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 /// Global Common Subexpression Elimination
@@ -314,6 +315,8 @@ pub struct DominatorTree {
 impl DominatorTree {
     /// Compute the dominator tree of a function or process.
     pub fn new(layout: &FunctionLayout, pred: &PredecessorTable) -> Self {
+        let t0 = time::precise_time_ns();
+
         // This is a pretty inefficient implementation, but it gets the job done
         // for now.
         let all_blocks: HashSet<Block> = layout.blocks().collect();
@@ -363,6 +366,13 @@ impl DominatorTree {
             }
         }
 
+        let t1 = time::precise_time_ns();
+        DOMINATOR_TREE_TIME.fetch_add(t1 - t0, Ordering::Relaxed);
+        trace!(
+            "Dominator Tree constructed in {} ms",
+            (t1 - t0) as f64 * 1.0e-6
+        );
+
         Self {
             dominates,
             dominated,
@@ -387,3 +397,6 @@ impl DominatorTree {
         &self.dominates[&dominator]
     }
 }
+
+/// Total time spent constructing dominator trees.
+pub static DOMINATOR_TREE_TIME: AtomicU64 = AtomicU64::new(0);
