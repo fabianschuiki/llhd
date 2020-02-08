@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 0.11.0 - 2020-02-08
 ### Added
 - ir: Add various `unit()`, `unit_mut()`, `get_unit()`, and `get_unit_mut()` functions.
 - ir: Add location hint tracking for units and values.
