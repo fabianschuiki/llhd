@@ -214,12 +214,21 @@ pub struct BlockData {
 ///
 /// The linker will hook up external units to the actual counterparts as
 /// appropriate.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExtUnitData {
     /// The name of the referenced unit.
     pub name: UnitName,
     /// The signature of the referenced unit.
     pub sig: Signature,
+}
+
+impl Default for ExtUnitData {
+    fn default() -> ExtUnitData {
+        ExtUnitData {
+            name: UnitName::Anonymous(0),
+            sig: Signature::default(),
+        }
+    }
 }
 
 /// Any one of the table keys in this module.

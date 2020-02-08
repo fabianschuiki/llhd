@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Changed
-- Use dense vector table instead of hash map for blocks, instructions, and values.
+- Use dense vector table instead of hash map for blocks, instructions, values, and external unit data.
 
 ## 0.11.0 - 2020-02-08
 ### Added

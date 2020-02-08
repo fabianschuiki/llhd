@@ -8,7 +8,7 @@
 use crate::{
     impl_table_indexing,
     ir::{Arg, Block, ExtUnit, ExtUnitData, Inst, InstData, Signature, Value, ValueData},
-    table::{PrimaryTable, PrimaryTable2, SecondaryTable, TableKey},
+    table::{PrimaryTable2, SecondaryTable, TableKey},
     ty::{void_ty, Type},
 };
 use std::collections::HashMap;
@@ -29,7 +29,7 @@ pub struct DataFlowGraph {
     /// The argument values.
     pub(crate) args: SecondaryTable<Arg, Value>,
     /// The external units in the graph.
-    pub(crate) ext_units: PrimaryTable<ExtUnit, ExtUnitData>,
+    pub(crate) ext_units: PrimaryTable2<ExtUnit, ExtUnitData>,
     /// The names assigned to values.
     pub(crate) names: HashMap<Value, String>,
     /// The anonymous name hints assigned to values.
