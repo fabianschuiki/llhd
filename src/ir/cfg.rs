@@ -8,7 +8,7 @@
 use crate::{
     impl_table_indexing,
     ir::{Block, BlockData},
-    table::PrimaryTable,
+    table::PrimaryTable2,
 };
 use std::collections::HashMap;
 
@@ -19,7 +19,7 @@ use std::collections::HashMap;
 #[derive(Default, Serialize, Deserialize)]
 pub struct ControlFlowGraph {
     /// The basic blocks in the graph.
-    pub(crate) blocks: PrimaryTable<Block, BlockData>,
+    pub(crate) blocks: PrimaryTable2<Block, BlockData>,
     /// The anonymous name hints assigned to basic blocks.
     pub(crate) anonymous_hints: HashMap<Block, u32>,
 }

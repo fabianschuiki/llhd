@@ -175,8 +175,10 @@ impl Block {
 }
 
 /// Internal table storage for values.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ValueData {
+    /// The invalid value placeholder.
+    Invalid,
     /// The value is the result of an instruction.
     Inst { ty: Type, inst: Inst },
     /// The value is an argument of the `Function`, `Process`, or `Entity`.
@@ -195,8 +197,14 @@ impl ValueData {
     }
 }
 
+impl Default for ValueData {
+    fn default() -> ValueData {
+        ValueData::Invalid
+    }
+}
+
 /// Internal table storage for blocks.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct BlockData {
     /// The name of the block.
     pub name: Option<String>,

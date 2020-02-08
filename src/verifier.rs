@@ -204,6 +204,7 @@ where
 {
     fn is_value_defined(&self, value: Value) -> bool {
         match self.dfg[value] {
+            ValueData::Invalid => false,
             ValueData::Inst { inst, .. } => self.layout.is_inst_inserted(inst),
             ValueData::Arg { .. } => true,
             ValueData::Placeholder { .. } => false,

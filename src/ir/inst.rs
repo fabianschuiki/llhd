@@ -920,6 +920,14 @@ impl InstData {
     }
 }
 
+impl Default for InstData {
+    fn default() -> InstData {
+        InstData::Nullary {
+            opcode: Opcode::Ret,
+        }
+    }
+}
+
 bitflags! {
     /// A set of flags identifying a unit.
     #[derive(Default, Serialize, Deserialize)]

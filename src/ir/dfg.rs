@@ -8,7 +8,7 @@
 use crate::{
     impl_table_indexing,
     ir::{Arg, Block, ExtUnit, ExtUnitData, Inst, InstData, Signature, Value, ValueData},
-    table::{PrimaryTable, SecondaryTable, TableKey},
+    table::{PrimaryTable, PrimaryTable2, SecondaryTable, TableKey},
     ty::{void_ty, Type},
 };
 use std::collections::HashMap;
@@ -21,11 +21,11 @@ use std::collections::HashMap;
 #[derive(Default, Serialize, Deserialize)]
 pub struct DataFlowGraph {
     /// The instructions in the graph.
-    pub(crate) insts: PrimaryTable<Inst, InstData>,
+    pub(crate) insts: PrimaryTable2<Inst, InstData>,
     /// The result values produced by instructions.
     pub(crate) results: SecondaryTable<Inst, Value>,
     /// The values in the graph.
-    pub(crate) values: PrimaryTable<Value, ValueData>,
+    pub(crate) values: PrimaryTable2<Value, ValueData>,
     /// The argument values.
     pub(crate) args: SecondaryTable<Arg, Value>,
     /// The external units in the graph.
@@ -117,6 +117,7 @@ impl DataFlowGraph {
     /// Returns the type of a value.
     pub fn value_type(&self, value: Value) -> Type {
         match &self[value] {
+            ValueData::Invalid => panic!("invalid value"),
             ValueData::Inst { ty, .. } => ty.clone(),
             ValueData::Arg { ty, .. } => ty.clone(),
             ValueData::Placeholder { ty, .. } => ty.clone(),
@@ -183,7 +184,7 @@ impl DataFlowGraph {
     /// Returns how many uses were replaced.
     pub fn replace_use(&mut self, from: Value, to: Value) -> usize {
         let mut count = 0;
-        for inst in self.insts.storage.values_mut() {
+        for inst in self.insts.values_mut() {
             count += inst.replace_value(from, to);
         }
         count
@@ -217,7 +218,7 @@ impl DataFlowGraph {
     /// Returns how many blocks were replaced.
     pub fn replace_block_use(&mut self, from: Block, to: Block) -> usize {
         let mut count = 0;
-        for inst in self.insts.storage.values_mut() {
+        for inst in self.insts.values_mut() {
             count += inst.replace_block(from, to);
         }
         count
@@ -231,7 +232,7 @@ impl DataFlowGraph {
     /// Returns how many blocks were replaced.
     pub fn remove_block_use(&mut self, block: Block) -> usize {
         let mut count = 0;
-        for inst in self.insts.storage.values_mut() {
+        for inst in self.insts.values_mut() {
             count += inst.remove_block(block);
         }
         count

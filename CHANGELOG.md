@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+- Use dense vector table instead of hash map for blocks, instructions, and values.
+
 ## 0.11.0 - 2020-02-08
 ### Added
 - ir: Add various `unit()`, `unit_mut()`, `get_unit()`, and `get_unit_mut()` functions.
