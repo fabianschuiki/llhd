@@ -322,7 +322,7 @@ impl DominatorTree {
     ///
     /// This implementation is based on [1].
     ///
-    /// [1]: https://www.cs.rice.edu/~keith/Embed/dom.pdf
+    /// [1]: https://www.cs.rice.edu/~keith/Embed/dom.pdf "Cooper, Keith D., Timothy J. Harvey, and Ken Kennedy. 'A simple, fast dominance algorithm.' Software Practice & Experience 4.1-10 (2001): 1-8."
     pub fn new(cfg: &ControlFlowGraph, layout: &FunctionLayout, pred: &PredecessorTable) -> Self {
         let t0 = time::precise_time_ns();
         let post_order = Self::blocks_post_order(layout, pred);

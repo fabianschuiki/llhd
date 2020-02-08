@@ -1,0 +1,90 @@
+proc %fifo_v3.param6.always_ff.2402.6 (i1$ %clk_i, i1$ %rst_ni, i1$ %gate_clock, [1 x {i5, i1, i3, i2}]$ %mem_n) -> ([1 x {i5, i1, i3, i2}]$ %mem_q) {
+0:
+    br %init
+init:
+    %clk_i1 = prb i1$ %clk_i
+    %rst_ni1 = prb i1$ %rst_ni
+    wait %check, %clk_i, %rst_ni
+check:
+    %clk_i2 = prb i1$ %clk_i
+    %1 = const i1 0
+    %2 = eq i1 %clk_i1, %1
+    %3 = neq i1 %clk_i2, %1
+    %posedge = and i1 %2, %3
+    %rst_ni2 = prb i1$ %rst_ni
+    %4 = const i1 0
+    %5 = neq i1 %rst_ni1, %4
+    %6 = eq i1 %rst_ni2, %4
+    %negedge = and i1 %6, %5
+    %event_or = or i1 %posedge, %negedge
+    br %event_or, %init, %event
+event:
+    %rst_ni3 = prb i1$ %rst_ni
+    %7 = not i1 %rst_ni3
+    br %7, %if_false, %if_true
+if_true:
+    %8 = const i11 0
+    %9 = const i1 0
+    %10 = inss i11 %8, i1 %9, 0, 1
+    %11 = const i32 0
+    %12 = const i11 0
+    %13 = shr i11 %10, i11 %12, i32 %11
+    %14 = exts i11, i11 %13, 0, 11
+    %15 = const i32 0
+    %16 = const i11 0
+    %17 = shr i11 %14, i11 %16, i32 %15
+    %18 = exts i5, i11 %17, 0, 5
+    %19 = const i11 0
+    %20 = const i1 0
+    %21 = inss i11 %19, i1 %20, 0, 1
+    %22 = const i32 0
+    %23 = const i11 0
+    %24 = shr i11 %21, i11 %23, i32 %22
+    %25 = exts i11, i11 %24, 0, 11
+    %26 = const i32 5
+    %27 = const i11 0
+    %28 = shr i11 %25, i11 %27, i32 %26
+    %29 = exts i1, i11 %28, 0, 1
+    %30 = const i11 0
+    %31 = const i1 0
+    %32 = inss i11 %30, i1 %31, 0, 1
+    %33 = const i32 0
+    %34 = const i11 0
+    %35 = shr i11 %32, i11 %34, i32 %33
+    %36 = exts i11, i11 %35, 0, 11
+    %37 = const i32 6
+    %38 = const i11 0
+    %39 = shr i11 %36, i11 %38, i32 %37
+    %40 = exts i3, i11 %39, 0, 3
+    %41 = const i11 0
+    %42 = const i1 0
+    %43 = inss i11 %41, i1 %42, 0, 1
+    %44 = const i32 0
+    %45 = const i11 0
+    %46 = shr i11 %43, i11 %45, i32 %44
+    %47 = exts i11, i11 %46, 0, 11
+    %48 = const i32 9
+    %49 = const i11 0
+    %50 = shr i11 %47, i11 %49, i32 %48
+    %51 = exts i2, i11 %50, 0, 2
+    %52 = {i5 %18, i1 %29, i3 %40, i2 %51}
+    %53 = [{i5, i1, i3, i2} %52]
+    %54 = const time 0s 1d
+    drv [1 x {i5, i1, i3, i2}]$ %mem_q, %53, %54
+    br %if_exit
+if_false:
+    %gate_clock1 = prb i1$ %gate_clock
+    %55 = not i1 %gate_clock1
+    br %55, %if_false1, %if_true1
+if_exit:
+    br %0
+if_true1:
+    %mem_n1 = prb [1 x {i5, i1, i3, i2}]$ %mem_n
+    %56 = const time 0s 1d
+    drv [1 x {i5, i1, i3, i2}]$ %mem_q, %mem_n1, %56
+    br %if_exit1
+if_false1:
+    br %if_exit1
+if_exit1:
+    br %if_exit
+}
