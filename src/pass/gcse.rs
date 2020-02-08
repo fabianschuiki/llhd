@@ -3,12 +3,13 @@
 //! Global Common Subexpression Elimination
 
 use crate::ir::prelude::*;
-use crate::ir::{DataFlowGraph, FunctionLayout, InstData};
+use crate::ir::{ControlFlowGraph, DataFlowGraph, FunctionLayout, InstData};
 use crate::opt::prelude::*;
 use crate::pass::tcm::TemporalRegionGraph;
+use crate::table::TableKey;
+use hibitset::BitSet;
 use std::{
     collections::{HashMap, HashSet},
-    iter::once,
     sync::atomic::{AtomicU64, Ordering},
 };
 
@@ -24,11 +25,11 @@ impl Pass for GlobalCommonSubexprElim {
 
         // Build the predecessor table and dominator tree.
         let pred = PredecessorTable::new(unit.dfg(), unit.func_layout());
-        let dt = DominatorTree::new(unit.func_layout(), &pred);
+        let dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &pred);
 
         // Build the temporal predecessor table and dominator tree.
         let temp_pt = PredecessorTable::new_temporal(unit.dfg(), unit.func_layout());
-        let temp_dt = DominatorTree::new(unit.func_layout(), &temp_pt);
+        let temp_dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &temp_pt);
 
         // Compute the TRG to allow for `prb` instructions to be eliminated.
         let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
@@ -264,6 +265,8 @@ impl PredecessorTable {
                     pred.get_mut(&to_bb).unwrap().insert(bb);
                 }
                 succ.insert(bb, dfg[term].blocks().iter().cloned().collect());
+            } else {
+                succ.insert(bb, Default::default());
             }
         }
         Self { pred, succ }
@@ -310,56 +313,117 @@ pub struct DominatorTree {
     dominates: HashMap<Block, HashSet<Block>>,
     /// Map from a block to the blocks that dominate it.
     dominated: HashMap<Block, HashSet<Block>>,
+    /// Vector of immediate dominators.
+    doms: Vec<Block>,
 }
 
 impl DominatorTree {
     /// Compute the dominator tree of a function or process.
-    pub fn new(layout: &FunctionLayout, pred: &PredecessorTable) -> Self {
+    ///
+    /// This implementation is based on [1].
+    ///
+    /// [1]: https://www.cs.rice.edu/~keith/Embed/dom.pdf
+    pub fn new(cfg: &ControlFlowGraph, layout: &FunctionLayout, pred: &PredecessorTable) -> Self {
         let t0 = time::precise_time_ns();
+        let post_order = Self::blocks_post_order(layout, pred);
+        let length = post_order.len();
+        trace!("[DomTree] post-order {:?}", post_order);
 
-        // This is a pretty inefficient implementation, but it gets the job done
-        // for now.
-        let all_blocks: HashSet<Block> = layout.blocks().collect();
-        let mut dominated = HashMap::<Block, HashSet<Block>>::new();
+        let undef = std::u32::MAX;
+        let mut doms = vec![undef; length];
+        let mut inv_post_order = vec![undef; cfg.blocks.capacity()];
+        for (i, &bb) in post_order.iter().enumerate() {
+            inv_post_order[bb.index()] = i as u32;
+        }
+        trace!("[DomTree] inv-post-order {:?}", inv_post_order);
 
-        // Dominator of the entry block is the block itself.
-        let entry_bb = layout.entry();
-        dominated.insert(entry_bb, Some(entry_bb).into_iter().collect());
-
-        // For all other blocks, set all blocks as the dominators.
-        for &bb in all_blocks.iter().filter(|&&bb| bb != entry_bb) {
-            dominated.insert(bb, all_blocks.clone());
+        for root in Some(layout.entry())
+            .into_iter()
+            .chain(layout.blocks().filter(|&id| pred.pred_set(id).is_empty()))
+        {
+            let poidx = inv_post_order[root.index()];
+            doms[poidx as usize] = poidx; // root nodes
+        }
+        trace!("[DomTree] initial {:?}", doms);
+        trace!("[DomTree] preds:");
+        for (bb, p) in &pred.pred {
+            trace!("  {}:", inv_post_order[bb.index()]);
+            for b in p {
+                trace!("    - {}", inv_post_order[b.index()]);
+            }
         }
 
-        // Iteratively eliminate nodes that are not dominators.
-        loop {
-            let mut changes = false;
-            for &bb in all_blocks.iter().filter(|&&bb| bb != entry_bb) {
-                // Intersect all Dom(p), where p in pred(bb).
-                let mut isect = HashMap::<Block, usize>::new();
-                for &p in pred.pred(bb).flat_map(|p| dominated[&p].iter()) {
-                    *isect.entry(p).or_insert_with(Default::default) += 1;
-                }
-                let isect = isect
-                    .into_iter()
-                    .filter(|&(_, c)| c == pred.pred_set(bb).len())
-                    .map(|(bb, _)| bb);
+        let mut changed = true;
+        while changed {
+            changed = false;
+            trace!("[DomTree] iteration {:?}", doms);
 
-                // Add the block back in an update the entry Dom(bb).
-                let new_dom: HashSet<Block> = isect.chain(once(bb)).collect();
-                if dominated[&bb] != new_dom {
-                    changes |= true;
-                    dominated.insert(bb, new_dom);
+            for idx in (0..length).rev() {
+                if doms[idx] == idx as u32 {
+                    continue; // skip root nodes
+                }
+                let bb = post_order[idx];
+
+                let mut preds = pred
+                    .pred_set(bb)
+                    .iter()
+                    .map(|id| inv_post_order[id.index()])
+                    .filter(|&p| doms[p as usize] != undef);
+                let new_idom = preds.next().unwrap();
+                let new_idom = preds.fold(new_idom, |mut i1, mut i2| {
+                    let i1_init = i1;
+                    while i1 != i2 {
+                        trace!("[DomTree]  {} != {}", i1, i2);
+                        if i1 < i2 {
+                            if i1 == doms[i1 as usize] {
+                                return i1;
+                            }
+                            i1 = doms[i1 as usize];
+                        } else if i2 < i1 {
+                            if i2 == doms[i2 as usize] {
+                                return i1_init;
+                            }
+                            i2 = doms[i2 as usize];
+                        }
+                    }
+                    i1
+                });
+                debug_assert!(new_idom < length as u32);
+                if doms[idx] != new_idom {
+                    trace!("[DomTree] doms[{}] = {}", idx, new_idom);
+                    doms[idx] = new_idom;
+                    changed = true;
                 }
             }
-            if !changes {
-                break;
+        }
+        trace!("[DomTree] converged {:?}", doms);
+
+        let mut doms_final = vec![Block::invalid(); cfg.blocks.capacity()];
+        for bb in &post_order {
+            doms_final[bb.index()] = post_order[doms[inv_post_order[bb.index()] as usize] as usize];
+        }
+        trace!("[DomTree] final {:?}", doms_final);
+
+        // Compatibility with old dominator tree.
+        let mut dominated = HashMap::new();
+        for block in layout.blocks() {
+            let mut s = HashSet::new();
+            let mut bb = block;
+            loop {
+                s.insert(bb);
+                let next = doms_final[bb.index()];
+                trace!("Dominated[{}]: {}", block, bb);
+                if next == bb {
+                    break;
+                }
+                bb = next;
             }
+            dominated.insert(block, s);
         }
 
         // Invert the tree.
         let mut dominates: HashMap<Block, HashSet<Block>> =
-            all_blocks.iter().map(|&bb| (bb, HashSet::new())).collect();
+            layout.blocks().map(|bb| (bb, HashSet::new())).collect();
         for (&bb, dom) in &dominated {
             for d in dom {
                 dominates.get_mut(d).unwrap().insert(bb);
@@ -376,7 +440,36 @@ impl DominatorTree {
         Self {
             dominates,
             dominated,
+            doms: doms_final,
         }
+    }
+
+    fn blocks_post_order(layout: &FunctionLayout, pred: &PredecessorTable) -> Vec<Block> {
+        let mut order = Vec::with_capacity(pred.pred.len());
+
+        let mut stack = Vec::with_capacity(8);
+        let mut discovered = BitSet::with_capacity(pred.pred.len() as u32);
+        let mut finished = BitSet::with_capacity(pred.pred.len() as u32);
+
+        stack.push(layout.entry());
+        stack.extend(layout.blocks().filter(|&id| pred.pred_set(id).is_empty()));
+
+        while let Some(&next) = stack.last() {
+            if !discovered.add(next.index() as u32) {
+                for &succ in pred.succ_set(next) {
+                    if !discovered.contains(succ.index() as u32) {
+                        stack.push(succ);
+                    }
+                }
+            } else {
+                stack.pop();
+                if !finished.add(next.index() as u32) {
+                    order.push(next);
+                }
+            }
+        }
+
+        order
     }
 
     /// Check if a block dominates another.
@@ -385,6 +478,11 @@ impl DominatorTree {
             .get(&dominator)
             .map(|d| d.contains(&follower))
             .unwrap_or(false)
+    }
+
+    /// Get the immediate dominator of a block.
+    pub fn dominator(&self, block: Block) -> Block {
+        self.doms[block.index()]
     }
 
     /// Get the dominators of a block.

@@ -34,7 +34,7 @@ impl Pass for TemporalCodeMotion {
         // Hoist `prb` instructions which directly operate on input signals to
         // the head block of their region.
         let temp_pt = PredecessorTable::new_temporal(unit.dfg(), unit.func_layout());
-        let temp_dt = DominatorTree::new(unit.func_layout(), &temp_pt);
+        let temp_dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &temp_pt);
         for tr in &trg.regions {
             let dfg = unit.dfg();
             let layout = unit.func_layout();
@@ -107,7 +107,7 @@ impl Pass for TemporalCodeMotion {
             // Push `drv` instructions towards the end of their region as far as
             // possible, merging drives to the same signal in different branches.
             let pred = PredecessorTable::new(unit.dfg(), unit.func_layout());
-            let dt = DominatorTree::new(unit.func_layout(), &pred);
+            let dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &pred);
             changes |= reconverge_drives(unit, &inner_trg, &dt, &pred); // needs new pred afterwards
 
             // Continue if we were able to make some changes.

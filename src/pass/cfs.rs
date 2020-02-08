@@ -28,7 +28,7 @@ impl Pass for ControlFlowSimplification {
 
         // Build the predecessor table and dominator tree.
         let pt = PredecessorTable::new(unit.dfg(), unit.func_layout());
-        let dt = DominatorTree::new(unit.func_layout(), &pt);
+        let dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &pt);
         let bn = BlockNumbering::new(unit.dfg(), unit.func_layout());
 
         // Collect the phi instructions. We do this by gathering the values a

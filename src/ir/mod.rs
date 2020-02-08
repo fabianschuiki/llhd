@@ -150,7 +150,7 @@ impl Value {
     /// A placeholder for invalid values.
     ///
     /// This is used for unused instruction arguments.
-    fn invalid() -> Self {
+    pub(crate) fn invalid() -> Self {
         Value(std::u32::MAX)
     }
 
@@ -164,7 +164,7 @@ impl Block {
     /// A placeholder for invalid blocks.
     ///
     /// This is used for unused instruction arguments.
-    fn invalid() -> Self {
+    pub(crate) fn invalid() -> Self {
         Block(std::u32::MAX)
     }
 

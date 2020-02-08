@@ -20,7 +20,7 @@ impl Pass for LoopIndepCodeMotion {
 
         // Build the predecessor table and dominator tree.
         let pred = PredecessorTable::new(unit.dfg(), unit.func_layout());
-        let dt = DominatorTree::new(unit.func_layout(), &pred);
+        let dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &pred);
 
         // Create a work queue which allows us to process the blocks in control
         // flow order. Also number the blocks as we go.

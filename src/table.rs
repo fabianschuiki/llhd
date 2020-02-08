@@ -293,6 +293,11 @@ impl<I: TableKey, V: Default> PrimaryTable2<I, V> {
         std::mem::replace(&mut self.storage[id as usize], Default::default())
     }
 
+    /// Get the number of entries for which storage is allocated.
+    pub fn capacity(&self) -> usize {
+        self.storage.len()
+    }
+
     /// Return an iterator over the keys and values in the table.
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = (I, &'a V)> + 'a {
         (&self.used)
