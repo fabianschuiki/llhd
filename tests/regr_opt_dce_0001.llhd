@@ -1,0 +1,3189 @@
+proc %snitch.param1.always_comb.604.1 (i32$ %inst_data_i, i1$ %wake_up_sync_i, i1$ %illegal_inst, i1$ %wfi_q, i32$ %uimm, i1$ %valid_instr, i1$ %write_rd, i32$ %csr_rvalue) -> (i1$ %acc_qvalid_o, i1$ %illegal_inst1, i1$ %zero_lsb, i1$ %wfi_d, i1$ %is_load, i1$ %is_store, i1$ %is_signed, i2$ %ls_size, i4$ %ls_amo, i4$ %alu_op, i4$ %opa_select, i4$ %opb_select, i1$ %write_rd1, i1$ %uses_rd, i2$ %next_pc, i2$ %rd_select, i32$ %rd_bypass, i1$ %is_branch, i1$ %csr_en, i1$ %acc_register_rd) {
+0:
+    %1 = prb i1$ %illegal_inst1
+    %2 = prb i1$ %write_rd1
+    br %body
+body:
+    %3 = prb i1$ %illegal_inst1
+    %4 = prb i1$ %write_rd1
+    %5 = const i1 0
+    %6 = const time 0s 1e
+    drv i1$ %illegal_inst1, %5, %6
+    %7 = const i4 0
+    drv i4$ %alu_op, %7, %6
+    drv i4$ %opa_select, %7, %6
+    drv i4$ %opb_select, %7, %6
+    %8 = const i2 0
+    drv i2$ %next_pc, %8, %6
+    drv i2$ %rd_select, %8, %6
+    %9 = const i1 1
+    drv i1$ %write_rd1, %9, %6
+    drv i1$ %uses_rd, %9, %6
+    %10 = const i32 0
+    %11 = inss i32 %10, i1 %5, 0, 1
+    drv i32$ %rd_bypass, %10, %6
+    drv i1$ %zero_lsb, %5, %6
+    drv i1$ %is_branch, %5, %6
+    drv i1$ %is_load, %5, %6
+    drv i1$ %is_store, %5, %6
+    drv i1$ %is_signed, %5, %6
+    drv i2$ %ls_size, %8, %6
+    drv i4$ %ls_amo, %7, %6
+    drv i1$ %acc_qvalid_o, %5, %6
+    drv i1$ %acc_register_rd, %5, %6
+    drv i1$ %csr_en, %5, %6
+    %wake_up_sync_i1 = prb i1$ %wake_up_sync_i
+    %wfi_q1 = prb i1$ %wfi_q
+    %12 = [i1 %wfi_q1, %5]
+    %13 = mux [2 x i1] %12, i1 %wake_up_sync_i1
+    drv i1$ %wfi_d, %13, %6
+    %inst_data_i1 = prb i32$ %inst_data_i
+    %14 = const i32 51
+    %15 = const i32 4261441663
+    %16 = and i32 %inst_data_i1, %15
+    %17 = and i32 %14, %15
+    %18 = eq i32 %16, %14
+    %19 = or i1 %5, %18
+    %20 = const i4 1
+    %21 = const i2 2
+    br %18, %22, %case_body
+22:
+    %23 = const i32 19
+    %24 = const i32 28799
+    %25 = and i32 %inst_data_i1, %24
+    %26 = and i32 %23, %24
+    %27 = eq i32 %25, %23
+    %28 = or i1 %5, %27
+    %29 = const i4 2
+    br %27, %30, %case_body1
+case_body:
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+check:
+    wait %body, %inst_data_i, %wake_up_sync_i, %illegal_inst1, %wfi_q, %uimm, %valid_instr, %write_rd1, %csr_rvalue
+case_exit:
+    %31 = phi i1 [%32, %if_exit29], [%5, %case_body17], [%33, %if_exit10], [%5, %case_body56], [%5, %case_body39], [%34, %if_exit40], [%35, %if_exit22], [%5, %case_body35], [%36, %if_exit53], [%37, %if_exit16], [%5, %case_body46], [%38, %if_exit30], [%39, %if_exit59], [%5, %case_body44], [%40, %if_exit58], [%41, %if_exit60], [%5, %case_body13], [%42, %if_exit23], [%5, %case_body], [%5, %case_body19], [%5, %case_body51], [%43, %if_exit4], [%44, %if_exit33], [%5, %case_body14], [%45, %if_exit34], [%46, %if_exit15], [%47, %if_exit43], [%48, %if_exit39], [%5, %case_body41], [%49, %if_exit31], [%5, %if_exit], [%5, %case_body38], [%50, %if_exit3], [%51, %if_exit45], [%52, %if_exit54], [%5, %case_body5], [%5, %case_body15], [%53, %if_exit6], [%54, %if_exit41], [%55, %if_exit18], [%5, %case_body30], [%5, %case_body11], [%5, %case_body54], [%56, %if_exit42], [%5, %case_body23], [%5, %case_body32], [%5, %case_body47], [%5, %if_exit52], [%5, %case_body48], [%5, %case_body12], [%57, %if_exit24], [%58, %if_exit36], [%5, %case_body57], [%59, %if_exit13], [%60, %if_exit21], [%5, %case_body55], [%61, %if_exit2], [%5, %case_body43], [%5, %case_body24], [%62, %if_exit57], [%5, %case_body50], [%5, %case_body33], [%5, %case_body22], [%5, %case_body34], [%63, %if_exit44], [%5, %case_body52], [%5, %case_body4], [%64, %if_exit32], [%65, %if_exit48], [%66, %if_exit17], [%67, %if_exit55], [%5, %case_body16], [%68, %if_exit8], [%5, %case_body3], [%5, %case_body27], [%5, %if_exit1], [%5, %case_body31], [%69, %if_exit19], [%70, %if_exit50], [%71, %if_exit51], [%72, %if_exit26], [%5, %case_body36], [%73, %if_exit35], [%74, %if_exit38], [%5, %case_body10], [%5, %case_body7], [%5, %case_body49], [%75, %if_exit49], [%5, %case_body18], [%5, %case_body8], [%5, %case_body29], [%76, %if_exit7], [%77, %if_exit28], [%78, %if_exit47], [%79, %if_exit12], [%80, %if_exit5], [%5, %case_body26], [%5, %case_body6], [%81, %if_exit37], [%82, %if_exit14], [%5, %case_body20], [%5, %case_body53], [%5, %case_body9], [%83, %if_exit25], [%84, %if_exit20], [%85, %if_exit56], [%5, %case_body45], [%5, %case_body21], [%86, %if_exit27], [%5, %case_body37], [%5, %case_body2], [%9, %87], [%5, %case_body1], [%5, %case_body28], [%88, %if_exit46], [%5, %case_body25]
+    br %31, %if_false, %if_true
+if_false:
+    br %if_exit61
+if_true:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %5, %6
+    drv i2$ %next_pc, %21, %6
+    br %if_exit61
+30:
+    %89 = const i32 1073741875
+    %90 = and i32 %89, %15
+    %91 = eq i32 %16, %89
+    %92 = or i1 %5, %91
+    br %91, %93, %case_body2
+case_body1:
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+93:
+    %94 = const i32 16435
+    %95 = and i32 %94, %15
+    %96 = eq i32 %16, %94
+    %97 = or i1 %5, %96
+    %98 = const i4 7
+    br %96, %99, %case_body3
+case_body2:
+    drv i4$ %alu_op, %20, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+99:
+    %100 = const i32 16403
+    %101 = and i32 %100, %24
+    %102 = eq i32 %25, %100
+    %103 = or i1 %5, %102
+    br %102, %104, %case_body4
+case_body3:
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    drv i4$ %alu_op, %98, %6
+    br %case_exit
+104:
+    %105 = const i32 24627
+    %106 = and i32 %105, %15
+    %107 = eq i32 %16, %105
+    %108 = or i1 %5, %107
+    %109 = const i4 8
+    br %107, %110, %case_body5
+case_body4:
+    drv i4$ %alu_op, %98, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+110:
+    %111 = const i32 24595
+    %112 = and i32 %111, %24
+    %113 = eq i32 %25, %111
+    %114 = or i1 %5, %113
+    br %113, %115, %case_body6
+case_body5:
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    drv i4$ %alu_op, %109, %6
+    br %case_exit
+115:
+    %116 = const i32 28723
+    %117 = and i32 %116, %15
+    %118 = eq i32 %16, %116
+    %119 = or i1 %5, %118
+    %120 = const i4 9
+    br %118, %121, %case_body7
+case_body6:
+    drv i4$ %alu_op, %109, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+121:
+    %122 = const i32 28691
+    %123 = and i32 %122, %24
+    %124 = eq i32 %25, %122
+    %125 = or i1 %5, %124
+    br %124, %126, %case_body8
+case_body7:
+    drv i4$ %alu_op, %120, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+126:
+    %127 = const i32 8243
+    %128 = and i32 %127, %15
+    %129 = eq i32 %16, %127
+    %130 = or i1 %5, %129
+    br %129, %131, %case_body9
+case_body8:
+    drv i4$ %alu_op, %120, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+131:
+    %132 = const i32 8211
+    %133 = and i32 %132, %24
+    %134 = eq i32 %25, %132
+    %135 = or i1 %5, %134
+    br %134, %136, %case_body10
+case_body9:
+    drv i4$ %alu_op, %29, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+136:
+    %137 = const i32 12339
+    %138 = and i32 %137, %15
+    %139 = eq i32 %16, %137
+    %140 = or i1 %5, %139
+    %141 = const i4 3
+    br %139, %142, %case_body11
+case_body10:
+    drv i4$ %alu_op, %29, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+142:
+    %143 = const i32 12307
+    %144 = and i32 %143, %24
+    %145 = eq i32 %25, %143
+    %146 = or i1 %5, %145
+    br %145, %147, %case_body12
+case_body11:
+    drv i4$ %alu_op, %141, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+147:
+    %148 = const i32 4147
+    %149 = and i32 %148, %15
+    %150 = eq i32 %16, %148
+    %151 = or i1 %5, %150
+    %152 = const i4 4
+    br %150, %153, %case_body13
+case_body12:
+    drv i4$ %alu_op, %141, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+153:
+    %154 = const i32 20531
+    %155 = and i32 %154, %15
+    %156 = eq i32 %16, %154
+    %157 = or i1 %5, %156
+    %158 = const i4 5
+    br %156, %159, %case_body14
+case_body13:
+    drv i4$ %alu_op, %152, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+159:
+    %160 = const i32 1073762355
+    %161 = and i32 %160, %15
+    %162 = eq i32 %16, %160
+    %163 = or i1 %5, %162
+    %164 = const i4 6
+    br %162, %165, %case_body15
+case_body14:
+    drv i4$ %alu_op, %158, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+165:
+    %166 = const i32 4115
+    %167 = const i32 4227887231
+    %168 = and i32 %inst_data_i1, %167
+    %169 = and i32 %166, %167
+    %170 = eq i32 %168, %166
+    %171 = or i1 %5, %170
+    br %170, %172, %case_body16
+case_body15:
+    drv i4$ %alu_op, %164, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+172:
+    %173 = const i32 20499
+    %174 = and i32 %173, %167
+    %175 = eq i32 %168, %173
+    %176 = or i1 %5, %175
+    br %175, %177, %case_body17
+case_body16:
+    drv i4$ %alu_op, %152, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+177:
+    %178 = const i32 1073762323
+    %179 = and i32 %178, %167
+    %180 = eq i32 %168, %178
+    %181 = or i1 %5, %180
+    br %180, %182, %case_body18
+case_body17:
+    drv i4$ %alu_op, %158, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+182:
+    %183 = const i32 55
+    %184 = const i32 127
+    %185 = and i32 %inst_data_i1, %184
+    %186 = and i32 %183, %184
+    %187 = eq i32 %185, %183
+    %188 = or i1 %5, %187
+    br %187, %189, %case_body19
+case_body18:
+    drv i4$ %alu_op, %164, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+189:
+    %190 = const i32 23
+    %191 = and i32 %190, %184
+    %192 = eq i32 %185, %190
+    %193 = or i1 %5, %192
+    br %192, %194, %case_body20
+case_body19:
+    drv i4$ %opa_select, %7, %6
+    drv i4$ %opb_select, %7, %6
+    drv i2$ %rd_select, %21, %6
+    %uimm1 = prb i32$ %uimm
+    drv i32$ %rd_bypass, %uimm1, %6
+    br %case_exit
+194:
+    %195 = const i32 111
+    %196 = and i32 %195, %184
+    %197 = eq i32 %185, %195
+    %198 = or i1 %5, %197
+    %199 = const i2 1
+    br %197, %200, %case_body21
+case_body20:
+    drv i4$ %opa_select, %141, %6
+    drv i4$ %opb_select, %98, %6
+    br %case_exit
+200:
+    %201 = const i32 103
+    %202 = and i32 %201, %24
+    %203 = eq i32 %25, %201
+    %204 = or i1 %5, %203
+    br %203, %205, %case_body22
+case_body21:
+    drv i2$ %rd_select, %199, %6
+    drv i4$ %opa_select, %152, %6
+    drv i4$ %opb_select, %98, %6
+    drv i2$ %next_pc, %199, %6
+    br %case_exit
+205:
+    %206 = const i32 99
+    %207 = and i32 %206, %24
+    %208 = eq i32 %25, %206
+    %209 = or i1 %5, %208
+    %210 = const i4 11
+    br %208, %211, %case_body23
+case_body22:
+    drv i2$ %rd_select, %199, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    drv i2$ %next_pc, %199, %6
+    drv i1$ %zero_lsb, %9, %6
+    br %case_exit
+211:
+    %212 = const i32 4195
+    %213 = and i32 %212, %24
+    %214 = eq i32 %25, %212
+    %215 = or i1 %5, %214
+    %216 = const i4 12
+    br %214, %217, %case_body24
+case_body23:
+    drv i1$ %is_branch, %9, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i4$ %alu_op, %210, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+217:
+    %218 = const i32 16483
+    %219 = and i32 %218, %24
+    %220 = eq i32 %25, %218
+    %221 = or i1 %5, %220
+    br %220, %222, %case_body25
+case_body24:
+    drv i1$ %is_branch, %9, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i4$ %alu_op, %216, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+222:
+    %223 = const i32 24675
+    %224 = and i32 %223, %24
+    %225 = eq i32 %25, %223
+    %226 = or i1 %5, %225
+    br %225, %227, %case_body26
+case_body25:
+    drv i1$ %is_branch, %9, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i4$ %alu_op, %29, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+227:
+    %228 = const i32 20579
+    %229 = and i32 %228, %24
+    %230 = eq i32 %25, %228
+    %231 = or i1 %5, %230
+    br %230, %232, %case_body27
+case_body26:
+    drv i1$ %is_branch, %9, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i4$ %alu_op, %141, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+232:
+    %233 = const i32 28771
+    %234 = and i32 %233, %24
+    %235 = eq i32 %25, %233
+    %236 = or i1 %5, %235
+    br %235, %237, %case_body28
+case_body27:
+    drv i1$ %is_branch, %9, %6
+    drv i1$ %write_rd1, %5, %6
+    %238 = const i4 13
+    drv i4$ %alu_op, %238, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+237:
+    %239 = const i32 35
+    %240 = and i32 %239, %24
+    %241 = eq i32 %25, %239
+    %242 = or i1 %5, %241
+    br %241, %243, %case_body29
+case_body28:
+    drv i1$ %is_branch, %9, %6
+    drv i1$ %write_rd1, %5, %6
+    %244 = const i4 14
+    drv i4$ %alu_op, %244, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+243:
+    %245 = const i32 4131
+    %246 = and i32 %245, %24
+    %247 = eq i32 %25, %245
+    %248 = or i1 %5, %247
+    br %247, %249, %case_body30
+case_body29:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %is_store, %9, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %158, %6
+    br %case_exit
+249:
+    %250 = const i32 8227
+    %251 = and i32 %250, %24
+    %252 = eq i32 %25, %250
+    %253 = or i1 %5, %252
+    br %252, %254, %case_body31
+case_body30:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %is_store, %9, %6
+    drv i2$ %ls_size, %199, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %158, %6
+    br %case_exit
+254:
+    %255 = const i32 3
+    %256 = and i32 %255, %24
+    %257 = eq i32 %25, %255
+    %258 = or i1 %5, %257
+    br %257, %259, %case_body32
+case_body31:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %is_store, %9, %6
+    drv i2$ %ls_size, %21, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %158, %6
+    br %case_exit
+259:
+    %260 = const i32 4099
+    %261 = and i32 %260, %24
+    %262 = eq i32 %25, %260
+    %263 = or i1 %5, %262
+    br %262, %264, %case_body33
+case_body32:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+264:
+    %265 = const i32 8195
+    %266 = and i32 %265, %24
+    %267 = eq i32 %25, %265
+    %268 = or i1 %5, %267
+    br %267, %269, %case_body34
+case_body33:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i2$ %ls_size, %199, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+269:
+    %270 = const i32 16387
+    %271 = and i32 %270, %24
+    %272 = eq i32 %25, %270
+    %273 = or i1 %5, %272
+    br %272, %274, %case_body35
+case_body34:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i2$ %ls_size, %21, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+274:
+    %275 = const i32 20483
+    %276 = and i32 %275, %24
+    %277 = eq i32 %25, %275
+    %278 = or i1 %5, %277
+    br %277, %279, %case_body36
+case_body35:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+279:
+    %280 = const i32 4211
+    %281 = and i32 %280, %24
+    %282 = eq i32 %25, %280
+    %283 = or i1 %5, %282
+    %csr_rvalue2 = prb i32$ %csr_rvalue
+    br %282, %284, %case_body37
+case_body36:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i2$ %ls_size, %199, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    br %case_exit
+284:
+    %285 = const i32 20595
+    %286 = and i32 %285, %24
+    %287 = eq i32 %25, %285
+    %288 = or i1 %5, %287
+    br %287, %289, %case_body38
+case_body37:
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %7, %6
+    drv i2$ %rd_select, %21, %6
+    drv i32$ %rd_bypass, %csr_rvalue2, %6
+    drv i1$ %csr_en, %9, %6
+    br %case_exit
+289:
+    %290 = const i32 8307
+    %291 = and i32 %290, %24
+    %292 = eq i32 %25, %290
+    %293 = or i1 %5, %292
+    br %292, %294, %case_body39
+case_body38:
+    drv i4$ %opa_select, %120, %6
+    drv i4$ %opb_select, %7, %6
+    drv i2$ %rd_select, %21, %6
+    drv i32$ %rd_bypass, %csr_rvalue2, %6
+    drv i1$ %csr_en, %9, %6
+    br %case_exit
+294:
+    %295 = const i32 24691
+    %296 = and i32 %295, %24
+    %297 = eq i32 %25, %295
+    %298 = or i1 %5, %297
+    %299 = const i5 20
+    %300 = const i20 0
+    %301 = exts i20, i32 %10, 0, 20
+    %302 = exts i12, i32 %inst_data_i1, 20, 12
+    %303 = const i12 1984
+    %valid_instr2 = prb i1$ %valid_instr
+    br %297, %304, %case_body40
+case_body39:
+    drv i4$ %alu_op, %109, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %109, %6
+    drv i2$ %rd_select, %21, %6
+    drv i32$ %rd_bypass, %csr_rvalue2, %6
+    drv i1$ %csr_en, %9, %6
+    br %case_exit
+304:
+    %305 = const i32 12403
+    %306 = and i32 %305, %24
+    %307 = eq i32 %25, %305
+    %308 = or i1 %5, %307
+    %309 = const i4 10
+    br %307, %310, %case_body41
+case_body40:
+    %311 = inss i32 %10, i20 %300, 12, 20
+    %312 = inss i32 %10, i12 %302, 0, 12
+    %313 = shr i32 %inst_data_i1, i32 %10, i5 %299
+    %314 = exts i12, i32 %312, 0, 12
+    %315 = neq i12 %314, %303
+    br %315, %if_false1, %if_true1
+if_false1:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit
+if_true1:
+    drv i4$ %alu_op, %109, %6
+    drv i4$ %opa_select, %120, %6
+    drv i4$ %opb_select, %109, %6
+    drv i2$ %rd_select, %21, %6
+    drv i32$ %rd_bypass, %csr_rvalue2, %6
+    drv i1$ %csr_en, %9, %6
+    br %if_exit
+310:
+    %316 = const i32 28787
+    %317 = and i32 %316, %24
+    %318 = eq i32 %25, %316
+    %319 = or i1 %5, %318
+    br %318, %320, %case_body42
+case_body41:
+    drv i4$ %alu_op, %309, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %109, %6
+    drv i2$ %rd_select, %21, %6
+    drv i32$ %rd_bypass, %csr_rvalue2, %6
+    drv i1$ %csr_en, %9, %6
+    br %case_exit
+if_exit:
+    br %case_exit
+320:
+    %321 = const i32 115
+    %322 = const i32 4294967295
+    %323 = and i32 %inst_data_i1, %322
+    %324 = and i32 %321, %322
+    %325 = eq i32 %inst_data_i1, %321
+    %326 = or i1 %5, %325
+    %327 = const i32 1048691
+    %328 = and i32 %327, %322
+    %329 = eq i32 %inst_data_i1, %327
+    %330 = or i1 %325, %329
+    br %330, %331, %case_body43
+case_body42:
+    %332 = inss i32 %10, i20 %300, 12, 20
+    %333 = inss i32 %10, i12 %302, 0, 12
+    %334 = shr i32 %inst_data_i1, i32 %10, i5 %299
+    %335 = exts i12, i32 %333, 0, 12
+    %336 = neq i12 %335, %303
+    br %336, %if_false2, %if_true2
+if_false2:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit1
+if_true2:
+    drv i4$ %alu_op, %309, %6
+    drv i4$ %opa_select, %120, %6
+    drv i4$ %opb_select, %109, %6
+    drv i2$ %rd_select, %21, %6
+    drv i32$ %rd_bypass, %csr_rvalue2, %6
+    drv i1$ %csr_en, %9, %6
+    br %if_exit1
+331:
+    %337 = const i32 15
+    %338 = and i32 %337, %24
+    %339 = eq i32 %25, %337
+    %340 = or i1 %5, %339
+    br %339, %341, %case_body44
+case_body43:
+    drv i1$ %write_rd1, %5, %6
+    br %case_exit
+if_exit1:
+    br %case_exit
+341:
+    %342 = const i32 273678451
+    %343 = and i32 %342, %322
+    %344 = eq i32 %inst_data_i1, %342
+    %345 = or i1 %5, %344
+    br %344, %346, %case_body45
+case_body44:
+    drv i1$ %write_rd1, %5, %6
+    br %case_exit
+346:
+    %347 = const i32 8239
+    %348 = const i32 4160778367
+    %349 = and i32 %inst_data_i1, %348
+    %350 = and i32 %347, %348
+    %351 = eq i32 %349, %347
+    %352 = or i1 %5, %351
+    %353 = const i4 15
+    br %351, %354, %case_body46
+case_body45:
+    drv i1$ %wfi_d, %9, %6
+    br %case_exit
+354:
+    %355 = const i32 536879151
+    %356 = and i32 %355, %348
+    %357 = eq i32 %349, %355
+    %358 = or i1 %5, %357
+    br %357, %359, %case_body47
+case_body46:
+    drv i4$ %alu_op, %353, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i2$ %ls_size, %21, %6
+    drv i4$ %ls_amo, %29, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+359:
+    %360 = const i32 1073750063
+    %361 = and i32 %360, %348
+    %362 = eq i32 %349, %360
+    %363 = or i1 %5, %362
+    br %362, %364, %case_body48
+case_body47:
+    drv i4$ %alu_op, %353, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i2$ %ls_size, %21, %6
+    drv i4$ %ls_amo, %158, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+364:
+    %365 = const i32 1610620975
+    %366 = and i32 %365, %348
+    %367 = eq i32 %349, %365
+    %368 = or i1 %5, %367
+    br %367, %369, %case_body49
+case_body48:
+    drv i4$ %alu_op, %353, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i2$ %ls_size, %21, %6
+    drv i4$ %ls_amo, %152, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+369:
+    %370 = const i32 2147491887
+    %371 = and i32 %370, %348
+    %372 = eq i32 %349, %370
+    %373 = or i1 %5, %372
+    br %372, %374, %case_body50
+case_body49:
+    drv i4$ %alu_op, %353, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i2$ %ls_size, %21, %6
+    drv i4$ %ls_amo, %141, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+374:
+    %375 = const i32 2684362799
+    %376 = and i32 %375, %348
+    %377 = eq i32 %349, %375
+    %378 = or i1 %5, %377
+    br %377, %379, %case_body51
+case_body50:
+    drv i4$ %alu_op, %353, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i2$ %ls_size, %21, %6
+    drv i4$ %ls_amo, %120, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+379:
+    %380 = const i32 3221233711
+    %381 = and i32 %380, %348
+    %382 = eq i32 %349, %380
+    %383 = or i1 %5, %382
+    br %382, %384, %case_body52
+case_body51:
+    drv i4$ %alu_op, %353, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i2$ %ls_size, %21, %6
+    drv i4$ %ls_amo, %164, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+384:
+    %385 = const i32 3758104623
+    %386 = and i32 %385, %348
+    %387 = eq i32 %349, %385
+    %388 = or i1 %5, %387
+    br %387, %389, %case_body53
+case_body52:
+    drv i4$ %alu_op, %353, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i2$ %ls_size, %21, %6
+    drv i4$ %ls_amo, %120, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+389:
+    %390 = const i32 134225967
+    %391 = and i32 %390, %348
+    %392 = eq i32 %349, %390
+    %393 = or i1 %5, %392
+    br %392, %394, %case_body54
+case_body53:
+    drv i4$ %alu_op, %353, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i2$ %ls_size, %21, %6
+    drv i4$ %ls_amo, %98, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+394:
+    %395 = const i32 268443695
+    %396 = const i32 4193284223
+    %397 = and i32 %inst_data_i1, %396
+    %398 = and i32 %395, %396
+    %399 = eq i32 %397, %395
+    %400 = or i1 %5, %399
+    br %399, %401, %case_body55
+case_body54:
+    drv i4$ %alu_op, %353, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i2$ %ls_size, %21, %6
+    drv i4$ %ls_amo, %20, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+401:
+    %402 = const i32 402661423
+    %403 = and i32 %402, %348
+    %404 = eq i32 %349, %402
+    %405 = or i1 %5, %404
+    br %404, %406, %case_body56
+case_body55:
+    drv i4$ %alu_op, %353, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i2$ %ls_size, %21, %6
+    drv i4$ %ls_amo, %309, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+406:
+    %407 = const i32 33554483
+    %408 = and i32 %407, %15
+    %409 = eq i32 %16, %407
+    %410 = or i1 %5, %409
+    %411 = const i32 33558579
+    %412 = and i32 %411, %15
+    %413 = eq i32 %16, %411
+    %414 = or i1 %409, %413
+    %415 = const i32 33562675
+    %416 = and i32 %415, %15
+    %417 = eq i32 %16, %415
+    %418 = or i1 %414, %417
+    %419 = const i32 33566771
+    %420 = and i32 %419, %15
+    %421 = eq i32 %16, %419
+    %422 = or i1 %418, %421
+    %423 = const i32 33570867
+    %424 = and i32 %423, %15
+    %425 = eq i32 %16, %423
+    %426 = or i1 %422, %425
+    %427 = const i32 33574963
+    %428 = and i32 %427, %15
+    %429 = eq i32 %16, %427
+    %430 = or i1 %426, %429
+    %431 = const i32 33579059
+    %432 = and i32 %431, %15
+    %433 = eq i32 %16, %431
+    %434 = or i1 %430, %433
+    %435 = const i32 33583155
+    %436 = and i32 %435, %15
+    %437 = eq i32 %16, %435
+    %438 = or i1 %434, %437
+    %439 = const i32 33554491
+    %440 = and i32 %439, %15
+    %441 = eq i32 %16, %439
+    %442 = or i1 %438, %441
+    %443 = const i32 33570875
+    %444 = and i32 %443, %15
+    %445 = eq i32 %16, %443
+    %446 = or i1 %442, %445
+    %447 = const i32 33574971
+    %448 = and i32 %447, %15
+    %449 = eq i32 %16, %447
+    %450 = or i1 %446, %449
+    %451 = const i32 33579067
+    %452 = and i32 %451, %15
+    %453 = eq i32 %16, %451
+    %454 = or i1 %450, %453
+    %455 = const i32 33583163
+    %456 = and i32 %455, %15
+    %457 = eq i32 %16, %455
+    %458 = or i1 %454, %457
+    br %458, %459, %case_body57
+case_body56:
+    drv i4$ %alu_op, %353, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %is_load, %9, %6
+    drv i1$ %is_signed, %9, %6
+    drv i2$ %ls_size, %21, %6
+    drv i4$ %ls_amo, %210, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    br %case_exit
+459:
+    %460 = const i32 83
+    %461 = const i32 4261412991
+    %462 = and i32 %inst_data_i1, %461
+    %463 = and i32 %460, %461
+    %464 = eq i32 %462, %460
+    %465 = or i1 %5, %464
+    %466 = const i32 134217811
+    %467 = and i32 %466, %461
+    %468 = eq i32 %462, %466
+    %469 = or i1 %464, %468
+    %470 = const i32 268435539
+    %471 = and i32 %470, %461
+    %472 = eq i32 %462, %470
+    %473 = or i1 %469, %472
+    %474 = const i32 402653267
+    %475 = and i32 %474, %461
+    %476 = eq i32 %462, %474
+    %477 = or i1 %473, %476
+    %478 = const i32 536870995
+    %479 = and i32 %478, %15
+    %480 = eq i32 %16, %478
+    %481 = or i1 %477, %480
+    %482 = const i32 536875091
+    %483 = and i32 %482, %15
+    %484 = eq i32 %16, %482
+    %485 = or i1 %481, %484
+    %486 = const i32 536879187
+    %487 = and i32 %486, %15
+    %488 = eq i32 %16, %486
+    %489 = or i1 %485, %488
+    %490 = const i32 671088723
+    %491 = and i32 %490, %15
+    %492 = eq i32 %16, %490
+    %493 = or i1 %489, %492
+    %494 = const i32 671092819
+    %495 = and i32 %494, %15
+    %496 = eq i32 %16, %494
+    %497 = or i1 %493, %496
+    %498 = const i32 1476395091
+    %499 = const i32 4293918847
+    %500 = and i32 %inst_data_i1, %499
+    %501 = and i32 %498, %499
+    %502 = eq i32 %500, %498
+    %503 = or i1 %497, %502
+    %504 = const i32 67
+    %505 = const i32 100663423
+    %506 = and i32 %inst_data_i1, %505
+    %507 = and i32 %504, %505
+    %508 = eq i32 %506, %504
+    %509 = or i1 %503, %508
+    %510 = const i32 71
+    %511 = and i32 %510, %505
+    %512 = eq i32 %506, %510
+    %513 = or i1 %509, %512
+    %514 = const i32 75
+    %515 = and i32 %514, %505
+    %516 = eq i32 %506, %514
+    %517 = or i1 %513, %516
+    %518 = const i32 79
+    %519 = and i32 %518, %505
+    %520 = eq i32 %506, %518
+    %521 = or i1 %517, %520
+    br %521, %522, %case_body58
+case_body57:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %20, %6
+    drv i1$ %acc_register_rd, %9, %6
+    br %case_exit
+522:
+    %523 = const i32 2181038131
+    %524 = and i32 %523, %15
+    %525 = eq i32 %16, %523
+    %526 = or i1 %5, %525
+    %527 = const i32 2181054515
+    %528 = and i32 %527, %15
+    %529 = eq i32 %16, %527
+    %530 = or i1 %525, %529
+    %531 = const i32 2214592563
+    %532 = and i32 %531, %15
+    %533 = eq i32 %16, %531
+    %534 = or i1 %530, %533
+    %535 = const i32 2214608947
+    %536 = and i32 %535, %15
+    %537 = eq i32 %16, %535
+    %538 = or i1 %534, %537
+    %539 = const i32 2248146995
+    %540 = and i32 %539, %15
+    %541 = eq i32 %16, %539
+    %542 = or i1 %538, %541
+    %543 = const i32 2248163379
+    %544 = and i32 %543, %15
+    %545 = eq i32 %16, %543
+    %546 = or i1 %542, %545
+    %547 = const i32 2281701427
+    %548 = and i32 %547, %15
+    %549 = eq i32 %16, %547
+    %550 = or i1 %546, %549
+    %551 = const i32 2281717811
+    %552 = and i32 %551, %15
+    %553 = eq i32 %16, %551
+    %554 = or i1 %550, %553
+    %555 = const i32 2315255859
+    %556 = and i32 %555, %15
+    %557 = eq i32 %16, %555
+    %558 = or i1 %554, %557
+    %559 = const i32 2315272243
+    %560 = and i32 %559, %15
+    %561 = eq i32 %16, %559
+    %562 = or i1 %558, %561
+    %563 = const i32 2348810291
+    %564 = and i32 %563, %15
+    %565 = eq i32 %16, %563
+    %566 = or i1 %562, %565
+    %567 = const i32 2348826675
+    %568 = and i32 %567, %15
+    %569 = eq i32 %16, %567
+    %570 = or i1 %566, %569
+    %571 = const i32 2382364723
+    %572 = const i32 4293947519
+    %573 = and i32 %inst_data_i1, %572
+    %574 = and i32 %571, %572
+    %575 = eq i32 %573, %571
+    %576 = or i1 %570, %575
+    %577 = const i32 2415919155
+    %578 = and i32 %577, %15
+    %579 = eq i32 %16, %577
+    %580 = or i1 %576, %579
+    %581 = const i32 2415935539
+    %582 = and i32 %581, %15
+    %583 = eq i32 %16, %581
+    %584 = or i1 %580, %583
+    %585 = const i32 2449473587
+    %586 = and i32 %585, %15
+    %587 = eq i32 %16, %585
+    %588 = or i1 %584, %587
+    %589 = const i32 2449489971
+    %590 = and i32 %589, %15
+    %591 = eq i32 %16, %589
+    %592 = or i1 %588, %591
+    %593 = const i32 2583691315
+    %594 = and i32 %593, %15
+    %595 = eq i32 %16, %593
+    %596 = or i1 %592, %595
+    %597 = const i32 2583707699
+    %598 = and i32 %597, %15
+    %599 = eq i32 %16, %597
+    %600 = or i1 %596, %599
+    %601 = const i32 2617245747
+    %602 = and i32 %601, %15
+    %603 = eq i32 %16, %601
+    %604 = or i1 %600, %603
+    %605 = const i32 2617262131
+    %606 = and i32 %605, %15
+    %607 = eq i32 %16, %605
+    %608 = or i1 %604, %607
+    %609 = const i32 2650800179
+    %610 = and i32 %609, %15
+    %611 = eq i32 %16, %609
+    %612 = or i1 %608, %611
+    %613 = const i32 2650816563
+    %614 = and i32 %613, %15
+    %615 = eq i32 %16, %613
+    %616 = or i1 %612, %615
+    %617 = const i32 2952790067
+    %618 = and i32 %617, %15
+    %619 = eq i32 %16, %617
+    %620 = or i1 %616, %619
+    %621 = const i32 3019898931
+    %622 = and i32 %621, %15
+    %623 = eq i32 %16, %621
+    %624 = or i1 %620, %623
+    %625 = and i1 %9, %9
+    br %624, %626, %case_body59
+case_body58:
+    br %9, %if_false3, %if_true3
+if_false3:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit2
+if_true3:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit2
+626:
+    %627 = const i32 33554515
+    %628 = and i32 %627, %461
+    %629 = eq i32 %462, %627
+    %630 = or i1 %5, %629
+    %631 = const i32 167772243
+    %632 = and i32 %631, %461
+    %633 = eq i32 %462, %631
+    %634 = or i1 %629, %633
+    %635 = const i32 301989971
+    %636 = and i32 %635, %461
+    %637 = eq i32 %462, %635
+    %638 = or i1 %634, %637
+    %639 = const i32 436207699
+    %640 = and i32 %639, %461
+    %641 = eq i32 %462, %639
+    %642 = or i1 %638, %641
+    %643 = const i32 570425427
+    %644 = and i32 %643, %15
+    %645 = eq i32 %16, %643
+    %646 = or i1 %642, %645
+    %647 = const i32 570429523
+    %648 = and i32 %647, %15
+    %649 = eq i32 %16, %647
+    %650 = or i1 %646, %649
+    %651 = const i32 570433619
+    %652 = and i32 %651, %15
+    %653 = eq i32 %16, %651
+    %654 = or i1 %650, %653
+    %655 = const i32 704643155
+    %656 = and i32 %655, %15
+    %657 = eq i32 %16, %655
+    %658 = or i1 %654, %657
+    %659 = const i32 704647251
+    %660 = and i32 %659, %15
+    %661 = eq i32 %16, %659
+    %662 = or i1 %658, %661
+    %663 = const i32 1509949523
+    %664 = and i32 %663, %499
+    %665 = eq i32 %500, %663
+    %666 = or i1 %662, %665
+    %667 = const i32 33554499
+    %668 = and i32 %667, %505
+    %669 = eq i32 %506, %667
+    %670 = or i1 %666, %669
+    %671 = const i32 33554503
+    %672 = and i32 %671, %505
+    %673 = eq i32 %506, %671
+    %674 = or i1 %670, %673
+    %675 = const i32 33554507
+    %676 = and i32 %675, %505
+    %677 = eq i32 %506, %675
+    %678 = or i1 %674, %677
+    %679 = const i32 33554511
+    %680 = and i32 %679, %505
+    %681 = eq i32 %506, %679
+    %682 = or i1 %678, %681
+    br %682, %683, %case_body60
+case_body59:
+    br %9, %if_false4, %if_true4
+if_exit2:
+    %61 = phi i1 [%5, %if_true3], [%9, %if_false3]
+    br %case_exit
+if_false4:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit3
+if_true4:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit3
+683:
+    %684 = const i32 1074790483
+    %685 = and i32 %684, %499
+    %686 = eq i32 %500, %684
+    %687 = or i1 %5, %686
+    %688 = const i32 1107296339
+    %689 = and i32 %688, %499
+    %690 = eq i32 %500, %688
+    %691 = or i1 %686, %690
+    br %691, %692, %case_body61
+case_body60:
+    br %9, %if_false5, %if_true5
+if_exit3:
+    %50 = phi i1 [%5, %if_true4], [%9, %if_false4]
+    br %case_exit
+if_false5:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit4
+if_true5:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit4
+692:
+    %693 = const i32 67108947
+    %694 = and i32 %693, %461
+    %695 = eq i32 %462, %693
+    %696 = or i1 %5, %695
+    %697 = const i32 201326675
+    %698 = and i32 %697, %461
+    %699 = eq i32 %462, %697
+    %700 = or i1 %695, %699
+    %701 = const i32 335544403
+    %702 = and i32 %701, %461
+    %703 = eq i32 %462, %701
+    %704 = or i1 %700, %703
+    %705 = const i32 469762131
+    %706 = and i32 %705, %461
+    %707 = eq i32 %462, %705
+    %708 = or i1 %704, %707
+    %709 = const i32 1543503955
+    %710 = and i32 %709, %499
+    %711 = eq i32 %500, %709
+    %712 = or i1 %708, %711
+    %713 = const i32 67108931
+    %714 = and i32 %713, %505
+    %715 = eq i32 %506, %713
+    %716 = or i1 %712, %715
+    %717 = const i32 67108935
+    %718 = and i32 %717, %505
+    %719 = eq i32 %506, %717
+    %720 = or i1 %716, %719
+    %721 = const i32 67108939
+    %722 = and i32 %721, %505
+    %723 = eq i32 %506, %721
+    %724 = or i1 %720, %723
+    %725 = const i32 67108943
+    %726 = and i32 %725, %505
+    %727 = eq i32 %506, %725
+    %728 = or i1 %724, %727
+    %729 = const i12 0
+    %730 = exts i12, i32 %10, 0, 12
+    %731 = exts i20, i32 %inst_data_i1, 12, 20
+    %732 = shr i32 %inst_data_i1, i32 %10, i4 %216
+    %733 = const i3 0
+    %734 = const i3 4
+    %735 = const i3 7
+    %736 = const i3 5
+    %737 = or i1 %5, %5
+    br %728, %738, %case_body62
+case_body61:
+    br %9, %if_false6, %if_true6
+if_exit4:
+    %43 = phi i1 [%9, %if_false5], [%5, %if_true5]
+    br %case_exit
+if_false6:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit5
+if_true6:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit5
+738:
+    %739 = const i32 603979859
+    %740 = and i32 %739, %15
+    %741 = eq i32 %16, %739
+    %742 = or i1 %5, %741
+    %743 = const i32 603983955
+    %744 = and i32 %743, %15
+    %745 = eq i32 %16, %743
+    %746 = or i1 %741, %745
+    %747 = const i32 603988051
+    %748 = and i32 %747, %15
+    %749 = eq i32 %16, %747
+    %750 = or i1 %746, %749
+    %751 = const i32 738197587
+    %752 = and i32 %751, %15
+    %753 = eq i32 %16, %751
+    %754 = or i1 %750, %753
+    %755 = const i32 738201683
+    %756 = and i32 %755, %15
+    %757 = eq i32 %16, %755
+    %758 = or i1 %754, %757
+    br %758, %759, %case_body63
+case_body62:
+    %760 = inss i32 %10, i12 %729, 20, 12
+    %761 = inss i32 %10, i20 %731, 0, 20
+    %762 = exts i3, i32 %761, 0, 3
+    %763 = uge i3 %762, %733
+    %764 = ule i3 %762, %734
+    %765 = and i1 %763, %764
+    %766 = or i1 %5, %765
+    %767 = eq i3 %762, %735
+    %768 = or i1 %765, %767
+    %769 = and i1 %5, %768
+    %770 = eq i3 %762, %736
+    %771 = and i1 %5, %770
+    br %5, %if_false7, %if_true7
+if_exit5:
+    %80 = phi i1 [%9, %if_false6], [%5, %if_true6]
+    br %case_exit
+if_false7:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit6
+if_true7:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit6
+759:
+    %772 = const i32 1075839059
+    %773 = and i32 %772, %572
+    %774 = eq i32 %573, %772
+    %775 = or i1 %5, %774
+    %776 = const i32 1140850771
+    %777 = and i32 %776, %499
+    %778 = eq i32 %500, %776
+    %779 = or i1 %774, %778
+    %780 = inss i32 %10, i12 %729, 20, 12
+    %781 = inss i32 %10, i20 %731, 0, 20
+    br %779, %782, %case_body64
+case_body63:
+    br %5, %if_false8, %if_true8
+if_exit6:
+    %53 = phi i1 [%9, %if_false7], [%5, %if_true7]
+    br %case_exit
+if_false8:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit7
+if_true8:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit7
+782:
+    %783 = const i32 1109393491
+    %784 = and i32 %783, %572
+    %785 = eq i32 %573, %783
+    %786 = or i1 %5, %785
+    %787 = const i32 1141899347
+    %788 = and i32 %787, %499
+    %789 = eq i32 %500, %787
+    %790 = or i1 %785, %789
+    %791 = exts i3, i32 %781, 0, 3
+    br %790, %792, %case_body65
+case_body64:
+    br %9, %if_false9, %if_true9
+if_exit7:
+    %76 = phi i1 [%5, %if_true8], [%9, %if_false8]
+    br %case_exit
+if_false9:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit8
+if_true9:
+    %793 = exts i3, i32 %781, 0, 3
+    %794 = uge i3 %793, %733
+    %795 = ule i3 %793, %734
+    %796 = and i1 %794, %795
+    %797 = or i1 %5, %796
+    %798 = eq i3 %793, %735
+    %799 = or i1 %796, %798
+    %800 = and i1 %5, %799
+    %801 = eq i3 %793, %736
+    %802 = and i1 %5, %801
+    br %5, %if_false10, %if_true10
+792:
+    %803 = const i32 2181046323
+    %804 = and i32 %803, %15
+    %805 = eq i32 %16, %803
+    %806 = or i1 %5, %805
+    %807 = const i32 2181062707
+    %808 = and i32 %807, %15
+    %809 = eq i32 %16, %807
+    %810 = or i1 %805, %809
+    %811 = const i32 2214600755
+    %812 = and i32 %811, %15
+    %813 = eq i32 %16, %811
+    %814 = or i1 %810, %813
+    %815 = const i32 2214617139
+    %816 = and i32 %815, %15
+    %817 = eq i32 %16, %815
+    %818 = or i1 %814, %817
+    %819 = const i32 2248155187
+    %820 = and i32 %819, %15
+    %821 = eq i32 %16, %819
+    %822 = or i1 %818, %821
+    %823 = const i32 2248171571
+    %824 = and i32 %823, %15
+    %825 = eq i32 %16, %823
+    %826 = or i1 %822, %825
+    %827 = const i32 2281709619
+    %828 = and i32 %827, %15
+    %829 = eq i32 %16, %827
+    %830 = or i1 %826, %829
+    %831 = const i32 2281726003
+    %832 = and i32 %831, %15
+    %833 = eq i32 %16, %831
+    %834 = or i1 %830, %833
+    %835 = const i32 2315264051
+    %836 = and i32 %835, %15
+    %837 = eq i32 %16, %835
+    %838 = or i1 %834, %837
+    %839 = const i32 2315280435
+    %840 = and i32 %839, %15
+    %841 = eq i32 %16, %839
+    %842 = or i1 %838, %841
+    %843 = const i32 2348818483
+    %844 = and i32 %843, %15
+    %845 = eq i32 %16, %843
+    %846 = or i1 %842, %845
+    %847 = const i32 2348834867
+    %848 = and i32 %847, %15
+    %849 = eq i32 %16, %847
+    %850 = or i1 %846, %849
+    %851 = const i32 2382372915
+    %852 = and i32 %851, %572
+    %853 = eq i32 %573, %851
+    %854 = or i1 %850, %853
+    %855 = const i32 2415927347
+    %856 = and i32 %855, %15
+    %857 = eq i32 %16, %855
+    %858 = or i1 %854, %857
+    %859 = const i32 2415943731
+    %860 = and i32 %859, %15
+    %861 = eq i32 %16, %859
+    %862 = or i1 %858, %861
+    %863 = const i32 2449481779
+    %864 = and i32 %863, %15
+    %865 = eq i32 %16, %863
+    %866 = or i1 %862, %865
+    %867 = const i32 2449498163
+    %868 = and i32 %867, %15
+    %869 = eq i32 %16, %867
+    %870 = or i1 %866, %869
+    %871 = const i32 2583699507
+    %872 = and i32 %871, %15
+    %873 = eq i32 %16, %871
+    %874 = or i1 %870, %873
+    %875 = const i32 2583715891
+    %876 = and i32 %875, %15
+    %877 = eq i32 %16, %875
+    %878 = or i1 %874, %877
+    %879 = const i32 2617253939
+    %880 = and i32 %879, %15
+    %881 = eq i32 %16, %879
+    %882 = or i1 %878, %881
+    %883 = const i32 2617270323
+    %884 = and i32 %883, %15
+    %885 = eq i32 %16, %883
+    %886 = or i1 %882, %885
+    %887 = const i32 2650808371
+    %888 = and i32 %887, %15
+    %889 = eq i32 %16, %887
+    %890 = or i1 %886, %889
+    %891 = const i32 2650824755
+    %892 = and i32 %891, %15
+    %893 = eq i32 %16, %891
+    %894 = or i1 %890, %893
+    %895 = const i32 2952798259
+    %896 = and i32 %895, %15
+    %897 = eq i32 %16, %895
+    %898 = or i1 %894, %897
+    %899 = and i1 %9, %5
+    %900 = and i1 %5, %9
+    br %898, %901, %case_body66
+case_body65:
+    br %9, %if_false11, %if_true11
+if_false10:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit9
+if_true10:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit9
+if_exit8:
+    %68 = phi i1 [%902, %if_exit9], [%9, %if_false9]
+    br %case_exit
+if_exit9:
+    %902 = phi i1 [%9, %if_false10], [%5, %if_true10]
+    br %if_exit8
+if_false11:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit10
+if_true11:
+    %903 = uge i3 %791, %733
+    %904 = ule i3 %791, %734
+    %905 = and i1 %903, %904
+    %906 = or i1 %5, %905
+    %907 = eq i3 %791, %735
+    %908 = or i1 %905, %907
+    %909 = and i1 %5, %908
+    %910 = eq i3 %791, %736
+    %911 = and i1 %5, %910
+    br %5, %if_false12, %if_true12
+901:
+    %912 = const i32 2556428339
+    %913 = and i32 %912, %572
+    %914 = eq i32 %573, %912
+    %915 = or i1 %5, %914
+    %916 = const i32 2556444723
+    %917 = and i32 %916, %572
+    %918 = eq i32 %573, %916
+    %919 = or i1 %914, %918
+    %920 = const i32 2554339379
+    %921 = and i32 %920, %572
+    %922 = eq i32 %573, %920
+    %923 = or i1 %919, %922
+    %924 = const i32 2554355763
+    %925 = and i32 %924, %572
+    %926 = eq i32 %573, %924
+    %927 = or i1 %923, %926
+    %928 = const i32 2952814643
+    %929 = and i32 %928, %15
+    %930 = eq i32 %16, %928
+    %931 = or i1 %927, %930
+    %932 = const i32 3019907123
+    %933 = and i32 %932, %15
+    %934 = eq i32 %16, %932
+    %935 = or i1 %931, %934
+    %936 = const i32 3019923507
+    %937 = and i32 %936, %15
+    %938 = eq i32 %16, %936
+    %939 = or i1 %935, %938
+    br %939, %940, %case_body67
+case_body66:
+    br %5, %if_false13, %if_true13
+if_false12:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit11
+if_true12:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit11
+if_exit10:
+    %33 = phi i1 [%941, %if_exit11], [%9, %if_false11]
+    br %case_exit
+if_exit11:
+    %941 = phi i1 [%9, %if_false12], [%5, %if_true12]
+    br %if_exit10
+if_false13:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit12
+if_true13:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit12
+940:
+    %942 = const i32 603996243
+    %943 = and i32 %942, %15
+    %944 = eq i32 %16, %942
+    %945 = or i1 %5, %944
+    %946 = const i32 604000339
+    %947 = and i32 %946, %15
+    %948 = eq i32 %16, %946
+    %949 = or i1 %944, %948
+    %950 = const i32 604004435
+    %951 = and i32 %950, %15
+    %952 = eq i32 %16, %950
+    %953 = or i1 %949, %952
+    %954 = const i32 738213971
+    %955 = and i32 %954, %15
+    %956 = eq i32 %16, %954
+    %957 = or i1 %953, %956
+    %958 = const i32 738218067
+    %959 = and i32 %958, %15
+    %960 = eq i32 %16, %958
+    %961 = or i1 %957, %960
+    br %961, %962, %case_body68
+case_body67:
+    br %5, %if_false14, %if_true14
+if_exit12:
+    %79 = phi i1 [%5, %if_true13], [%9, %if_false13]
+    br %case_exit
+if_false14:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit13
+if_true14:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit13
+962:
+    %963 = const i32 1080033363
+    %964 = and i32 %963, %572
+    %965 = eq i32 %573, %963
+    %966 = or i1 %5, %965
+    br %965, %967, %case_body69
+case_body68:
+    br %5, %if_false15, %if_true15
+if_exit13:
+    %59 = phi i1 [%9, %if_false14], [%5, %if_true14]
+    br %case_exit
+if_false15:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit14
+if_true15:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit14
+967:
+    %968 = const i32 1113587795
+    %969 = and i32 %968, %572
+    %970 = eq i32 %573, %968
+    %971 = or i1 %5, %970
+    br %970, %972, %case_body70
+case_body69:
+    br %5, %if_false16, %if_true16
+if_exit14:
+    %82 = phi i1 [%9, %if_false15], [%5, %if_true15]
+    br %case_exit
+if_false16:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit15
+if_true16:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit15
+972:
+    %973 = const i32 1147142227
+    %974 = and i32 %973, %499
+    %975 = eq i32 %500, %973
+    %976 = or i1 %5, %975
+    %977 = const i32 1142968403
+    %978 = and i32 %977, %572
+    %979 = eq i32 %573, %977
+    %980 = or i1 %975, %979
+    %981 = and i1 %5, %5
+    br %980, %982, %case_body71
+case_body70:
+    br %5, %if_false17, %if_true17
+if_exit15:
+    %46 = phi i1 [%5, %if_true16], [%9, %if_false16]
+    br %case_exit
+if_false17:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit16
+if_true17:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit16
+982:
+    %983 = const i32 2181042227
+    %984 = and i32 %983, %15
+    %985 = eq i32 %16, %983
+    %986 = or i1 %5, %985
+    %987 = const i32 2181058611
+    %988 = and i32 %987, %15
+    %989 = eq i32 %16, %987
+    %990 = or i1 %985, %989
+    %991 = const i32 2214596659
+    %992 = and i32 %991, %15
+    %993 = eq i32 %16, %991
+    %994 = or i1 %990, %993
+    %995 = const i32 2214613043
+    %996 = and i32 %995, %15
+    %997 = eq i32 %16, %995
+    %998 = or i1 %994, %997
+    %999 = const i32 2248151091
+    %1000 = and i32 %999, %15
+    %1001 = eq i32 %16, %999
+    %1002 = or i1 %998, %1001
+    %1003 = const i32 2248167475
+    %1004 = and i32 %1003, %15
+    %1005 = eq i32 %16, %1003
+    %1006 = or i1 %1002, %1005
+    %1007 = const i32 2281705523
+    %1008 = and i32 %1007, %15
+    %1009 = eq i32 %16, %1007
+    %1010 = or i1 %1006, %1009
+    %1011 = const i32 2281721907
+    %1012 = and i32 %1011, %15
+    %1013 = eq i32 %16, %1011
+    %1014 = or i1 %1010, %1013
+    %1015 = const i32 2315259955
+    %1016 = and i32 %1015, %15
+    %1017 = eq i32 %16, %1015
+    %1018 = or i1 %1014, %1017
+    %1019 = const i32 2315276339
+    %1020 = and i32 %1019, %15
+    %1021 = eq i32 %16, %1019
+    %1022 = or i1 %1018, %1021
+    %1023 = const i32 2348814387
+    %1024 = and i32 %1023, %15
+    %1025 = eq i32 %16, %1023
+    %1026 = or i1 %1022, %1025
+    %1027 = const i32 2348830771
+    %1028 = and i32 %1027, %15
+    %1029 = eq i32 %16, %1027
+    %1030 = or i1 %1026, %1029
+    %1031 = const i32 2382368819
+    %1032 = and i32 %1031, %572
+    %1033 = eq i32 %573, %1031
+    %1034 = or i1 %1030, %1033
+    %1035 = const i32 2415923251
+    %1036 = and i32 %1035, %15
+    %1037 = eq i32 %16, %1035
+    %1038 = or i1 %1034, %1037
+    %1039 = const i32 2415939635
+    %1040 = and i32 %1039, %15
+    %1041 = eq i32 %16, %1039
+    %1042 = or i1 %1038, %1041
+    %1043 = const i32 2449477683
+    %1044 = and i32 %1043, %15
+    %1045 = eq i32 %16, %1043
+    %1046 = or i1 %1042, %1045
+    %1047 = const i32 2449494067
+    %1048 = and i32 %1047, %15
+    %1049 = eq i32 %16, %1047
+    %1050 = or i1 %1046, %1049
+    %1051 = const i32 2583695411
+    %1052 = and i32 %1051, %15
+    %1053 = eq i32 %16, %1051
+    %1054 = or i1 %1050, %1053
+    %1055 = const i32 2583711795
+    %1056 = and i32 %1055, %15
+    %1057 = eq i32 %16, %1055
+    %1058 = or i1 %1054, %1057
+    %1059 = const i32 2617249843
+    %1060 = and i32 %1059, %15
+    %1061 = eq i32 %16, %1059
+    %1062 = or i1 %1058, %1061
+    %1063 = const i32 2617266227
+    %1064 = and i32 %1063, %15
+    %1065 = eq i32 %16, %1063
+    %1066 = or i1 %1062, %1065
+    %1067 = const i32 2650804275
+    %1068 = and i32 %1067, %15
+    %1069 = eq i32 %16, %1067
+    %1070 = or i1 %1066, %1069
+    %1071 = const i32 2650820659
+    %1072 = and i32 %1071, %15
+    %1073 = eq i32 %16, %1071
+    %1074 = or i1 %1070, %1073
+    %1075 = const i32 2952794163
+    %1076 = and i32 %1075, %15
+    %1077 = eq i32 %16, %1075
+    %1078 = or i1 %1074, %1077
+    br %1078, %1079, %case_body72
+case_body71:
+    br %5, %if_false18, %if_true18
+if_exit16:
+    %37 = phi i1 [%9, %if_false17], [%5, %if_true17]
+    br %case_exit
+if_false18:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit17
+if_true18:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit17
+1079:
+    %1080 = const i32 2555379763
+    %1081 = and i32 %1080, %572
+    %1082 = eq i32 %573, %1080
+    %1083 = or i1 %5, %1082
+    %1084 = const i32 2555396147
+    %1085 = and i32 %1084, %572
+    %1086 = eq i32 %573, %1084
+    %1087 = or i1 %1082, %1086
+    %1088 = const i32 2554335283
+    %1089 = and i32 %1088, %572
+    %1090 = eq i32 %573, %1088
+    %1091 = or i1 %1087, %1090
+    %1092 = const i32 2554351667
+    %1093 = and i32 %1092, %572
+    %1094 = eq i32 %573, %1092
+    %1095 = or i1 %1091, %1094
+    %1096 = const i32 2952810547
+    %1097 = and i32 %1096, %15
+    %1098 = eq i32 %16, %1096
+    %1099 = or i1 %1095, %1098
+    %1100 = const i32 3019903027
+    %1101 = and i32 %1100, %15
+    %1102 = eq i32 %16, %1100
+    %1103 = or i1 %1099, %1102
+    %1104 = const i32 3019919411
+    %1105 = and i32 %1104, %15
+    %1106 = eq i32 %16, %1104
+    %1107 = or i1 %1103, %1106
+    br %1107, %1108, %case_body73
+case_body72:
+    br %5, %if_false19, %if_true19
+if_exit17:
+    %66 = phi i1 [%5, %if_true18], [%9, %if_false18]
+    br %case_exit
+if_false19:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit18
+if_true19:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit18
+1108:
+    %1109 = const i32 2555387955
+    %1110 = and i32 %1109, %572
+    %1111 = eq i32 %573, %1109
+    %1112 = or i1 %5, %1111
+    %1113 = const i32 2555404339
+    %1114 = and i32 %1113, %572
+    %1115 = eq i32 %573, %1113
+    %1116 = or i1 %1111, %1115
+    %1117 = const i32 2556432435
+    %1118 = and i32 %1117, %572
+    %1119 = eq i32 %573, %1117
+    %1120 = or i1 %1116, %1119
+    %1121 = const i32 2556448819
+    %1122 = and i32 %1121, %572
+    %1123 = eq i32 %573, %1121
+    %1124 = or i1 %1120, %1123
+    br %1124, %1125, %case_body74
+case_body73:
+    br %5, %if_false20, %if_true20
+if_exit18:
+    %55 = phi i1 [%9, %if_false19], [%5, %if_true19]
+    br %case_exit
+if_false20:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit19
+if_true20:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit19
+1125:
+    %1126 = const i32 100663379
+    %1127 = and i32 %1126, %461
+    %1128 = eq i32 %462, %1126
+    %1129 = or i1 %5, %1128
+    %1130 = const i32 234881107
+    %1131 = and i32 %1130, %461
+    %1132 = eq i32 %462, %1130
+    %1133 = or i1 %1128, %1132
+    %1134 = const i32 369098835
+    %1135 = and i32 %1134, %461
+    %1136 = eq i32 %462, %1134
+    %1137 = or i1 %1133, %1136
+    %1138 = const i32 503316563
+    %1139 = and i32 %1138, %461
+    %1140 = eq i32 %462, %1138
+    %1141 = or i1 %1137, %1140
+    %1142 = const i32 637534291
+    %1143 = and i32 %1142, %15
+    %1144 = eq i32 %16, %1142
+    %1145 = or i1 %1141, %1144
+    %1146 = const i32 637538387
+    %1147 = and i32 %1146, %15
+    %1148 = eq i32 %16, %1146
+    %1149 = or i1 %1145, %1148
+    %1150 = const i32 637542483
+    %1151 = and i32 %1150, %15
+    %1152 = eq i32 %16, %1150
+    %1153 = or i1 %1149, %1152
+    %1154 = const i32 771752019
+    %1155 = and i32 %1154, %15
+    %1156 = eq i32 %16, %1154
+    %1157 = or i1 %1153, %1156
+    %1158 = const i32 771756115
+    %1159 = and i32 %1158, %15
+    %1160 = eq i32 %16, %1158
+    %1161 = or i1 %1157, %1160
+    %1162 = const i32 1577058387
+    %1163 = and i32 %1162, %499
+    %1164 = eq i32 %500, %1162
+    %1165 = or i1 %1161, %1164
+    %1166 = const i32 100663363
+    %1167 = and i32 %1166, %505
+    %1168 = eq i32 %506, %1166
+    %1169 = or i1 %1165, %1168
+    %1170 = const i32 100663367
+    %1171 = and i32 %1170, %505
+    %1172 = eq i32 %506, %1170
+    %1173 = or i1 %1169, %1172
+    %1174 = const i32 100663371
+    %1175 = and i32 %1174, %505
+    %1176 = eq i32 %506, %1174
+    %1177 = or i1 %1173, %1176
+    %1178 = const i32 100663375
+    %1179 = and i32 %1178, %505
+    %1180 = eq i32 %506, %1178
+    %1181 = or i1 %1177, %1180
+    br %1181, %1182, %case_body75
+case_body74:
+    br %5, %if_false21, %if_true21
+if_exit19:
+    %69 = phi i1 [%5, %if_true20], [%9, %if_false20]
+    br %case_exit
+if_false21:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit20
+if_true21:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit20
+1182:
+    %1183 = const i32 1076887635
+    %1184 = and i32 %1183, %572
+    %1185 = eq i32 %573, %1183
+    %1186 = or i1 %5, %1185
+    %1187 = const i32 1174405203
+    %1188 = and i32 %1187, %499
+    %1189 = eq i32 %500, %1187
+    %1190 = or i1 %1185, %1189
+    br %1190, %1191, %case_body76
+case_body75:
+    br %5, %if_false22, %if_true22
+if_exit20:
+    %84 = phi i1 [%5, %if_true21], [%9, %if_false21]
+    br %case_exit
+if_false22:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit21
+if_true22:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit21
+1191:
+    %1192 = const i32 1110442067
+    %1193 = and i32 %1192, %572
+    %1194 = eq i32 %573, %1192
+    %1195 = or i1 %5, %1194
+    %1196 = const i32 1175453779
+    %1197 = and i32 %1196, %499
+    %1198 = eq i32 %500, %1196
+    %1199 = or i1 %1194, %1198
+    br %1199, %1200, %case_body77
+case_body76:
+    br %5, %if_false23, %if_true23
+if_exit21:
+    %60 = phi i1 [%5, %if_true22], [%9, %if_false22]
+    br %case_exit
+if_false23:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit22
+if_true23:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit22
+1200:
+    %1201 = const i32 1143996499
+    %1202 = and i32 %1201, %572
+    %1203 = eq i32 %573, %1201
+    %1204 = or i1 %5, %1203
+    %1205 = const i32 1176502355
+    %1206 = and i32 %1205, %499
+    %1207 = eq i32 %500, %1205
+    %1208 = or i1 %1203, %1207
+    br %1208, %1209, %case_body78
+case_body77:
+    br %5, %if_false24, %if_true24
+if_exit22:
+    %35 = phi i1 [%9, %if_false23], [%5, %if_true23]
+    br %case_exit
+if_false24:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit23
+if_true24:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit23
+1209:
+    %1210 = const i32 1144016979
+    %1211 = and i32 %1210, %572
+    %1212 = eq i32 %573, %1210
+    %1213 = or i1 %5, %1212
+    %1214 = const i32 1180696659
+    %1215 = and i32 %1214, %499
+    %1216 = eq i32 %500, %1214
+    %1217 = or i1 %1212, %1216
+    br %1217, %1218, %case_body79
+case_body78:
+    br %5, %if_false25, %if_true25
+if_exit23:
+    %42 = phi i1 [%5, %if_true24], [%9, %if_false24]
+    br %case_exit
+if_false25:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit24
+if_true25:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit24
+1218:
+    %1219 = const i32 2181050419
+    %1220 = and i32 %1219, %15
+    %1221 = eq i32 %16, %1219
+    %1222 = or i1 %5, %1221
+    %1223 = const i32 2181066803
+    %1224 = and i32 %1223, %15
+    %1225 = eq i32 %16, %1223
+    %1226 = or i1 %1221, %1225
+    %1227 = const i32 2214604851
+    %1228 = and i32 %1227, %15
+    %1229 = eq i32 %16, %1227
+    %1230 = or i1 %1226, %1229
+    %1231 = const i32 2214621235
+    %1232 = and i32 %1231, %15
+    %1233 = eq i32 %16, %1231
+    %1234 = or i1 %1230, %1233
+    %1235 = const i32 2248159283
+    %1236 = and i32 %1235, %15
+    %1237 = eq i32 %16, %1235
+    %1238 = or i1 %1234, %1237
+    %1239 = const i32 2248175667
+    %1240 = and i32 %1239, %15
+    %1241 = eq i32 %16, %1239
+    %1242 = or i1 %1238, %1241
+    %1243 = const i32 2281713715
+    %1244 = and i32 %1243, %15
+    %1245 = eq i32 %16, %1243
+    %1246 = or i1 %1242, %1245
+    %1247 = const i32 2281730099
+    %1248 = and i32 %1247, %15
+    %1249 = eq i32 %16, %1247
+    %1250 = or i1 %1246, %1249
+    %1251 = const i32 2315268147
+    %1252 = and i32 %1251, %15
+    %1253 = eq i32 %16, %1251
+    %1254 = or i1 %1250, %1253
+    %1255 = const i32 2315284531
+    %1256 = and i32 %1255, %15
+    %1257 = eq i32 %16, %1255
+    %1258 = or i1 %1254, %1257
+    %1259 = const i32 2348822579
+    %1260 = and i32 %1259, %15
+    %1261 = eq i32 %16, %1259
+    %1262 = or i1 %1258, %1261
+    %1263 = const i32 2348838963
+    %1264 = and i32 %1263, %15
+    %1265 = eq i32 %16, %1263
+    %1266 = or i1 %1262, %1265
+    %1267 = const i32 2382377011
+    %1268 = and i32 %1267, %572
+    %1269 = eq i32 %573, %1267
+    %1270 = or i1 %1266, %1269
+    %1271 = const i32 2415931443
+    %1272 = and i32 %1271, %15
+    %1273 = eq i32 %16, %1271
+    %1274 = or i1 %1270, %1273
+    %1275 = const i32 2415947827
+    %1276 = and i32 %1275, %15
+    %1277 = eq i32 %16, %1275
+    %1278 = or i1 %1274, %1277
+    %1279 = const i32 2449485875
+    %1280 = and i32 %1279, %15
+    %1281 = eq i32 %16, %1279
+    %1282 = or i1 %1278, %1281
+    %1283 = const i32 2449502259
+    %1284 = and i32 %1283, %15
+    %1285 = eq i32 %16, %1283
+    %1286 = or i1 %1282, %1285
+    %1287 = const i32 2583703603
+    %1288 = and i32 %1287, %15
+    %1289 = eq i32 %16, %1287
+    %1290 = or i1 %1286, %1289
+    %1291 = const i32 2583719987
+    %1292 = and i32 %1291, %15
+    %1293 = eq i32 %16, %1291
+    %1294 = or i1 %1290, %1293
+    %1295 = const i32 2617258035
+    %1296 = and i32 %1295, %15
+    %1297 = eq i32 %16, %1295
+    %1298 = or i1 %1294, %1297
+    %1299 = const i32 2617274419
+    %1300 = and i32 %1299, %15
+    %1301 = eq i32 %16, %1299
+    %1302 = or i1 %1298, %1301
+    %1303 = const i32 2650812467
+    %1304 = and i32 %1303, %15
+    %1305 = eq i32 %16, %1303
+    %1306 = or i1 %1302, %1305
+    %1307 = const i32 2650828851
+    %1308 = and i32 %1307, %15
+    %1309 = eq i32 %16, %1307
+    %1310 = or i1 %1306, %1309
+    %1311 = const i32 8
+    %1312 = const i32 16
+    br %1310, %1313, %case_body80
+case_body79:
+    br %9, %if_false26, %if_true26
+if_exit24:
+    %57 = phi i1 [%9, %if_false25], [%5, %if_true25]
+    br %case_exit
+if_false26:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit25
+if_true26:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit25
+1313:
+    %1314 = const i32 2952802355
+    %1315 = and i32 %1314, %15
+    %1316 = eq i32 %16, %1314
+    %1317 = or i1 %5, %1316
+    %1318 = const i32 2952818739
+    %1319 = and i32 %1318, %15
+    %1320 = eq i32 %16, %1318
+    %1321 = or i1 %1316, %1320
+    br %1321, %1322, %case_body81
+case_body80:
+    %1323 = sge i32 %1311, %1312
+    br %5, %if_false27, %if_true27
+if_exit25:
+    %83 = phi i1 [%9, %if_false26], [%5, %if_true26]
+    br %case_exit
+if_false27:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit26
+if_true27:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit26
+1322:
+    %1324 = const i32 2557476915
+    %1325 = and i32 %1324, %572
+    %1326 = eq i32 %573, %1324
+    %1327 = or i1 %5, %1326
+    %1328 = const i32 2557493299
+    %1329 = and i32 %1328, %572
+    %1330 = eq i32 %573, %1328
+    %1331 = or i1 %1326, %1330
+    %1332 = const i32 2554343475
+    %1333 = and i32 %1332, %572
+    %1334 = eq i32 %573, %1332
+    %1335 = or i1 %1331, %1334
+    %1336 = const i32 2554359859
+    %1337 = and i32 %1336, %572
+    %1338 = eq i32 %573, %1336
+    %1339 = or i1 %1335, %1338
+    %1340 = const i32 64
+    br %1339, %1341, %case_body82
+case_body81:
+    br %5, %if_false28, %if_true28
+if_exit26:
+    %72 = phi i1 [%5, %if_true27], [%9, %if_false27]
+    br %case_exit
+if_false28:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit27
+if_true28:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit27
+1341:
+    %1342 = const i32 2986356787
+    %1343 = and i32 %1342, %15
+    %1344 = eq i32 %16, %1342
+    %1345 = or i1 %5, %1344
+    %1346 = const i32 2986373171
+    %1347 = and i32 %1346, %15
+    %1348 = eq i32 %16, %1346
+    %1349 = or i1 %1344, %1348
+    %1350 = const i32 3019911219
+    %1351 = and i32 %1350, %15
+    %1352 = eq i32 %16, %1350
+    %1353 = or i1 %1349, %1352
+    %1354 = const i32 3019927603
+    %1355 = and i32 %1354, %15
+    %1356 = eq i32 %16, %1354
+    %1357 = or i1 %1353, %1356
+    %1358 = const i32 3053465651
+    %1359 = and i32 %1358, %15
+    %1360 = eq i32 %16, %1358
+    %1361 = or i1 %1357, %1360
+    %1362 = const i32 3053482035
+    %1363 = and i32 %1362, %15
+    %1364 = eq i32 %16, %1362
+    %1365 = or i1 %1361, %1364
+    br %1365, %1366, %case_body83
+case_body82:
+    %1367 = sge i32 %1311, %1340
+    br %5, %if_false29, %if_true29
+if_exit27:
+    %86 = phi i1 [%5, %if_true28], [%9, %if_false28]
+    br %case_exit
+if_false29:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit28
+if_true29:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit28
+1366:
+    %1368 = const i32 2557485107
+    %1369 = and i32 %1368, %572
+    %1370 = eq i32 %573, %1368
+    %1371 = or i1 %5, %1370
+    %1372 = const i32 2557501491
+    %1373 = and i32 %1372, %572
+    %1374 = eq i32 %573, %1372
+    %1375 = or i1 %1370, %1374
+    %1376 = const i32 2556440627
+    %1377 = and i32 %1376, %572
+    %1378 = eq i32 %573, %1376
+    %1379 = or i1 %1375, %1378
+    %1380 = const i32 2556457011
+    %1381 = and i32 %1380, %572
+    %1382 = eq i32 %573, %1380
+    %1383 = or i1 %1379, %1382
+    %1384 = const i32 32
+    br %1383, %1385, %case_body84
+case_body83:
+    br %5, %if_false30, %if_true30
+if_exit28:
+    %77 = phi i1 [%5, %if_true29], [%9, %if_false29]
+    br %case_exit
+if_false30:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit29
+if_true30:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit29
+1385:
+    %1386 = const i32 2557481011
+    %1387 = and i32 %1386, %572
+    %1388 = eq i32 %573, %1386
+    %1389 = or i1 %5, %1388
+    %1390 = const i32 2557497395
+    %1391 = and i32 %1390, %572
+    %1392 = eq i32 %573, %1390
+    %1393 = or i1 %1388, %1392
+    %1394 = const i32 2555392051
+    %1395 = and i32 %1394, %572
+    %1396 = eq i32 %573, %1394
+    %1397 = or i1 %1393, %1396
+    %1398 = const i32 2555408435
+    %1399 = and i32 %1398, %572
+    %1400 = eq i32 %573, %1398
+    %1401 = or i1 %1397, %1400
+    %1402 = sge i32 %1311, %1384
+    br %1401, %1403, %case_body85
+case_body84:
+    %1404 = sge i32 %1311, %1384
+    br %5, %if_false31, %if_true31
+if_exit29:
+    %32 = phi i1 [%9, %if_false30], [%5, %if_true30]
+    br %case_exit
+if_false31:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit30
+if_true31:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit30
+1403:
+    %1405 = const i32 2684354643
+    %1406 = and i32 %1405, %15
+    %1407 = eq i32 %16, %1405
+    %1408 = or i1 %5, %1407
+    %1409 = const i32 2684358739
+    %1410 = and i32 %1409, %15
+    %1411 = eq i32 %16, %1409
+    %1412 = or i1 %1407, %1411
+    %1413 = const i32 2684362835
+    %1414 = and i32 %1413, %15
+    %1415 = eq i32 %16, %1413
+    %1416 = or i1 %1412, %1415
+    %1417 = const i32 3758100563
+    %1418 = and i32 %1417, %572
+    %1419 = eq i32 %573, %1417
+    %1420 = or i1 %1416, %1419
+    %1421 = const i32 3221225555
+    %1422 = and i32 %1421, %499
+    %1423 = eq i32 %500, %1421
+    %1424 = or i1 %1420, %1423
+    %1425 = const i32 3222274131
+    %1426 = and i32 %1425, %499
+    %1427 = eq i32 %500, %1425
+    %1428 = or i1 %1424, %1427
+    %1429 = const i32 3758096467
+    %1430 = and i32 %1429, %572
+    %1431 = eq i32 %573, %1429
+    %1432 = or i1 %1428, %1431
+    br %1432, %1433, %case_body86
+case_body85:
+    br %5, %if_false32, %if_true32
+if_exit30:
+    %38 = phi i1 [%9, %if_false31], [%5, %if_true31]
+    br %case_exit
+if_false32:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit31
+if_true32:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit31
+1433:
+    %1434 = const i32 2684354611
+    %1435 = and i32 %1434, %15
+    %1436 = eq i32 %16, %1434
+    %1437 = or i1 %5, %1436
+    %1438 = const i32 2684370995
+    %1439 = and i32 %1438, %15
+    %1440 = eq i32 %16, %1438
+    %1441 = or i1 %1436, %1440
+    %1442 = const i32 2717909043
+    %1443 = and i32 %1442, %15
+    %1444 = eq i32 %16, %1442
+    %1445 = or i1 %1441, %1444
+    %1446 = const i32 2717925427
+    %1447 = and i32 %1446, %15
+    %1448 = eq i32 %16, %1446
+    %1449 = or i1 %1445, %1448
+    %1450 = const i32 2751463475
+    %1451 = and i32 %1450, %15
+    %1452 = eq i32 %16, %1450
+    %1453 = or i1 %1449, %1452
+    %1454 = const i32 2751479859
+    %1455 = and i32 %1454, %15
+    %1456 = eq i32 %16, %1454
+    %1457 = or i1 %1453, %1456
+    %1458 = const i32 2785017907
+    %1459 = and i32 %1458, %15
+    %1460 = eq i32 %16, %1458
+    %1461 = or i1 %1457, %1460
+    %1462 = const i32 2785034291
+    %1463 = and i32 %1462, %15
+    %1464 = eq i32 %16, %1462
+    %1465 = or i1 %1461, %1464
+    %1466 = const i32 2818572339
+    %1467 = and i32 %1466, %15
+    %1468 = eq i32 %16, %1466
+    %1469 = or i1 %1465, %1468
+    %1470 = const i32 2818588723
+    %1471 = and i32 %1470, %15
+    %1472 = eq i32 %16, %1470
+    %1473 = or i1 %1469, %1472
+    %1474 = const i32 2852126771
+    %1475 = and i32 %1474, %15
+    %1476 = eq i32 %16, %1474
+    %1477 = or i1 %1473, %1476
+    %1478 = const i32 2852143155
+    %1479 = and i32 %1478, %15
+    %1480 = eq i32 %16, %1478
+    %1481 = or i1 %1477, %1480
+    %1482 = const i32 2551185459
+    %1483 = and i32 %1482, %572
+    %1484 = eq i32 %573, %1482
+    %1485 = or i1 %1481, %1484
+    br %1485, %1486, %case_body87
+case_body86:
+    br %9, %if_false33, %if_true33
+if_exit31:
+    %49 = phi i1 [%9, %if_false32], [%5, %if_true32]
+    br %case_exit
+if_false33:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit32
+if_true33:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    drv i1$ %acc_register_rd, %9, %6
+    br %if_exit32
+1486:
+    %1487 = const i32 2717909075
+    %1488 = and i32 %1487, %15
+    %1489 = eq i32 %16, %1487
+    %1490 = or i1 %5, %1489
+    %1491 = const i32 2717913171
+    %1492 = and i32 %1491, %15
+    %1493 = eq i32 %16, %1491
+    %1494 = or i1 %1489, %1493
+    %1495 = const i32 2717917267
+    %1496 = and i32 %1495, %15
+    %1497 = eq i32 %16, %1495
+    %1498 = or i1 %1494, %1497
+    %1499 = const i32 3791654995
+    %1500 = and i32 %1499, %572
+    %1501 = eq i32 %573, %1499
+    %1502 = or i1 %1498, %1501
+    %1503 = const i32 3254779987
+    %1504 = and i32 %1503, %499
+    %1505 = eq i32 %500, %1503
+    %1506 = or i1 %1502, %1505
+    %1507 = const i32 3255828563
+    %1508 = and i32 %1507, %499
+    %1509 = eq i32 %500, %1507
+    %1510 = or i1 %1506, %1509
+    br %1510, %1511, %case_body88
+case_body87:
+    %1512 = sge i32 %1311, %1340
+    br %5, %if_false34, %if_true34
+if_exit32:
+    %64 = phi i1 [%9, %if_false33], [%5, %if_true33]
+    br %case_exit
+if_false34:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit33
+if_true34:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit33
+1511:
+    %1513 = const i32 2751463507
+    %1514 = and i32 %1513, %15
+    %1515 = eq i32 %16, %1513
+    %1516 = or i1 %5, %1515
+    %1517 = const i32 2751467603
+    %1518 = and i32 %1517, %15
+    %1519 = eq i32 %16, %1517
+    %1520 = or i1 %1515, %1519
+    %1521 = const i32 2751471699
+    %1522 = and i32 %1521, %15
+    %1523 = eq i32 %16, %1521
+    %1524 = or i1 %1520, %1523
+    %1525 = const i32 3825209427
+    %1526 = and i32 %1525, %572
+    %1527 = eq i32 %573, %1525
+    %1528 = or i1 %1524, %1527
+    %1529 = const i32 3288334419
+    %1530 = and i32 %1529, %499
+    %1531 = eq i32 %500, %1529
+    %1532 = or i1 %1528, %1531
+    %1533 = const i32 3289382995
+    %1534 = and i32 %1533, %499
+    %1535 = eq i32 %500, %1533
+    %1536 = or i1 %1532, %1535
+    %1537 = const i32 3825205331
+    %1538 = and i32 %1537, %572
+    %1539 = eq i32 %573, %1537
+    %1540 = or i1 %1536, %1539
+    br %1540, %1541, %case_body89
+case_body88:
+    br %9, %if_false35, %if_true35
+if_exit33:
+    %44 = phi i1 [%5, %if_true34], [%9, %if_false34]
+    br %case_exit
+if_false35:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit34
+if_true35:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    drv i1$ %acc_register_rd, %9, %6
+    br %if_exit34
+1541:
+    %1542 = const i32 2684362803
+    %1543 = and i32 %1542, %15
+    %1544 = eq i32 %16, %1542
+    %1545 = or i1 %5, %1544
+    %1546 = const i32 2684379187
+    %1547 = and i32 %1546, %15
+    %1548 = eq i32 %16, %1546
+    %1549 = or i1 %1544, %1548
+    %1550 = const i32 2717917235
+    %1551 = and i32 %1550, %15
+    %1552 = eq i32 %16, %1550
+    %1553 = or i1 %1549, %1552
+    %1554 = const i32 2717933619
+    %1555 = and i32 %1554, %15
+    %1556 = eq i32 %16, %1554
+    %1557 = or i1 %1553, %1556
+    %1558 = const i32 2751471667
+    %1559 = and i32 %1558, %15
+    %1560 = eq i32 %16, %1558
+    %1561 = or i1 %1557, %1560
+    %1562 = const i32 2751488051
+    %1563 = and i32 %1562, %15
+    %1564 = eq i32 %16, %1562
+    %1565 = or i1 %1561, %1564
+    %1566 = const i32 2785026099
+    %1567 = and i32 %1566, %15
+    %1568 = eq i32 %16, %1566
+    %1569 = or i1 %1565, %1568
+    %1570 = const i32 2785042483
+    %1571 = and i32 %1570, %15
+    %1572 = eq i32 %16, %1570
+    %1573 = or i1 %1569, %1572
+    %1574 = const i32 2818580531
+    %1575 = and i32 %1574, %15
+    %1576 = eq i32 %16, %1574
+    %1577 = or i1 %1573, %1576
+    %1578 = const i32 2818596915
+    %1579 = and i32 %1578, %15
+    %1580 = eq i32 %16, %1578
+    %1581 = or i1 %1577, %1580
+    %1582 = const i32 2852134963
+    %1583 = and i32 %1582, %15
+    %1584 = eq i32 %16, %1582
+    %1585 = or i1 %1581, %1584
+    %1586 = const i32 2852151347
+    %1587 = and i32 %1586, %15
+    %1588 = eq i32 %16, %1586
+    %1589 = or i1 %1585, %1588
+    %1590 = const i32 2551193651
+    %1591 = and i32 %1590, %572
+    %1592 = eq i32 %573, %1590
+    %1593 = or i1 %1589, %1592
+    br %1593, %1594, %case_body90
+case_body89:
+    %1595 = uge i3 %791, %733
+    %1596 = ule i3 %791, %734
+    %1597 = and i1 %1595, %1596
+    %1598 = or i1 %5, %1597
+    %1599 = eq i3 %791, %735
+    %1600 = or i1 %1597, %1599
+    %1601 = and i1 %5, %1600
+    %1602 = eq i3 %791, %736
+    %1603 = and i1 %5, %1602
+    br %5, %if_false36, %if_true36
+if_exit34:
+    %45 = phi i1 [%5, %if_true35], [%9, %if_false35]
+    br %case_exit
+if_false36:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit35
+if_true36:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    drv i1$ %acc_register_rd, %9, %6
+    br %if_exit35
+1594:
+    %1604 = const i32 2550145075
+    %1605 = and i32 %1604, %572
+    %1606 = eq i32 %573, %1604
+    %1607 = or i1 %5, %1606
+    %1608 = const i32 2552242227
+    %1609 = and i32 %1608, %572
+    %1610 = eq i32 %573, %1608
+    %1611 = or i1 %1606, %1610
+    %1612 = const i32 2552258611
+    %1613 = and i32 %1612, %572
+    %1614 = eq i32 %573, %1612
+    %1615 = or i1 %1611, %1614
+    %1616 = not i1 %9
+    br %1615, %1617, %case_body91
+case_body90:
+    br %5, %if_false37, %if_true37
+if_exit35:
+    %73 = phi i1 [%9, %if_false36], [%5, %if_true36]
+    br %case_exit
+if_false37:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit36
+if_true37:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit36
+1617:
+    %1618 = const i32 2751479891
+    %1619 = and i32 %1618, %15
+    %1620 = eq i32 %16, %1618
+    %1621 = or i1 %5, %1620
+    %1622 = const i32 2751483987
+    %1623 = and i32 %1622, %15
+    %1624 = eq i32 %16, %1622
+    %1625 = or i1 %1620, %1624
+    %1626 = const i32 2751488083
+    %1627 = and i32 %1626, %15
+    %1628 = eq i32 %16, %1626
+    %1629 = or i1 %1625, %1628
+    %1630 = const i32 3825225811
+    %1631 = and i32 %1630, %572
+    %1632 = eq i32 %573, %1630
+    %1633 = or i1 %1629, %1632
+    %1634 = const i32 3825221715
+    %1635 = and i32 %1634, %572
+    %1636 = eq i32 %573, %1634
+    %1637 = or i1 %1633, %1636
+    br %1637, %1638, %case_body92
+case_body91:
+    br %5, %if_false38, %if_true38
+if_exit36:
+    %58 = phi i1 [%9, %if_false37], [%5, %if_true37]
+    br %case_exit
+if_false38:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit37
+if_true38:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit37
+1638:
+    %1639 = const i32 2684358707
+    %1640 = and i32 %1639, %15
+    %1641 = eq i32 %16, %1639
+    %1642 = or i1 %5, %1641
+    %1643 = const i32 2684375091
+    %1644 = and i32 %1643, %15
+    %1645 = eq i32 %16, %1643
+    %1646 = or i1 %1641, %1645
+    %1647 = const i32 2717913139
+    %1648 = and i32 %1647, %15
+    %1649 = eq i32 %16, %1647
+    %1650 = or i1 %1646, %1649
+    %1651 = const i32 2717929523
+    %1652 = and i32 %1651, %15
+    %1653 = eq i32 %16, %1651
+    %1654 = or i1 %1650, %1653
+    %1655 = const i32 2751467571
+    %1656 = and i32 %1655, %15
+    %1657 = eq i32 %16, %1655
+    %1658 = or i1 %1654, %1657
+    %1659 = const i32 2751483955
+    %1660 = and i32 %1659, %15
+    %1661 = eq i32 %16, %1659
+    %1662 = or i1 %1658, %1661
+    %1663 = const i32 2785022003
+    %1664 = and i32 %1663, %15
+    %1665 = eq i32 %16, %1663
+    %1666 = or i1 %1662, %1665
+    %1667 = const i32 2785038387
+    %1668 = and i32 %1667, %15
+    %1669 = eq i32 %16, %1667
+    %1670 = or i1 %1666, %1669
+    %1671 = const i32 2818576435
+    %1672 = and i32 %1671, %15
+    %1673 = eq i32 %16, %1671
+    %1674 = or i1 %1670, %1673
+    %1675 = const i32 2818592819
+    %1676 = and i32 %1675, %15
+    %1677 = eq i32 %16, %1675
+    %1678 = or i1 %1674, %1677
+    %1679 = const i32 2852130867
+    %1680 = and i32 %1679, %15
+    %1681 = eq i32 %16, %1679
+    %1682 = or i1 %1678, %1681
+    %1683 = const i32 2852147251
+    %1684 = and i32 %1683, %15
+    %1685 = eq i32 %16, %1683
+    %1686 = or i1 %1682, %1685
+    %1687 = const i32 2551189555
+    %1688 = and i32 %1687, %572
+    %1689 = eq i32 %573, %1687
+    %1690 = or i1 %1686, %1689
+    br %1690, %1691, %case_body93
+case_body92:
+    br %5, %if_false39, %if_true39
+if_exit37:
+    %81 = phi i1 [%9, %if_false38], [%5, %if_true38]
+    br %case_exit
+if_false39:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit38
+if_true39:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    drv i1$ %acc_register_rd, %9, %6
+    br %if_exit38
+1691:
+    %1692 = const i32 2550140979
+    %1693 = and i32 %1692, %572
+    %1694 = eq i32 %573, %1692
+    %1695 = or i1 %5, %1694
+    %1696 = const i32 2552238131
+    %1697 = and i32 %1696, %572
+    %1698 = eq i32 %573, %1696
+    %1699 = or i1 %1694, %1698
+    %1700 = const i32 2552254515
+    %1701 = and i32 %1700, %572
+    %1702 = eq i32 %573, %1700
+    %1703 = or i1 %1699, %1702
+    br %1703, %1704, %case_body94
+case_body93:
+    br %5, %if_false40, %if_true40
+if_exit38:
+    %74 = phi i1 [%9, %if_false39], [%5, %if_true39]
+    br %case_exit
+if_false40:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit39
+if_true40:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit39
+1704:
+    %1705 = const i32 2785017939
+    %1706 = and i32 %1705, %15
+    %1707 = eq i32 %16, %1705
+    %1708 = or i1 %5, %1707
+    %1709 = const i32 2785022035
+    %1710 = and i32 %1709, %15
+    %1711 = eq i32 %16, %1709
+    %1712 = or i1 %1707, %1711
+    %1713 = const i32 2785026131
+    %1714 = and i32 %1713, %15
+    %1715 = eq i32 %16, %1713
+    %1716 = or i1 %1712, %1715
+    %1717 = const i32 3858763859
+    %1718 = and i32 %1717, %572
+    %1719 = eq i32 %573, %1717
+    %1720 = or i1 %1716, %1719
+    %1721 = const i32 3321888851
+    %1722 = and i32 %1721, %499
+    %1723 = eq i32 %500, %1721
+    %1724 = or i1 %1720, %1723
+    %1725 = const i32 3322937427
+    %1726 = and i32 %1725, %499
+    %1727 = eq i32 %500, %1725
+    %1728 = or i1 %1724, %1727
+    %1729 = const i32 3858759763
+    %1730 = and i32 %1729, %572
+    %1731 = eq i32 %573, %1729
+    %1732 = or i1 %1728, %1731
+    br %1732, %1733, %case_body95
+case_body94:
+    br %5, %if_false41, %if_true41
+if_exit39:
+    %48 = phi i1 [%9, %if_false40], [%5, %if_true40]
+    br %case_exit
+if_false41:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit40
+if_true41:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit40
+1733:
+    %1734 = const i32 2684366899
+    %1735 = and i32 %1734, %15
+    %1736 = eq i32 %16, %1734
+    %1737 = or i1 %5, %1736
+    %1738 = const i32 2684383283
+    %1739 = and i32 %1738, %15
+    %1740 = eq i32 %16, %1738
+    %1741 = or i1 %1736, %1740
+    %1742 = const i32 2717921331
+    %1743 = and i32 %1742, %15
+    %1744 = eq i32 %16, %1742
+    %1745 = or i1 %1741, %1744
+    %1746 = const i32 2717937715
+    %1747 = and i32 %1746, %15
+    %1748 = eq i32 %16, %1746
+    %1749 = or i1 %1745, %1748
+    %1750 = const i32 2751475763
+    %1751 = and i32 %1750, %15
+    %1752 = eq i32 %16, %1750
+    %1753 = or i1 %1749, %1752
+    %1754 = const i32 2751492147
+    %1755 = and i32 %1754, %15
+    %1756 = eq i32 %16, %1754
+    %1757 = or i1 %1753, %1756
+    %1758 = const i32 2785030195
+    %1759 = and i32 %1758, %15
+    %1760 = eq i32 %16, %1758
+    %1761 = or i1 %1757, %1760
+    %1762 = const i32 2785046579
+    %1763 = and i32 %1762, %15
+    %1764 = eq i32 %16, %1762
+    %1765 = or i1 %1761, %1764
+    %1766 = const i32 2818584627
+    %1767 = and i32 %1766, %15
+    %1768 = eq i32 %16, %1766
+    %1769 = or i1 %1765, %1768
+    %1770 = const i32 2818601011
+    %1771 = and i32 %1770, %15
+    %1772 = eq i32 %16, %1770
+    %1773 = or i1 %1769, %1772
+    %1774 = const i32 2852139059
+    %1775 = and i32 %1774, %15
+    %1776 = eq i32 %16, %1774
+    %1777 = or i1 %1773, %1776
+    %1778 = const i32 2852155443
+    %1779 = and i32 %1778, %15
+    %1780 = eq i32 %16, %1778
+    %1781 = or i1 %1777, %1780
+    %1782 = sge i32 %1311, %1312
+    br %1781, %1783, %case_body96
+case_body95:
+    br %5, %if_false42, %if_true42
+if_exit40:
+    %34 = phi i1 [%5, %if_true41], [%9, %if_false41]
+    br %case_exit
+if_false42:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit41
+if_true42:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %uses_rd, %9, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    drv i1$ %acc_register_rd, %9, %6
+    br %if_exit41
+1783:
+    %1784 = const i32 2550149171
+    %1785 = and i32 %1784, %572
+    %1786 = eq i32 %573, %1784
+    %1787 = or i1 %5, %1786
+    %1788 = const i32 2551197747
+    %1789 = and i32 %1788, %572
+    %1790 = eq i32 %573, %1788
+    %1791 = or i1 %1786, %1790
+    %1792 = const i32 2552246323
+    %1793 = and i32 %1792, %572
+    %1794 = eq i32 %573, %1792
+    %1795 = or i1 %1791, %1794
+    %1796 = const i32 2552262707
+    %1797 = and i32 %1796, %572
+    %1798 = eq i32 %573, %1796
+    %1799 = or i1 %1795, %1798
+    br %1799, %1800, %case_body97
+case_body96:
+    br %5, %if_false43, %if_true43
+if_exit41:
+    %54 = phi i1 [%9, %if_false42], [%5, %if_true42]
+    br %case_exit
+if_false43:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit42
+if_true43:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit42
+1800:
+    %1801 = const i32 4026531923
+    %1802 = and i32 %1801, %572
+    %1803 = eq i32 %573, %1801
+    %1804 = or i1 %5, %1803
+    %1805 = const i32 3489661011
+    %1806 = and i32 %1805, %499
+    %1807 = eq i32 %500, %1805
+    %1808 = or i1 %1803, %1807
+    %1809 = const i32 3490709587
+    %1810 = and i32 %1809, %499
+    %1811 = eq i32 %500, %1809
+    %1812 = or i1 %1808, %1811
+    br %1812, %1813, %case_body98
+case_body97:
+    br %5, %if_false44, %if_true44
+if_exit42:
+    %56 = phi i1 [%9, %if_false43], [%5, %if_true43]
+    br %case_exit
+if_false44:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit43
+if_true44:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit43
+1813:
+    %1814 = const i32 3523215443
+    %1815 = and i32 %1814, %499
+    %1816 = eq i32 %500, %1814
+    %1817 = or i1 %5, %1816
+    %1818 = const i32 3524264019
+    %1819 = and i32 %1818, %499
+    %1820 = eq i32 %500, %1818
+    %1821 = or i1 %1816, %1820
+    br %1821, %1822, %case_body99
+case_body98:
+    br %9, %if_false45, %if_true45
+if_exit43:
+    %47 = phi i1 [%9, %if_false44], [%5, %if_true44]
+    br %case_exit
+if_false45:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit44
+if_true45:
+    drv i4$ %opa_select, %20, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit44
+1822:
+    %1823 = const i32 4093640787
+    %1824 = and i32 %1823, %572
+    %1825 = eq i32 %573, %1823
+    %1826 = or i1 %5, %1825
+    %1827 = const i32 3556769875
+    %1828 = and i32 %1827, %499
+    %1829 = eq i32 %500, %1827
+    %1830 = or i1 %1825, %1829
+    %1831 = const i32 3557818451
+    %1832 = and i32 %1831, %499
+    %1833 = eq i32 %500, %1831
+    %1834 = or i1 %1830, %1833
+    br %1834, %1835, %case_body100
+case_body99:
+    br %9, %if_false46, %if_true46
+if_exit44:
+    %63 = phi i1 [%9, %if_false45], [%5, %if_true45]
+    br %case_exit
+if_false46:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit45
+if_true46:
+    drv i4$ %opa_select, %20, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit45
+1835:
+    %1836 = const i32 2550161459
+    %1837 = and i32 %1836, %572
+    %1838 = eq i32 %573, %1836
+    %1839 = or i1 %5, %1838
+    %1840 = const i32 2553290803
+    %1841 = and i32 %1840, %572
+    %1842 = eq i32 %573, %1840
+    %1843 = or i1 %1838, %1842
+    %1844 = const i32 2553307187
+    %1845 = and i32 %1844, %572
+    %1846 = eq i32 %573, %1844
+    %1847 = or i1 %1843, %1846
+    br %1847, %1848, %case_body101
+case_body100:
+    br %5, %if_false47, %if_true47
+if_exit45:
+    %51 = phi i1 [%5, %if_true46], [%9, %if_false46]
+    br %case_exit
+if_false47:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit46
+if_true47:
+    drv i4$ %opa_select, %20, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit46
+1848:
+    %1849 = const i32 4093657171
+    %1850 = and i32 %1849, %572
+    %1851 = eq i32 %573, %1849
+    %1852 = or i1 %5, %1851
+    br %1851, %1853, %case_body102
+case_body101:
+    br %5, %if_false48, %if_true48
+if_exit46:
+    %88 = phi i1 [%9, %if_false47], [%5, %if_true47]
+    br %case_exit
+if_false48:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit47
+if_true48:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit47
+1853:
+    %1854 = const i32 2550157363
+    %1855 = and i32 %1854, %572
+    %1856 = eq i32 %573, %1854
+    %1857 = or i1 %5, %1856
+    %1858 = const i32 2553286707
+    %1859 = and i32 %1858, %572
+    %1860 = eq i32 %573, %1858
+    %1861 = or i1 %1856, %1860
+    %1862 = const i32 2553303091
+    %1863 = and i32 %1862, %572
+    %1864 = eq i32 %573, %1862
+    %1865 = or i1 %1861, %1864
+    br %1865, %1866, %case_body103
+case_body102:
+    br %5, %if_false49, %if_true49
+if_exit47:
+    %78 = phi i1 [%5, %if_true48], [%9, %if_false48]
+    br %case_exit
+if_false49:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit48
+if_true49:
+    drv i4$ %opa_select, %20, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit48
+1866:
+    %1867 = const i32 4127195219
+    %1868 = and i32 %1867, %572
+    %1869 = eq i32 %573, %1867
+    %1870 = or i1 %5, %1869
+    %1871 = const i32 3590324307
+    %1872 = and i32 %1871, %499
+    %1873 = eq i32 %500, %1871
+    %1874 = or i1 %1869, %1873
+    %1875 = const i32 3591372883
+    %1876 = and i32 %1875, %499
+    %1877 = eq i32 %500, %1875
+    %1878 = or i1 %1874, %1877
+    br %1878, %1879, %case_body104
+case_body103:
+    br %5, %if_false50, %if_true50
+if_exit48:
+    %65 = phi i1 [%9, %if_false49], [%5, %if_true49]
+    br %case_exit
+if_false50:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit49
+if_true50:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit49
+1879:
+    %1880 = const i32 2550165555
+    %1881 = and i32 %1880, %572
+    %1882 = eq i32 %573, %1880
+    %1883 = or i1 %5, %1882
+    %1884 = const i32 2553294899
+    %1885 = and i32 %1884, %572
+    %1886 = eq i32 %573, %1884
+    %1887 = or i1 %1882, %1886
+    %1888 = const i32 2553311283
+    %1889 = and i32 %1888, %572
+    %1890 = eq i32 %573, %1888
+    %1891 = or i1 %1887, %1890
+    br %1891, %1892, %case_body105
+case_body104:
+    br %5, %if_false51, %if_true51
+if_exit49:
+    %75 = phi i1 [%9, %if_false50], [%5, %if_true50]
+    br %case_exit
+if_false51:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit50
+if_true51:
+    drv i4$ %opa_select, %20, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit50
+1892:
+    %1893 = const i32 11
+    %1894 = and i32 %1893, %184
+    %1895 = eq i32 %185, %1893
+    %1896 = or i1 %5, %1895
+    br %1895, %1897, %case_body106
+case_body105:
+    br %5, %if_false52, %if_true52
+if_exit50:
+    %70 = phi i1 [%5, %if_true51], [%9, %if_false51]
+    br %case_exit
+if_false52:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit51
+if_true52:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit51
+1897:
+    %1898 = const i32 8199
+    %1899 = and i32 %1898, %24
+    %1900 = eq i32 %25, %1898
+    %1901 = or i1 %5, %1900
+    br %1900, %1902, %case_body107
+case_body106:
+    br %9, %if_false53, %if_true53
+if_exit51:
+    %71 = phi i1 [%5, %if_true52], [%9, %if_false52]
+    br %case_exit
+if_false53:
+    br %if_exit52
+if_true53:
+    drv i4$ %opa_select, %20, %6
+    br %if_exit52
+1902:
+    %1903 = const i32 8231
+    %1904 = and i32 %1903, %24
+    %1905 = eq i32 %25, %1903
+    %1906 = or i1 %5, %1905
+    br %1905, %1907, %case_body108
+case_body107:
+    br %9, %if_false54, %if_true54
+if_exit52:
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %case_exit
+if_false54:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit53
+if_true54:
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit53
+1907:
+    %1908 = const i32 12295
+    %1909 = and i32 %1908, %24
+    %1910 = eq i32 %25, %1908
+    %1911 = or i1 %5, %1910
+    %1912 = or i1 %9, %9
+    br %1910, %1913, %case_body109
+case_body108:
+    br %9, %if_false55, %if_true55
+if_exit53:
+    %36 = phi i1 [%5, %if_true54], [%9, %if_false54]
+    br %case_exit
+if_false55:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit54
+if_true55:
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %164, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit54
+1913:
+    %1914 = const i32 12327
+    %1915 = and i32 %1914, %24
+    %1916 = eq i32 %25, %1914
+    %1917 = or i1 %5, %1916
+    br %1916, %1918, %case_body110
+case_body109:
+    br %9, %if_false56, %if_true56
+if_exit54:
+    %52 = phi i1 [%5, %if_true55], [%9, %if_false55]
+    br %case_exit
+if_false56:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit55
+if_true56:
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit55
+1918:
+    %1919 = const i32 4103
+    %1920 = and i32 %1919, %24
+    %1921 = eq i32 %25, %1919
+    %1922 = or i1 %5, %1921
+    br %1921, %1923, %case_body111
+case_body110:
+    br %9, %if_false57, %if_true57
+if_exit55:
+    %67 = phi i1 [%9, %if_false56], [%5, %if_true56]
+    br %case_exit
+if_false57:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit56
+if_true57:
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %164, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit56
+1923:
+    %1924 = const i32 4135
+    %1925 = and i32 %1924, %24
+    %1926 = eq i32 %25, %1924
+    %1927 = or i1 %5, %1926
+    br %1926, %1928, %case_body112
+case_body111:
+    br %5, %if_false58, %if_true58
+if_exit56:
+    %85 = phi i1 [%9, %if_false57], [%5, %if_true57]
+    br %case_exit
+if_false58:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit57
+if_true58:
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit57
+1928:
+    %1929 = const i32 7
+    %1930 = and i32 %1929, %24
+    %1931 = eq i32 %25, %1929
+    %1932 = or i1 %5, %1931
+    br %1931, %1933, %case_body113
+case_body112:
+    br %5, %if_false59, %if_true59
+if_exit57:
+    %62 = phi i1 [%5, %if_true58], [%9, %if_false58]
+    br %case_exit
+if_false59:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit58
+if_true59:
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %164, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit58
+1933:
+    %1934 = const i32 39
+    %1935 = and i32 %1934, %24
+    %1936 = eq i32 %25, %1934
+    %1937 = or i1 %5, %1936
+    br %1936, %87, %case_body114
+case_body113:
+    br %5, %if_false60, %if_true60
+if_exit58:
+    %40 = phi i1 [%9, %if_false59], [%5, %if_true59]
+    br %case_exit
+if_false60:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit59
+if_true60:
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %29, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit59
+87:
+    drv i1$ %illegal_inst1, %9, %6
+    br %case_exit
+case_body114:
+    br %5, %if_false61, %if_true61
+if_exit59:
+    %39 = phi i1 [%9, %if_false60], [%5, %if_true60]
+    br %case_exit
+if_false61:
+    drv i1$ %illegal_inst1, %9, %6
+    br %if_exit60
+if_true61:
+    drv i4$ %opa_select, %20, %6
+    drv i4$ %opb_select, %164, %6
+    drv i1$ %write_rd1, %5, %6
+    drv i1$ %acc_qvalid_o, %valid_instr2, %6
+    br %if_exit60
+if_exit60:
+    %41 = phi i1 [%9, %if_false61], [%5, %if_true61]
+    br %case_exit
+if_exit61:
+    br %check
+}

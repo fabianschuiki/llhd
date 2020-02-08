@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - llhd-check: Honor dump flag `-d`.
 - Fix Temporal Region Graph computation not producing distinc regions for blocks that may execute at different points in time.
+- Fix broken phi nodes after block removal. ([#87](https://github.com/fabianschuiki/llhd/issues/87))
 
 ## 0.10.0 - 2019-11-24
 ### Added

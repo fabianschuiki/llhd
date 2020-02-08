@@ -1,0 +1,16 @@
+proc %foo () -> (i32$ %Z) {
+entry:
+    %zero = const i1 0
+    br %zero, %bb0, %bb1
+bb0:
+    %a = const i32 1337
+    br %bb2
+bb1:
+    %b = const i32 42
+    br %bb2
+bb2:
+    %c = phi i32 [%a, %bb0], [%b, %bb1]
+    %delta = const time 0s 1d 0e
+    drv i32$ %Z, %c, %delta
+    halt
+}

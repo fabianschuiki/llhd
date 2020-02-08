@@ -178,6 +178,7 @@ impl UnitBuilder for FunctionBuilder<'_> {
 
     fn remove_block(&mut self, bb: Block) {
         let insts: Vec<_> = self.func.layout.insts(bb).collect();
+        self.func.dfg_mut().remove_block_use(bb);
         self.func.layout.remove_block(bb);
         self.func.cfg_mut().remove_block(bb);
         for inst in insts {

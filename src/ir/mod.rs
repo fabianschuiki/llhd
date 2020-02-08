@@ -153,6 +153,25 @@ impl Value {
     fn invalid() -> Self {
         Value(std::u32::MAX)
     }
+
+    /// Check if this is a placeholder for invalid values.
+    pub fn is_invalid(&self) -> bool {
+        self.0 == std::u32::MAX
+    }
+}
+
+impl Block {
+    /// A placeholder for invalid blocks.
+    ///
+    /// This is used for unused instruction arguments.
+    fn invalid() -> Self {
+        Block(std::u32::MAX)
+    }
+
+    /// Check if this is a placeholder for invalid blocks.
+    pub fn is_invalid(&self) -> bool {
+        self.0 == std::u32::MAX
+    }
 }
 
 /// Internal table storage for values.
@@ -251,7 +270,9 @@ pub struct ValueDumper<'a>(Value, &'a DataFlowGraph);
 
 impl std::fmt::Display for ValueDumper<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if let Some(name) = self.1.get_name(self.0) {
+        if self.0.is_invalid() {
+            write!(f, "%<invalid>")
+        } else if let Some(name) = self.1.get_name(self.0) {
             write!(f, "%{}", name)
         } else if let Some(index) = self.1.get_anonymous_hint(self.0) {
             write!(f, "%{}", index)
@@ -273,7 +294,9 @@ pub struct BlockDumper<'a>(Block, &'a ControlFlowGraph);
 
 impl std::fmt::Display for BlockDumper<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if let Some(name) = self.1.get_name(self.0) {
+        if self.0.is_invalid() {
+            write!(f, "%<invalid>")
+        } else if let Some(name) = self.1.get_name(self.0) {
             write!(f, "%{}", name)
         } else if let Some(index) = self.1.get_anonymous_hint(self.0) {
             write!(f, "%{}", index)

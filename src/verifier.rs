@@ -202,6 +202,32 @@ impl<'a> InstVerifier<'a> {
             });
         }
 
+        // Check that none of the arguments are invalid.
+        let mut args_invalid = false;
+        for &value in self.dfg[inst].args() {
+            if value.is_invalid() {
+                args_invalid = true;
+                self.verifier.errors.push(VerifierError {
+                    unit: self.verifier.unit.clone(),
+                    object: Some(inst.dump(self.dfg, self.cfg).to_string()),
+                    message: format!("{} uses invalid value", self.dfg[inst].opcode()),
+                });
+            }
+        }
+        for &block in self.dfg[inst].blocks() {
+            if block.is_invalid() {
+                args_invalid = true;
+                self.verifier.errors.push(VerifierError {
+                    unit: self.verifier.unit.clone(),
+                    object: Some(inst.dump(self.dfg, self.cfg).to_string()),
+                    message: format!("{} uses invalid block", self.dfg[inst].opcode()),
+                });
+            }
+        }
+        if args_invalid {
+            return;
+        }
+
         // Check for instruction-specific invariants. This match block acts as
         // the source of truth for all restrictions imposed by instructions.
         match self.dfg[inst].opcode() {

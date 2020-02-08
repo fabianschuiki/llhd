@@ -29,3 +29,6 @@ indoc = "0.3"
 
 [build-dependencies]
 lalrpop = "0.16.3"
+
+[profile.release]
+debug = true

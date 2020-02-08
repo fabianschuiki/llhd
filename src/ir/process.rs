@@ -177,6 +177,7 @@ impl UnitBuilder for ProcessBuilder<'_> {
 
     fn remove_block(&mut self, bb: Block) {
         let insts: Vec<_> = self.prok.layout.insts(bb).collect();
+        self.prok.dfg_mut().remove_block_use(bb);
         self.prok.layout.remove_block(bb);
         self.prok.cfg_mut().remove_block(bb);
         for inst in insts {

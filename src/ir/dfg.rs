@@ -223,6 +223,20 @@ impl DataFlowGraph {
         count
     }
 
+    /// Remove all uses of a block.
+    ///
+    /// Replaces all uses of the block with an invalid block placeholder, and
+    /// removes phi node entries for the block.
+    ///
+    /// Returns how many blocks were replaced.
+    pub fn remove_block_use(&mut self, block: Block) -> usize {
+        let mut count = 0;
+        for inst in self.insts.storage.values_mut() {
+            count += inst.remove_block(block);
+        }
+        count
+    }
+
     /// Resolve a constant value.
     ///
     /// Returns `None` if the value is not constant. Note that this *does not*

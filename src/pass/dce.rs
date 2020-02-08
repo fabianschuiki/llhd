@@ -102,13 +102,25 @@ impl Pass for DeadCodeElim {
                 block.dump(unit.cfg()),
                 into.dump(unit.cfg())
             );
-            let layout = unit.func_layout_mut();
-            let term = layout.terminator(into);
-            while let Some(inst) = layout.first_inst(block) {
-                layout.remove_inst(inst);
-                layout.insert_inst_before(inst, term);
+            let term = unit.func_layout().terminator(into);
+            while let Some(inst) = unit.func_layout().first_inst(block) {
+                unit.func_layout_mut().remove_inst(inst);
+                // Do not migrate phi nodes, which at this point have only the
+                // `into` block as predecessor and can be trivially replaced.
+                if unit.dfg()[inst].opcode() == Opcode::Phi {
+                    assert_eq!(
+                        unit.dfg()[inst].blocks(),
+                        &[into],
+                        "Phi node must be trivially removable"
+                    );
+                    let phi = unit.dfg().inst_result(inst);
+                    let repl = unit.dfg()[inst].args()[0];
+                    unit.dfg_mut().replace_use(phi, repl);
+                } else {
+                    unit.func_layout_mut().insert_inst_before(inst, term);
+                }
             }
-            layout.remove_inst(term);
+            unit.func_layout_mut().remove_inst(term);
             unit.dfg_mut().replace_block_use(block, into);
             unit.remove_block(block);
         }

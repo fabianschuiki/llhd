@@ -873,6 +873,27 @@ impl InstData {
         count
     }
 
+    /// Remove all uses of a block.
+    pub fn remove_block(&mut self, block: Block) -> usize {
+        match self {
+            InstData::Phi { bbs, args, .. } => {
+                let mut count = 0;
+                for i in 0..bbs.len() {
+                    if i >= bbs.len() {
+                        break;
+                    }
+                    if bbs[i] == block {
+                        bbs.swap_remove(i);
+                        args.swap_remove(i);
+                        count += 1;
+                    }
+                }
+                count
+            }
+            _ => self.replace_block(block, Block::invalid()),
+        }
+    }
+
     /// Return the const int constructed by this instruction.
     pub fn get_const_int(&self) -> Option<&IntValue> {
         match self {
