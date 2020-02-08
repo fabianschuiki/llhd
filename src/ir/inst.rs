@@ -1249,6 +1249,7 @@ impl std::fmt::Display for InstDumper<'_> {
             }
         } else if let InstData::Phi { .. } = *data {
             let mut comma = false;
+            write!(f, " ")?;
             for (arg, block) in data.args().iter().zip(data.blocks().iter()) {
                 if comma {
                     write!(f, ", ")?;
