@@ -5,3 +5,6 @@
 /Cargo.lock
 /target
 /docs/_build
+flamegraph.svg
+callgrind.*
+perf.*
