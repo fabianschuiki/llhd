@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added
+- llhd-opt: Add `-p` option to specify exact passes to be executed.
 
 ### Changed
 - Use dense vector table instead of hash map for blocks, instructions, values, and external unit data.

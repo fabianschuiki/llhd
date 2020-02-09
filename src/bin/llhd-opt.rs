@@ -58,6 +58,16 @@ fn main_inner() -> Result<(), String> {
                 .long("--no-parallel")
                 .help("Do not parallelize execution"),
         )
+        .arg(
+            Arg::with_name("passes")
+                .short("p")
+                .long("pass")
+                .value_name("PASS")
+                .takes_value(true)
+                .multiple(true)
+                .help(HELP_PASSES.lines().next().unwrap())
+                .long_help(HELP_PASSES),
+        )
         .get_matches();
 
     // Configure the logger.
@@ -80,6 +90,10 @@ fn main_inner() -> Result<(), String> {
             .unwrap();
     }
 
+    // Prepare the time tracking.
+    let mut times = vec![];
+    let tinit = time::precise_time_ns();
+
     // Read the input.
     let t0 = time::precise_time_ns();
     let mut module = {
@@ -95,38 +109,61 @@ fn main_inner() -> Result<(), String> {
         verifier.finish().map_err(|errs| format!("{}", errs))?;
         module
     };
-
-    // Apply optimization pass.
-    let ctx = PassContext;
     let t1 = time::precise_time_ns();
-    llhd::pass::ConstFolding::run_on_module(&ctx, &mut module);
-    let t2 = time::precise_time_ns();
-    llhd::pass::VarToPhiPromotion::run_on_module(&ctx, &mut module);
-    let t3 = time::precise_time_ns();
-    llhd::pass::GlobalCommonSubexprElim::run_on_module(&ctx, &mut module);
-    let t4 = time::precise_time_ns();
-    llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module);
-    let t5 = time::precise_time_ns();
-    llhd::pass::TemporalCodeMotion::run_on_module(&ctx, &mut module);
-    let t6 = time::precise_time_ns();
-    llhd::pass::LoopIndepCodeMotion::run_on_module(&ctx, &mut module);
-    let t7 = time::precise_time_ns();
-    llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module);
-    let t8 = time::precise_time_ns();
-    llhd::pass::ControlFlowSimplification::run_on_module(&ctx, &mut module);
-    let t9 = time::precise_time_ns();
-    llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module);
-    let t10 = time::precise_time_ns();
+    times.push(("parse".to_owned(), t1 - t0));
+
+    // Determine the optimization passes to be run.
+    let passes: Vec<_> = if let Some(passes) = matches.values_of("passes") {
+        passes.collect()
+    } else {
+        vec![
+            "cf", "vtpp", "gcse", "dce", "tcm", "licm", "dce", "cfs", "dce",
+        ]
+    };
+
+    // Apply optimization passes.
+    debug!("Running {:?}", passes);
+    let ctx = PassContext;
+    for &pass in &passes {
+        let t0 = time::precise_time_ns();
+        let _changes = match pass {
+            "cf" => llhd::pass::ConstFolding::run_on_module(&ctx, &mut module),
+            "cfs" => llhd::pass::ControlFlowSimplification::run_on_module(&ctx, &mut module),
+            "dce" => llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module),
+            "gcse" => llhd::pass::GlobalCommonSubexprElim::run_on_module(&ctx, &mut module),
+            "licm" => llhd::pass::LoopIndepCodeMotion::run_on_module(&ctx, &mut module),
+            "tcm" => llhd::pass::TemporalCodeMotion::run_on_module(&ctx, &mut module),
+            "vtpp" => llhd::pass::VarToPhiPromotion::run_on_module(&ctx, &mut module),
+            "verify" => {
+                let mut verifier = Verifier::new();
+                verifier.verify_module(&module);
+                match verifier.finish() {
+                    Ok(_) => (),
+                    Err(errs) => error!("Verification failed:\n{}", errs),
+                }
+                false // no changes
+            }
+            _ => {
+                error!("Unknown pass `{}`", pass);
+                continue;
+            }
+        };
+        let t1 = time::precise_time_ns();
+        times.push((pass.to_owned(), t1 - t0));
+    }
 
     // Verify modified module.
+    let t0 = time::precise_time_ns();
     let mut verifier = Verifier::new();
     verifier.verify_module(&module);
     verifier
         .finish()
         .map_err(|errs| format!("Verification failed after optimization:\n{}", errs))?;
-    let t11 = time::precise_time_ns();
+    let t1 = time::precise_time_ns();
+    times.push(("verify".to_owned(), t1 - t0));
 
     // Write the output.
+    let t0 = time::precise_time_ns();
     if let Some(path) = matches.value_of("output") {
         let output = File::create(path).map_err(|e| format!("{}", e))?;
         let output = BufWriter::with_capacity(1 << 20, output);
@@ -134,24 +171,20 @@ fn main_inner() -> Result<(), String> {
     } else {
         llhd::assembly::write_module(std::io::stdout().lock(), &module);
     }
-    let t12 = time::precise_time_ns();
+    let t1 = time::precise_time_ns();
+    times.push(("output".to_owned(), t1 - t0));
+
+    // Final time stat.
+    let tfinal = time::precise_time_ns();
+    times.push(("total".to_owned(), tfinal - tinit));
 
     // Print execution time statistics if requested by the user.
     if matches.is_present("time-passes") {
         eprintln!("Execution Time Statistics:");
-        eprintln!("  Parse:   {:8.3} ms", (t1 - t0) as f64 * 1.0e-6);
-        eprintln!("  CF:      {:8.3} ms", (t2 - t1) as f64 * 1.0e-6);
-        eprintln!("  VTPP:    {:8.3} ms", (t3 - t2) as f64 * 1.0e-6);
-        eprintln!("  GCSE:    {:8.3} ms", (t4 - t3) as f64 * 1.0e-6);
-        eprintln!("  DCE:     {:8.3} ms", (t5 - t4) as f64 * 1.0e-6);
-        eprintln!("  TCM:     {:8.3} ms", (t6 - t5) as f64 * 1.0e-6);
-        eprintln!("  LICM:    {:8.3} ms", (t7 - t6) as f64 * 1.0e-6);
-        eprintln!("  DCE:     {:8.3} ms", (t8 - t7) as f64 * 1.0e-6);
-        eprintln!("  CFS:     {:8.3} ms", (t9 - t8) as f64 * 1.0e-6);
-        eprintln!("  DCE:     {:8.3} ms", (t10 - t9) as f64 * 1.0e-6);
-        eprintln!("  Verify:  {:8.3} ms", (t11 - t10) as f64 * 1.0e-6);
-        eprintln!("  Output:  {:8.3} ms", (t12 - t11) as f64 * 1.0e-6);
-        eprintln!("  Total:   {:8.3} ms", (t12 - t0) as f64 * 1.0e-6);
+        for (mut name, ns) in times {
+            name.push(':');
+            eprintln!("  {:10}  {:8.3} ms", name, ns as f64 * 1.0e-6);
+        }
         eprintln!("");
         eprintln!("Structure Statistics:");
         eprintln!(
@@ -176,4 +209,18 @@ in the output:
 -vvv    Also print info messages
 -vvvv   Also print debug messages
 -vvvvv  Also print detailed tracing messages
+";
+
+static HELP_PASSES: &str = "Exact order of passes to run
+
+This option specifies the exact order of passes to be executed. The admissible \
+passes are as follows:
+
+cf      Constant folding
+cfs     Control Flow Simplification
+dce     Dead Code Elimination
+gcse    Global Common Subexpression Elimination
+licm    Loop-Invariant Code Motion
+tcm     Temporal Code Motion
+vtpp    Var-to-Phi Promotion
 ";
