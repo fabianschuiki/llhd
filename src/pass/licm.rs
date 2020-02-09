@@ -104,6 +104,9 @@ fn move_instruction(
         let layout = unit.func_layout_mut();
         let entry = layout.entry();
         let entry_term = layout.terminator(entry);
+        if layout.inst_block(inst) == Some(entry) {
+            return false;
+        }
         layout.remove_inst(inst);
         layout.insert_inst_before(inst, entry_term);
         debug!(
