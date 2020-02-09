@@ -434,7 +434,7 @@ pub enum FunctionTerm {
 }
 
 mod grammar {
-    include!(concat!(env!("OUT_DIR"), "/bin/llhd-conv/liberty.rs"));
+    include!("liberty_parser.rs");
 }
 
 use grammar::FunctionParser;

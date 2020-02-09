@@ -5,6 +5,7 @@
 
 use crate::{ir::Module, ty::Type, value::TimeValue};
 
+mod grammar;
 mod reader;
 mod writer;
 
