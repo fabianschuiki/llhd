@@ -13,17 +13,17 @@ license = "Apache-2.0 OR MIT"
 travis-ci = { repository = "fabianschuiki/llhd", branch = "master" }
 
 [dependencies]
-num = { version = "0.2", features = ["serde"] }
 bitflags = "1"
 clap = "2"
-lalrpop-util = "0.17.2"
-regex = "0.2.0"
-log = { version = "0.4", features = ["release_max_level_info"] }
-stderrlog = "0.4"
-rayon = "1.2"
-time = "0.1"
-serde = { version = "1", features = ["derive", "rc"] }
 hibitset = "0.6"
+lalrpop-util = "0.17.2"
+log = { version = "0.4", features = ["release_max_level_info"] }
+num = { version = "0.2", features = ["serde"] }
+rayon = "1.2"
+regex = "0.2.0"
+serde = { version = "1", features = ["derive", "rc"] }
+stderrlog = "0.4"
+time = "0.1"
 
 [dev-dependencies]
 indoc = "0.3"
