@@ -1,0 +1,11 @@
+; Simplify mux instructions
+func @foo (i32 %a, i2 %b) i32 {
+entry:
+    %0 = [i32 %a, %a]
+    %1 = [i32 %a, %a, %a, %a]
+    %2 = mux [2 x i32] %0, i2 %b
+    %3 = mux [4 x i32] %1, i2 %b
+    %4 = and i32 %2, %3
+    ret i32 %4
+    ; CHECK: ret i32 %a
+}

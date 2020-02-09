@@ -117,7 +117,8 @@ fn main_inner() -> Result<(), String> {
         passes.collect()
     } else {
         vec![
-            "cf", "vtpp", "gcse", "dce", "tcm", "licm", "dce", "cfs", "dce",
+            "cf", "vtpp", "gcse", "insim", "dce", "tcm", "licm", "insim", "dce", "cfs", "insim",
+            "dce",
         ]
     };
 
@@ -131,6 +132,7 @@ fn main_inner() -> Result<(), String> {
             "cfs" => llhd::pass::ControlFlowSimplification::run_on_module(&ctx, &mut module),
             "dce" => llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module),
             "gcse" => llhd::pass::GlobalCommonSubexprElim::run_on_module(&ctx, &mut module),
+            "insim" => llhd::pass::InstSimplification::run_on_module(&ctx, &mut module),
             "licm" => llhd::pass::LoopIndepCodeMotion::run_on_module(&ctx, &mut module),
             "tcm" => llhd::pass::TemporalCodeMotion::run_on_module(&ctx, &mut module),
             "vtpp" => llhd::pass::VarToPhiPromotion::run_on_module(&ctx, &mut module),
@@ -220,6 +222,7 @@ cf      Constant folding
 cfs     Control Flow Simplification
 dce     Dead Code Elimination
 gcse    Global Common Subexpression Elimination
+insim   Instruction Simplification
 licm    Loop-Invariant Code Motion
 tcm     Temporal Code Motion
 vtpp    Var-to-Phi Promotion
