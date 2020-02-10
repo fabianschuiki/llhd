@@ -117,8 +117,8 @@ fn main_inner() -> Result<(), String> {
         passes.collect()
     } else {
         vec![
-            "cf", "vtpp", "gcse", "insim", "dce", "tcm", "licm", "insim", "dce", "cfs", "insim",
-            "dce",
+            "cf", "vtpp", "gcse", "licm", "tcm", "cf", "licm", "gcse", "insim", "dce", "cfs",
+            "insim", "dce",
         ]
     };
 
@@ -126,6 +126,7 @@ fn main_inner() -> Result<(), String> {
     debug!("Running {:?}", passes);
     let ctx = PassContext;
     for &pass in &passes {
+        trace!("Running pass {}", pass);
         let t0 = time::precise_time_ns();
         let _changes = match pass {
             "cf" => llhd::pass::ConstFolding::run_on_module(&ctx, &mut module),
