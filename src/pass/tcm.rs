@@ -3,9 +3,12 @@
 //! Temporal Code Motion
 
 use crate::ir::prelude::*;
-use crate::ir::{DataFlowGraph, FunctionLayout, InstData};
 use crate::opt::prelude::*;
-use crate::pass::gcse::{DominatorTree, PredecessorTable};
+use crate::{
+    ir::{DataFlowGraph, FunctionLayout, InstData},
+    pass::gcse::{DominatorTree, PredecessorTable},
+    value::IntValue,
+};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     ops::Index,
@@ -24,7 +27,7 @@ use std::{
 pub struct TemporalCodeMotion;
 
 impl Pass for TemporalCodeMotion {
-    fn run_on_cfg(_ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+    fn run_on_cfg(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
         info!("TCM [{}]", unit.unit().name());
         let mut modified = false;
 
@@ -85,38 +88,6 @@ impl Pass for TemporalCodeMotion {
             }
         }
 
-        // Push `drv` instructions towards the tail of the regions.
-        for i in 0..100 {
-            let mut changes = false;
-            debug!("Moving `drv` iteration {}", i);
-
-            // Recompute the TRG.
-            let inner_trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
-            assert_eq!(
-                inner_trg.regions.len(),
-                trg.regions.len(),
-                "{:#?}",
-                inner_trg
-            );
-
-            // Push `drv` instructions down into the successors their sole
-            // successors.
-            let pred = PredecessorTable::new(unit.dfg(), unit.func_layout());
-            changes |= diverge_drives(unit, &inner_trg, &pred); // needs new pred afterwards
-
-            // Push `drv` instructions towards the end of their region as far as
-            // possible, merging drives to the same signal in different branches.
-            let pred = PredecessorTable::new(unit.dfg(), unit.func_layout());
-            let dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &pred);
-            changes |= reconverge_drives(unit, &inner_trg, &dt, &pred); // needs new pred afterwards
-
-            // Continue if we were able to make some changes.
-            modified |= changes;
-            if !changes {
-                break;
-            }
-        }
-
         // Fuse equivalent wait instructions.
         let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
         for tr in &trg.regions {
@@ -162,360 +133,221 @@ impl Pass for TemporalCodeMotion {
             }
         }
 
+        // Push `drv` instructions towards the tails of their temporal regions.
+        modified |= push_drives(ctx, unit);
+
+        // TODO: Coalesce drives to the same signal.
+
         modified
     }
 }
 
-// Push `drv` instructions downwards across diverging control flow. Stops at
-// reconvergent control flow where special treatment is necessary.
-fn diverge_drives(
-    unit: &mut impl UnitBuilder,
-    trg: &TemporalRegionGraph,
-    pt: &PredecessorTable,
-) -> bool {
-    let mut relocs = HashSet::new();
-    let mut worklist = vec![];
+/// Push `drv` instructions downards into the tails of their temporal regions.
+fn push_drives(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+    let mut modified = false;
 
-    // Initialize the relocation list with all drives and take note of the
-    // driven signals.
-    let mut driven_sigs = HashSet::new(); // (bb, sig)
-    let mut drive_order = HashMap::new();
-    for bb in unit.func_layout().blocks() {
-        let mut order_id = 0;
+    // We need the dominator tree of the current CFG.
+    let pt = PredecessorTable::new(unit.dfg(), unit.func_layout());
+    let dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &pt);
+
+    // Build an alias table of all signals, which indicates which signals are
+    // aliases (e.g. extf/exts) of another. As we encounter drives, keep track
+    // of their sequential dependency.
+    let mut aliases = HashMap::<Value, Value>::new();
+    let mut drv_seq = HashMap::<Value, Vec<Inst>>::new();
+    let dfg = unit.dfg();
+    let cfg = unit.cfg();
+    for &bb in dt.blocks_post_order().iter().rev() {
+        trace!("Checking {} for aliases", bb.dump(unit.cfg()));
         for inst in unit.func_layout().insts(bb) {
-            if unit.dfg()[inst].opcode() == Opcode::Drv {
-                let reloc = (bb, inst);
-                relocs.insert(reloc);
-                worklist.push(reloc);
-                driven_sigs.insert((bb, unit.dfg()[inst].args()[0]));
-                drive_order.insert(inst, order_id);
-                order_id += 1;
-            }
-        }
-    }
-
-    // Push the instructions down as far as possible.
-    trace!("Considering drv diverges:");
-    let mut helper_blocks = HashSet::new(); // (from_bb, to_bb, inst)
-    while let Some((bb, inst)) = worklist.pop() {
-        let sig = unit.dfg()[inst].args()[0];
-
-        // Stop moving instructions when we hit the end of a temporal region.
-        if trg.is_tail(bb) {
-            trace!(
-                "  Skipping {} (in temporal tail)",
-                inst.dump(unit.dfg(), unit.try_cfg())
-            );
-            continue;
-        }
-
-        // First handle the case of non-diverging control flow. In this case we
-        // can simply push the drive down into our successor if we are it's sole
-        // predecessor. Otherwise we're out of luck.
-        let diverging = pt.succ_set(bb).len() > 1;
-        if !diverging {
-            let succ = pt.succ(bb).next().unwrap();
-            if pt.is_sole_pred(bb, succ) && !driven_sigs.contains(&(succ, sig)) {
-                let reloc = (succ, inst);
-                relocs.remove(&(bb, inst));
-                relocs.insert(reloc);
-                worklist.push(reloc);
+            let data = &dfg[inst];
+            if let Opcode::Drv | Opcode::DrvCond = data.opcode() {
+                // Gather drive sequences to the same signal.
+                let signal = data.args()[0];
+                let signal = aliases.get(&signal).cloned().unwrap_or(signal);
                 trace!(
-                    "  Pushing {} into non-diverging succ {}",
-                    inst.dump(unit.dfg(), unit.try_cfg()),
-                    succ.dump(unit.cfg())
+                    "  Drive {} ({})",
+                    signal.dump(dfg),
+                    inst.dump(dfg, Some(cfg))
                 );
-            }
-        }
-        // Then handle the case of diverging control flow. In this case we push
-        // the drive into successors where we are the sole predecessor, or
-        // create a helper block otherwise.
-        else {
-            relocs.remove(&(bb, inst));
-            for succ in pt.succ(bb) {
-                if driven_sigs.contains(&(succ, sig)) {
+                drv_seq.entry(signal).or_default().push(inst);
+            } else if let Some(value) = dfg.get_inst_result(inst) {
+                // Gather signal aliases.
+                if !dfg.value_type(value).is_signal() {
                     continue;
                 }
-
-                // Directly push into blocks where we are the sole predecessor.
-                if pt.is_sole_pred(bb, succ) {
-                    let reloc = (succ, inst);
-                    relocs.insert(reloc);
-                    worklist.push(reloc);
+                for &arg in data.args() {
+                    if !dfg.value_type(arg).is_signal() {
+                        continue;
+                    }
+                    let arg = aliases.get(&arg).cloned().unwrap_or(arg);
                     trace!(
-                        "  Pushing {} into diverging succ {}",
-                        inst.dump(unit.dfg(), unit.try_cfg()),
-                        succ.dump(unit.cfg())
+                        "  Alias {} of {} ({})",
+                        value.dump(dfg),
+                        arg.dump(dfg),
+                        inst.dump(dfg, Some(cfg))
                     );
-                }
-                // Otherwise create a helper block.
-                else {
-                    trace!(
-                        "  Pushing {} into helper block from {} to {}",
-                        inst.dump(unit.dfg(), unit.try_cfg()),
-                        bb.dump(unit.cfg()),
-                        succ.dump(unit.cfg())
-                    );
-                    helper_blocks.insert((bb, succ, inst));
+                    aliases.insert(value, arg);
                 }
             }
         }
     }
 
-    // Enforce order on drives to the same signal, and retain only last drive.
-    let mut relocated = HashSet::new();
-    let mut skip = HashSet::new();
-    let mut lookup = HashMap::<(Block, Value, Value), Inst>::new();
-    let dfg = unit.dfg();
-    for &(into_bb, inst) in &relocs {
-        let sig = dfg[inst].args()[0];
-        let delay = dfg[inst].args()[2];
-        let key = (into_bb, sig, delay);
-        if let Some(&other) = lookup.get(&key) {
-            let inst_bb = unit.func_layout().inst_block(inst).unwrap();
-            let other_bb = unit.func_layout().inst_block(other).unwrap();
-            trace!(
-                "Double drive {} in {}",
-                inst.dump(dfg, unit.try_cfg()),
-                into_bb.dump(unit.cfg())
-            );
+    // Build the temporal region graph.
+    let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
 
-            // If both originated in the same basic block we use their relative
-            // ordering to determine which takes precedence.
-            if inst_bb == other_bb {
-                if drive_order[&inst] > drive_order[&other] {
-                    debug!(
-                        "Removing overdriven {} in {}",
-                        other.dump(dfg, unit.try_cfg()),
-                        other_bb.dump(unit.cfg())
-                    );
-                    skip.insert((into_bb, other));
-                    relocated.insert(other);
-                    lookup.insert(key, inst);
-                } else {
-                    debug!(
-                        "Removing overdriven {} in {}",
-                        inst.dump(dfg, unit.try_cfg()),
-                        inst_bb.dump(unit.cfg())
-                    );
-                    skip.insert((into_bb, inst));
-                    relocated.insert(inst);
-                }
+    // Try to migrate drive instructions into the tails of their respective
+    // temporal regions.
+    for (&signal, drives) in &drv_seq {
+        trace!("Moving drives on signal {}", signal.dump(unit.dfg()));
+        for &drive in drives.iter().rev() {
+            // trace!("  Checking {}", drive.dump(unit.dfg(), unit.try_cfg()));
+            let moved = push_drive(ctx, drive, unit, &dt, &trg);
+            modified |= moved;
+            // If the move was not possible, abort all other drives since we
+            // cannot move over them.
+            if !moved {
+                break;
             }
-            // Try to resolve the conflict by checking whether one occurs before
-            // the other before the move.
-            else {
-                panic!("Cannot resolve double drive originating in different bbs");
-            }
-        } else {
-            lookup.insert(key, inst);
         }
     }
 
-    // Apply the relocations.
-    let mut modified = false;
-    for (into_bb, inst) in relocs {
-        let bb = unit.func_layout().inst_block(inst).unwrap();
-
-        // Skip instructions that don't move or have already been discarded.
-        if into_bb == bb || skip.contains(&(into_bb, inst)) {
-            continue;
-        }
-
-        debug!(
-            "Moving {} into {}",
-            inst.dump(unit.dfg(), unit.try_cfg()),
-            into_bb.dump(unit.cfg())
-        );
-        modified |= true;
-        relocated.insert(inst);
-
-        let dfg = unit.dfg();
-        let sig = dfg[inst].args()[0];
-        let value = dfg[inst].args()[1];
-        let delay = dfg[inst].args()[2];
-        unit.prepend_to(into_bb);
-        unit.ins().drv(sig, value, delay);
-    }
-
-    // Create the helper blocks.
-    let mut helper_cache = HashMap::new();
-    for (from_bb, to_bb, inst) in helper_blocks {
-        debug!(
-            "Moving {} into helper from {} to {}",
-            inst.dump(unit.dfg(), unit.try_cfg()),
-            from_bb.dump(unit.cfg()),
-            to_bb.dump(unit.cfg())
-        );
-        modified |= true;
-        relocated.insert(inst);
-
-        // Create block.
-        let helper = *helper_cache.entry((from_bb, to_bb)).or_insert_with(|| {
-            let helper = unit.block();
-            unit.append_to(helper);
-            unit.ins().br(to_bb);
-            let term = unit.func_layout().terminator(from_bb);
-            unit.dfg_mut()[term].replace_block(to_bb, helper);
-            helper
-        });
-        let dfg = unit.dfg();
-        let sig = dfg[inst].args()[0];
-        let value = dfg[inst].args()[1];
-        let delay = dfg[inst].args()[2];
-        unit.insert_before(unit.func_layout().terminator(helper));
-        unit.ins().drv(sig, value, delay);
-    }
-
-    // Remove the relocated drives.
-    for inst in relocated {
-        unit.remove_inst(inst);
-        modified |= true;
-    }
-
+    trace!("All drives moved");
     modified
 }
 
-// Merge `drv` instructions across reconvergent control flow boundaries.
-fn reconverge_drives(
+fn push_drive(
+    _ctx: &PassContext,
+    drive: Inst,
     unit: &mut impl UnitBuilder,
+    dt: &DominatorTree,
     trg: &TemporalRegionGraph,
-    _dt: &DominatorTree,
-    pt: &PredecessorTable,
 ) -> bool {
-    let mut modified = false;
-    for tr in &trg.regions {
-        let dfg = unit.dfg();
-        let layout = unit.func_layout();
+    let dfg = unit.dfg();
+    let cfg = unit.cfg();
+    let layout = unit.func_layout();
+    let src_bb = layout.inst_block(drive).unwrap();
+    let tr = trg[src_bb];
+    let mut moves = Vec::new();
 
-        // Group the drives in this region by driven signal.
-        let mut drvs = HashMap::<(Value, Value), HashSet<Inst>>::new();
-        for bb in tr.blocks() {
-            for inst in layout.insts(bb) {
-                if dfg[inst].opcode() == Opcode::Drv {
-                    drvs.entry((dfg[inst].args()[0], dfg[inst].args()[2]))
-                        .or_default()
-                        .insert(inst);
-                }
+    // For each tail block that this drive moves to, find the branch conditions
+    // along the way that lead to the drive being executed, and check if the
+    // arguments for the drive are available in the destination block.
+    for dst_bb in trg[tr].tail_blocks() {
+        // trace!("    Will have to move to {}", dst_bb.dump(cfg));
+
+        // First check if all arguments of the drive instruction dominate the
+        // destination block. If not, the move is not possible.
+        for &arg in dfg[drive].args() {
+            if !dt.value_dominates_block(dfg, layout, arg, dst_bb) {
+                trace!(
+                    "  Skipping {} ({} does not dominate {})",
+                    drive.dump(dfg, Some(cfg)),
+                    arg.dump(dfg),
+                    dst_bb.dump(cfg)
+                );
+                return false;
             }
         }
 
-        // Group the drives by the successor into which they can be pushed.
-        trace!("Considering drv reconverges:");
-        let mut candidates = HashMap::<Block, Vec<(Value, Value, Vec<Inst>)>>::new();
-        for ((sig, del), drvs) in drvs {
-            let mut into = HashMap::<Block, (Vec<Inst>, HashSet<Block>)>::new();
-            for drv in drvs {
-                let drv_bb = layout.inst_block(drv).unwrap();
-
-                // Be careful not to merge across temporal region boundaries.
-                if trg.is_tail(drv_bb) {
-                    trace!(
-                        "  Skipping {} (in temporal tail)",
-                        drv.dump(unit.dfg(), unit.try_cfg())
-                    );
-                    continue;
+        // Find the branch conditions that lead to src_bb being executed on the
+        // way to dst_bb. We do this by stepping up the dominator tree until we
+        // find the common dominator. For every step of src_bb, we record the
+        // branch condition.
+        let mut src_finger = src_bb;
+        let mut dst_finger = dst_bb;
+        let mut conds = Vec::<(Value, bool)>::new();
+        while src_finger != dst_finger {
+            let i1 = dt.block_order(src_finger);
+            let i2 = dt.block_order(dst_finger);
+            if i1 < i2 {
+                let parent = dt.dominator(src_finger);
+                if src_finger == parent {
+                    break;
                 }
-
-                // Consider merging of the drive across non-divergent edges
-                // only.
-                let succ = pt.succ_set(drv_bb);
-                if succ.len() == 1 {
-                    let e = into.entry(*succ.iter().next().unwrap()).or_default();
-                    (e.0).push(drv);
-                    (e.1).insert(drv_bb);
-                    trace!("  Considering {} ", drv.dump(unit.dfg(), unit.try_cfg()));
-                } else {
-                    trace!(
-                        "  Skipping {} (divergent control flow)",
-                        drv.dump(unit.dfg(), unit.try_cfg())
-                    );
-                }
-            }
-
-            // Add all the movements into the set of candidates where drives
-            // can be extracted from *all* predecessors of a block.
-            for (into_bb, (insts, from_bbs)) in into {
-                let pred_set = pt.pred_set(into_bb);
-                if from_bbs == *pred_set {
-                    candidates
-                        .entry(into_bb)
-                        .or_default()
-                        .push((sig, del, insts));
-                } else {
-                    trace!(
-                        "  Skipping merge of {:?} into {} (predecessors {:?} not fully covered by {:?})",
-                        insts,
-                        into_bb.dump(unit.cfg()),
-                        pred_set, from_bbs
-                    );
-                    // TODO(fschuiki): Introduce helper basic block in this case
-                    // which carries a unified drive.
-                }
-            }
-        }
-
-        // Consider the drives
-        for (into_bb, candidates) in candidates {
-            unit.prepend_to(into_bb);
-            for (sig, delay, insts) in candidates {
-                let dfg = unit.dfg();
-                let layout = unit.func_layout();
-                debug!(
-                    "Grouping {} drives {:?} into {}",
-                    sig.dump(dfg),
-                    insts,
-                    into_bb.dump(unit.cfg()),
-                );
-
-                // Determine the phi node arms and omit the phi node if the arms
-                // are homogenous.
-                let mut phi_args = vec![];
-                let mut phi_blocks = vec![];
-                for &inst in &insts {
-                    phi_args.push(dfg[inst].args()[1]);
-                    phi_blocks.push(layout.inst_block(inst).unwrap());
-                }
-
-                // Ensure that the blocks we merge from are unique, i.e. that no
-                // block contained two drives. These cases should be handled earlier
-                // when diverging drives.
-                let phi_blocks_unique: HashSet<_> = phi_blocks.iter().cloned().collect();
-                assert_eq!(
-                    phi_blocks_unique.len(),
-                    phi_blocks.len(),
-                    "merging multiple drives to {} from the same origin bb should never happen: {:?}",
-                    sig.dump(dfg),
-                    phi_blocks
-                );
-
-                // Create phi node or bypass.
-                let homogenous = phi_args.iter().all(|&x| x == phi_args[0]);
-                let phi = if homogenous {
-                    trace!("Using single value {}", phi_args[0].dump(unit.dfg()));
-                    phi_args[0]
-                } else {
-                    trace!("Add phi node in {} with arms:", into_bb.dump(unit.cfg()));
-                    for (v, bb) in phi_args.iter().zip(phi_blocks.iter()) {
-                        trace!("  [{}, {}]", v.dump(dfg), bb.dump(unit.cfg()));
+                let term = layout.terminator(parent);
+                if dfg[term].opcode() == Opcode::BrCond {
+                    let cond_val = dfg[term].args()[0];
+                    if !dt.value_dominates_block(dfg, layout, cond_val, dst_bb) {
+                        trace!(
+                            "  Skipping {} (branch cond {} does not dominate {})",
+                            drive.dump(dfg, Some(cfg)),
+                            cond_val.dump(dfg),
+                            dst_bb.dump(cfg)
+                        );
+                        return false;
                     }
-                    unit.ins().phi(phi_args, phi_blocks)
-                };
-
-                // Insert the drive.
-                // unit.insert_before(unit.func_layout().terminator(into_bb));
-                unit.ins().drv(sig, phi, delay);
-
-                // Remove the old drive instructions.
-                for inst in insts {
-                    unit.remove_inst(inst);
+                    let cond_pol = dfg[term].blocks().iter().position(|&bb| bb == src_finger);
+                    if let Some(cond_pol) = cond_pol {
+                        conds.push((cond_val, cond_pol != 0));
+                        trace!(
+                            "    {} -> {} ({} == {})",
+                            parent.dump(cfg),
+                            src_finger.dump(cfg),
+                            cond_val.dump(dfg),
+                            cond_pol
+                        );
+                    }
+                } else {
+                    trace!("    {} -> {}", parent.dump(cfg), src_finger.dump(cfg));
                 }
-                modified = true;
+                src_finger = parent;
+            } else if i2 < i1 {
+                let parent = dt.dominator(dst_finger);
+                if dst_finger == parent {
+                    break;
+                }
+                dst_finger = parent;
             }
         }
+        if src_finger != dst_finger {
+            trace!(
+                "  Skipping {} (no common dominator)",
+                drive.dump(dfg, Some(cfg))
+            );
+            return false;
+        }
+
+        // Keep note of this destination block and the conditions that must
+        // hold.
+        moves.push((dst_bb, conds));
     }
 
-    modified
+    // If we arrive here, all moves are possible and can now be executed.
+    for (dst_bb, conds) in moves {
+        debug!(
+            "Moving {} to {}",
+            drive.dump(unit.dfg(), unit.try_cfg()),
+            dst_bb.dump(unit.cfg())
+        );
+
+        // Start by assembling the drive condition in the destination block.
+        unit.prepend_to(dst_bb);
+        let mut cond = if unit.dfg()[drive].opcode() == Opcode::DrvCond {
+            unit.dfg()[drive].args()[3]
+        } else {
+            unit.ins().const_int(IntValue::all_ones(1))
+        };
+        for (value, polarity) in conds {
+            let value = match polarity {
+                true => value,
+                false => unit.ins().not(value),
+            };
+            cond = unit.ins().and(cond, value);
+        }
+
+        // Insert the new drive.
+        let args = unit.dfg()[drive].args();
+        let signal = args[0];
+        let value = args[1];
+        let delay = args[2];
+        unit.ins().drv_cond(signal, value, delay, cond);
+    }
+
+    // Remove the old drive instruction.
+    unit.remove_inst(drive);
+
+    true
 }
 
 /// A data structure that temporally groups blocks and instructions.
