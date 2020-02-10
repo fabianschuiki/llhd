@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - llhd-opt: Add `-p` option to specify exact passes to be executed.
 - Add instruction simplification pass. ([#92](https://github.com/fabianschuiki/llhd/issues/92))
+- Add optional condition to drive instruction. ([#97](https://github.com/fabianschuiki/llhd/issues/97))
 
 ### Changed
 - Use dense vector table instead of hash map for blocks, instructions, values, and external unit data.

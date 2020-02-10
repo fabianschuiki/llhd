@@ -386,6 +386,10 @@ where
                 self.assert_inst_ternary(inst);
                 self.verify_drv_inst(inst);
             }
+            Opcode::DrvCond => {
+                self.assert_inst_quaternary(inst);
+                self.verify_drv_inst(inst);
+            }
             Opcode::Var => {
                 self.assert_inst_unary(inst);
                 self.verify_var_inst(inst);
@@ -470,6 +474,18 @@ where
             InstData::Ternary { .. } => (),
             fmt => panic!(
                 "{0:?} ({0}) should have ternary format, but has {1:?}",
+                fmt.opcode(),
+                fmt
+            ),
+        }
+    }
+
+    /// Assert that an instruction has quaternary format.
+    fn assert_inst_quaternary(&mut self, inst: Inst) {
+        match &self.dfg[inst] {
+            InstData::Quaternary { .. } => (),
+            fmt => panic!(
+                "{0:?} ({0}) should have quaternary format, but has {1:?}",
                 fmt.opcode(),
                 fmt
             ),
@@ -953,6 +969,9 @@ where
             });
         }
         self.verify_arg_matches_ty(inst, self.dfg[inst].args()[2], &time_ty());
+        if self.dfg[inst].opcode() == Opcode::DrvCond {
+            self.verify_arg_matches_ty(inst, self.dfg[inst].args()[3], &int_ty(1));
+        }
     }
 
     /// Verify that the types of a var instruction line up.

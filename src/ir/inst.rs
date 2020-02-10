@@ -429,8 +429,12 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    pub fn drv(&mut self, x: Value, y: Value, z: Value) -> Inst {
-        self.build_ternary(Opcode::Drv, void_ty(), x, y, z)
+    pub fn drv(&mut self, signal: Value, value: Value, delay: Value) -> Inst {
+        self.build_ternary(Opcode::Drv, void_ty(), signal, value, delay)
+    }
+
+    pub fn drv_cond(&mut self, signal: Value, value: Value, delay: Value, cond: Value) -> Inst {
+        self.build_quaternary(Opcode::DrvCond, void_ty(), signal, value, delay, cond)
     }
 
     pub fn var(&mut self, x: Value) -> Value {
@@ -544,6 +548,23 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         };
         self.build(data, ty)
     }
+
+    /// `a = opcode type x, y, z, w`
+    fn build_quaternary(
+        &mut self,
+        opcode: Opcode,
+        ty: Type,
+        x: Value,
+        y: Value,
+        z: Value,
+        w: Value,
+    ) -> Inst {
+        let data = InstData::Quaternary {
+            opcode,
+            args: [x, y, z, w],
+        };
+        self.build(data, ty)
+    }
 }
 
 /// Fundamental convenience forwards to the wrapped builder.
@@ -611,6 +632,8 @@ pub enum InstData {
     Binary { opcode: Opcode, args: [Value; 2] },
     /// `opcode type x, y, z`
     Ternary { opcode: Opcode, args: [Value; 3] },
+    /// `opcode type x, y, z, w`
+    Quaternary { opcode: Opcode, args: [Value; 4] },
     /// `opcode bb`
     Jump { opcode: Opcode, bbs: [Block; 1] },
     /// `opcode type [x, bb],*`
@@ -664,6 +687,7 @@ impl InstData {
             InstData::Unary { opcode, .. } => opcode,
             InstData::Binary { opcode, .. } => opcode,
             InstData::Ternary { opcode, .. } => opcode,
+            InstData::Quaternary { opcode, .. } => opcode,
             InstData::Phi { opcode, .. } => opcode,
             InstData::Jump { opcode, .. } => opcode,
             InstData::Branch { opcode, .. } => opcode,
@@ -685,6 +709,7 @@ impl InstData {
             InstData::Unary { args, .. } => args,
             InstData::Binary { args, .. } => args,
             InstData::Ternary { args, .. } => args,
+            InstData::Quaternary { args, .. } => args,
             InstData::Phi { args, .. } => args,
             InstData::Jump { .. } => &[],
             InstData::Branch { args, .. } => args,
@@ -716,6 +741,7 @@ impl InstData {
             InstData::Unary { args, .. } => args,
             InstData::Binary { args, .. } => args,
             InstData::Ternary { args, .. } => args,
+            InstData::Quaternary { args, .. } => args,
             InstData::Phi { args, .. } => args,
             InstData::Jump { .. } => &mut [],
             InstData::Branch { args, .. } => args,
@@ -747,6 +773,7 @@ impl InstData {
             InstData::Unary { .. } => &[],
             InstData::Binary { .. } => &[],
             InstData::Ternary { .. } => &[],
+            InstData::Quaternary { .. } => &[],
             InstData::Phi { .. } => &[],
             InstData::Jump { .. } => &[],
             InstData::Branch { .. } => &[],
@@ -818,6 +845,7 @@ impl InstData {
             InstData::Unary { .. } => &[],
             InstData::Binary { .. } => &[],
             InstData::Ternary { .. } => &[],
+            InstData::Quaternary { .. } => &[],
             InstData::Phi { bbs, .. } => bbs,
             InstData::Jump { bbs, .. } => bbs,
             InstData::Branch { bbs, .. } => bbs,
@@ -839,6 +867,7 @@ impl InstData {
             InstData::Unary { .. } => &mut [],
             InstData::Binary { .. } => &mut [],
             InstData::Ternary { .. } => &mut [],
+            InstData::Quaternary { .. } => &mut [],
             InstData::Phi { bbs, .. } => bbs,
             InstData::Jump { bbs, .. } => bbs,
             InstData::Branch { bbs, .. } => bbs,
@@ -1024,6 +1053,7 @@ pub enum Opcode {
     Sig,
     Prb,
     Drv,
+    DrvCond,
 
     Var,
     Ld,
@@ -1090,6 +1120,7 @@ impl std::fmt::Display for Opcode {
                 Opcode::Inst => "inst",
                 Opcode::Sig => "sig",
                 Opcode::Drv => "drv",
+                Opcode::DrvCond => "drv",
                 Opcode::Prb => "prb",
                 Opcode::Var => "var",
                 Opcode::Ld => "ld",

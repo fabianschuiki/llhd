@@ -261,6 +261,13 @@ InstWithoutResult: ast::Inst<'input> = {
         ast::Inst::new(Opcode::Drv)
             .data(ast::InstData::Ternary(target, value, delay))
     },
+    "drv" <target: TypedValue> "if" <cond: Value> "," <value: Value> "," <delay: Value> => {
+        let value = value.ty(target.ty.unwrap_signal().clone());
+        let delay = delay.ty(time_ty());
+        let cond = cond.ty(int_ty(1));
+        ast::Inst::new(Opcode::DrvCond)
+            .data(ast::InstData::Quaternary(target, value, delay, cond))
+    },
     "st" <target: TypedValue> "," <value: Value> => {
         let value = value.ty(target.ty.unwrap_pointer().clone());
         ast::Inst::new(Opcode::St)

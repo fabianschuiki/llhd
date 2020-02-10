@@ -340,6 +340,17 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     first = false;
                 }
             }
+            Opcode::DrvCond => {
+                write!(self.writer.sink, "{} ", data.opcode())?;
+                let args = data.args();
+                self.write_value_use(args[0], true)?;
+                write!(self.writer.sink, " if ")?;
+                self.write_value_use(args[3], false)?;
+                write!(self.writer.sink, ", ")?;
+                self.write_value_use(args[1], false)?;
+                write!(self.writer.sink, ", ")?;
+                self.write_value_use(args[2], false)?;
+            }
             Opcode::Shl | Opcode::Shr | Opcode::Mux => {
                 write!(self.writer.sink, "{} ", data.opcode())?;
                 let mut comma = false;

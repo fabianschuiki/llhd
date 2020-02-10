@@ -64,6 +64,12 @@ pub enum InstData<'a> {
     Unary(TypedValue<'a>),
     Binary(TypedValue<'a>, TypedValue<'a>),
     Ternary(TypedValue<'a>, TypedValue<'a>, TypedValue<'a>),
+    Quaternary(
+        TypedValue<'a>,
+        TypedValue<'a>,
+        TypedValue<'a>,
+        TypedValue<'a>,
+    ),
     Reg(
         TypedValue<'a>,
         Vec<(TypedValue<'a>, ir::RegMode, TypedValue<'a>)>,
@@ -183,6 +189,16 @@ impl<'a> Inst<'a> {
                     Opcode::Shl => builder.ins().shl(arg0, arg1, arg2).into(),
                     Opcode::Shr => builder.ins().shr(arg0, arg1, arg2).into(),
                     x => unreachable!("ternary {:?}", x),
+                }
+            }
+            InstData::Quaternary(arg0, arg1, arg2, arg3) => {
+                let arg0 = arg0.build(builder, context);
+                let arg1 = arg1.build(builder, context);
+                let arg2 = arg2.build(builder, context);
+                let arg3 = arg3.build(builder, context);
+                match self.opcode {
+                    Opcode::DrvCond => builder.ins().drv_cond(arg0, arg1, arg2, arg3).into(),
+                    x => unreachable!("quaternary {:?}", x),
                 }
             }
             InstData::Reg(init, triggers) => {
