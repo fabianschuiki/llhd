@@ -98,6 +98,11 @@ impl DataFlowGraph {
         self.results[inst]
     }
 
+    /// Returns the result of an instruction.
+    pub fn get_inst_result(&self, inst: Inst) -> Option<Value> {
+        self.results.get(inst).cloned()
+    }
+
     /// Returns the value of an argument.
     pub fn arg_value(&self, arg: Arg) -> Value {
         self.args[arg]
