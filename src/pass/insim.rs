@@ -14,10 +14,27 @@ impl Pass for InstSimplification {
     fn run_on_inst(ctx: &PassContext, inst: Inst, ub: &mut impl UnitBuilder) -> bool {
         ub.insert_after(inst);
         let dfg = ub.dfg();
-        if !dfg.has_result(inst) {
-            return false;
+        match dfg[inst].opcode() {
+            // drv ... if 0 -> removed
+            // drv ... if 1 -> drv ...
+            Opcode::DrvCond => {
+                if let Some(konst) = dfg.get_const_int(dfg[inst].args()[3]) {
+                    if konst.is_one() {
+                        let signal = dfg[inst].args()[0];
+                        let value = dfg[inst].args()[1];
+                        let delay = dfg[inst].args()[2];
+                        ub.ins().drv(signal, value, delay);
+                    }
+                    ub.remove_inst(inst);
+                }
+            }
+            _ => (),
         }
-        let value = dfg.inst_result(inst);
+        let dfg = ub.dfg();
+        let value = match dfg.get_inst_result(inst) {
+            Some(value) => value,
+            None => return false,
+        };
         match dfg[inst].opcode() {
             // and %a, %a -> %a
             // or %a, %a -> %a
