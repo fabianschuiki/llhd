@@ -3,7 +3,7 @@
 //! Global Common Subexpression Elimination
 
 use crate::ir::prelude::*;
-use crate::ir::{ControlFlowGraph, DataFlowGraph, FunctionLayout, InstData};
+use crate::ir::{ControlFlowGraph, DataFlowGraph, FunctionLayout, InstData, ValueData};
 use crate::opt::prelude::*;
 use crate::pass::tcm::TemporalRegionGraph;
 use crate::table::TableKey;
@@ -315,6 +315,10 @@ pub struct DominatorTree {
     dominated: HashMap<Block, HashSet<Block>>,
     /// Vector of immediate dominators.
     doms: Vec<Block>,
+    /// Blocks in post-order.
+    post_order: Vec<Block>,
+    /// Post-order index for each block.
+    inv_post_order: Vec<u32>,
 }
 
 impl DominatorTree {
@@ -325,7 +329,7 @@ impl DominatorTree {
     /// [1]: https://www.cs.rice.edu/~keith/Embed/dom.pdf "Cooper, Keith D., Timothy J. Harvey, and Ken Kennedy. 'A simple, fast dominance algorithm.' Software Practice & Experience 4.1-10 (2001): 1-8."
     pub fn new(cfg: &ControlFlowGraph, layout: &FunctionLayout, pred: &PredecessorTable) -> Self {
         let t0 = time::precise_time_ns();
-        let post_order = Self::blocks_post_order(layout, pred);
+        let post_order = Self::compute_blocks_post_order(layout, pred);
         let length = post_order.len();
         trace!("[DomTree] post-order {:?}", post_order);
 
@@ -345,13 +349,13 @@ impl DominatorTree {
             doms[poidx as usize] = poidx; // root nodes
         }
         trace!("[DomTree] initial {:?}", doms);
-        trace!("[DomTree] preds:");
-        for (bb, p) in &pred.pred {
-            trace!("  {}:", inv_post_order[bb.index()]);
-            for b in p {
-                trace!("    - {}", inv_post_order[b.index()]);
-            }
-        }
+        // trace!("[DomTree] preds:");
+        // for (bb, p) in &pred.pred {
+        //     trace!("  {}:", inv_post_order[bb.index()]);
+        //     for b in p {
+        //         trace!("    - {}", inv_post_order[b.index()]);
+        //     }
+        // }
 
         let mut changed = true;
         while changed {
@@ -373,7 +377,6 @@ impl DominatorTree {
                 let new_idom = preds.fold(new_idom, |mut i1, mut i2| {
                     let i1_init = i1;
                     while i1 != i2 {
-                        trace!("[DomTree]  {} != {}", i1, i2);
                         if i1 < i2 {
                             if i1 == doms[i1 as usize] {
                                 return i1;
@@ -412,7 +415,7 @@ impl DominatorTree {
             loop {
                 s.insert(bb);
                 let next = doms_final[bb.index()];
-                trace!("Dominated[{}]: {}", block, bb);
+                // trace!("Dominated[{}]: {}", block, bb);
                 if next == bb {
                     break;
                 }
@@ -432,19 +435,21 @@ impl DominatorTree {
 
         let t1 = time::precise_time_ns();
         DOMINATOR_TREE_TIME.fetch_add(t1 - t0, Ordering::Relaxed);
-        trace!(
-            "Dominator Tree constructed in {} ms",
-            (t1 - t0) as f64 * 1.0e-6
-        );
+        // trace!(
+        //     "Dominator Tree constructed in {} ms",
+        //     (t1 - t0) as f64 * 1.0e-6
+        // );
 
         Self {
             dominates,
             dominated,
             doms: doms_final,
+            post_order,
+            inv_post_order,
         }
     }
 
-    fn blocks_post_order(layout: &FunctionLayout, pred: &PredecessorTable) -> Vec<Block> {
+    fn compute_blocks_post_order(layout: &FunctionLayout, pred: &PredecessorTable) -> Vec<Block> {
         let mut order = Vec::with_capacity(pred.pred.len());
 
         let mut stack = Vec::with_capacity(8);
@@ -472,6 +477,16 @@ impl DominatorTree {
         order
     }
 
+    /// Get the blocks in the original CFG in post-order.
+    pub fn blocks_post_order(&self) -> &[Block] {
+        &self.post_order
+    }
+
+    /// Get the post-order index of a block.
+    pub fn block_order(&self, block: Block) -> usize {
+        self.inv_post_order[block.index()] as usize
+    }
+
     /// Check if a block dominates another.
     pub fn dominates(&self, dominator: Block, follower: Block) -> bool {
         self.dominates
@@ -493,6 +508,43 @@ impl DominatorTree {
     /// Get the followers of a block, i.e. the blocks it dominates.
     pub fn dominated_by(&self, dominator: Block) -> &HashSet<Block> {
         &self.dominates[&dominator]
+    }
+
+    /// Check if a block dominates another block.
+    pub fn block_dominates_block(&self, parent: Block, mut child: Block) -> bool {
+        while parent != child {
+            let next = self.dominator(child);
+            if next == child {
+                // Arrived at the root of the tree. Did not encounter the
+                // suspected parent, so no domination.
+                return false;
+            }
+            child = next;
+        }
+        true
+    }
+
+    /// Check if an instruction dominates a block.
+    pub fn inst_dominates_block(&self, layout: &FunctionLayout, inst: Inst, block: Block) -> bool {
+        match layout.inst_block(inst) {
+            Some(bb) => self.block_dominates_block(bb, block),
+            None => false,
+        }
+    }
+
+    /// Check if a value dominates a block.
+    pub fn value_dominates_block(
+        &self,
+        dfg: &DataFlowGraph,
+        layout: &FunctionLayout,
+        value: Value,
+        block: Block,
+    ) -> bool {
+        match dfg[value] {
+            ValueData::Inst { inst, .. } => self.inst_dominates_block(layout, inst, block),
+            ValueData::Arg { .. } => true,
+            _ => false,
+        }
     }
 }
 
