@@ -42,6 +42,9 @@ impl Pass for DeadCodeElim {
             .into_iter()
             .flat_map(|(i, t)| t.map(|t| (i, t)))
         {
+            if unit.dfg()[inst].opcode() == Opcode::Br && unit.dfg()[inst].blocks() == [target] {
+                continue;
+            }
             debug!(
                 "Replacing {} with br {}",
                 inst.dump(unit.dfg(), unit.try_cfg()),
