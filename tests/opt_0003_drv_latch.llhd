@@ -1,0 +1,12 @@
+; Drive instructions that form a register
+proc @foo (i1 %A) -> (i8$ %D) {
+entry:
+    %delta = const time 0s 1d 0e
+    br %A, %final, %active
+active:
+    %k7i8 = const i8 7
+    drv i8$ %D, %k7i8, %delta
+    br %final
+final:
+    wait %entry, %A
+}
