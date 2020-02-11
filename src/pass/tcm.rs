@@ -321,19 +321,25 @@ fn push_drive(
             dst_bb.dump(unit.cfg())
         );
 
-        // Start by assembling the drive condition in the destination block.
+        // Start by assembling the drive condition in the destination block. The
+        // order is key here to allow for easy constant folding and subexpr
+        // elimination: the conditions are in reverse CFG order, so and them
+        // together in reverse order to reflect the CFG, which allows for most
+        // of these conditions to be shared.
         unit.prepend_to(dst_bb);
-        let mut cond = if unit.dfg()[drive].opcode() == Opcode::DrvCond {
-            unit.dfg()[drive].args()[3]
-        } else {
-            unit.ins().const_int(IntValue::all_ones(1))
-        };
-        for (value, polarity) in conds {
+        let mut cond = unit.ins().const_int(IntValue::all_ones(1));
+        for (value, polarity) in conds.into_iter().rev() {
             let value = match polarity {
                 true => value,
                 false => unit.ins().not(value),
             };
             cond = unit.ins().and(cond, value);
+        }
+
+        // Add the drive condition, if any.
+        if unit.dfg()[drive].opcode() == Opcode::DrvCond {
+            let arg = unit.dfg()[drive].args()[3];
+            cond = unit.ins().and(cond, arg);
         }
 
         // Insert the new drive.
