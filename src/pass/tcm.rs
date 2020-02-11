@@ -200,6 +200,8 @@ fn push_drives(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
     // temporal regions.
     for (&signal, drives) in &drv_seq {
         trace!("Moving drives on signal {}", signal.dump(unit.dfg()));
+        // TODO: Don't directly move drives, but track if move is possible and what
+        // the conditions are. Then do post-processing down below.
         for &drive in drives.iter().rev() {
             // trace!("  Checking {}", drive.dump(unit.dfg(), unit.try_cfg()));
             let moved = push_drive(ctx, drive, unit, &dt, &trg);
@@ -211,6 +213,11 @@ fn push_drives(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
             }
         }
     }
+
+    // TODO: Collapse drives with the same value and delay.
+    // TODO: Build discriminator table for all drives, then build corresponding
+    // mux to select driven value, and use or of all drive conditions as new
+    // drive condition.
 
     trace!("All drives moved");
     modified
