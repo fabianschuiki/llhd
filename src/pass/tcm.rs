@@ -203,9 +203,21 @@ fn push_drives(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
         // TODO: Don't directly move drives, but track if move is possible and what
         // the conditions are. Then do post-processing down below.
         for &drive in drives.iter().rev() {
+            // Skip drives that are already in the right place.
+            let drive_bb = unit.func_layout().inst_block(drive).unwrap();
+            if trg.is_tail(drive_bb) {
+                trace!(
+                    "  Skipping {} (already in tail block)",
+                    drive.dump(unit.dfg(), unit.try_cfg()),
+                );
+                continue;
+            }
+
+            // Perform the move.
             // trace!("  Checking {}", drive.dump(unit.dfg(), unit.try_cfg()));
             let moved = push_drive(ctx, drive, unit, &dt, &trg);
             modified |= moved;
+
             // If the move was not possible, abort all other drives since we
             // cannot move over them.
             if !moved {
@@ -219,7 +231,6 @@ fn push_drives(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
     // mux to select driven value, and use or of all drive conditions as new
     // drive condition.
 
-    trace!("All drives moved");
     modified
 }
 

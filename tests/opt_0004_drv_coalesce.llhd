@@ -1,0 +1,11 @@
+; Drive instruction coalescing
+proc @foo (i1 %A, i8 %B) -> (i8$ %D) {
+entry:
+    %delta = const time 0s 1d 0e
+    %nA = not i1 %A
+    %B1 = add i8 %B, %B
+    %B2 = umul i8 %B, %B
+    drv i8$ %D if %A, %B1, %delta
+    drv i8$ %D if %nA, %B2, %delta
+    wait %entry, %A, %B
+}
