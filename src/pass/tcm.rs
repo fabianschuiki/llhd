@@ -573,6 +573,14 @@ impl TemporalRegionGraph {
     pub fn is_tail(&self, bb: Block) -> bool {
         self[self[bb]].is_tail(bb)
     }
+
+    /// Get the temporal regions in the graph.
+    pub fn regions(&self) -> impl Iterator<Item = (TemporalRegion, &TemporalRegionData)> {
+        self.regions
+            .iter()
+            .enumerate()
+            .map(|(i, tr)| (TemporalRegion(i), tr))
+    }
 }
 
 impl Index<TemporalRegion> for TemporalRegionGraph {

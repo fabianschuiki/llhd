@@ -77,6 +77,31 @@ fn main() {
                 for bb in u.func_layout().blocks() {
                     println!("    - {} = {}", bb.dump(u.cfg()), trg[bb]);
                 }
+                for (tr, data) in trg.regions() {
+                    println!("    {}:", tr);
+                    println!(
+                        "      Head Blocks: {}",
+                        data.head_blocks()
+                            .map(|bb| bb.dump(u.cfg()).to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+                    println!("      Head Insts:");
+                    for inst in data.head_insts() {
+                        println!("      - {}", inst.dump(u.dfg(), u.try_cfg()));
+                    }
+                    println!(
+                        "      Tail Blocks: {}",
+                        data.tail_blocks()
+                            .map(|bb| bb.dump(u.cfg()).to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+                    println!("      Tail Insts:");
+                    for inst in data.tail_insts() {
+                        println!("      - {}", inst.dump(u.dfg(), u.try_cfg()));
+                    }
+                }
             }
         }
     }
