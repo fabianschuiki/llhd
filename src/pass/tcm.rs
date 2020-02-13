@@ -9,6 +9,7 @@ use crate::{
     pass::gcse::{DominatorTree, PredecessorTable},
     value::IntValue,
 };
+use itertools::Itertools;
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     ops::Index,
@@ -226,10 +227,10 @@ fn push_drives(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
         }
     }
 
-    // TODO: Collapse drives with the same value and delay.
-    // TODO: Build discriminator table for all drives, then build corresponding
-    // mux to select driven value, and use or of all drive conditions as new
-    // drive condition.
+    // Coalesce drives. We do this one aliasing group at a time.
+    for (signal, drives) in drv_seq {
+        modified |= coalesce_drives(ctx, signal, &drives, unit, &dt, &trg);
+    }
 
     modified
 }
@@ -372,6 +373,87 @@ fn push_drive(
     unit.remove_inst(drive);
 
     true
+}
+
+fn coalesce_drives(
+    _ctx: &PassContext,
+    signal: Value,
+    drives: &Vec<Inst>,
+    unit: &mut impl UnitBuilder,
+    dt: &DominatorTree,
+    trg: &TemporalRegionGraph,
+) -> bool {
+    let dfg = unit.dfg();
+    trace!("Coalescing drives on signal {}", signal.dump(dfg));
+
+    // Group the drives by delay.
+    let mut delay_groups = HashMap::<Value, Vec<Inst>>::new();
+    for &drive in drives {
+        let delay = dfg[drive].args()[2];
+        delay_groups.entry(delay).or_default().push(drive);
+    }
+
+    // Coalesce each delay group individually. Split the instructions into runs
+    // of drives to the exact same signal.
+    for (delay, drives) in delay_groups {
+        let runs: Vec<_> = drives
+            .into_iter()
+            .group_by(|&inst| unit.dfg()[inst].args()[0])
+            .into_iter()
+            .map(|(target, drives)| (target, drives.collect::<Vec<_>>()))
+            .collect();
+        for (target, drives) in runs {
+            if drives.len() <= 1 {
+                continue;
+            }
+            trace!(
+                "  Coalescing {} drives on {}",
+                drives.len(),
+                target.dump(unit.dfg())
+            );
+            let mut drives = drives.into_iter();
+
+            // Get the first drive's value and condition, and remove the drive.
+            let first = drives.next().unwrap();
+            unit.insert_before(first);
+            let mut cond = drive_cond(unit, first);
+            let mut value = unit.dfg()[first].args()[1];
+            unit.remove_inst(first);
+
+            // Accumulate subsequent drive conditions and values, and remove.
+            for drive in drives {
+                unit.insert_before(drive);
+                let c = drive_cond(unit, drive);
+                let v = unit.dfg()[drive].args()[1];
+                if cond != c {
+                    cond = unit.ins().or(cond, c);
+                }
+                if value != v {
+                    let vs = unit.ins().array(vec![value, v]);
+                    value = unit.ins().mux(vs, c);
+                }
+                unit.remove_inst(drive);
+            }
+
+            // Build the final drive.
+            unit.ins().drv_cond(target, value, delay, cond);
+        }
+    }
+
+    // TODO: Collapse drives with the same value and delay.
+    // TODO: Build discriminator table for all drives, then build corresponding
+    // mux to select driven value, and use or of all drive conditions as new
+    // drive condition.
+
+    false
+}
+
+fn drive_cond(unit: &mut impl UnitBuilder, inst: Inst) -> Value {
+    if unit.dfg()[inst].opcode() == Opcode::DrvCond {
+        unit.dfg()[inst].args()[3]
+    } else {
+        unit.ins().const_int(IntValue::all_ones(1))
+    }
 }
 
 /// A data structure that temporally groups blocks and instructions.

@@ -16,6 +16,7 @@ travis-ci = { repository = "fabianschuiki/llhd", branch = "master" }
 bitflags = "1"
 clap = "2"
 hibitset = "0.6"
+itertools = "0.8"
 lalrpop-util = "0.17.2"
 log = { version = "0.4", features = ["release_max_level_info"] }
 num = { version = "0.2", features = ["serde"] }
