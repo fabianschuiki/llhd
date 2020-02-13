@@ -228,8 +228,8 @@ fn push_drives(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
     }
 
     // Coalesce drives. We do this one aliasing group at a time.
-    for (signal, drives) in drv_seq {
-        modified |= coalesce_drives(ctx, signal, &drives, unit, &dt, &trg);
+    for block in unit.func_layout().blocks().collect::<Vec<_>>() {
+        modified |= coalesce_drives(ctx, block, unit);
     }
 
     modified
@@ -375,22 +375,17 @@ fn push_drive(
     true
 }
 
-fn coalesce_drives(
-    _ctx: &PassContext,
-    signal: Value,
-    drives: &Vec<Inst>,
-    unit: &mut impl UnitBuilder,
-    dt: &DominatorTree,
-    trg: &TemporalRegionGraph,
-) -> bool {
+fn coalesce_drives(_ctx: &PassContext, block: Block, unit: &mut impl UnitBuilder) -> bool {
+    let mut modified = false;
     let dfg = unit.dfg();
-    trace!("Coalescing drives on signal {}", signal.dump(dfg));
 
     // Group the drives by delay.
     let mut delay_groups = HashMap::<Value, Vec<Inst>>::new();
-    for &drive in drives {
-        let delay = dfg[drive].args()[2];
-        delay_groups.entry(delay).or_default().push(drive);
+    for inst in unit.func_layout().insts(block) {
+        if let Opcode::Drv | Opcode::DrvCond = dfg[inst].opcode() {
+            let delay = dfg[inst].args()[2];
+            delay_groups.entry(delay).or_default().push(inst);
+        }
     }
 
     // Coalesce each delay group individually. Split the instructions into runs
@@ -406,8 +401,8 @@ fn coalesce_drives(
             if drives.len() <= 1 {
                 continue;
             }
-            trace!(
-                "  Coalescing {} drives on {}",
+            debug!(
+                "Coalescing {} drives on {}",
                 drives.len(),
                 target.dump(unit.dfg())
             );
@@ -437,6 +432,7 @@ fn coalesce_drives(
 
             // Build the final drive.
             unit.ins().drv_cond(target, value, delay, cond);
+            modified = true;
         }
     }
 
@@ -445,7 +441,7 @@ fn coalesce_drives(
     // mux to select driven value, and use or of all drive conditions as new
     // drive condition.
 
-    false
+    modified
 }
 
 fn drive_cond(unit: &mut impl UnitBuilder, inst: Inst) -> Value {
