@@ -190,7 +190,7 @@ impl Pass for GlobalCommonSubexprElim {
         // Perform GCSE.
         let mut modified = false;
         let mut values = HashMap::<InstData, Value>::new();
-        'outer: for inst in insts {
+        for inst in insts {
             // Don't mess with instructions that produce no result or have side
             // effects.
             let opcode = unit.dfg()[inst].opcode();
