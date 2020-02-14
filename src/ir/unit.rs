@@ -91,19 +91,15 @@ pub enum UnitKind {
 /// A `Function`, `Process`, or `Entity`.
 pub trait Unit {
     /// Get the unit's DFG.
-    #[inline]
     fn dfg(&self) -> &DataFlowGraph;
 
     /// Get the unit's mutable DFG.
-    #[inline]
     fn dfg_mut(&mut self) -> &mut DataFlowGraph;
 
     /// Get the unit's CFG.
-    #[inline]
     fn try_cfg(&self) -> Option<&ControlFlowGraph>;
 
     /// Get the unit's mutable CFG.
-    #[inline]
     fn try_cfg_mut(&mut self) -> Option<&mut ControlFlowGraph>;
 
     /// Get the unit's CFG.
@@ -125,43 +121,35 @@ pub trait Unit {
     }
 
     /// Get the unit's signature.
-    #[inline]
     fn sig(&self) -> &Signature;
 
     /// Get the unit's mutable signature.
-    #[inline]
     fn sig_mut(&mut self) -> &mut Signature;
 
     /// Get the unit's name.
-    #[inline]
     fn name(&self) -> &UnitName;
 
     /// Get the unit's mutable name.
-    #[inline]
     fn name_mut(&mut self) -> &mut UnitName;
 
     /// Get the unit's function/process layout.
     ///
     /// Panics if the unit is an `Entity`.
-    #[inline]
     fn func_layout(&self) -> &FunctionLayout;
 
     /// Get the unit's function/process layout.
     ///
     /// Panics if the unit is an `Entity`.
-    #[inline]
     fn func_layout_mut(&mut self) -> &mut FunctionLayout;
 
     /// Get the unit's entity layout.
     ///
     /// Panics if the unit is a `Function` or `Process`.
-    #[inline]
     fn inst_layout(&self) -> &InstLayout;
 
     /// Get the unit's entity layout.
     ///
     /// Panics if the unit is a `Function` or `Process`.
-    #[inline]
     fn inst_layout_mut(&mut self) -> &mut InstLayout;
 
     /// Dump the unit in human-readable form.
