@@ -90,6 +90,7 @@ fn main() {
                     for inst in data.head_insts() {
                         println!("      - {}", inst.dump(u.dfg(), u.try_cfg()));
                     }
+                    println!("      Head tight: {}", data.head_tight);
                     println!(
                         "      Tail Blocks: {}",
                         data.tail_blocks()
@@ -101,6 +102,7 @@ fn main() {
                     for inst in data.tail_insts() {
                         println!("      - {}", inst.dump(u.dfg(), u.try_cfg()));
                     }
+                    println!("      Tail tight: {}", data.tail_tight);
                 }
             }
         }

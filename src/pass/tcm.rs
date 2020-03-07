@@ -531,35 +531,67 @@ impl TemporalRegionGraph {
                 blocks: Default::default(),
                 head_insts: Default::default(),
                 head_blocks: Default::default(),
+                head_tight: true,
                 tail_insts: Default::default(),
                 tail_blocks: Default::default(),
+                tail_tight: true,
             })
             .collect();
 
-        // Note the blocks in each region.
+        // Build the predecessor table.
+        let pt = PredecessorTable::new(dfg, layout);
+
+        // Note the blocks in each region and build the head/tail information.
         for (&bb, &id) in &blocks {
-            regions[id.0].blocks.insert(bb);
+            let mut reg = &mut regions[id.0];
+            reg.blocks.insert(bb);
+
+            // Determine whether this is a head block.
+            let mut is_head = false;
+            let mut is_tight = true;
+            for pred in pt.pred(bb) {
+                let diff_trs = blocks[&pred] != id;
+                is_head |= diff_trs;
+                is_tight &= diff_trs;
+            }
+            if is_head {
+                reg.head_blocks.insert(bb);
+                reg.head_tight &= is_tight;
+            }
+
+            // Determine whether this is a tail block.
+            let mut is_tail = false;
+            let mut is_tight = true;
+            for succ in pt.succ(bb) {
+                let diff_trs = blocks[&succ] != id;
+                is_tail |= diff_trs;
+                is_tight &= diff_trs;
+            }
+            if is_tail {
+                reg.tail_blocks.insert(bb);
+                reg.tail_tight &= is_tight;
+            }
         }
 
-        // Note the temporal instructions that introduce and terminate each
-        // region.
-        for &inst in &breaks {
-            let bb = layout.inst_block(inst).unwrap();
-            for &target in dfg[inst].blocks() {
-                let data = &mut regions[blocks[&target].0];
-                data.head_insts.insert(inst);
-                // data.head_blocks.insert(target);
-            }
-            let data = &mut regions[blocks[&bb].0];
-            data.tail_insts.insert(inst);
-            // data.tail_blocks.insert(bb);
-        }
-        for bb in head_blocks {
-            regions[blocks[&bb].0].head_blocks.insert(bb);
-        }
-        for bb in tail_blocks {
-            regions[blocks[&bb].0].tail_blocks.insert(bb);
-        }
+        // // Note the temporal instructions that introduce and terminate each
+        // // region.
+        // for &inst in &breaks {
+        //     let bb = layout.inst_block(inst).unwrap();
+        //     for &target in dfg[inst].blocks() {
+        //         let data = &mut regions[blocks[&target].0];
+        //         data.head_insts.insert(inst);
+        //         // data.head_blocks.insert(target);
+        //     }
+        //     let data = &mut regions[blocks[&bb].0];
+        //     data.tail_insts.insert(inst);
+        //     // data.tail_blocks.insert(bb);
+        // }
+        // for bb in head_blocks {
+        //     regions[blocks[&bb].0].head_blocks.insert(bb);
+        // }
+        // for bb in tail_blocks {
+        //     regions[blocks[&bb].0].tail_blocks.insert(bb);
+        // }
 
         Self { blocks, regions }
     }
@@ -634,6 +666,9 @@ pub struct TemporalRegionData {
     /// region.
     pub head_blocks: HashSet<Block>,
 
+    /// The head blocks are only reachable via branches from *other* regions.
+    pub head_tight: bool,
+
     /// The temporal instructions that terminate this region.
     ///
     /// Note that these reside in blocks *inside* this region, namely in the
@@ -645,6 +680,9 @@ pub struct TemporalRegionData {
     /// These are the last blocks in this region, where execution either ends
     /// in a `wait` or `halt` instruction.
     pub tail_blocks: HashSet<Block>,
+
+    /// The tail blocks only branch to *other* regions.
+    pub tail_tight: bool,
 }
 
 impl TemporalRegionData {
