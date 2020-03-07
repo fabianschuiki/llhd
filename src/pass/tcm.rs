@@ -213,6 +213,13 @@ fn push_drives(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
                 );
                 continue;
             }
+            if trg[trg[drive_bb]].tail_blocks.is_empty() {
+                trace!(
+                    "  Skipping {} (no tail blocks)",
+                    drive.dump(unit.dfg(), unit.try_cfg()),
+                );
+                continue;
+            }
 
             // Perform the move.
             // trace!("  Checking {}", drive.dump(unit.dfg(), unit.try_cfg()));
@@ -547,7 +554,7 @@ impl TemporalRegionGraph {
             reg.blocks.insert(bb);
 
             // Determine whether this is a head block.
-            let mut is_head = false;
+            let mut is_head = head_blocks.contains(&bb);
             let mut is_tight = true;
             for pred in pt.pred(bb) {
                 let diff_trs = blocks[&pred] != id;
@@ -560,7 +567,7 @@ impl TemporalRegionGraph {
             }
 
             // Determine whether this is a tail block.
-            let mut is_tail = false;
+            let mut is_tail = tail_blocks.contains(&bb);
             let mut is_tight = true;
             for succ in pt.succ(bb) {
                 let diff_trs = blocks[&succ] != id;
