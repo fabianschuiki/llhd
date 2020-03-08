@@ -570,7 +570,7 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
 /// Fundamental convenience forwards to the wrapped builder.
 impl<B: UnitBuilder> InstBuilder<&mut B> {
     /// Convenience forward to `UnitBuilder`.
-    fn build(&mut self, data: InstData, ty: Type) -> Inst {
+    pub(crate) fn build(&mut self, data: InstData, ty: Type) -> Inst {
         let has_result = !ty.is_void();
         let inst = self.builder.build_inst(data, ty);
         if let Some(name) = self.name.take() {
