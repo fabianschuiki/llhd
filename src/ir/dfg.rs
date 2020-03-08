@@ -178,6 +178,22 @@ impl DataFlowGraph {
         }
     }
 
+    /// Return the argument that produces `value`.
+    pub fn get_value_arg(&self, value: Value) -> Option<Arg> {
+        match self[value] {
+            ValueData::Arg { arg, .. } => Some(arg),
+            _ => None,
+        }
+    }
+
+    /// Return the argument that produces `value`, or panic.
+    pub fn value_arg(&self, value: Value) -> Arg {
+        match self.get_value_arg(value) {
+            Some(arg) => arg,
+            None => panic!("value {} not an argument", value),
+        }
+    }
+
     /// Return the instruction that produces `value`.
     pub fn get_value_inst(&self, value: Value) -> Option<Inst> {
         match self[value] {
