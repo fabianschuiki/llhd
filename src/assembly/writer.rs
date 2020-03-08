@@ -221,7 +221,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     Rc::new(format!("{}{}", requested_name, idx))
                 };
                 *idx += 1;
-                if !self.names.contains(&name) {
+                if self.names.insert(name.clone()) {
                     break name;
                 }
             }
@@ -229,7 +229,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
             loop {
                 let name = Rc::new(format!("{}", self.tmp_index));
                 self.tmp_index += 1;
-                if !self.names.contains(&name) {
+                if self.names.insert(name.clone()) {
                     break name;
                 }
             }

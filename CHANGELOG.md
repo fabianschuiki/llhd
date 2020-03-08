@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fix instructions in entry block being reordered during LICM.
 - Fix `drv` instructions being removed during TCM. ([#100](https://github.com/fabianschuiki/llhd/issues/100))
+- Fix value names not being uniquified properly in assembly writer.
 
 ## 0.11.0 - 2020-02-08
 ### Added
@@ -34,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - llhd-check: Honor dump flag `-d`.
-- Fix Temporal Region Graph computation not producing distinc regions for blocks that may execute at different points in time.
+- Fix Temporal Region Graph computation not producing distinct regions for blocks that may execute at different points in time.
 - Fix broken phi nodes after block removal. ([#87](https://github.com/fabianschuiki/llhd/issues/87))
 
 ## 0.10.0 - 2019-11-24
