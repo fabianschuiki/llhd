@@ -767,8 +767,8 @@ where
 
     /// Verify that the types of a reg instruction line up.
     fn verify_reg_inst(&mut self, inst: Inst) {
-        let ty = self.dfg.value_type(self.dfg[inst].args()[0]);
-        self.verify_arg_ty_is_signal(inst, self.dfg[inst].args()[0]);
+        let ty = self.dfg.inst_type(inst).unwrap_signal().clone();
+        self.verify_arg_matches_ty(inst, self.dfg[inst].args()[0], &ty);
         for &arg in self.dfg[inst].data_args() {
             self.verify_arg_matches_ty(inst, arg, &ty);
         }

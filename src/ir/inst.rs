@@ -294,7 +294,7 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
     }
 
     pub fn reg(&mut self, x: Value, data: Vec<(Value, RegMode, Value)>) -> Value {
-        let ty = self.value_type(x);
+        let ty = signal_ty(self.value_type(x));
         let mut args = vec![x];
         let mut modes = vec![];
         args.extend(data.iter().map(|x| x.0));
