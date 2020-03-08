@@ -1,5 +1,5 @@
 ; RUN: llhd-opt %s
-proc %ff_clkrise_rstsynclow (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
+proc %ff_clkrise_rstsynchigh (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
 init:
     %CLK1 = prb i1$ %CLK
     %0 = const i1 0
