@@ -77,6 +77,9 @@ impl Pass for TemporalCodeMotion {
             }
             hoist.sort();
             for inst in hoist {
+                if unit.func_layout().inst_block(inst) == Some(head_bb) {
+                    continue;
+                }
                 debug!(
                     "Hoisting {} into {}",
                     inst.dump(unit.dfg(), unit.try_cfg()),
@@ -536,7 +539,7 @@ pub struct TemporalRegionGraph {
 impl TemporalRegionGraph {
     /// Compute the TRG of a process.
     pub fn new(dfg: &DataFlowGraph, layout: &FunctionLayout) -> Self {
-        trace!("Constructing TRG:");
+        // trace!("[TRG] Constructing TRG:");
 
         // Populate the worklist with the entry block, as well as any blocks
         // that are targeted by `wait` instructions.
@@ -544,13 +547,13 @@ impl TemporalRegionGraph {
         let mut seen = HashSet::new();
         todo.push_back(layout.entry());
         seen.insert(layout.entry());
-        trace!("  Root {:?} (entry)", layout.entry());
+        // trace!("[TRG]   Root {:?} (entry)", layout.entry());
         for bb in layout.blocks() {
             let term = layout.terminator(bb);
             if dfg[term].opcode().is_temporal() {
                 for &target in dfg[term].blocks() {
                     if seen.insert(target) {
-                        trace!("  Root {:?} (wait target)", target);
+                        // trace!("[TRG]   Root {:?} (wait target)", target);
                         todo.push_back(target);
                     }
                 }
@@ -572,7 +575,7 @@ impl TemporalRegionGraph {
         // Assign temporal regions to the blocks.
         while let Some(bb) = todo.pop_front() {
             let tr = blocks[&bb];
-            trace!("  Pushing {:?} ({})", bb, tr);
+            // trace!("[TRG]   Pushing {:?} ({})", bb, tr);
             let term = layout.terminator(bb);
             if dfg[term].opcode().is_temporal() {
                 breaks.push(term);
@@ -582,19 +585,19 @@ impl TemporalRegionGraph {
             for &target in dfg[term].blocks() {
                 if seen.insert(target) {
                     todo.push_back(target);
-                    trace!("    Assigning {:?} <- {:?}", target, tr);
+                    // trace!("[TRG]     Assigning {:?} <- {:?}", target, tr);
                     if blocks.insert(target, tr).is_some() {
                         let tr = TemporalRegion(next_id);
                         blocks.insert(target, tr);
                         head_blocks.insert(target);
                         tail_blocks.insert(bb);
-                        trace!("    Assigning {:?} <- {:?} (override)", target, tr);
+                        // trace!("[TRG]     Assigning {:?} <- {:?} (override)", target, tr);
                         next_id += 1;
                     }
                 }
             }
         }
-        trace!("  Blocks: {:#?}", blocks);
+        // trace!("[TRG]   Blocks: {:?}", blocks);
 
         // Create a data struct for each region.
         let mut regions: Vec<_> = (0..next_id)

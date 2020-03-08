@@ -331,7 +331,7 @@ impl DominatorTree {
         let t0 = time::precise_time_ns();
         let post_order = Self::compute_blocks_post_order(layout, pred);
         let length = post_order.len();
-        trace!("[DomTree] post-order {:?}", post_order);
+        // trace!("[DomTree] post-order {:?}", post_order);
 
         let undef = std::u32::MAX;
         let mut doms = vec![undef; length];
@@ -339,7 +339,7 @@ impl DominatorTree {
         for (i, &bb) in post_order.iter().enumerate() {
             inv_post_order[bb.index()] = i as u32;
         }
-        trace!("[DomTree] inv-post-order {:?}", inv_post_order);
+        // trace!("[DomTree] inv-post-order {:?}", inv_post_order);
 
         for root in Some(layout.entry())
             .into_iter()
@@ -348,19 +348,12 @@ impl DominatorTree {
             let poidx = inv_post_order[root.index()];
             doms[poidx as usize] = poidx; // root nodes
         }
-        trace!("[DomTree] initial {:?}", doms);
-        // trace!("[DomTree] preds:");
-        // for (bb, p) in &pred.pred {
-        //     trace!("  {}:", inv_post_order[bb.index()]);
-        //     for b in p {
-        //         trace!("    - {}", inv_post_order[b.index()]);
-        //     }
-        // }
+        // trace!("[DomTree] initial {:?}", doms);
 
         let mut changed = true;
         while changed {
             changed = false;
-            trace!("[DomTree] iteration {:?}", doms);
+            // trace!("[DomTree] iteration {:?}", doms);
 
             for idx in (0..length).rev() {
                 if doms[idx] == idx as u32 {
@@ -393,19 +386,19 @@ impl DominatorTree {
                 });
                 debug_assert!(new_idom < length as u32);
                 if doms[idx] != new_idom {
-                    trace!("[DomTree] doms[{}] = {}", idx, new_idom);
+                    // trace!("[DomTree] doms[{}] = {}", idx, new_idom);
                     doms[idx] = new_idom;
                     changed = true;
                 }
             }
         }
-        trace!("[DomTree] converged {:?}", doms);
+        // trace!("[DomTree] converged {:?}", doms);
 
         let mut doms_final = vec![Block::invalid(); cfg.blocks.capacity()];
         for bb in &post_order {
             doms_final[bb.index()] = post_order[doms[inv_post_order[bb.index()] as usize] as usize];
         }
-        trace!("[DomTree] final {:?}", doms_final);
+        // trace!("[DomTree] final {:?}", doms_final);
 
         // Compatibility with old dominator tree.
         let mut dominated = HashMap::new();
