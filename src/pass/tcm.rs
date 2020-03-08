@@ -536,6 +536,7 @@ impl TemporalRegionGraph {
             .map(|id| TemporalRegionData {
                 id: TemporalRegion(id),
                 blocks: Default::default(),
+                entry: false,
                 head_insts: Default::default(),
                 head_blocks: Default::default(),
                 head_tight: true,
@@ -544,6 +545,9 @@ impl TemporalRegionGraph {
                 tail_tight: true,
             })
             .collect();
+
+        // Mark the entry block.
+        regions[blocks[&layout.entry()].0].entry = true;
 
         // Build the predecessor table.
         let pt = PredecessorTable::new(dfg, layout);
@@ -578,27 +582,20 @@ impl TemporalRegionGraph {
                 reg.tail_blocks.insert(bb);
                 reg.tail_tight &= is_tight;
             }
-        }
 
-        // // Note the temporal instructions that introduce and terminate each
-        // // region.
-        // for &inst in &breaks {
-        //     let bb = layout.inst_block(inst).unwrap();
-        //     for &target in dfg[inst].blocks() {
-        //         let data = &mut regions[blocks[&target].0];
-        //         data.head_insts.insert(inst);
-        //         // data.head_blocks.insert(target);
-        //     }
-        //     let data = &mut regions[blocks[&bb].0];
-        //     data.tail_insts.insert(inst);
-        //     // data.tail_blocks.insert(bb);
-        // }
-        // for bb in head_blocks {
-        //     regions[blocks[&bb].0].head_blocks.insert(bb);
-        // }
-        // for bb in tail_blocks {
-        //     regions[blocks[&bb].0].tail_blocks.insert(bb);
-        // }
+            // Note the head instructions.
+            for pred in pt.pred(bb) {
+                if blocks[&pred] != id {
+                    reg.head_insts.insert(layout.terminator(pred));
+                }
+            }
+
+            // Note the tail instructions.
+            let term = layout.terminator(bb);
+            if dfg[term].blocks().iter().any(|bb| blocks[bb] != id) {
+                reg.tail_insts.insert(term);
+            }
+        }
 
         Self { blocks, regions }
     }
@@ -660,6 +657,9 @@ pub struct TemporalRegionData {
 
     /// The blocks in this region.
     pub blocks: HashSet<Block>,
+
+    /// Whether this is the initial temporal region upon entering the process.
+    pub entry: bool,
 
     /// The temporal instructions that introduce this region.
     ///

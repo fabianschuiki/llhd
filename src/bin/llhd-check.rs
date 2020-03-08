@@ -73,12 +73,16 @@ fn main() {
                     continue;
                 }
                 let trg = TemporalRegionGraph::new(u.dfg(), u.func_layout());
-                println!("  - {}:", u.name());
+                println!("  {}:", u.name());
+                println!("    Blocks:");
                 for bb in u.func_layout().blocks() {
-                    println!("    - {} = {}", bb.dump(u.cfg()), trg[bb]);
+                    println!("      - {} = {}", bb.dump(u.cfg()), trg[bb]);
                 }
                 for (tr, data) in trg.regions() {
                     println!("    {}:", tr);
+                    if data.entry {
+                        println!("      **entry**");
+                    }
                     println!(
                         "      Head Blocks: {}",
                         data.head_blocks()
@@ -88,7 +92,7 @@ fn main() {
                     );
                     println!("      Head Insts:");
                     for inst in data.head_insts() {
-                        println!("      - {}", inst.dump(u.dfg(), u.try_cfg()));
+                        println!("        - {}", inst.dump(u.dfg(), u.try_cfg()));
                     }
                     println!("      Head tight: {}", data.head_tight);
                     println!(
@@ -100,7 +104,7 @@ fn main() {
                     );
                     println!("      Tail Insts:");
                     for inst in data.tail_insts() {
-                        println!("      - {}", inst.dump(u.dfg(), u.try_cfg()));
+                        println!("        - {}", inst.dump(u.dfg(), u.try_cfg()));
                     }
                     println!("      Tail tight: {}", data.tail_tight);
                 }
