@@ -59,7 +59,7 @@ impl Pass for TemporalCodeMotion {
 
                         // Only move when the move instruction would still
                         // dominate all its uses.
-                        for (user_inst, _) in dfg.uses(dfg.inst_result(inst)) {
+                        for user_inst in dfg.uses(dfg.inst_result(inst)) {
                             let user_bb = unit.func_layout().inst_block(user_inst).unwrap();
                             let dom = temp_dt.dominates(head_bb, user_bb);
                             dominates &= dom;
@@ -199,7 +199,7 @@ fn add_aux_blocks(_ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
                     bb.dump(unit.cfg()),
                     inst.dump(unit.dfg(), unit.try_cfg())
                 );
-                unit.dfg_mut()[inst].replace_block(bb, aux_bb);
+                unit.dfg_mut().replace_block_within_inst(bb, aux_bb, inst);
             }
             modified = true;
         }

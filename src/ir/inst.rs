@@ -731,7 +731,8 @@ impl InstData {
     }
 
     /// Mutable access to the arguments of an instruction.
-    pub fn args_mut(&mut self) -> &mut [Value] {
+    #[deprecated = "do not use directly"]
+    pub(crate) fn args_mut(&mut self) -> &mut [Value] {
         match self {
             InstData::ConstInt { .. } => &mut [],
             InstData::ConstTime { .. } => &mut [],
@@ -857,7 +858,8 @@ impl InstData {
     }
 
     /// Mutable access to the BBs of an instruction.
-    pub fn blocks_mut(&mut self) -> &mut [Block] {
+    #[deprecated = "do not use directly"]
+    pub(crate) fn blocks_mut(&mut self) -> &mut [Block] {
         match self {
             InstData::ConstInt { .. } => &mut [],
             InstData::ConstTime { .. } => &mut [],
@@ -879,8 +881,10 @@ impl InstData {
     }
 
     /// Replace all uses of a value with another.
-    pub fn replace_value(&mut self, from: Value, to: Value) -> usize {
+    #[deprecated = "use DataFlowGraph::replace_value_within_inst instead"]
+    pub(crate) fn replace_value(&mut self, from: Value, to: Value) -> usize {
         let mut count = 0;
+        #[allow(deprecated)]
         for arg in self.args_mut() {
             if *arg == from {
                 *arg = to;
@@ -891,8 +895,10 @@ impl InstData {
     }
 
     /// Replace all uses of a block with another.
-    pub fn replace_block(&mut self, from: Block, to: Block) -> usize {
+    #[deprecated = "use DataFlowGraph::replace_block_within_inst instead"]
+    pub(crate) fn replace_block(&mut self, from: Block, to: Block) -> usize {
         let mut count = 0;
+        #[allow(deprecated)]
         for bb in self.blocks_mut() {
             if *bb == from {
                 *bb = to;
@@ -903,7 +909,8 @@ impl InstData {
     }
 
     /// Remove all uses of a block.
-    pub fn remove_block(&mut self, block: Block) -> usize {
+    #[deprecated = "use DataFlowGraph::remove_block_from_inst instead"]
+    pub(crate) fn remove_block(&mut self, block: Block) -> usize {
         match self {
             InstData::Phi { bbs, args, .. } => {
                 let mut count = 0;
@@ -919,6 +926,7 @@ impl InstData {
                 }
                 count
             }
+            #[allow(deprecated)]
             _ => self.replace_block(block, Block::invalid()),
         }
     }

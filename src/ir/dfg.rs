@@ -11,7 +11,7 @@ use crate::{
     table::{PrimaryTable2, SecondaryTable, TableKey},
     ty::{void_ty, Type},
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// A data flow graph.
 ///
@@ -36,6 +36,10 @@ pub struct DataFlowGraph {
     pub(crate) anonymous_hints: HashMap<Value, u32>,
     /// The location hints assigned to instructions.
     pub(crate) location_hints: HashMap<Inst, usize>,
+    /// The value use lookup table.
+    pub(crate) value_uses: HashMap<Value, HashSet<Inst>>,
+    /// The block use lookup table.
+    pub(crate) block_uses: HashMap<Block, HashSet<Inst>>,
 }
 
 impl_table_indexing!(DataFlowGraph, insts, Inst, InstData);
@@ -52,14 +56,14 @@ impl DataFlowGraph {
     ///
     /// This function is intended to be used when constructing PHI nodes.
     pub fn add_placeholder(&mut self, ty: Type) -> Value {
-        self.values.add(ValueData::Placeholder { ty })
+        self.add_value(ValueData::Placeholder { ty })
     }
 
     /// Remove a placeholder value.
     pub fn remove_placeholder(&mut self, value: Value) {
         assert!(!self.has_uses(value));
         assert!(self[value].is_placeholder());
-        self.values.remove(value);
+        self.remove_value(value);
     }
 
     /// Check if a value is a placeholder.
@@ -67,13 +71,48 @@ impl DataFlowGraph {
         self[value].is_placeholder()
     }
 
+    /// Add a value.
+    fn add_value(&mut self, data: ValueData) -> Value {
+        let v = self.values.add(data);
+        self.value_uses.insert(v, Default::default());
+        v
+    }
+
+    /// Remove a value.
+    fn remove_value(&mut self, value: Value) -> ValueData {
+        let data = self.values.remove(value);
+        self.value_uses.remove(&value);
+        data
+    }
+
+    /// Register a value use.
+    fn update_uses(&mut self, inst: Inst) {
+        for value in self[inst].args().to_vec() {
+            self.value_uses.entry(value).or_default().insert(inst);
+        }
+        for block in self[inst].blocks().to_vec() {
+            self.block_uses.entry(block).or_default().insert(inst);
+        }
+    }
+
+    /// Remove a value use.
+    fn remove_uses(&mut self, inst: Inst, data: InstData) {
+        for value in data.args() {
+            self.value_uses.get_mut(value).unwrap().remove(&inst);
+        }
+        for block in data.blocks() {
+            self.block_uses.get_mut(block).unwrap().remove(&inst);
+        }
+    }
+
     /// Add an instruction.
     pub fn add_inst(&mut self, data: InstData, ty: Type) -> Inst {
         let inst = self.insts.add(data);
         if !ty.is_void() {
-            let result = self.values.add(ValueData::Inst { ty, inst });
+            let result = self.add_value(ValueData::Inst { ty, inst });
             self.results.add(inst, result);
         }
+        self.update_uses(inst);
         inst
     }
 
@@ -82,9 +121,10 @@ impl DataFlowGraph {
         if self.has_result(inst) {
             let value = self.inst_result(inst);
             assert!(!self.has_uses(value));
-            self.values.remove(value);
+            self.remove_value(value);
         }
-        self.insts.remove(inst);
+        let data = self.insts.remove(inst);
+        self.remove_uses(inst, data);
         self.results.remove(inst);
     }
 
@@ -111,7 +151,7 @@ impl DataFlowGraph {
     /// Create values for the arguments in a signature.
     pub(crate) fn make_args_for_signature(&mut self, sig: &Signature) {
         for arg in sig.args() {
-            let value = self.values.add(ValueData::Arg {
+            let value = self.add_value(ValueData::Arg {
                 ty: sig.arg_type(arg),
                 arg: arg,
             });
@@ -189,23 +229,31 @@ impl DataFlowGraph {
     /// Returns how many uses were replaced.
     pub fn replace_use(&mut self, from: Value, to: Value) -> usize {
         let mut count = 0;
-        for inst in self.insts.values_mut() {
-            count += inst.replace_value(from, to);
+        for inst in self
+            .value_uses
+            .get(&from)
+            .cloned()
+            .unwrap_or_else(Default::default)
+        {
+            count += self.replace_value_within_inst(from, to, inst);
         }
         count
     }
 
+    /// Replace the uses of a value with another, in a single instruction.
+    ///
+    /// Returns how many uses were replaced.
+    pub fn replace_value_within_inst(&mut self, from: Value, to: Value, inst: Inst) -> usize {
+        #[allow(deprecated)]
+        let count = self[inst].replace_value(from, to);
+        self.value_uses.entry(from).or_default().remove(&inst);
+        self.update_uses(inst);
+        count
+    }
+
     /// Iterate over all uses of a value.
-    pub fn uses(&self, value: Value) -> impl Iterator<Item = (Inst, usize)> {
-        let mut uses = vec![];
-        for inst in self.insts.keys() {
-            for (i, arg) in self[inst].args().iter().cloned().enumerate() {
-                if arg == value {
-                    uses.push((inst, i));
-                }
-            }
-        }
-        uses.into_iter()
+    pub fn uses(&self, value: Value) -> impl Iterator<Item = Inst> + '_ {
+        self.value_uses[&value].iter().cloned()
     }
 
     /// Check if a value is used.
@@ -223,9 +271,25 @@ impl DataFlowGraph {
     /// Returns how many blocks were replaced.
     pub fn replace_block_use(&mut self, from: Block, to: Block) -> usize {
         let mut count = 0;
-        for inst in self.insts.values_mut() {
-            count += inst.replace_block(from, to);
+        for inst in self
+            .block_uses
+            .get(&from)
+            .cloned()
+            .unwrap_or_else(Default::default)
+        {
+            count += self.replace_block_within_inst(from, to, inst);
         }
+        count
+    }
+
+    /// Replace all uses of a block with another, in a single instruction.
+    ///
+    /// Returns how many blocks were replaced.
+    pub fn replace_block_within_inst(&mut self, from: Block, to: Block, inst: Inst) -> usize {
+        #[allow(deprecated)]
+        let count = self[inst].replace_block(from, to);
+        self.block_uses.entry(from).or_default().remove(&inst);
+        self.update_uses(inst);
         count
     }
 
@@ -234,12 +298,31 @@ impl DataFlowGraph {
     /// Replaces all uses of the block with an invalid block placeholder, and
     /// removes phi node entries for the block.
     ///
-    /// Returns how many blocks were replaced.
+    /// Returns how many blocks were removed.
     pub fn remove_block_use(&mut self, block: Block) -> usize {
         let mut count = 0;
-        for inst in self.insts.values_mut() {
-            count += inst.remove_block(block);
+        for inst in self
+            .block_uses
+            .get(&block)
+            .cloned()
+            .unwrap_or_else(Default::default)
+        {
+            count += self.remove_block_from_inst(block, inst);
         }
+        count
+    }
+
+    /// Remove all uses of a block, from a single instruction.
+    ///
+    /// Replaces all uses of the block with an invalid block placeholder, and
+    /// removes phi node entries for the block.
+    ///
+    /// Returns how many blocks were removed.
+    pub fn remove_block_from_inst(&mut self, block: Block, inst: Inst) -> usize {
+        #[allow(deprecated)]
+        let count = self[inst].remove_block(block);
+        self.block_uses.entry(block).or_default().remove(&inst);
+        self.update_uses(inst);
         count
     }
 
