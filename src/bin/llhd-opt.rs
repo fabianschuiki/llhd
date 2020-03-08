@@ -117,8 +117,8 @@ fn main_inner() -> Result<(), String> {
         passes.collect()
     } else {
         vec![
-            "cf", "vtpp", "gcse", "licm", "tcm", "gcse", "tcm", "cf", "licm", "gcse", "insim",
-            "dce", "cfs", "insim", "dce",
+            "cf", "vtpp", "dce", "gcse", "licm", "tcm", "licm", "tcm", "gcse", "tcm", "cf", "licm",
+            "gcse", "insim", "dce", "cfs", "insim", "dce",
         ]
     };
 

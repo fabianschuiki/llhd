@@ -134,6 +134,12 @@ impl Pass for TemporalCodeMotion {
             }
         }
 
+        // Introduce auxiliary exit blocks if multiple edges leave a temporal
+        // region into the same target block in a different region. This is
+        // needed to ensure that drives have a dedicated block to be pushed
+        // down into ahead of the next temporal region.
+        modified |= add_aux_blocks(ctx, unit);
+
         // Push `drv` instructions towards the tails of their temporal regions.
         modified |= push_drives(ctx, unit);
 
@@ -141,6 +147,65 @@ impl Pass for TemporalCodeMotion {
 
         modified
     }
+}
+
+/// Introduce auxiliary exit blocks if multiple edges leave a temporal region
+/// into the same target block in a different region. This is needed to ensure
+/// that drives have a dedicated block to be pushed down into ahead of the next
+/// temporal region.
+fn add_aux_blocks(_ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+    let pt = PredecessorTable::new(unit.dfg(), unit.func_layout());
+    let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
+    let mut modified = false;
+
+    // Make a list of head blocks. This will allow us to change the unit
+    // underneath.
+    let head_bbs: Vec<_> = unit
+        .func_layout()
+        .blocks()
+        .filter(|&bb| trg.is_head(bb))
+        .collect();
+
+    // Process each block separately.
+    for bb in head_bbs {
+        trace!("Adding aux blocks into {}", bb.dump(unit.cfg()));
+        let tr = trg[bb];
+
+        // Gather a list of predecessor instructions per region, which branch
+        // into this block.
+        let mut insts_by_region = HashMap::<TemporalRegion, Vec<Inst>>::new();
+        for pred in pt.pred(bb) {
+            let pred_tr = trg[pred];
+            if pred_tr != tr {
+                let inst = unit.func_layout().terminator(pred);
+                insts_by_region.entry(pred_tr).or_default().push(inst);
+            }
+        }
+
+        // For each entry with more than one instruction, create an auxiliary
+        // entry block.
+        for (src_tr, insts) in insts_by_region {
+            if insts.len() < 2 {
+                trace!("  Skipping {} (single head inst)", src_tr);
+                continue;
+            }
+            let aux_bb = unit.named_block("aux");
+            unit.append_to(aux_bb);
+            unit.ins().br(bb);
+            trace!("  Adding {} from {}", aux_bb.dump(unit.cfg()), src_tr);
+            for inst in insts {
+                trace!(
+                    "    Replacing {} in {}",
+                    bb.dump(unit.cfg()),
+                    inst.dump(unit.dfg(), unit.try_cfg())
+                );
+                unit.dfg_mut()[inst].replace_block(bb, aux_bb);
+            }
+            modified = true;
+        }
+    }
+
+    modified
 }
 
 /// Push `drv` instructions downards into the tails of their temporal regions.

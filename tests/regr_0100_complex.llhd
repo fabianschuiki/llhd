@@ -1,5 +1,5 @@
 ; RUN: llhd-opt %s
-proc %snitch.param1.always_ff.568.1 (i1$ %clk_i, i1$ %rst_i, i32$ %pc_d) -> (i32$ %pc_q) {
+proc %always_ff (i1$ %clk_i, i1$ %rst_i, i32$ %pc_d) -> (i32$ %pc_q) {
 0:
     br %init
 init:
@@ -22,3 +22,23 @@ event:
     drv i32$ %pc_q, %6, %7
     br %0
 }
+
+; CHECK:  proc %snitch.param1.always_ff.568.1 (i1$ %clk_i, i1$ %rst_i, i32$ %pc_d) -> (i32$ %pc_q) {
+; CHECK:  init:
+; CHECK:      %clk_i1 = prb i1$ %clk_i
+; CHECK:      %0 = const i1 0
+; CHECK:      %1 = eq i1 %clk_i1, %0
+; CHECK:      %2 = const i32 65536
+; CHECK:      %3 = const time 0s 1d
+; CHECK:      wait %check, %clk_i
+; CHECK:  check:
+; CHECK:      %pc_d1 = prb i32$ %pc_d
+; CHECK:      %rst_i1 = prb i1$ %rst_i
+; CHECK:      %clk_i2 = prb i1$ %clk_i
+; CHECK:      %4 = neq i1 %clk_i2, %0
+; CHECK:      %posedge = and i1 %1, %4
+; CHECK:      %5 = [i32 %pc_d1, %2]
+; CHECK:      %6 = mux [2 x i32] %5, i1 %rst_i1
+; CHECK:      drv i32$ %pc_q if %posedge, %6, %3
+; CHECK:      br %init
+; CHECK:  }
