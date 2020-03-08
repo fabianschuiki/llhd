@@ -1,0 +1,23 @@
+proc %foo (i32$ %a, i32$ %b) -> (i32$ %s, i32$ %c) {
+entry:
+    %a0 = prb i32$ %a
+    %b0 = prb i32$ %b
+    %0 = xor i32 %a0, %b0
+    %1 = and i32 %a0, %b0
+    %dt = const time 0s 1d
+    drv i32$ %s, %0, %dt
+    drv i32$ %c, %1, %dt
+    wait %entry, %a ; note that %b is missing
+}
+
+; CHECK:  proc %foo (i32$ %a, i32$ %b) -> (i32$ %s, i32$ %c) {
+; CHECK:  entry:
+; CHECK:      %a0 = prb i32$ %a
+; CHECK:      %b0 = prb i32$ %b
+; CHECK:      %0 = xor i32 %a0, %b0
+; CHECK:      %1 = and i32 %a0, %b0
+; CHECK:      %dt = const time 0s 1d
+; CHECK:      drv i32$ %s, %0, %dt
+; CHECK:      drv i32$ %c, %1, %dt
+; CHECK:      wait %entry, %a
+; CHECK:  }

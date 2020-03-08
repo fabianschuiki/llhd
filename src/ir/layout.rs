@@ -21,7 +21,7 @@ pub trait Layout {
 #[derive(Default, Serialize, Deserialize)]
 pub struct FunctionLayout {
     /// A linked list of BBs in layout order.
-    bbs: SecondaryTable<Block, BlockNode>,
+    pub(crate) bbs: SecondaryTable<Block, BlockNode>,
     /// The first BB in the layout.
     first_bb: Option<Block>,
     /// The last BB in the layout.
@@ -32,10 +32,10 @@ pub struct FunctionLayout {
 
 /// A node in the layout's double-linked list of BBs.
 #[derive(Default, Serialize, Deserialize)]
-struct BlockNode {
+pub(crate) struct BlockNode {
     prev: Option<Block>,
     next: Option<Block>,
-    layout: InstLayout,
+    pub(crate) layout: InstLayout,
 }
 
 impl FunctionLayout {

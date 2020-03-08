@@ -1,0 +1,7 @@
+proc %foo () -> () {
+entry:
+    halt
+}
+
+; CHECK:  entity %foo () -> () {
+; CHECK:  }

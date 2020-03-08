@@ -11,6 +11,7 @@ pub mod dce;
 pub mod gcse;
 pub mod insim;
 pub mod licm;
+pub mod proclower;
 pub mod tcm;
 pub mod vtpp;
 
@@ -20,5 +21,6 @@ pub use dce::DeadCodeElim;
 pub use gcse::GlobalCommonSubexprElim;
 pub use insim::InstSimplification;
 pub use licm::LoopIndepCodeMotion;
+pub use proclower::ProcessLowering;
 pub use tcm::TemporalCodeMotion;
 pub use vtpp::VarToPhiPromotion;

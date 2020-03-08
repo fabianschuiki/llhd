@@ -117,8 +117,25 @@ fn main_inner() -> Result<(), String> {
         passes.collect()
     } else {
         vec![
-            "cf", "vtpp", "dce", "gcse", "licm", "tcm", "licm", "tcm", "gcse", "tcm", "cf", "licm",
-            "gcse", "insim", "dce", "cfs", "insim", "dce",
+            "cf",
+            "vtpp",
+            "dce",
+            "gcse",
+            "licm",
+            "tcm",
+            "licm",
+            "tcm",
+            "gcse",
+            "tcm",
+            "cf",
+            "licm",
+            "gcse",
+            "insim",
+            "dce",
+            "cfs",
+            "insim",
+            "dce",
+            "proclower",
         ]
     };
 
@@ -137,6 +154,7 @@ fn main_inner() -> Result<(), String> {
             "licm" => llhd::pass::LoopIndepCodeMotion::run_on_module(&ctx, &mut module),
             "tcm" => llhd::pass::TemporalCodeMotion::run_on_module(&ctx, &mut module),
             "vtpp" => llhd::pass::VarToPhiPromotion::run_on_module(&ctx, &mut module),
+            "proclower" => llhd::pass::ProcessLowering::run_on_module(&ctx, &mut module),
             "verify" => {
                 let mut verifier = Verifier::new();
                 verifier.verify_module(&module);
@@ -219,12 +237,13 @@ static HELP_PASSES: &str = "Exact order of passes to run
 This option specifies the exact order of passes to be executed. The admissible \
 passes are as follows:
 
-cf      Constant folding
-cfs     Control Flow Simplification
-dce     Dead Code Elimination
-gcse    Global Common Subexpression Elimination
-insim   Instruction Simplification
-licm    Loop-Invariant Code Motion
-tcm     Temporal Code Motion
-vtpp    Var-to-Phi Promotion
+cf          Constant folding
+cfs         Control Flow Simplification
+dce         Dead Code Elimination
+gcse        Global Common Subexpression Elimination
+insim       Instruction Simplification
+licm        Loop-Invariant Code Motion
+tcm         Temporal Code Motion
+vtpp        Var-to-Phi Promotion
+proclower   Process Lowering
 ";

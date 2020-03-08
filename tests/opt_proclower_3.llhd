@@ -1,0 +1,7 @@
+proc %foo () -> (i32$ %a) {
+entry:
+    halt
+}
+
+; CHECK:  entity %foo () -> (i32$ %a) {
+; CHECK:  }
