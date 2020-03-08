@@ -1,0 +1,20 @@
+; RUN: llhd-opt %s
+proc %ff_clkrise_rstsynclow (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
+init:
+    %CLK1 = prb i1$ %CLK
+    %0 = const i1 0
+    %1 = eq i1 %CLK1, %0
+    %2 = const i32 65536
+    %3 = const time 0s 1d
+    wait %check, %CLK
+check:
+    %D1 = prb i32$ %D
+    %RST1 = prb i1$ %RST
+    %CLK2 = prb i1$ %CLK
+    %4 = neq i1 %CLK2, %0
+    %posedge = and i1 %1, %4
+    %5 = [i32 %D1, %2]
+    %6 = mux [2 x i32] %5, i1 %RST1
+    drv i32$ %Q if %posedge, %6, %3
+    br %init
+}

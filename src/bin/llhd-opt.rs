@@ -155,6 +155,7 @@ fn main_inner() -> Result<(), String> {
             "tcm" => llhd::pass::TemporalCodeMotion::run_on_module(&ctx, &mut module),
             "vtpp" => llhd::pass::VarToPhiPromotion::run_on_module(&ctx, &mut module),
             "proclower" => llhd::pass::ProcessLowering::run_on_module(&ctx, &mut module),
+            "deseq" => llhd::pass::Desequentialization::run_on_module(&ctx, &mut module),
             "verify" => {
                 let mut verifier = Verifier::new();
                 verifier.verify_module(&module);
@@ -246,4 +247,5 @@ licm        Loop-Invariant Code Motion
 tcm         Temporal Code Motion
 vtpp        Var-to-Phi Promotion
 proclower   Process Lowering
+deseq       Desequentialization
 ";

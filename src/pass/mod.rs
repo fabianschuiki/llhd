@@ -8,6 +8,7 @@
 pub mod cf;
 pub mod cfs;
 pub mod dce;
+pub mod deseq;
 pub mod gcse;
 pub mod insim;
 pub mod licm;
@@ -18,6 +19,7 @@ pub mod vtpp;
 pub use cf::ConstFolding;
 pub use cfs::ControlFlowSimplification;
 pub use dce::DeadCodeElim;
+pub use deseq::Desequentialization;
 pub use gcse::GlobalCommonSubexprElim;
 pub use insim::InstSimplification;
 pub use licm::LoopIndepCodeMotion;
