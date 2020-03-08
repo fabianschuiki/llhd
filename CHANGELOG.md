@@ -13,9 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Use dense vector table instead of hash map for blocks, instructions, values, and external unit data.
 - Improve dominator tree computation performance.
+- Add auxiliary temporal region entry blocks during TCM.
+- Improve value/block use lookup performance. ([#91](https://github.com/fabianschuiki/llhd/issues/91))
 
 ### Fixed
 - Fix instructions in entry block being reordered during LICM.
+- Fix `drv` instructions being removed during TCM. ([#100](https://github.com/fabianschuiki/llhd/issues/100))
 
 ## 0.11.0 - 2020-02-08
 ### Added
