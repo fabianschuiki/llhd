@@ -194,7 +194,7 @@ InstWithResult: ast::Inst<'input> = {
         ast::Inst::new(opc).data(ast::InstData::Ternary(base, hidden, amount)),
     "mux" <array: TypedValue> "," <sel: TypedValue> => ast::Inst::new(Opcode::Mux)
         .data(ast::InstData::Binary(array, sel)),
-    "reg" <init: TypedValue> <triggers: ("," <Value> <RegMode> <TypedValue>)*> => {
+    "reg" <init: TypedValue> <triggers: ("," "[" <Value> "," <RegMode> <TypedValue> "]")*> => {
         let triggers = triggers.into_iter().map(|(data, mode, trigger)| (
             data.ty(init.ty.clone()),
             mode,

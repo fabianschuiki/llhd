@@ -372,10 +372,11 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     .zip(data.mode_args().iter().cloned())
                     .zip(data.trigger_args().iter().cloned());
                 for ((value, mode), trigger) in iter {
-                    write!(self.writer.sink, ", ")?;
+                    write!(self.writer.sink, ", [")?;
                     self.write_value_use(value, false)?;
-                    write!(self.writer.sink, " {} ", mode)?;
-                    self.write_value_use(trigger, false)?;
+                    write!(self.writer.sink, ", {} ", mode)?;
+                    self.write_value_use(trigger, true)?;
+                    write!(self.writer.sink, "]")?;
                 }
             }
             Opcode::InsField | Opcode::InsSlice => {
