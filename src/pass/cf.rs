@@ -37,6 +37,7 @@ pub fn run_on_inst(builder: &mut impl UnitBuilder, inst: Inst) -> bool {
     let replacement = match data.opcode() {
         Opcode::InsSlice => fold_ins_slice(builder, inst),
         Opcode::ExtSlice => fold_ext_slice(builder, inst),
+        Opcode::ExtField => fold_ext_field(builder, inst),
         Opcode::Shl | Opcode::Shr => fold_shift(builder, inst, &ty),
         Opcode::Mux => fold_mux(builder, inst),
         _ => match *data {
@@ -279,6 +280,23 @@ fn fold_ext_slice(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
     }
 
     None
+}
+
+/// Fold a field extraction instruction.
+fn fold_ext_field(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
+    let dfg = builder.dfg();
+    let data = &dfg[inst];
+    let target = data.args()[0];
+    let target_inst = dfg.get_value_inst(target)?;
+    let target_data = &dfg[target_inst];
+    let offset = data.imms()[0];
+    match target_data.opcode() {
+        Opcode::ArrayUniform => Some(target_data.args()[0]),
+        Opcode::Array | Opcode::Struct if offset < target_data.args().len() => {
+            Some(target_data.args()[offset])
+        }
+        _ => None,
+    }
 }
 
 /// Fold a mux instruction.

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add auxiliary temporal region entry blocks during TCM.
 - Improve value/block use lookup performance. ([#91](https://github.com/fabianschuiki/llhd/issues/91))
 - Fold `mux` instructions with constant selector.
+- Fold `extf` instructions on constant arrays and structs.
 
 ### Fixed
 - Fix instructions in entry block being reordered during LICM.
