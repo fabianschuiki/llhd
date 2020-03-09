@@ -98,7 +98,11 @@ fn deseq_process(ctx: &PassContext, unit: &mut ProcessBuilder) -> Option<Entity>
                     "Canonicalizing condition of {}",
                     inst.dump(dfg, unit.try_cfg())
                 );
-                conds.push((inst, bb, canonicalize(ctx, unit, &trg, data.args()[3])));
+                conds.push((
+                    inst,
+                    bb,
+                    canonicalize(ctx, unit, &trg, data.args()[3], false),
+                ));
             }
         }
     }
@@ -146,19 +150,10 @@ fn canonicalize(
     unit: &ProcessBuilder,
     trg: &TemporalRegionGraph,
     cond: Value,
-) -> Dnf {
-    canonicalize_term(ctx, unit, trg, cond, false)
-}
-
-fn canonicalize_term(
-    ctx: &PassContext,
-    unit: &ProcessBuilder,
-    trg: &TemporalRegionGraph,
-    cond: Value,
     inv: bool,
 ) -> Dnf {
     let dfg = unit.dfg();
-    let dnf = canonicalize_term_inner(ctx, unit, trg, cond, inv);
+    let dnf = canonicalize_inner(ctx, unit, trg, cond, inv);
     let desc = if let Some(inst) = dfg.get_value_inst(cond) {
         inst.dump(dfg, unit.try_cfg()).to_string()
     } else {
@@ -173,7 +168,7 @@ fn canonicalize_term(
     dnf
 }
 
-fn canonicalize_term_inner(
+fn canonicalize_inner(
     ctx: &PassContext,
     unit: &ProcessBuilder,
     trg: &TemporalRegionGraph,
@@ -195,10 +190,10 @@ fn canonicalize_term_inner(
             Opcode::ConstInt => {
                 return Dnf::single(Term::Zero, data.get_const_int().unwrap().is_one() ^ inv);
             }
-            Opcode::Not => return canonicalize_term(ctx, unit, trg, data.args()[0], !inv),
+            Opcode::Not => return canonicalize(ctx, unit, trg, data.args()[0], !inv),
             Opcode::And | Opcode::Or => {
-                let lhs = canonicalize_term(ctx, unit, trg, data.args()[0], inv);
-                let rhs = canonicalize_term(ctx, unit, trg, data.args()[1], inv);
+                let lhs = canonicalize(ctx, unit, trg, data.args()[0], inv);
+                let rhs = canonicalize(ctx, unit, trg, data.args()[1], inv);
                 let out = match (data.opcode(), inv) {
                     (Opcode::And, false) | (Opcode::Or, true) => Dnf::and(&lhs, &rhs),
                     (Opcode::And, true) | (Opcode::Or, false) => Dnf::or(&lhs, &rhs),
@@ -207,10 +202,10 @@ fn canonicalize_term_inner(
                 return out;
             }
             Opcode::Xor | Opcode::Eq | Opcode::Neq => {
-                let lhs_pos = canonicalize_term(ctx, unit, trg, data.args()[0], false);
-                let rhs_pos = canonicalize_term(ctx, unit, trg, data.args()[1], false);
-                let lhs_neg = canonicalize_term(ctx, unit, trg, data.args()[0], true);
-                let rhs_neg = canonicalize_term(ctx, unit, trg, data.args()[1], true);
+                let lhs_pos = canonicalize(ctx, unit, trg, data.args()[0], false);
+                let rhs_pos = canonicalize(ctx, unit, trg, data.args()[1], false);
+                let lhs_neg = canonicalize(ctx, unit, trg, data.args()[0], true);
+                let rhs_neg = canonicalize(ctx, unit, trg, data.args()[1], true);
                 let polarity = match data.opcode() {
                     Opcode::Eq => !inv,
                     _ => inv,
