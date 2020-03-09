@@ -1,33 +1,47 @@
 ; RUN: llhd-opt %s
-proc %ff_clkrise_rstasynclow_gated (i1$ %clk_i, i1$ %rst_ni, i1$ %gate_clock, i32$ %mem_d) -> (i32$ %mem_q) {
+proc %ff_clkrise_rstasynclow (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
 init:
-    %clk_i1 = prb i1$ %clk_i
-    %rst_ni1 = prb i1$ %rst_ni
+    %CLK1 = prb i1$ %CLK
+    %RST1 = prb i1$ %RST
     %0 = const i1 0
-    %1 = eq i1 %clk_i1, %0
-    %2 = neq i1 %rst_ni1, %0
+    %1 = eq i1 %CLK1, %0
+    %7 = neq i1 %RST1, %0
+    %2 = const i32 65536
     %3 = const time 0s 1d
-    %4 = const i32 0
-    wait %check, %clk_i, %rst_ni
+    wait %check, %CLK, %RST
 check:
-    %clk_i2 = prb i1$ %clk_i
-    %rst_ni2 = prb i1$ %rst_ni
-    %gate_clock1 = prb i1$ %gate_clock
-    %mem_d1 = prb i32$ %mem_d
-    %5 = neq i1 %clk_i2, %0
-    %posedge = and i1 %1, %5
-    %6 = eq i1 %rst_ni2, %0
-    %negedge = and i1 %6, %2
+    %D1 = prb i32$ %D
+    %RST2 = prb i1$ %RST
+    %CLK2 = prb i1$ %CLK
+    %4 = neq i1 %CLK2, %0
+    %8 = eq i1 %RST2, %0
+    %posedge = and i1 %1, %4
+    %negedge = and i1 %7, %8
     %event_or = or i1 %posedge, %negedge
-    %7 = not i1 %rst_ni2
-    %8 = not i1 %gate_clock1
-    %9 = not i1 %7
-    %10 = and i1 %event_or, %9
-    %11 = and i1 %10, %8
-    %12 = and i1 %event_or, %7
-    %13 = or i1 %11, %12
-    %14 = [i32 %mem_d1, %4]
-    %15 = mux [2 x i32] %14, i1 %12
-    drv i32$ %mem_q if %13, %15, %3
+    %5 = [i32 %2, %D1]
+    %6 = mux [2 x i32] %5, i1 %RST2
+    drv i32$ %Q if %event_or, %6, %3
+    br %init
+}
+
+proc %ff_clkrise_rstasynclow2 (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
+init:
+    %CLK1 = prb i1$ %CLK
+    %0 = const i1 0
+    %1 = eq i1 %CLK1, %0
+    %2 = const i32 65536
+    %3 = const time 0s 1d
+    wait %check, %CLK, %RST
+check:
+    %D1 = prb i32$ %D
+    %RST2 = prb i1$ %RST
+    %CLK2 = prb i1$ %CLK
+    %4 = neq i1 %CLK2, %0
+    %8 = eq i1 %RST2, %0
+    %posedge = and i1 %1, %4
+    %event_or = or i1 %posedge, %8
+    %5 = [i32 %2, %D1]
+    %6 = mux [2 x i32] %5, i1 %RST2
+    drv i32$ %Q if %event_or, %6, %3
     br %init
 }

@@ -1,50 +1,40 @@
 ; RUN: llhd-opt %s
-proc %ff_clkrise_rstasynclow (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
+proc %ff_clkrise_rstsynchigh (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
 init:
     %CLK1 = prb i1$ %CLK
-    %RST1 = prb i1$ %RST
     %0 = const i1 0
     %1 = eq i1 %CLK1, %0
-    %7 = neq i1 %RST1, %0
     %2 = const i32 65536
     %3 = const time 0s 1d
-    wait %check, %CLK, %RST
+    wait %check, %CLK
 check:
     %D1 = prb i32$ %D
-    %RST2 = prb i1$ %RST
+    %RST1 = prb i1$ %RST
     %CLK2 = prb i1$ %CLK
     %4 = neq i1 %CLK2, %0
-    %8 = eq i1 %RST2, %0
     %posedge = and i1 %1, %4
-    %negedge = and i1 %7, %8
-    %event_or = or i1 %posedge, %negedge
     %5 = [i32 %D1, %2]
-    %6 = mux [2 x i32] %5, i1 %RST2
-    drv i32$ %Q if %event_or, %6, %3
+    %6 = mux [2 x i32] %5, i1 %RST1
+    drv i32$ %Q if %posedge, %6, %3
     br %init
 }
 
-; proc %ff_clkrise_rstasynchigh (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
-; init:
-;     %CLK1 = prb i1$ %CLK
-;     %RST1 = prb i1$ %RST
-;     %0 = const i1 0
-;     %1 = eq i1 %CLK1, %0
-;     %7 = eq i1 %RST1, %0
-;     %2 = const i32 65536
-;     %3 = const time 0s 1d
-;     wait %check, %CLK, %RST
-; check:
-;     %D1 = prb i32$ %D
-;     %RST2 = prb i1$ %RST
-;     %CLK2 = prb i1$ %CLK
-;     %4 = neq i1 %CLK2, %0
-;     %8 = neq i1 %RST2, %0
-;     %posedge = and i1 %1, %4
-;     %negedge = and i1 %7, %8
-;     %event_or = or i1 %posedge, %negedge
-;     %5 = [i32 %D1, %2]
-;     %6 = mux [2 x i32] %5, i1 %RST2
-;     drv i32$ %Q if %event_or, %6, %3
-;     br %init
-; }
+proc %ff_clkrise_rstsynclow (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
+init:
+    %CLK1 = prb i1$ %CLK
+    %0 = const i1 0
+    %1 = eq i1 %CLK1, %0
+    %2 = const i32 65536
+    %3 = const time 0s 1d
+    wait %check, %CLK
+check:
+    %D1 = prb i32$ %D
+    %RST1 = prb i1$ %RST
+    %CLK2 = prb i1$ %CLK
+    %4 = neq i1 %CLK2, %0
+    %posedge = and i1 %1, %4
+    %5 = [i32 %2, %D1]
+    %6 = mux [2 x i32] %5, i1 %RST1
+    drv i32$ %Q if %posedge, %6, %3
+    br %init
+}

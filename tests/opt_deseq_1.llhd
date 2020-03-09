@@ -15,18 +15,18 @@ check:
     br %init
 }
 
-; proc %ff_clkfall (i1$ %CLK, i32$ %D) -> (i32$ %Q) {
-; init:
-;     %CLK1 = prb i1$ %CLK
-;     %0 = const i1 1
-;     %1 = eq i1 %CLK1, %0
-;     %3 = const time 0s 1d
-;     wait %check, %CLK
-; check:
-;     %D1 = prb i32$ %D
-;     %CLK2 = prb i1$ %CLK
-;     %4 = neq i1 %CLK2, %0
-;     %posedge = and i1 %1, %4
-;     drv i32$ %Q if %posedge, %D1, %3
-;     br %init
-; }
+proc %ff_clkfall (i1$ %CLK, i32$ %D) -> (i32$ %Q) {
+init:
+    %CLK1 = prb i1$ %CLK
+    %0 = const i1 1
+    %1 = eq i1 %CLK1, %0
+    %3 = const time 0s 1d
+    wait %check, %CLK
+check:
+    %D1 = prb i32$ %D
+    %CLK2 = prb i1$ %CLK
+    %4 = neq i1 %CLK2, %0
+    %posedge = and i1 %1, %4
+    drv i32$ %Q if %posedge, %D1, %3
+    br %init
+}

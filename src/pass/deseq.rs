@@ -124,7 +124,7 @@ fn deseq_process(ctx: &PassContext, unit: &mut ProcessBuilder) -> Option<Entity>
             builder.dfg_mut().set_name(v, name.to_string());
         }
     }
-    let mut mig = Migrator::new(unit, &mut builder);
+    let mut mig = Migrator::new(unit, &mut builder, &trg, tr0, tr1);
 
     // For each drive where we successfully and exhaustively identified the
     // triggers, migrate the computation of each next state into a separate
@@ -429,8 +429,8 @@ fn detect_term_triggers(
                     levels.insert(
                         sig,
                         match inv {
-                            true => TriggerLevel::High,
-                            false => TriggerLevel::Low,
+                            false => TriggerLevel::High,
+                            true => TriggerLevel::Low,
                         },
                     );
                 }
@@ -480,15 +480,27 @@ enum TriggerLevel {
 struct Migrator<'a, 'b> {
     src: &'a ProcessBuilder<'b>,
     dst: &'a mut EntityBuilder<'b>,
+    trg: &'a TemporalRegionGraph,
+    tr0: TemporalRegion,
+    tr1: TemporalRegion,
     /// Cache of already-migrated instructions.
     cache: HashMap<InstData, Value>,
 }
 
 impl<'a, 'b> Migrator<'a, 'b> {
-    pub fn new(src: &'a ProcessBuilder<'b>, dst: &'a mut EntityBuilder<'b>) -> Self {
+    pub fn new(
+        src: &'a ProcessBuilder<'b>,
+        dst: &'a mut EntityBuilder<'b>,
+        trg: &'a TemporalRegionGraph,
+        tr0: TemporalRegion,
+        tr1: TemporalRegion,
+    ) -> Self {
         Self {
             src,
             dst,
+            trg,
+            tr0,
+            tr1,
             cache: Default::default(),
         }
     }
@@ -511,21 +523,30 @@ impl<'a, 'b> Migrator<'a, 'b> {
             trace!("  Migrating {:?}", trig);
             match trig {
                 Trigger::Edge(sig, edge, conds) => {
-                    // Migrate the conditions.
-                    // TODO
+                    // Setup a map of known signal values, per temporal region.
+                    // Start out with just the trigger.
+                    let mut ties = BTreeMap::new();
+                    let (l0, l1) = match edge {
+                        TriggerEdge::Rise => (TriggerLevel::Low, TriggerLevel::High),
+                        TriggerEdge::Fall => (TriggerLevel::High, TriggerLevel::Low),
+                    };
+                    ties.insert((*sig, self.tr0), l0);
+                    ties.insert((*sig, self.tr1), l1);
 
-                    // Gather the known signal values.
-                    // TODO: Convert this into a precise (Value, TemporalRegion)
-                    // assignment to properly tie down values before and after
-                    // the trigger.
-                    let mut ties = conds.clone();
-                    ties.insert(
-                        *sig,
-                        match edge {
-                            TriggerEdge::Rise => TriggerLevel::High,
-                            TriggerEdge::Fall => TriggerLevel::Low,
-                        },
-                    );
+                    // Migrate the conditions.
+                    let mut gate = None;
+                    for (&sig, &level) in conds {
+                        ties.insert((sig, self.tr1), level);
+                        let value = self.dst.ins().prb(sig);
+                        let value = match level {
+                            TriggerLevel::Low => self.dst.ins().not(value),
+                            TriggerLevel::High => value,
+                        };
+                        gate = Some(match gate {
+                            Some(gate) => self.dst.ins().and(gate, value),
+                            None => value,
+                        });
+                    }
 
                     // Migrate the value computation.
                     let data = match self.migrate_value(drive_value, &ties) {
@@ -543,12 +564,49 @@ impl<'a, 'b> Migrator<'a, 'b> {
                         data,
                         mode,
                         trigger,
-                        gate: None,
+                        gate,
                     });
                 }
-                Trigger::Level(..) => {
-                    trace!("    Skipping (level-sensitivity not yet supported)");
-                    return false;
+                Trigger::Level(conds) => {
+                    // Migrate the conditions.
+                    let mut ties = BTreeMap::new();
+                    let mut trigger = None;
+                    for (&sig, &level) in conds {
+                        ties.insert((sig, self.tr1), level);
+                        let value = self.dst.ins().prb(sig);
+                        let value = match level {
+                            TriggerLevel::Low => self.dst.ins().not(value),
+                            TriggerLevel::High => value,
+                        };
+                        trigger = Some(match trigger {
+                            Some(trigger) => self.dst.ins().and(trigger, value),
+                            None => value,
+                        });
+                    }
+                    let trigger = match trigger {
+                        Some(c) => c,
+                        None => {
+                            trace!(
+                                "    Skipping {} (level-sensitive with no trigger)",
+                                drive.dump(self.src.dfg(), self.src.try_cfg())
+                            );
+                            return false;
+                        }
+                    };
+
+                    // Migrate the value computation.
+                    let data = match self.migrate_value(drive_value, &ties) {
+                        Some(v) => v,
+                        None => return false,
+                    };
+
+                    // Keep track of this trigger.
+                    reg_triggers.push(RegTrigger {
+                        data,
+                        mode: RegMode::High,
+                        trigger,
+                        gate: None,
+                    });
                 }
             }
         }
@@ -566,20 +624,23 @@ impl<'a, 'b> Migrator<'a, 'b> {
     pub fn migrate_value(
         &mut self,
         value: Value,
-        // TODO: Make this take (Value, TemporalRegion) instead
-        ties: &BTreeMap<Value, TriggerLevel>,
+        ties: &BTreeMap<(Value, TemporalRegion), TriggerLevel>,
     ) -> Option<Value> {
         // Migrate arguments.
         if let Some(arg) = self.src.dfg().get_value_arg(value) {
-            trace!("    Migrating arg {}", value.dump(self.src.dfg()));
             return Some(self.dst.dfg().arg_value(arg));
         }
 
         // Migrate instructions.
         if let Some(inst) = self.src.dfg().get_value_inst(value) {
-            // Handle tied signals.
+            let bb = self.src.func_layout().inst_block(inst)?;
+            let tr = self.trg[bb];
+
+            // Handle signal probes.
             if self.src.dfg()[inst].opcode() == Opcode::Prb {
-                if let Some(&level) = ties.get(&self.src.dfg()[inst].args()[0]) {
+                // See if this signal is tied to a fixed value.
+                let sig = self.src.dfg()[inst].args()[0];
+                if let Some(&level) = ties.get(&(sig, tr)) {
                     let data = InstData::ConstInt {
                         opcode: Opcode::ConstInt,
                         imm: IntValue::from_usize(
@@ -592,6 +653,16 @@ impl<'a, 'b> Migrator<'a, 'b> {
                     };
                     return Some(self.migrate_inst_data(data, value));
                 }
+
+                // Otherwise ensure that the probe occurs *after* the trigger.
+                // This is a requirement for modeling the behaviour with `reg`.
+                if tr != self.tr1 {
+                    trace!(
+                        "    Skipping {} (probe in wrong TR)",
+                        inst.dump(self.src.dfg(), self.src.try_cfg())
+                    );
+                    return None;
+                }
             }
 
             // Handle regular signals.
@@ -600,11 +671,6 @@ impl<'a, 'b> Migrator<'a, 'b> {
             for arg in data.args_mut() {
                 *arg = self.migrate_value(*arg, ties)?;
             }
-            trace!(
-                "    Migrating inst {} with ties {:?}",
-                inst.dump(self.src.dfg(), self.src.try_cfg()),
-                ties
-            );
             return Some(self.migrate_inst_data(data, value));
         }
 
@@ -620,6 +686,7 @@ impl<'a, 'b> Migrator<'a, 'b> {
         if let Some(&v) = self.cache.get(&data) {
             v
         } else {
+            trace!("    Migrated {}", src_value.dump(self.src.dfg()));
             let ty = self.src.dfg().value_type(src_value);
             let inst = self.dst.ins().build(data.clone(), ty);
             let value = self.dst.dfg().inst_result(inst);

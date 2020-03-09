@@ -1,20 +1,56 @@
 ; RUN: llhd-opt %s
-proc %ff_clkrise_rstsynchigh (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
+proc %ff_clkrise_gated (i1$ %CLK, i32$ %D, i1$ %EN) -> (i32$ %Q) {
 init:
     %CLK1 = prb i1$ %CLK
     %0 = const i1 0
     %1 = eq i1 %CLK1, %0
-    %2 = const i32 65536
     %3 = const time 0s 1d
     wait %check, %CLK
 check:
     %D1 = prb i32$ %D
-    %RST1 = prb i1$ %RST
     %CLK2 = prb i1$ %CLK
     %4 = neq i1 %CLK2, %0
     %posedge = and i1 %1, %4
-    %5 = [i32 %D1, %2]
-    %6 = mux [2 x i32] %5, i1 %RST1
-    drv i32$ %Q if %posedge, %6, %3
+    %EN1 = prb i1$ %EN
+    %trigger = and i1 %posedge, %EN1
+    drv i32$ %Q if %trigger, %D1, %3
+    br %init
+}
+
+proc %ff_clkfall_invgated (i1$ %CLK, i32$ %D, i1$ %EN) -> (i32$ %Q) {
+init:
+    %CLK1 = prb i1$ %CLK
+    %0 = const i1 1
+    %1 = eq i1 %CLK1, %0
+    %3 = const time 0s 1d
+    wait %check, %CLK
+check:
+    %D1 = prb i32$ %D
+    %CLK2 = prb i1$ %CLK
+    %4 = neq i1 %CLK2, %0
+    %posedge = and i1 %1, %4
+    %EN1 = prb i1$ %EN
+    %notEN1 = not i1 %EN1
+    %trigger = and i1 %posedge, %notEN1
+    drv i32$ %Q if %trigger, %D1, %3
+    br %init
+}
+
+proc %ff_weird (i1$ %CLK, i32$ %D, i1$ %EN) -> (i32$ %Q) {
+init:
+    %CLK1 = prb i1$ %CLK
+    %0 = const i1 0
+    %1 = eq i1 %CLK1, %0
+    %3 = const time 0s 1d
+    wait %check, %CLK
+check:
+    %D1 = prb i32$ %D
+    %CLK2 = prb i1$ %CLK
+    %4 = neq i1 %CLK2, %0
+    %EN1 = prb i1$ %EN
+    %6 = xor i1 %1, %EN1
+    %7 = xor i1 %4, %EN1
+    %posedge = and i1 %6, %7
+    drv i32$ %Q if %posedge, %D1, %3
     br %init
 }
