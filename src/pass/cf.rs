@@ -38,6 +38,7 @@ pub fn run_on_inst(builder: &mut impl UnitBuilder, inst: Inst) -> bool {
         Opcode::InsSlice => fold_ins_slice(builder, inst),
         Opcode::ExtSlice => fold_ext_slice(builder, inst),
         Opcode::Shl | Opcode::Shr => fold_shift(builder, inst, &ty),
+        Opcode::Mux => fold_mux(builder, inst),
         _ => match *data {
             InstData::Unary { opcode, args, .. } => {
                 fold_unary(builder, opcode, ty.clone(), args[0])
@@ -278,4 +279,13 @@ fn fold_ext_slice(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
     }
 
     None
+}
+
+/// Fold a mux instruction.
+fn fold_mux(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
+    let dfg = builder.dfg();
+    let choices = dfg[inst].args()[0];
+    let sel = dfg[inst].args()[1];
+    let const_sel = dfg.get_const_int(sel)?.to_usize();
+    Some(builder.ins().ext_field(choices, const_sel))
 }
