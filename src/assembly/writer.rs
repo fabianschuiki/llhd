@@ -365,17 +365,15 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
             Opcode::Reg => {
                 write!(self.writer.sink, "{} ", data.opcode())?;
                 self.write_value_use(data.args()[0], true)?;
-                let iter = data
-                    .data_args()
-                    .iter()
-                    .cloned()
-                    .zip(data.mode_args().iter().cloned())
-                    .zip(data.trigger_args().iter().cloned());
-                for ((value, mode), trigger) in iter {
+                for t in data.triggers() {
                     write!(self.writer.sink, ", [")?;
-                    self.write_value_use(value, false)?;
-                    write!(self.writer.sink, ", {} ", mode)?;
-                    self.write_value_use(trigger, true)?;
+                    self.write_value_use(t.data, false)?;
+                    write!(self.writer.sink, ", {} ", t.mode)?;
+                    self.write_value_use(t.trigger, true)?;
+                    if let Some(gate) = t.gate {
+                        write!(self.writer.sink, ", if ")?;
+                        self.write_value_use(gate, true)?;
+                    }
                     write!(self.writer.sink, "]")?;
                 }
             }

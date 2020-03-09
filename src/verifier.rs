@@ -231,12 +231,18 @@ where
         let mut args_invalid = false;
         for &value in self.dfg[inst].args() {
             if value.is_invalid() {
+                if self.dfg[inst].opcode() == Opcode::Reg {
+                    // Optional trigger condition in register uses `invalid` to
+                    // indicate that the value is not use. This is ugly.
+                    continue;
+                }
                 args_invalid = true;
                 self.verifier.errors.push(VerifierError {
                     unit: self.verifier.unit.clone(),
                     object: Some(inst.dump(self.dfg, self.cfg).to_string()),
                     message: format!("{} uses invalid value", self.dfg[inst].opcode()),
                 });
+                continue;
             }
             if !self.is_value_defined(value) {
                 self.verifier.errors.push(VerifierError {
@@ -254,6 +260,7 @@ where
                     object: Some(inst.dump(self.dfg, self.cfg).to_string()),
                     message: format!("{} uses invalid block", self.dfg[inst].opcode()),
                 });
+                continue;
             }
             if !self.is_block_defined(block) {
                 self.verifier.errors.push(VerifierError {
@@ -769,11 +776,20 @@ where
     fn verify_reg_inst(&mut self, inst: Inst) {
         let ty = self.dfg.inst_type(inst).unwrap_signal().clone();
         self.verify_arg_matches_ty(inst, self.dfg[inst].args()[0], &ty);
-        for &arg in self.dfg[inst].data_args() {
+        for arg in self.dfg[inst].data_args() {
             self.verify_arg_matches_ty(inst, arg, &ty);
         }
-        for &arg in self.dfg[inst].trigger_args() {
-            self.verify_arg_matches_ty(inst, arg, &signal_ty(int_ty(1)));
+        for arg in self.dfg[inst].trigger_args() {
+            if self.dfg.value_type(arg).is_signal() {
+                self.verify_arg_matches_ty(inst, arg, &signal_ty(int_ty(1)));
+            } else {
+                self.verify_arg_matches_ty(inst, arg, &int_ty(1));
+            }
+        }
+        for arg in self.dfg[inst].gating_args() {
+            if let Some(arg) = arg {
+                self.verify_arg_matches_ty(inst, arg, &int_ty(1));
+            }
         }
     }
 

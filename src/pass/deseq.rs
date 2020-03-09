@@ -506,7 +506,7 @@ impl<'a, 'b> Migrator<'a, 'b> {
             None => return false,
         };
 
-        let mut reg_args = Vec::<(Value, RegMode, Value)>::new();
+        let mut reg_triggers = vec![];
         for trig in trigs {
             trace!("  Migrating {:?}", trig);
             match trig {
@@ -528,17 +528,23 @@ impl<'a, 'b> Migrator<'a, 'b> {
                     );
 
                     // Migrate the value computation.
-                    let value = match self.migrate_value(drive_value, &ties) {
+                    let data = match self.migrate_value(drive_value, &ties) {
                         Some(v) => v,
                         None => return false,
                     };
 
                     // Keep track of this trigger.
+                    let trigger = self.dst.ins().prb(*sig);
                     let mode = match edge {
                         TriggerEdge::Rise => RegMode::Rise,
                         TriggerEdge::Fall => RegMode::Fall,
                     };
-                    reg_args.push((value, mode, *sig));
+                    reg_triggers.push(RegTrigger {
+                        data,
+                        mode,
+                        trigger,
+                        gate: None,
+                    });
                 }
                 Trigger::Level(..) => {
                     trace!("    Skipping (level-sensitivity not yet supported)");
@@ -550,7 +556,7 @@ impl<'a, 'b> Migrator<'a, 'b> {
         // Create the register instruction.
         let ty = self.src.dfg().value_type(drive_value);
         let init = self.dst.ins().const_zero(&ty);
-        let reg = self.dst.ins().reg(init, reg_args);
+        let reg = self.dst.ins().reg(init, reg_triggers);
 
         // Drive the register value onto the output.
         self.dst.ins().con(mig_target, reg);

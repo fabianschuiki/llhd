@@ -72,7 +72,12 @@ pub enum InstData<'a> {
     ),
     Reg(
         TypedValue<'a>,
-        Vec<(TypedValue<'a>, ir::RegMode, TypedValue<'a>)>,
+        Vec<(
+            TypedValue<'a>,
+            ir::RegMode,
+            TypedValue<'a>,
+            Option<TypedValue<'a>>,
+        )>,
     ),
     Ins(TypedValue<'a>, TypedValue<'a>, [usize; 2]),
     Ext(Type, TypedValue<'a>, [usize; 2]),
@@ -205,12 +210,11 @@ impl<'a> Inst<'a> {
                 let init = init.build(builder, context);
                 let triggers = triggers
                     .into_iter()
-                    .map(|(data, mode, trigger)| {
-                        (
-                            data.build(builder, context),
-                            mode,
-                            trigger.build(builder, context),
-                        )
+                    .map(|(data, mode, trigger, gate)| ir::RegTrigger {
+                        data: data.build(builder, context),
+                        mode: mode,
+                        trigger: trigger.build(builder, context),
+                        gate: gate.map(|g| g.build(builder, context)),
                     })
                     .collect();
                 builder.ins().reg(init, triggers).into()

@@ -4,5 +4,5 @@
 
 pub use crate::ir::{
     Arg, Block, Entity, EntityBuilder, Function, FunctionBuilder, Inst, ModUnit, Module, Opcode,
-    Process, ProcessBuilder, RegMode, Signature, Unit, UnitBuilder, UnitName, Value,
+    Process, ProcessBuilder, RegMode, RegTrigger, Signature, Unit, UnitBuilder, UnitName, Value,
 };

@@ -293,14 +293,15 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    pub fn reg(&mut self, x: Value, data: Vec<(Value, RegMode, Value)>) -> Value {
+    pub fn reg(&mut self, x: Value, data: Vec<RegTrigger>) -> Value {
         let ty = signal_ty(self.value_type(x));
         let mut args = vec![x];
         let mut modes = vec![];
-        args.extend(data.iter().map(|x| x.0));
-        args.extend(data.iter().map(|x| x.2));
-        modes.extend(data.iter().map(|x| x.1));
-        assert_eq!(args.len(), modes.len() * 2 + 1);
+        args.extend(data.iter().map(|x| x.data));
+        args.extend(data.iter().map(|x| x.trigger));
+        args.extend(data.iter().map(|x| x.gate.unwrap_or(Value::invalid())));
+        modes.extend(data.iter().map(|x| x.mode));
+        assert_eq!(args.len(), modes.len() * 3 + 1);
         let inst = self.build(
             InstData::Reg {
                 opcode: Opcode::Reg,
@@ -812,27 +813,57 @@ impl InstData {
     }
 
     /// Get the data arguments of a register instruction.
-    pub fn data_args(&self) -> &[Value] {
+    pub fn data_args(&self) -> impl Iterator<Item = Value> + '_ {
         match self {
             InstData::Reg { args, modes, .. } => &args[1..1 + modes.len()],
             _ => &[],
         }
+        .iter()
+        .cloned()
     }
 
     /// Get the trigger arguments of a register instruction.
-    pub fn trigger_args(&self) -> &[Value] {
+    pub fn trigger_args(&self) -> impl Iterator<Item = Value> + '_ {
         match self {
-            InstData::Reg { args, modes, .. } => &args[1 + modes.len()..],
+            InstData::Reg { args, modes, .. } => &args[1 + modes.len()..1 + 2 * modes.len()],
             _ => &[],
         }
+        .iter()
+        .cloned()
+    }
+
+    /// Get the gating arguments of a register instruction.
+    pub fn gating_args(&self) -> impl Iterator<Item = Option<Value>> + '_ {
+        match self {
+            InstData::Reg { args, modes, .. } => &args[1 + 2 * modes.len()..],
+            _ => &[],
+        }
+        .iter()
+        .map(|&v| if v == Value::invalid() { None } else { Some(v) })
     }
 
     /// Get the modes of a register instruction.
-    pub fn mode_args(&self) -> &[RegMode] {
+    pub fn mode_args(&self) -> impl Iterator<Item = RegMode> + '_ {
         match self {
-            InstData::Reg { modes, .. } => modes,
+            InstData::Reg { modes, .. } => modes.as_slice(),
             _ => &[],
         }
+        .iter()
+        .cloned()
+    }
+
+    /// Get the register triggers.
+    pub fn triggers(&self) -> impl Iterator<Item = RegTrigger> + '_ {
+        self.data_args()
+            .zip(self.mode_args())
+            .zip(self.trigger_args())
+            .zip(self.gating_args())
+            .map(|(((data, mode), trigger), gate)| RegTrigger {
+                data,
+                mode,
+                trigger,
+                gate,
+            })
     }
 
     /// Get the BBs of an instruction.
@@ -1001,6 +1032,19 @@ impl std::fmt::Display for RegMode {
             RegMode::Both => write!(f, "both"),
         }
     }
+}
+
+/// The trigger for register data acquisition.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct RegTrigger {
+    /// The value to be stored.
+    pub data: Value,
+    /// The trigger mode.
+    pub mode: RegMode,
+    /// The trigger signal.
+    pub trigger: Value,
+    /// The gating condition.
+    pub gate: Option<Value>,
 }
 
 /// An instruction opcode.

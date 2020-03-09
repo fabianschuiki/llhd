@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add instruction simplification pass. ([#92](https://github.com/fabianschuiki/llhd/issues/92))
 - Add optional condition to drive instruction. ([#97](https://github.com/fabianschuiki/llhd/issues/97))
 - Add process lowering pass. ([#93](https://github.com/fabianschuiki/llhd/issues/93))
+- Add `reg` gating conditions. ([#105](https://github.com/fabianschuiki/llhd/issues/105))
 
 ### Changed
 - Use dense vector table instead of hash map for blocks, instructions, values, and external unit data.
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improve value/block use lookup performance. ([#91](https://github.com/fabianschuiki/llhd/issues/91))
 - Fold `mux` instructions with constant selector.
 - Fold `extf` instructions on constant arrays and structs.
+- Wrap register triggers in `RegTrigger`.
 
 ### Fixed
 - Fix instructions in entry block being reordered during LICM.
