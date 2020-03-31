@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Fabian Schuiki
+// Copyright (c) 2017-2020 Fabian Schuiki
 
 //! Dead Code Elimination
 

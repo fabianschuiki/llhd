@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Fabian Schuiki
+// Copyright (c) 2017-2020 Fabian Schuiki
 
 //! The Low Level Hardware Description language. This library provides tools to
 //! create, modify, store, and load LLHD graphs.
