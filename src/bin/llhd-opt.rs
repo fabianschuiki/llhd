@@ -126,7 +126,7 @@ fn main_inner() -> Result<(), String> {
             "gcse", "insim", "dce", "cfs", "insim", "dce",
         ];
         if matches.is_present("lower") {
-            v.extend(["deseq", "proclower"].iter().copied());
+            v.extend(["proclower", "deseq"].iter().copied());
         }
         v
     };

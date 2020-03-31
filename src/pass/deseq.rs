@@ -8,7 +8,7 @@ use crate::opt::prelude::*;
 use crate::pass::tcm::{TemporalRegion, TemporalRegionGraph};
 use crate::value::IntValue;
 use rayon::prelude::*;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 /// Desequentialization
 ///
@@ -88,7 +88,22 @@ fn deseq_process(ctx: &PassContext, unit: &mut ProcessBuilder) -> Option<Entity>
     trace!("Wait Inst: {}", wait_inst.dump(dfg, unit.try_cfg()));
     trace!("Sensitivity: {:?}", sensitivity);
 
+    // Ensure that there is is only one basic block per temporal region.
+    // Lowering more complicated scenarios is possible, but is left for a future
+    // extension.
+    let tr0_num_bb = trg[tr0].blocks().count();
+    let tr1_num_bb = trg[tr1].blocks().count();
+    if tr0_num_bb != 1 || tr1_num_bb != 1 {
+        trace!(
+            "Skipping ({} TR0 blocks, {} TR1 blocks, instead of 1 each)",
+            tr0_num_bb,
+            tr1_num_bb
+        );
+        return None;
+    }
+
     // Find the canonicalized drive conditions.
+    let mut all_drives = HashSet::new();
     let mut conds = vec![];
     for bb in layout.blocks() {
         for inst in layout.insts(bb) {
@@ -103,6 +118,9 @@ fn deseq_process(ctx: &PassContext, unit: &mut ProcessBuilder) -> Option<Entity>
                     bb,
                     canonicalize(ctx, unit, &trg, data.args()[3], false),
                 ));
+                all_drives.insert(inst);
+            } else if data.opcode() == Opcode::Drv {
+                all_drives.insert(inst);
             }
         }
     }
@@ -129,15 +147,32 @@ fn deseq_process(ctx: &PassContext, unit: &mut ProcessBuilder) -> Option<Entity>
     // For each drive where we successfully and exhaustively identified the
     // triggers, migrate the computation of each next state into a separate
     // entity.
+    let mut migrated = true;
     for (inst, bb, trigs) in triggers {
-        mig.migrate_drive(inst, bb, &trigs);
+        migrated &= mig.migrate_drive(inst, bb, &trigs);
     }
     // crate::pass::ConstFolding::run_on_entity(ctx, &mut builder);
     // crate::pass::DeadCodeElim::run_on_entity(ctx, &mut builder);
 
-    // debug!("{}", entity.dump());
+    // Check if all drives were migrated.
+    // This will currently fail for any unconditional drives, since we don't yet
+    // handle them properly.
+    all_drives
+        .difference(&mig.migrated_drives)
+        .for_each(|inst| {
+            migrated = false;
+            trace!(
+                "Skipping ({} not migrated)",
+                inst.dump(unit.dfg(), unit.try_cfg())
+            );
+        });
 
-    Some(entity)
+    if migrated {
+        Some(entity)
+    } else {
+        trace!("Process {} not migrated", unit.unit().name());
+        None
+    }
 }
 
 /// Canonicalize the conditions of a drive.
@@ -485,6 +520,8 @@ struct Migrator<'a, 'b> {
     tr1: TemporalRegion,
     /// Cache of already-migrated instructions.
     cache: HashMap<InstData, Value>,
+    /// Set of migrated drives in `src`.
+    migrated_drives: HashSet<Inst>,
 }
 
 impl<'a, 'b> Migrator<'a, 'b> {
@@ -502,6 +539,7 @@ impl<'a, 'b> Migrator<'a, 'b> {
             tr0,
             tr1,
             cache: Default::default(),
+            migrated_drives: Default::default(),
         }
     }
 
@@ -618,6 +656,7 @@ impl<'a, 'b> Migrator<'a, 'b> {
 
         // Drive the register value onto the output.
         self.dst.ins().con(mig_target, reg);
+        self.migrated_drives.insert(drive);
         true
     }
 
