@@ -6,7 +6,7 @@ extern crate clap;
 extern crate log;
 
 use clap::Arg;
-use llhd::{assembly::parse_module, opt::prelude::*, verifier::Verifier};
+use llhd::{assembly::parse_module, ir::Unit, opt::prelude::*, verifier::Verifier};
 use std::{
     fs::File,
     io::{BufWriter, Read},
@@ -66,17 +66,22 @@ fn main_inner() -> Result<(), String> {
                 .takes_value(true)
                 .multiple(true)
                 .help(HELP_PASSES.lines().next().unwrap())
-                .long_help(HELP_PASSES),
+                .long_help(HELP_PASSES)
+                .conflicts_with("lower"),
+        )
+        .arg(
+            Arg::with_name("lower")
+                .short("l")
+                .long("lower")
+                .help("Execute passes to lower behavioural to structural LLHD"),
         )
         .get_matches();
 
     // Configure the logger.
-    let verbose = std::cmp::max(1, matches.occurrences_of("verbosity") as usize) - 1;
-    let quiet = !matches.is_present("verbosity");
+    let verbose = matches.occurrences_of("verbosity") as usize + 1;
     stderrlog::new()
         .module("llhd")
         .module("llhd_opt")
-        .quiet(quiet)
         .verbosity(verbose)
         .init()
         .unwrap();
@@ -116,27 +121,14 @@ fn main_inner() -> Result<(), String> {
     let passes: Vec<_> = if let Some(passes) = matches.values_of("passes") {
         passes.collect()
     } else {
-        vec![
-            "cf",
-            "vtpp",
-            "dce",
-            "gcse",
-            "licm",
-            "tcm",
-            "licm",
-            "tcm",
-            "gcse",
-            "tcm",
-            "cf",
-            "licm",
-            "gcse",
-            "insim",
-            "dce",
-            "cfs",
-            "insim",
-            "dce",
-            "proclower",
-        ]
+        let mut v = vec![
+            "cf", "vtpp", "dce", "gcse", "licm", "tcm", "licm", "tcm", "gcse", "tcm", "cf", "licm",
+            "gcse", "insim", "dce", "cfs", "insim", "dce",
+        ];
+        if matches.is_present("lower") {
+            v.extend(["deseq", "proclower"].iter().copied());
+        }
+        v
     };
 
     // Apply optimization passes.
@@ -176,11 +168,34 @@ fn main_inner() -> Result<(), String> {
 
     // Verify modified module.
     let t0 = time::precise_time_ns();
+    let mut failed = false;
     let mut verifier = Verifier::new();
     verifier.verify_module(&module);
-    verifier
-        .finish()
-        .map_err(|errs| format!("Verification failed after optimization:\n{}", errs))?;
+    match verifier.finish() {
+        Ok(()) => (),
+        Err(errs) => {
+            failed = true;
+            error!("Verification failed after optimization:\n{}", errs)
+        }
+    };
+    if matches.is_present("lower") {
+        let mut num_failed = 0;
+        module.functions().for_each(|u| {
+            num_failed += 1;
+            error!("Function {} not inlined", u.name());
+        });
+        module.processes().for_each(|u| {
+            num_failed += 1;
+            error!("Process {} not lowered", u.name());
+        });
+        if num_failed > 0 {
+            error!(
+                "Lowering to structural LLHD failed due to above {} units",
+                num_failed
+            );
+            failed = true;
+        }
+    }
     let t1 = time::precise_time_ns();
     times.push(("verify".to_owned(), t1 - t0));
 
@@ -218,7 +233,11 @@ fn main_inner() -> Result<(), String> {
     // Dump some threading statistics.
     info!("Used {} rayon worker threads", rayon::current_num_threads());
 
-    Ok(())
+    if failed {
+        Err("Optimization failed due to previous errors".to_string())
+    } else {
+        Ok(())
+    }
 }
 
 static HELP_VERBOSITY: &str = "Increase message verbosity
