@@ -1,0 +1,4 @@
+; RUN: llhd-conv --input-format llhd --output-format v
+
+entity @foo () -> () {
+}

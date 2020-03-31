@@ -1,5 +1,9 @@
 // Copyright (c) 2017-2020 Fabian Schuiki
 
+//! A tool to convert between LLHD and other formats
+
+#![deny(missing_docs)]
+
 #[macro_use]
 extern crate log;
 
@@ -14,6 +18,7 @@ use std::{
 };
 
 mod liberty;
+pub mod verilog;
 
 fn main() -> Result<()> {
     // Parse the command line arguments.
@@ -228,7 +233,11 @@ fn read_input(input: &mut impl Read, format: Format) -> Result<llhd::ir::Module>
 fn write_output(module: &llhd::ir::Module, output: &mut impl Write, format: Format) -> Result<()> {
     match format {
         Format::Assembly => {
-            llhd::assembly::write_module(output, &module);
+            llhd::assembly::write_module(output, module);
+            Ok(())
+        }
+        Format::Verilog => {
+            crate::verilog::write(output, module)?;
             Ok(())
         }
         f => bail!("{} outputs not supported", f),

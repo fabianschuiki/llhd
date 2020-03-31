@@ -1,0 +1,6 @@
+; RUN: llhd-conv --input-format llhd --output-format v
+
+entity @foo () -> () {
+    %0 = const i8 42
+    %bar = sig i8 %0
+}
