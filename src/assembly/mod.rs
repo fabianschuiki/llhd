@@ -5,6 +5,7 @@
 
 use crate::{ir::Module, ty::Type, value::TimeValue};
 
+#[allow(unused_parens)]
 mod grammar;
 mod reader;
 mod writer;

@@ -433,6 +433,7 @@ pub enum FunctionTerm {
     Atom(String),
 }
 
+#[allow(unused_parens)]
 mod grammar {
     include!("liberty_parser.rs");
 }
