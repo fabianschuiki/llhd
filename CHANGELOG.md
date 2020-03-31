@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add desequentialization pass. ([#103](https://github.com/fabianschuiki/llhd/issues/103))
 - Add `reg` gating conditions. ([#105](https://github.com/fabianschuiki/llhd/issues/105))
 - llhd-opt: Add `-l` option to lower from behavioural to structural LLHD.
+- llhd-conv: Add `-i`, `-o`, `--input-format`, `--output-format` options.
 
 ### Changed
 - Use dense vector table instead of hash map for blocks, instructions, values, and external unit data.

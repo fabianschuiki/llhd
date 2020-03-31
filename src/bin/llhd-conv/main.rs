@@ -1,24 +1,52 @@
 // Copyright (c) 2017-2020 Fabian Schuiki
 
 #[macro_use]
-extern crate clap;
-use clap::Arg;
+extern crate log;
+
+use anyhow::{anyhow, bail, Context, Result};
+use clap::{App, Arg};
 use llhd::ir::Module;
 use std::{
     fs::File,
-    io::{BufReader, BufWriter, Read},
+    io::{BufReader, BufWriter, Read, Write},
     path::Path,
+    str::FromStr,
 };
 
 mod liberty;
 
-type Result<T> = std::result::Result<T, ()>;
-
 fn main() -> Result<()> {
     // Parse the command line arguments.
-    let matches = app_from_crate!()
-        .arg(Arg::with_name("input").required(true))
-        .arg(Arg::with_name("output").required(true))
+    let matches = App::new("llhd-conv")
+        .author(clap::crate_authors!())
+        .version(clap::crate_version!())
+        .long_about("A tool to convert between LLHD and various other formats.")
+        .arg(
+            Arg::with_name("input")
+                .short("i")
+                .long("input")
+                .takes_value(true)
+                .help("File to read input from; stdin if omitted"),
+        )
+        .arg(
+            Arg::with_name("output")
+                .short("o")
+                .long("output")
+                .takes_value(true)
+                .help("File to write output to; stdout if omitted"),
+        )
+        .arg(
+            Arg::with_name("input-format")
+                .long("input-format")
+                .takes_value(true)
+                .help("Format of the input; auto-detected if omitted"),
+        )
+        .arg(
+            Arg::with_name("output-format")
+                .long("output-format")
+                .takes_value(true)
+                .help("Format of the output; auto-detected if omitted"),
+        )
         .arg(
             Arg::with_name("dump")
                 .long("--dump")
@@ -26,43 +54,101 @@ fn main() -> Result<()> {
         )
         .get_matches();
 
-    let input_path = Path::new(matches.value_of("input").unwrap());
-    let output_path = Path::new(matches.value_of("output").unwrap());
+    // Initialize logging.
+    env_logger::Builder::from_default_env()
+        .format_timestamp(None)
+        .init();
 
-    // Detect input and output formats.
-    let (input_format, input_compression) = detect_format(input_path)?;
-    let (output_format, output_compression) = detect_format(output_path)?;
+    // Setup the input reader.
+    let input_path = matches.value_of("input").map(Path::new);
+    let input_stream: Box<dyn Read> = match input_path {
+        Some(path) => {
+            debug!("Reading from `{}`", path.display());
+            Box::new(
+                File::open(path)
+                    .with_context(|| format!("Failed to open input `{}`", path.display()))?,
+            )
+        }
+        None => {
+            debug!("Reading from stdin");
+            Box::new(std::io::stdin())
+        }
+    };
+    let input_name = match input_path {
+        Some(path) => format!("`{}`", path.display()),
+        None => format!("stdin"),
+    };
 
-    if input_compression != Compression::None {
-        eprintln!("input compression {} not supported", input_compression);
-        return Err(());
-    }
-    if output_compression != Compression::None {
-        eprintln!("output compression {} not supported", output_compression);
-        return Err(());
-    }
+    // Setup the output writer.
+    let output_path = matches.value_of("output").map(Path::new);
+    let output_stream: Box<dyn Write> = match output_path {
+        Some(path) => {
+            debug!("Writing to `{}`", path.display());
+            Box::new(
+                File::create(path)
+                    .with_context(|| format!("Failed to create output `{}`", path.display()))?,
+            )
+        }
+        None => {
+            debug!("Writing to stdout");
+            Box::new(std::io::stdout())
+        }
+    };
+    let output_name = match output_path {
+        Some(path) => format!("`{}`", path.display()),
+        None => format!("stdout"),
+    };
+
+    // Detect the input format.
+    let input_format = match matches.value_of("input-format") {
+        Some(fmt) => {
+            Format::from_str(fmt).map_err(|_| anyhow!("Unknown input format `{}`", fmt))?
+        }
+        None => match input_path {
+            Some(path) => match path
+                .extension()
+                .and_then(|e| e.to_str())
+                .and_then(|f| Format::from_str(f).ok())
+            {
+                Some(f) => f,
+                None => bail!(
+                    "Failed to detect input format from path `{}`",
+                    path.display()
+                ),
+            },
+            None => bail!("`--input-format` must be specified when reading from stdin"),
+        },
+    };
+    debug!("Input format `{}`", input_format);
+
+    // Detect the output format.
+    let output_format = match matches.value_of("output-format") {
+        Some(fmt) => {
+            Format::from_str(fmt).map_err(|_| anyhow!("Unknown output format `{}`", fmt))?
+        }
+        None => match output_path {
+            Some(path) => match path
+                .extension()
+                .and_then(|e| e.to_str())
+                .and_then(|f| Format::from_str(f).ok())
+            {
+                Some(f) => f,
+                None => bail!(
+                    "Failed to detect output format from path `{}`",
+                    path.display(),
+                ),
+            },
+            None => bail!("`--output-format` must be specified when writing to stdout"),
+        },
+    };
+    debug!("Output format `{}`", output_format);
 
     // Process the input.
-    let module = match input_format {
-        Format::Assembly => {
-            let mut input = File::open(input_path).map_err(|e| eprintln!("{}", e))?;
-            let mut contents = String::new();
-            input
-                .read_to_string(&mut contents)
-                .map_err(|e| eprintln!("{}", e))?;
-            llhd::assembly::parse_module(&contents).map_err(|e| eprintln!("{}", e))?
-        }
-        Format::Liberty => {
-            let input = File::open(input_path).map_err(|e| eprintln!("{}", e))?;
-            let input = BufReader::with_capacity(1 << 16, input);
-            let mut lexer = liberty::Lexer::new(input.bytes());
-            let mut module = Module::new();
-            let mut visitor = liberty::RootVisitor::new(&mut module);
-            liberty::parse(&mut lexer, &mut visitor);
-            module
-        }
-        f => panic!("{} inputs not supported", f),
-    };
+    let module = read_input(
+        &mut BufReader::with_capacity(1 << 20, input_stream),
+        input_format,
+    )
+    .with_context(|| format!("Failed to read input from {}", input_name))?;
 
     // Dump the IR if requested.
     if matches.is_present("dump") {
@@ -70,19 +156,17 @@ fn main() -> Result<()> {
     }
 
     // Generate the output.
-    match output_format {
-        Format::Assembly => {
-            let output = File::create(output_path).map_err(|e| eprintln!("{}", e))?;
-            let output = BufWriter::with_capacity(1 << 16, output);
-            llhd::assembly::write_module(output, &module);
-        }
-        f => panic!("{} outputs not supported", f),
-    }
+    write_output(
+        &module,
+        &mut BufWriter::with_capacity(1 << 20, output_stream),
+        output_format,
+    )
+    .with_context(|| format!("Failed to write output to {}", output_name))?;
 
     Ok(())
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 enum Format {
     Assembly,
     Bitcode,
@@ -93,10 +177,20 @@ enum Format {
     Liberty,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
-enum Compression {
-    None,
-    Gzip,
+impl FromStr for Format {
+    type Err = ();
+    fn from_str(s: &str) -> std::result::Result<Format, ()> {
+        match s {
+            "llhd" => Ok(Format::Assembly),
+            "bc" => Ok(Format::Bitcode),
+            "v" => Ok(Format::Verilog),
+            "vhdl" | "vhd" => Ok(Format::Vhdl),
+            "fir" => Ok(Format::Firrtl),
+            "edif" => Ok(Format::Edif),
+            "lib" => Ok(Format::Liberty),
+            _ => Err(()),
+        }
+    }
 }
 
 impl std::fmt::Display for Format {
@@ -104,8 +198,8 @@ impl std::fmt::Display for Format {
         match self {
             Format::Assembly => write!(f, "LLHD assembly"),
             Format::Bitcode => write!(f, "LLHD bitcode"),
-            Format::Verilog => write!(f, "Verilog netlist"),
-            Format::Vhdl => write!(f, "VHDL netlist"),
+            Format::Verilog => write!(f, "Verilog"),
+            Format::Vhdl => write!(f, "VHDL"),
             Format::Firrtl => write!(f, "FIRRTL"),
             Format::Edif => write!(f, "EDIF netlist"),
             Format::Liberty => write!(f, "LIB file"),
@@ -113,36 +207,30 @@ impl std::fmt::Display for Format {
     }
 }
 
-impl std::fmt::Display for Compression {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Compression::None => write!(f, "none"),
-            Compression::Gzip => write!(f, "gzip"),
+fn read_input(input: &mut impl Read, format: Format) -> Result<llhd::ir::Module> {
+    match format {
+        Format::Assembly => {
+            let mut contents = String::new();
+            input.read_to_string(&mut contents)?;
+            Ok(llhd::assembly::parse_module(&contents).map_err(|e| anyhow!("{}", e))?)
         }
+        Format::Liberty => {
+            let mut lexer = liberty::Lexer::new(input.bytes());
+            let mut module = Module::new();
+            let mut visitor = liberty::RootVisitor::new(&mut module);
+            liberty::parse(&mut lexer, &mut visitor);
+            Ok(module)
+        }
+        f => bail!("{} inputs not supported", f),
     }
 }
 
-fn detect_format(path: &Path) -> Result<(Format, Compression)> {
-    // Detect compression.
-    let (comp, path) = match path.extension().and_then(|e| e.to_str()) {
-        Some("gz") | Some("gzip") => (Compression::Gzip, path),
-        _ => (Compression::None, path),
-    };
-
-    // Detect format.
-    let fmt = match path.extension().and_then(|e| e.to_str()) {
-        Some("llhd") => Format::Assembly,
-        Some("bc") => Format::Bitcode,
-        Some("v") => Format::Verilog,
-        Some("vhdl") | Some("vhd") => Format::Vhdl,
-        Some("fir") => Format::Firrtl,
-        Some("edif") => Format::Edif,
-        Some("lib") => Format::Liberty,
-        _ => {
-            eprintln!("unknown file format {:?}", path);
-            return Err(());
+fn write_output(module: &llhd::ir::Module, output: &mut impl Write, format: Format) -> Result<()> {
+    match format {
+        Format::Assembly => {
+            llhd::assembly::write_module(output, &module);
+            Ok(())
         }
-    };
-
-    Ok((fmt, comp))
+        f => bail!("{} outputs not supported", f),
+    }
 }
