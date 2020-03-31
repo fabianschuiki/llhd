@@ -77,19 +77,19 @@ sys.stdout.write("running {} tests\n".format(len(tests)))
 
 # Execute the tests.
 procs = list([
-    (test, subprocess.Popen(
-        ["{}llhd-check".format(prefix), os.path.realpath((test_dir / test).__str__())],
+    (test, path, subprocess.Popen(
+        ["{}llhd-check".format(prefix), path],
         universal_newlines=True,
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         cwd=crate_dir.__str__(),
-    )) for test in tests
+    )) for test, path in [(test, os.path.realpath((test_dir / test).__str__())) for test in tests]
 ])
 
 # Output test results.
 failed = list()
-for test, proc in procs:
+for test, path, proc in procs:
     sys.stdout.write("test {} ...".format(test))
     sys.stdout.flush()
     try:
@@ -99,10 +99,17 @@ for test, proc in procs:
         sys.stdout.flush()
         proc.kill()
         stdout, stderr = proc.communicate()
-    if proc.returncode != 0:
+    fail = (proc.returncode != 0)
+    with open(path) as f:
+        should_fail = re.search(r';\s*FAIL\b', f.read()) is not None
+    if fail != should_fail:
         failed.append(test)
         sys.stdout.write(" {}FAILED{}\n".format(cbold+cfail, creset))
         if args.verbose:
+            if should_fail:
+                sys.stdout.write("\nTest was expected to fail, but passed\n")
+            else:
+                sys.stdout.write("\nTest was expected to pass, but failed\n")
             sys.stdout.write("\n=== STDERR ===\n")
             sys.stdout.write(stderr)
             sys.stdout.write("\n=== STDOUT ===\n")
