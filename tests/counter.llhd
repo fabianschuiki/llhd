@@ -1,7 +1,0 @@
-entity @counter (i1$ %clk, i1$ %rst) -> (i8$ %count) {
-	%0 = const i8$ 0
-	%1 = const i8$ 1
-	%2 = reg i8$ %0, %0 low i1$ %rst, %3 rise i1$ %clk
-	%3 = add i8$ %1, %2
-	con i8$ %count, %3
-}
