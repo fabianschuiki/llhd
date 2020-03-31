@@ -13,6 +13,7 @@ matrix:
 script:
   - cargo build
   - cargo test
+  - python3 scripts/test.py --debug
   - cargo check --examples
   - cargo doc
 
