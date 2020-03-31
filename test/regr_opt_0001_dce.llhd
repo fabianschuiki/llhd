@@ -1,3 +1,4 @@
+; IGNORE
 proc %snitch.param1.always_comb.604.1 (i32$ %inst_data_i, i1$ %wake_up_sync_i, i1$ %illegal_inst, i1$ %wfi_q, i32$ %uimm, i1$ %valid_instr, i1$ %write_rd, i32$ %csr_rvalue) -> (i1$ %acc_qvalid_o, i1$ %illegal_inst1, i1$ %zero_lsb, i1$ %wfi_d, i1$ %is_load, i1$ %is_store, i1$ %is_signed, i2$ %ls_size, i4$ %ls_amo, i4$ %alu_op, i4$ %opa_select, i4$ %opb_select, i1$ %write_rd1, i1$ %uses_rd, i2$ %next_pc, i2$ %rd_select, i32$ %rd_bypass, i1$ %is_branch, i1$ %csr_en, i1$ %acc_register_rd) {
 0:
     %1 = prb i1$ %illegal_inst1

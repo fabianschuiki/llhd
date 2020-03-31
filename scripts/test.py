@@ -72,7 +72,13 @@ if args.verbose:
     sys.stdout.write("# prefix:  {}\n".format(prefix))
 
 # Collect the tests.
+def should_ignore(path):
+    with open(path) as f:
+        return re.search(r';\s*IGNORE\b', f.read()) is not None
+
 tests = [p.relative_to(test_dir) for p in sorted(test_dir.glob("**/*.llhd"))]
+tests = [(p, os.path.realpath((test_dir / p).__str__())) for p in tests]
+tests = [p for p in tests if not should_ignore(p[1])]
 sys.stdout.write("running {} tests\n".format(len(tests)))
 
 # Execute the tests.
@@ -84,7 +90,7 @@ procs = list([
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         cwd=crate_dir.__str__(),
-    )) for test, path in [(test, os.path.realpath((test_dir / test).__str__())) for test in tests]
+    )) for test, path in tests
 ])
 
 # Output test results.
@@ -94,7 +100,7 @@ for test, path, proc in procs:
     sys.stdout.flush()
     try:
         stdout, stderr = proc.communicate(timeout=10)
-    except TimeoutExpired:
+    except subprocess.TimeoutExpired as e:
         sys.stdout.write(" timeout,")
         sys.stdout.flush()
         proc.kill()
