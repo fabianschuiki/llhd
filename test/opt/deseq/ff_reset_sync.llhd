@@ -1,4 +1,5 @@
-; RUN: llhd-opt %s
+; RUN: llhd-opt %s -p deseq
+
 proc %ff_clkrise_rstsynchigh (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
 init:
     %CLK1 = prb i1$ %CLK

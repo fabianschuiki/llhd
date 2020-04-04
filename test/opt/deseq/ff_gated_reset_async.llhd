@@ -1,4 +1,5 @@
-; RUN: llhd-opt %s
+; RUN: llhd-opt %s -p deseq
+
 proc %ff_clkrise_rstasynclow_gated (i1$ %clk_i, i1$ %rst_ni, i1$ %gate_clock, i32$ %mem_d) -> (i32$ %mem_q) {
 init:
     %clk_i1 = prb i1$ %clk_i

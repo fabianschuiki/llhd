@@ -1,4 +1,5 @@
-; RUN: llhd-opt %s
+; RUN: llhd-opt %s -p deseq
+
 proc %ff_clkrise_gated (i1$ %CLK, i32$ %D, i1$ %EN) -> (i32$ %Q) {
 init:
     %CLK1 = prb i1$ %CLK
