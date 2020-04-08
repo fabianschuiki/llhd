@@ -12,9 +12,9 @@ matrix:
 
 script:
   - cargo build
+  - cargo build --examples
   - cargo test
   - python3 scripts/test.py --debug
-  - cargo check --examples
   - cargo doc
 
 after_success:

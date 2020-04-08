@@ -98,7 +98,7 @@ class TestCase(object):
         self.path = path
 
         # Load the contents of the test file.
-        with open(path) as f:
+        with open(path.__str__()) as f:
             self.content = f.read()
 
         # Check for a `IGNORE` directive.
