@@ -76,6 +76,17 @@ if args.verbose:
     sys.stdout.write("# test:    {}\n".format(test_dir))
     sys.stdout.write("# prefix:  {}\n".format(prefix))
 
+# A helper function to split a list.
+def split_list(values, sep):
+    out = list()
+    for v in values:
+        if v == sep:
+            yield out
+            out = list()
+        else:
+            out.append(v)
+    yield out
+
 # A class to encapsulate the execution and checking of a single test.
 class TestCase(object):
     regex_ignore = re.compile(r'^;\s*IGNORE\b', flags=re.MULTILINE)
@@ -104,10 +115,8 @@ class TestCase(object):
             self.run = "llhd-check %s"
 
         # Process the run command.
-        self.cmd = shlex.split(self.run)
-        if self.cmd[0].startswith("llhd-"):
-            self.cmd[0] = "{}{}".format(prefix, self.cmd[0])
-        self.cmd = [path if x == "%s" else x for x in self.cmd]
+        self.cmd = self.run.replace("%s", path.__str__()).replace("llhd-", prefix+"llhd-")
+        self.cmd = self.cmd.split("|")
 
         # Execution results.
         self.timeout = False
@@ -121,14 +130,19 @@ class TestCase(object):
             return
         try:
             self.info += "Command: {}\n".format(self.cmd)
-            self.proc = subprocess.Popen(
-                self.cmd,
-                universal_newlines=True,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                cwd=crate_dir.__str__(),
-            )
+            stdin = subprocess.DEVNULL
+            for cmd in self.cmd:
+                self.info += "Started: {}\n".format(cmd)
+                self.proc = subprocess.Popen(
+                    cmd,
+                    universal_newlines=True,
+                    stdin=stdin,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    cwd=crate_dir.__str__(),
+                    shell=True,
+                )
+                stdin = self.proc.stdout
         except Exception as e:
             self.info += "Exception: {}\n".format(e)
             self.failed = True

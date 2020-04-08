@@ -1,4 +1,4 @@
-; RUN: llhd-opt %s -p deseq
+; RUN: llhd-opt %s -p deseq | FileCheck %s
 
 proc %ff_clkrise (i1$ %CLK, i32$ %D) -> (i32$ %Q) {
 init:
@@ -19,7 +19,7 @@ check:
 ; CHECK: entity %ff_clkrise (i1$ %CLK, i32$ %D) -> (i32$ %Q) {
 ; CHECK:     %D1 = prb i32$ %D
 ; CHECK:     %0 = prb i1$ %CLK
-; CHECK:     reg i32$ %Q, [%D1, rise i1 %0]
+; CHECK:     reg i32$ %Q, [%D1, rise %0]
 ; CHECK: }
 
 proc %ff_clkfall (i1$ %CLK, i32$ %D) -> (i32$ %Q) {
@@ -41,5 +41,5 @@ check:
 ; CHECK: entity %ff_clkfall (i1$ %CLK, i32$ %D) -> (i32$ %Q) {
 ; CHECK:     %D1 = prb i32$ %D
 ; CHECK:     %0 = prb i1$ %CLK
-; CHECK:     reg i32$ %Q, [%D1, fall i1 %0]
+; CHECK:     reg i32$ %Q, [%D1, fall %0]
 ; CHECK: }
