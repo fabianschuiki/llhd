@@ -122,7 +122,7 @@ class TestCase(object):
         try:
             self.info += "Command: {}\n".format(self.cmd)
             self.proc = subprocess.Popen(
-                self.cmd,
+                [x.__str__() for x in self.cmd],
                 universal_newlines=True,
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
