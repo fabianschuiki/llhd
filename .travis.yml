@@ -10,11 +10,12 @@ matrix:
   allow_failures:
     - rust: nightly
 
+
 script:
   - cargo build
   - cargo build --examples
   - cargo test
-  - python3 scripts/test.py --debug
+  - python3 scripts/test.py --debug --verbose
   - cargo doc
 
 after_success:
