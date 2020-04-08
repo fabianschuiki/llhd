@@ -1,4 +1,4 @@
-; RUN: llhd-opt %s -p deseq | FileCheck %s
+; RUN: llhd-opt %s -p deseq
 
 proc %ff_clkrise (i1$ %CLK, i32$ %D) -> (i32$ %Q) {
 init:
