@@ -1,1 +1,1 @@
-; RUN: llhd-conv --input-format llhd --output-format v
+; RUN: llhd-conv -i %s --output-format v

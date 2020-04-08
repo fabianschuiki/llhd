@@ -1,6 +1,5 @@
-; RUN: llhd-conv --input-format llhd --output-format v
-; FAIL
-; IGNORE for now, until RUN is honored
+; RUN: llhd-conv -i %s --output-format v
+; FAIL since processes don't map to Verilog yet
 
 proc @foo () -> () {
 entry:

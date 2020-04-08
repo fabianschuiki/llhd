@@ -1,4 +1,4 @@
-; RUN: llhd-conv --input-format llhd --output-format v
+; RUN: llhd-conv -i %s --output-format v
 
 entity @foo.29.23499856 () -> () {
 }

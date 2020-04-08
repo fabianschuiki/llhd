@@ -1,4 +1,4 @@
-; RUN: llhd-conv --input-format llhd --output-format v
+; RUN: llhd-conv -i %s --output-format v
 
 entity @foo (i1$ %clk_i, i1$ %rst_ni) -> () {
 }
