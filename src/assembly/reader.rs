@@ -180,7 +180,6 @@ impl<'a> Inst<'a> {
                     Opcode::Uge => builder.ins().uge(arg0, arg1).into(),
                     Opcode::Mux => builder.ins().mux(arg0, arg1).into(),
                     Opcode::Con => builder.ins().con(arg0, arg1).into(),
-                    Opcode::Del => builder.ins().del(arg0, arg1).into(),
                     Opcode::St => builder.ins().st(arg0, arg1).into(),
                     x => unreachable!("binary {:?}", x),
                 }
@@ -193,6 +192,7 @@ impl<'a> Inst<'a> {
                     Opcode::Drv => builder.ins().drv(arg0, arg1, arg2).into(),
                     Opcode::Shl => builder.ins().shl(arg0, arg1, arg2).into(),
                     Opcode::Shr => builder.ins().shr(arg0, arg1, arg2).into(),
+                    Opcode::Del => builder.ins().del(arg0, arg1, arg2).into(),
                     x => unreachable!("ternary {:?}", x),
                 }
             }

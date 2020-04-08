@@ -983,13 +983,13 @@ The `drv` instruction drives a `%value` onto a signal `%sig`.
 
 #### Storage Element (`reg`)
 
-    %result = reg T %init, [%value <mode>, Tt %trigger], ...
-    %result = reg T %init, [%value <mode>, Tt %trigger if Tg %gate], ...
+    reg T$ %signal, [%value, <mode> %trigger], ...
+    reg T$ %signal, [%value, <mode> %trigger if %gate], ...
 
-The `reg` instruction provides a storage element with an initial value `%init`. The storage element transitions to a new `%value` when the corresponding trigger (given by a value and mode) fires, and optionally if a gating condition is true. It may only be used inside an entity.
+The `reg` instruction provides a storage element which drives its output onto `%signal`. The storage element transitions to a new `%value` when the corresponding trigger (given by a value and mode) fires, and optionally if a gating condition is true. It may only be used inside an entity.
 
 - `T` is the type of the stored value.
-- `%init` is the initial value. Must be of type `T`.
+- `%signal` is the signal that carries the stored value. Must be of type `T$`.
 - Each comma-separated triple following the initial value specifies a storage trigger:
     - `%value` is the value to be stored in the register. Must be of type `T` or `T$`.
     - `<mode>` is the trigger mode and may be one of the following:
@@ -998,49 +998,46 @@ The `reg` instruction provides a storage element with an initial value `%init`. 
         - `rise` stores `%value` upon the rising edge of the trigger. Models rising-edge flip-flops.
         - `fall` stores `%value` upon the falling edge of the trigger. Models falling-edge flip-flops.
         - `both` stores `%value` upon either a rising or a falling edge of the trigger. Models dual-edge flip-flops.
-    - `Tt` is the trigger type and must be `i1` or `i1$`.
-    - `%trigger` is the trigger value and must be of type `Tt`.
-    - `Tg` is the gate type and must be `i1` or `i1$`.
-    - `%gate` is the gate value and must be of type `Tg`.
+    - `%trigger` is the trigger value and must be of type `i1`.
+    - `%gate` is the gate value and must be of type `i1`.
     - In case multiple triggers apply the left-most takes precedence.
-- `%result` is of type `T$`.
 
 ##### Example
 
 A rising, falling, and dual-edge triggered flip-flop:
 
-    %Q = reg i8 %init, %D rise i1$ %CLK
-    %Q = reg i8 %init, %D fall i1$ %CLK
-    %Q = reg i8 %init, %D both i1$ %CLK
+    reg i8$ %Q, [%D, rise %CLK]
+    reg i8$ %Q, [%D, fall %CLK]
+    reg i8$ %Q, [%D, both %CLK]
 
 A rising-edge triggered flip-flop with active-low reset:
 
-    %Q = reg i8 %init, %init low i1$ %RSTB, %D rise i1$ %CLK
+    reg i8$ %Q, [%init, low %RSTB], [%D, rise %CLK]
 
 A rising-edge triggered enable flip-flop with active-low reset:
 
-    %Q = reg i8 %init, %init low i1$ %RSTB, %D rise i1$ %CLK if i1$ %EN
+    reg i8$ %Q, [%init, low %RSTB], [%D, rise %CLK if %EN]
 
 A transparent-low and transparent-high latch:
 
-    %Q = reg i8 %init, %D low i1$ %CLK
-    %Q = reg i8 %init, %D high i1$ %CLK
+    reg i8$ %Q, [%D, low %CLK]
+    reg i8$ %Q, [%D, high %CLK]
 
 An SR latch:
 
     %0 = const i1 0
     %1 = const i1 1
-    %Q = reg i1 %0, %0 high i1 %R, %1 high i1 %S
+    reg i1$ %Q, [%0, high %R], [%1, high %S]
 
 
 #### Wire Delay (`del`)
 
-    %result = del T$ %sig, %delay
+    del T$ %target, %source, %delay
 
-The `del` instruction delays a signal `%sig` by the `%delay`. It models a transport delay, meaning that all strictly monotonically increasing events on `%sig` will eventually be reproduced on `%result`.
+The `del` instruction delays a signal `%source` by a `%delay`, driving the delayed value on `%target`. It models a transport delay, meaning that all strictly monotonically increasing events on `%sig` will eventually be reproduced on `%result`.
 
-- `T` can be any type.
-- `%sig` must be of type `T$`.
+- `T` is the type carried by the signal.
+- `%target` and `%source` must be of type `T$`.
 - `%delay` must be of type `time`.
 
 

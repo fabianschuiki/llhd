@@ -194,15 +194,16 @@ InstWithResult: ast::Inst<'input> = {
         ast::Inst::new(opc).data(ast::InstData::Ternary(base, hidden, amount)),
     "mux" <array: TypedValue> "," <sel: TypedValue> => ast::Inst::new(Opcode::Mux)
         .data(ast::InstData::Binary(array, sel)),
-    "reg" <init: TypedValue> <triggers: ("," "[" <Value> "," <RegMode> <TypedValue> <("," "if" <TypedValue>)?> "]")*> => {
+    "reg" <target: TypedValue> <triggers: ("," "[" <Value> "," <RegMode> <Value> <("," "if" <Value>)?> "]")*> => {
+        let ty = target.ty.unwrap_signal();
         let triggers = triggers.into_iter().map(|(data, mode, trigger, gate)| (
-            data.ty(init.ty.clone()),
+            data.ty(ty.clone()),
             mode,
-            trigger,
-            gate,
+            trigger.ty(int_ty(1)),
+            gate.map(|gate| gate.ty(int_ty(1))),
         )).collect();
         ast::Inst::new(Opcode::Reg)
-            .data(ast::InstData::Reg(init, triggers))
+            .data(ast::InstData::Reg(target, triggers))
     },
     "insf" <target: TypedValue> "," <arg: TypedValue> "," <imm: Usize> => {
         ast::Inst::new(Opcode::InsField)
@@ -220,10 +221,11 @@ InstWithResult: ast::Inst<'input> = {
         ast::Inst::new(Opcode::ExtSlice)
             .data(ast::InstData::Ext(ty, target, [imm0, imm1]))
     },
-    "del" <arg: TypedValue> "," <delay: Value> => {
+    "del" <target: TypedValue> "," <source: Value> "," <delay: Value> => {
+        let source = source.ty(target.ty.clone());
         let delay = delay.ty(time_ty());
         ast::Inst::new(Opcode::Del)
-            .data(ast::InstData::Binary(arg, delay))
+            .data(ast::InstData::Ternary(target, source, delay))
     },
     "call" <retty: Type> <unit: UnitName> "(" <args: Comma<TypedValue>> ")" => ast::Inst::new(Opcode::Call)
         .data(ast::InstData::Call(retty, unit, args)),

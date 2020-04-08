@@ -366,14 +366,14 @@ where
                 self.verify_arg_tys_match(inst);
             }
             Opcode::Del => {
-                self.assert_inst_binary(inst);
+                self.assert_inst_ternary(inst);
                 self.verify_arg_ty_is_signal(inst, self.dfg[inst].args()[0]);
                 self.verify_arg_matches_ty(
                     inst,
-                    self.dfg[inst].args()[0],
-                    &self.dfg.inst_type(inst),
+                    self.dfg[inst].args()[1],
+                    &self.dfg.value_type(self.dfg[inst].args()[0]),
                 );
-                self.verify_arg_matches_ty(inst, self.dfg[inst].args()[1], &time_ty());
+                self.verify_arg_matches_ty(inst, self.dfg[inst].args()[2], &time_ty());
             }
             Opcode::Call => {
                 // TODO: properly check argument types match the declaration
@@ -774,8 +774,12 @@ where
 
     /// Verify that the types of a reg instruction line up.
     fn verify_reg_inst(&mut self, inst: Inst) {
-        let ty = self.dfg.inst_type(inst).unwrap_signal().clone();
-        self.verify_arg_matches_ty(inst, self.dfg[inst].args()[0], &ty);
+        self.verify_arg_ty_is_signal(inst, self.dfg[inst].args()[0]);
+        let ty = self
+            .dfg
+            .value_type(self.dfg[inst].args()[0])
+            .unwrap_signal()
+            .clone();
         for arg in self.dfg[inst].data_args() {
             self.verify_arg_matches_ty(inst, arg, &ty);
         }

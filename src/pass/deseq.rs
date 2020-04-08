@@ -650,12 +650,9 @@ impl<'a, 'b> Migrator<'a, 'b> {
         }
 
         // Create the register instruction.
-        let ty = self.src.dfg().value_type(drive_value);
-        let init = self.dst.ins().const_zero(&ty);
-        let reg = self.dst.ins().reg(init, reg_triggers);
+        self.dst.ins().reg(mig_target, reg_triggers);
 
         // Drive the register value onto the output.
-        self.dst.ins().con(mig_target, reg);
         self.migrated_drives.insert(drive);
         true
     }

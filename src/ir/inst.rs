@@ -293,8 +293,7 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.inst_result(inst)
     }
 
-    pub fn reg(&mut self, x: Value, data: Vec<RegTrigger>) -> Value {
-        let ty = signal_ty(self.value_type(x));
+    pub fn reg(&mut self, x: Value, data: Vec<RegTrigger>) -> Inst {
         let mut args = vec![x];
         let mut modes = vec![];
         args.extend(data.iter().map(|x| x.data));
@@ -302,15 +301,14 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         args.extend(data.iter().map(|x| x.gate.unwrap_or(Value::invalid())));
         modes.extend(data.iter().map(|x| x.mode));
         assert_eq!(args.len(), modes.len() * 3 + 1);
-        let inst = self.build(
+        self.build(
             InstData::Reg {
                 opcode: Opcode::Reg,
                 args,
                 modes,
             },
-            ty,
-        );
-        self.inst_result(inst)
+            void_ty(),
+        )
     }
 
     pub fn ins_field(&mut self, x: Value, y: Value, imm: usize) -> Value {
@@ -387,9 +385,8 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
         self.build_binary(Opcode::Con, void_ty(), x, y)
     }
 
-    pub fn del(&mut self, x: Value, y: Value) -> Inst {
-        let ty = self.value_type(x);
-        self.build_binary(Opcode::Del, ty, x, y)
+    pub fn del(&mut self, target: Value, source: Value, delay: Value) -> Inst {
+        self.build_ternary(Opcode::Del, void_ty(), target, source, delay)
     }
 
     pub fn call(&mut self, unit: ExtUnit, args: Vec<Value>) -> Inst {

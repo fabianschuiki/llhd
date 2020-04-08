@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fold `mux` instructions with constant selector.
 - Fold `extf` instructions on constant arrays and structs.
 - Wrap register triggers in `RegTrigger`.
+- Changed `reg` and `del` to return `void`, and take target signal as operand.
 
 ### Fixed
 - Fix instructions in entry block being reordered during LICM.

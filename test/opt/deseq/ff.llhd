@@ -19,9 +19,7 @@ check:
 ; CHECK: entity %ff_clkrise (i1$ %CLK, i32$ %D) -> (i32$ %Q) {
 ; CHECK:     %D1 = prb i32$ %D
 ; CHECK:     %0 = prb i1$ %CLK
-; CHECK:     %1 = const i32 0
-; CHECK:     %2 = reg i32 %1, [%D1, rise i1 %0]
-; CHECK:     con i32$ %Q, %2
+; CHECK:     reg i32$ %Q, [%D1, rise i1 %0]
 ; CHECK: }
 
 proc %ff_clkfall (i1$ %CLK, i32$ %D) -> (i32$ %Q) {
@@ -43,7 +41,5 @@ check:
 ; CHECK: entity %ff_clkfall (i1$ %CLK, i32$ %D) -> (i32$ %Q) {
 ; CHECK:     %D1 = prb i32$ %D
 ; CHECK:     %0 = prb i1$ %CLK
-; CHECK:     %1 = const i32 0
-; CHECK:     %2 = reg i32 %1, [%D1, fall i1 %0]
-; CHECK:     con i32$ %Q, %2
+; CHECK:     reg i32$ %Q, [%D1, fall i1 %0]
 ; CHECK: }

@@ -369,10 +369,10 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     write!(self.writer.sink, ", [")?;
                     self.write_value_use(t.data, false)?;
                     write!(self.writer.sink, ", {} ", t.mode)?;
-                    self.write_value_use(t.trigger, true)?;
+                    self.write_value_use(t.trigger, false)?;
                     if let Some(gate) = t.gate {
                         write!(self.writer.sink, ", if ")?;
-                        self.write_value_use(gate, true)?;
+                        self.write_value_use(gate, false)?;
                     }
                     write!(self.writer.sink, "]")?;
                 }
