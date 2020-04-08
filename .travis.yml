@@ -10,11 +10,14 @@ matrix:
   allow_failures:
     - rust: nightly
 
+before_script:
+  - rustup component add rustfmt
 
 script:
   - cargo build
   - cargo build --examples
   - cargo test
+  - cargo fmt -- --check
   - python3 scripts/test.py --debug --verbose
   - cargo doc
 

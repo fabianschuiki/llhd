@@ -1,3 +1,4 @@
+#![rustfmt::skip]
 use crate::assembly::reader as ast;
 use crate::{ty::*, ir::prelude::*, value::{IntValue, TimeValue}};
 use num::BigInt;

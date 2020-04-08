@@ -1,5 +1,6 @@
 // auto-generated: "lalrpop 0.17.2"
-// sha256: 82852c61f9ebae58c238db499e4efc5f2aa4bf556d4ae112f769f9f8092dbbf
+// sha256: 27625dab307bc2a59abc6f14239d3d2435c7723973dfc8867921254c71dcb88
+#![rustfmt::skip]
 use crate::assembly::reader as ast;
 use crate::{ty::*, ir::prelude::*, value::{IntValue, TimeValue}};
 use num::BigInt;
