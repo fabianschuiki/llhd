@@ -66,7 +66,7 @@ impl Pass for ControlFlowSimplification {
             unit.insert_before(inst);
             let disc = build_discriminator(ctx, unit, &ways);
             for (v, _) in ways {
-                unit.dfg_mut().replace_value_within_inst(v, disc, inst);
+                unit.replace_value_within_inst(v, disc, inst);
             }
             modified |= true;
         }
@@ -90,8 +90,8 @@ impl Pass for ControlFlowSimplification {
                 inst.dump(unit.dfg(), unit.try_cfg()),
                 with.dump(unit.dfg()),
             );
-            let inst_value = unit.dfg().inst_result(inst);
-            unit.dfg_mut().replace_use(inst_value, with);
+            let inst_value = unit.unit().inst_result(inst);
+            unit.replace_use(inst_value, with);
             unit.prune_if_unused(inst);
             modified |= true;
         }

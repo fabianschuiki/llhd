@@ -46,11 +46,11 @@ struct Context {
 
 impl Context {
     /// Generate a printable name for a value.
-    fn value_name(&mut self, dfg: &llhd::ir::DataFlowGraph, value: UnitValue) -> Rc<String> {
+    fn value_name(&mut self, unit: &impl llhd::ir::Unit, value: UnitValue) -> Rc<String> {
         if let Some(name) = self.name_map.get(&value).cloned() {
             return name;
         }
-        let base_name: Rc<String> = Rc::new(match dfg.get_name(value.1) {
+        let base_name: Rc<String> = Rc::new(match unit.get_name(value.1) {
             Some(name) => sanitize_name(name).collect(),
             None => format!("__{}", value.1),
         });
@@ -73,12 +73,11 @@ fn write_entity(
     entity: &llhd::ir::Entity,
     ctx: &mut Context,
 ) -> Result<()> {
-    let dfg = entity.dfg();
     let name = sanitize_unit_name(entity.name());
     debug!("Creating entity {} as `{}`", entity.name(), name);
 
     // Emit the module header.
-    let ports = entity.args().map(|v| ctx.value_name(dfg, (mod_unit, v)));
+    let ports = entity.args().map(|v| ctx.value_name(entity, (mod_unit, v)));
     write!(output, "module {} ({});\n", name, ports.format(", "))?;
 
     // Emit the port declarations.
@@ -87,12 +86,12 @@ fn write_entity(
         .zip(repeat("input"))
         .chain(entity.output_args().zip(repeat("output")));
     for (v, dir) in ports {
-        let n = ctx.value_name(dfg, (mod_unit, v));
+        let n = ctx.value_name(entity, (mod_unit, v));
         write!(
             output,
             "    {} {} {};\n",
             dir,
-            flatten_type(&dfg.value_type(v))?,
+            flatten_type(&entity.value_type(v))?,
             n
         )?;
     }

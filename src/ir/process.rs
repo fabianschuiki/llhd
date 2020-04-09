@@ -4,12 +4,14 @@
 
 use crate::{
     ir::{
-        Block, ControlFlowGraph, DataFlowGraph, FunctionInsertPos, FunctionLayout, Inst, InstData,
-        InstLayout, Signature, Unit, UnitBuilder, UnitKind, UnitName, Value,
+        Block, BlockData, ControlFlowGraph, DataFlowGraph, ExtUnit, ExtUnitData, FunctionInsertPos,
+        FunctionLayout, Inst, InstData, InstLayout, Signature, Unit, UnitBuilder, UnitKind,
+        UnitName, Value, ValueData,
     },
     ty::Type,
     verifier::Verifier,
 };
+use std::ops::{Index, IndexMut};
 
 /// A process.
 #[derive(Serialize, Deserialize)]
@@ -34,6 +36,58 @@ impl Process {
         };
         prok.dfg.make_args_for_signature(&prok.sig);
         prok
+    }
+}
+
+impl Index<Value> for Process {
+    type Output = ValueData;
+    fn index(&self, idx: Value) -> &ValueData {
+        self.dfg.index(idx)
+    }
+}
+
+impl Index<Inst> for Process {
+    type Output = InstData;
+    fn index(&self, idx: Inst) -> &InstData {
+        self.dfg.index(idx)
+    }
+}
+
+impl Index<ExtUnit> for Process {
+    type Output = ExtUnitData;
+    fn index(&self, idx: ExtUnit) -> &ExtUnitData {
+        self.dfg.index(idx)
+    }
+}
+
+impl Index<Block> for Process {
+    type Output = BlockData;
+    fn index(&self, idx: Block) -> &BlockData {
+        self.cfg.index(idx)
+    }
+}
+
+impl IndexMut<Value> for Process {
+    fn index_mut(&mut self, idx: Value) -> &mut ValueData {
+        self.dfg.index_mut(idx)
+    }
+}
+
+impl IndexMut<Inst> for Process {
+    fn index_mut(&mut self, idx: Inst) -> &mut InstData {
+        self.dfg.index_mut(idx)
+    }
+}
+
+impl IndexMut<ExtUnit> for Process {
+    fn index_mut(&mut self, idx: ExtUnit) -> &mut ExtUnitData {
+        self.dfg.index_mut(idx)
+    }
+}
+
+impl IndexMut<Block> for Process {
+    fn index_mut(&mut self, idx: Block) -> &mut BlockData {
+        self.cfg.index_mut(idx)
     }
 }
 
@@ -143,6 +197,71 @@ impl<'u> ProcessBuilder<'u> {
             prok,
             pos: FunctionInsertPos::None,
         }
+    }
+}
+
+impl Index<Value> for ProcessBuilder<'_> {
+    type Output = ValueData;
+    fn index(&self, idx: Value) -> &ValueData {
+        self.prok.index(idx)
+    }
+}
+
+impl Index<Inst> for ProcessBuilder<'_> {
+    type Output = InstData;
+    fn index(&self, idx: Inst) -> &InstData {
+        self.prok.index(idx)
+    }
+}
+
+impl Index<ExtUnit> for ProcessBuilder<'_> {
+    type Output = ExtUnitData;
+    fn index(&self, idx: ExtUnit) -> &ExtUnitData {
+        self.prok.index(idx)
+    }
+}
+
+impl Index<Block> for ProcessBuilder<'_> {
+    type Output = BlockData;
+    fn index(&self, idx: Block) -> &BlockData {
+        self.prok.index(idx)
+    }
+}
+
+impl IndexMut<Value> for ProcessBuilder<'_> {
+    fn index_mut(&mut self, idx: Value) -> &mut ValueData {
+        self.prok.index_mut(idx)
+    }
+}
+
+impl IndexMut<Inst> for ProcessBuilder<'_> {
+    fn index_mut(&mut self, idx: Inst) -> &mut InstData {
+        self.prok.index_mut(idx)
+    }
+}
+
+impl IndexMut<ExtUnit> for ProcessBuilder<'_> {
+    fn index_mut(&mut self, idx: ExtUnit) -> &mut ExtUnitData {
+        self.prok.index_mut(idx)
+    }
+}
+
+impl IndexMut<Block> for ProcessBuilder<'_> {
+    fn index_mut(&mut self, idx: Block) -> &mut BlockData {
+        self.prok.index_mut(idx)
+    }
+}
+
+impl<'u> std::ops::Deref for ProcessBuilder<'u> {
+    type Target = Process;
+    fn deref(&self) -> &Process {
+        self.prok
+    }
+}
+
+impl<'u> std::ops::DerefMut for ProcessBuilder<'u> {
+    fn deref_mut(&mut self) -> &mut Process {
+        self.prok
     }
 }
 

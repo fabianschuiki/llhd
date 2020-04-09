@@ -65,7 +65,7 @@ fn is_suitable(_ctx: &PassContext, ub: &mut ProcessBuilder) -> bool {
 
     // Ensure that the terminator instruction is a wait/halt.
     let term = layout.terminator(bb);
-    match dfg[term].opcode() {
+    match ub[term].opcode() {
         Opcode::Wait | Opcode::WaitTime | Opcode::Halt => (),
         op => {
             trace!("Skipping {} (wrong terminator {})", ub.unit().name(), op);
@@ -78,11 +78,11 @@ fn is_suitable(_ctx: &PassContext, ub: &mut ProcessBuilder) -> bool {
         if inst == term {
             continue;
         }
-        if !dfg[inst].opcode().valid_in_entity() {
+        if !ub[inst].opcode().valid_in_entity() {
             trace!(
                 "Skipping {} ({} not allowed in entity)",
                 ub.unit().name(),
-                inst.dump(dfg, ub.try_cfg())
+                inst.dump(ub.dfg(), ub.try_cfg())
             );
             return false;
         }
@@ -90,11 +90,11 @@ fn is_suitable(_ctx: &PassContext, ub: &mut ProcessBuilder) -> bool {
 
     // Ensure that all input arguments that are used are also contained in the
     // wait instruction's sensitivity list.
-    match dfg[term].opcode() {
+    match ub[term].opcode() {
         Opcode::Wait | Opcode::WaitTime => {
             for arg in ub.unit().sig().inputs() {
-                let value = dfg.arg_value(arg);
-                if dfg.has_uses(value) && !dfg[term].args().contains(&value) {
+                let value = ub.unit().arg_value(arg);
+                if ub.unit().has_uses(value) && !ub[term].args().contains(&value) {
                     trace!(
                         "Skipping {} ({} not in wait sensitivity list)",
                         ub.unit().name(),

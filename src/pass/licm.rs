@@ -76,7 +76,7 @@ fn move_instruction(
     block_numbers: &HashMap<Block, usize>,
 ) -> bool {
     // Some instructions we don't want to touch.
-    let op = unit.dfg()[inst].opcode();
+    let op = unit[inst].opcode();
     if op == Opcode::Ld
         || op == Opcode::St
         || op == Opcode::Prb
@@ -93,7 +93,7 @@ fn move_instruction(
     let doms: Vec<_> = unit.dfg()[inst]
         .args()
         .iter()
-        .flat_map(|&arg| unit.dfg().get_value_inst(arg))
+        .flat_map(|&arg| unit.unit().get_value_inst(arg))
         .map(|inst| unit.func_layout().inst_block(inst).unwrap())
         .map(|block| dt.dominated_by(block))
         .collect();

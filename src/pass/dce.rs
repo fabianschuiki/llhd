@@ -42,7 +42,7 @@ impl Pass for DeadCodeElim {
             .into_iter()
             .flat_map(|(i, t)| t.map(|t| (i, t)))
         {
-            if unit.dfg()[inst].opcode() == Opcode::Br && unit.dfg()[inst].blocks() == [target] {
+            if unit[inst].opcode() == Opcode::Br && unit[inst].blocks() == [target] {
                 continue;
             }
             debug!(
@@ -67,7 +67,7 @@ impl Pass for DeadCodeElim {
                 from.dump(unit.cfg()),
                 to.dump(unit.cfg())
             );
-            unit.dfg_mut().replace_block_use(from, to);
+            unit.replace_block_use(from, to);
             // If this is the entry block, hoist the target up as the first block.
             if from == entry {
                 unit.func_layout_mut().swap_blocks(from, to);
@@ -110,21 +110,21 @@ impl Pass for DeadCodeElim {
                 unit.func_layout_mut().remove_inst(inst);
                 // Do not migrate phi nodes, which at this point have only the
                 // `into` block as predecessor and can be trivially replaced.
-                if unit.dfg()[inst].opcode() == Opcode::Phi {
+                if unit[inst].opcode() == Opcode::Phi {
                     assert_eq!(
-                        unit.dfg()[inst].blocks(),
+                        unit[inst].blocks(),
                         &[into],
                         "Phi node must be trivially removable"
                     );
-                    let phi = unit.dfg().inst_result(inst);
-                    let repl = unit.dfg()[inst].args()[0];
-                    unit.dfg_mut().replace_use(phi, repl);
+                    let phi = unit.unit().inst_result(inst);
+                    let repl = unit[inst].args()[0];
+                    unit.replace_use(phi, repl);
                 } else {
                     unit.func_layout_mut().insert_inst_before(inst, term);
                 }
             }
             unit.func_layout_mut().remove_inst(term);
-            unit.dfg_mut().replace_block_use(block, into);
+            unit.replace_block_use(block, into);
             unit.remove_block(block);
         }
 
@@ -161,7 +161,7 @@ fn check_branch_trivial(
 
     // Now we know the block is empty. Check for a few common cases of trivial
     // branches.
-    let data = &unit.dfg()[inst];
+    let data = &unit[inst];
     let target = match data.opcode() {
         Opcode::Br => {
             let bb = data.blocks()[0];
@@ -174,7 +174,7 @@ fn check_branch_trivial(
                 .iter()
                 .map(|&bb| check_block_retargetable(unit, bb, triv_bb, triv_br))
                 .collect();
-            if let Some(imm) = unit.dfg().get_const_int(arg) {
+            if let Some(imm) = unit.unit().get_const_int(arg) {
                 bbs[!imm.is_zero() as usize]
             } else if bbs[0] == bbs[1] {
                 bbs[0]
@@ -202,7 +202,7 @@ fn check_block_retargetable(
     if unit
         .func_layout()
         .insts(block)
-        .any(|inst| unit.dfg()[inst].opcode().is_phi())
+        .any(|inst| unit[inst].opcode().is_phi())
     {
         triv_bb.insert(block, None);
         return None;

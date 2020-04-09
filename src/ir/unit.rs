@@ -4,10 +4,15 @@
 
 use crate::{
     ir::{
-        Arg, Block, ControlFlowGraph, DataFlowGraph, Entity, ExtUnit, ExtUnitData, Function,
-        FunctionLayout, Inst, InstBuilder, InstData, InstLayout, Process, Signature, Value,
+        Arg, Block, BlockData, ControlFlowGraph, DataFlowGraph, Entity, ExtUnit, ExtUnitData,
+        Function, FunctionLayout, Inst, InstBuilder, InstData, InstLayout, Process, Signature,
+        Value, ValueData,
     },
     ty::Type,
+};
+use std::{
+    collections::HashSet,
+    ops::{Index, IndexMut},
 };
 
 /// A name of a function, process, or entity.
@@ -89,7 +94,16 @@ pub enum UnitKind {
 }
 
 /// A `Function`, `Process`, or `Entity`.
-pub trait Unit {
+pub trait Unit:
+    Index<Value, Output = ValueData>
+    + Index<Inst, Output = InstData>
+    + Index<ExtUnit, Output = ExtUnitData>
+    + Index<Block, Output = BlockData>
+    + IndexMut<Value>
+    + IndexMut<Inst>
+    + IndexMut<ExtUnit>
+    + IndexMut<Block>
+{
     /// Get the unit's DFG.
     fn dfg(&self) -> &DataFlowGraph;
 
@@ -214,11 +228,6 @@ pub trait Unit {
         None
     }
 
-    /// Get the value of argument `arg`.
-    fn arg_value(&self, arg: Arg) -> Value {
-        self.dfg().arg_value(arg)
-    }
-
     /// Return an iterator over the unit's input arguments.
     fn input_args<'a>(&'a self) -> Box<dyn Iterator<Item = Value> + 'a> {
         Box::new(self.sig().inputs().map(move |arg| self.arg_value(arg)))
@@ -254,21 +263,6 @@ pub trait Unit {
         )
     }
 
-    /// Returns whether an instruction produces a result.
-    fn has_result(&self, inst: Inst) -> bool {
-        self.dfg().has_result(inst)
-    }
-
-    /// Returns the result of an instruction.
-    fn inst_result(&self, inst: Inst) -> Value {
-        self.dfg().inst_result(inst)
-    }
-
-    /// Returns the type of a value.
-    fn value_type(&self, value: Value) -> Type {
-        self.dfg().value_type(value)
-    }
-
     /// Return the name of an external unit.
     fn extern_name(&self, ext: ExtUnit) -> &UnitName {
         &self.dfg()[ext].name
@@ -279,6 +273,8 @@ pub trait Unit {
         &self.dfg()[ext].sig
     }
 
+    // ----- Control Flow Graph ------------------------------------------------
+
     /// Return the name of a BB.
     fn get_block_name(&self, bb: Block) -> Option<&str> {
         self.cfg().get_name(bb)
@@ -287,6 +283,141 @@ pub trait Unit {
     /// Return the anonymous name hint of a BB.
     fn get_anonymous_block_hint(&self, bb: Block) -> Option<u32> {
         self.cfg().get_anonymous_hint(bb)
+    }
+
+    // ----- Data Flow Graph ---------------------------------------------------
+
+    /// Check if a value is a placeholder.
+    fn is_placeholder(&self, value: Value) -> bool {
+        self.dfg().is_placeholder(value)
+    }
+
+    /// Returns whether an instruction produces a result.
+    fn has_result(&self, inst: Inst) -> bool {
+        self.dfg().has_result(inst)
+    }
+
+    /// Returns the result of an instruction.
+    fn inst_result(&self, inst: Inst) -> Value {
+        self.dfg().inst_result(inst)
+    }
+
+    /// Returns the result of an instruction.
+    fn get_inst_result(&self, inst: Inst) -> Option<Value> {
+        self.dfg().get_inst_result(inst)
+    }
+
+    /// Returns the value of an argument.
+    fn arg_value(&self, arg: Arg) -> Value {
+        self.dfg().arg_value(arg)
+    }
+
+    /// Returns the type of a value.
+    fn value_type(&self, value: Value) -> Type {
+        self.dfg().value_type(value)
+    }
+
+    /// Returns the type of an instruction.
+    fn inst_type(&self, inst: Inst) -> Type {
+        self.dfg().inst_type(inst)
+    }
+
+    /// Return the argument that produces `value`.
+    fn get_value_arg(&self, value: Value) -> Option<Arg> {
+        self.dfg().get_value_arg(value)
+    }
+
+    /// Return the argument that produces `value`, or panic.
+    fn value_arg(&self, value: Value) -> Arg {
+        self.dfg().value_arg(value)
+    }
+
+    /// Return the instruction that produces `value`.
+    fn get_value_inst(&self, value: Value) -> Option<Inst> {
+        self.dfg().get_value_inst(value)
+    }
+
+    /// Return the instruction that produces `value`, or panic.
+    fn value_inst(&self, value: Value) -> Inst {
+        self.dfg().value_inst(value)
+    }
+
+    /// Return the name of a value.
+    fn get_name(&self, value: Value) -> Option<&str> {
+        self.dfg().get_name(value)
+    }
+
+    /// Return the anonymous name hint of a value.
+    fn get_anonymous_hint(&self, value: Value) -> Option<u32> {
+        self.dfg().get_anonymous_hint(value)
+    }
+
+    /// Iterate over all uses of a value.
+    fn uses(&self, value: Value) -> &HashSet<Inst> {
+        self.dfg().uses(value)
+    }
+
+    /// Check if a value is used.
+    fn has_uses(&self, value: Value) -> bool {
+        self.dfg().has_uses(value)
+    }
+
+    /// Check if a value has exactly one use.
+    fn has_one_use(&self, value: Value) -> bool {
+        self.dfg().has_one_use(value)
+    }
+
+    /// Resolve a constant value.
+    ///
+    /// Returns `None` if the value is not constant. Note that this *does not*
+    /// perform constant folding. Rather, the value must resolve to an
+    /// instruction which produces a constant value.
+    fn get_const(&self, value: Value) -> Option<crate::Value> {
+        self.dfg().get_const(value)
+    }
+
+    /// Resolve a constant time value.
+    ///
+    /// Returns `None` if the value is not constant. Note that this *does not*
+    /// perform constant folding. Rather, the value must resolve to an
+    /// instruction which produces a constant value.
+    fn get_const_time(&self, value: Value) -> Option<&crate::TimeValue> {
+        self.dfg().get_const_time(value)
+    }
+
+    /// Resolve a constant integer value.
+    ///
+    /// Returns `None` if the value is not constant. Note that this *does not*
+    /// perform constant folding. Rather, the value must resolve to an
+    /// instruction which produces a constant value.
+    fn get_const_int(&self, value: Value) -> Option<&crate::IntValue> {
+        self.dfg().get_const_int(value)
+    }
+
+    /// Resolve a constant array value.
+    ///
+    /// Returns `None` if the value is not constant. Note that this *does not*
+    /// perform constant folding. Rather, the value must resolve to an
+    /// instruction which produces a constant value.
+    fn get_const_array(&self, value: Value) -> Option<crate::ArrayValue> {
+        self.dfg().get_const_array(value)
+    }
+
+    /// Resolve a constant struct value.
+    ///
+    /// Returns `None` if the value is not constant. Note that this *does not*
+    /// perform constant folding. Rather, the value must resolve to an
+    /// instruction which produces a constant value.
+    fn get_const_struct(&self, value: Value) -> Option<crate::StructValue> {
+        self.dfg().get_const_struct(value)
+    }
+
+    /// Get the location hint associated with an instruction.
+    ///
+    /// Returns the byte offset of the instruction in the input file, or None if there
+    /// is no hint for the instruction.
+    fn location_hint(&self, inst: Inst) -> Option<usize> {
+        self.dfg().location_hint(inst)
     }
 }
 
@@ -300,7 +431,16 @@ impl std::fmt::Display for UnitDumper<'_> {
 }
 
 /// A temporary object used to populate a `Function`, `Process` or `Entity`.
-pub trait UnitBuilder {
+pub trait UnitBuilder:
+    Index<Value, Output = ValueData>
+    + Index<Inst, Output = InstData>
+    + Index<ExtUnit, Output = ExtUnitData>
+    + Index<Block, Output = BlockData>
+    + IndexMut<Value>
+    + IndexMut<Inst>
+    + IndexMut<ExtUnit>
+    + IndexMut<Block>
+{
     /// The type returned by `unit()` and `unit_mut()`.
     type Unit: Unit;
 
@@ -452,6 +592,8 @@ pub trait UnitBuilder {
         }
     }
 
+    // ----- Control Flow Graph ------------------------------------------------
+
     /// Set the name of a BB.
     fn set_block_name(&mut self, bb: Block, name: String) {
         self.cfg_mut().set_name(bb, name)
@@ -470,6 +612,100 @@ pub trait UnitBuilder {
     /// Clear the anonymous name hint of a BB.
     fn clear_anonymous_block_hint(&mut self, bb: Block) -> Option<u32> {
         self.cfg_mut().clear_anonymous_hint(bb)
+    }
+
+    // ----- Data Flow Graph ---------------------------------------------------
+
+    /// Add a placeholder value.
+    ///
+    /// This function is intended to be used when constructing PHI nodes.
+    fn add_placeholder(&mut self, ty: Type) -> Value {
+        self.dfg_mut().add_placeholder(ty)
+    }
+
+    /// Remove a placeholder value.
+    fn remove_placeholder(&mut self, value: Value) {
+        self.dfg_mut().remove_placeholder(value)
+    }
+
+    /// Add an instruction.
+    fn add_inst(&mut self, data: InstData, ty: Type) -> Inst {
+        self.dfg_mut().add_inst(data, ty)
+    }
+
+    /// Set the name of a value.
+    fn set_name(&mut self, value: Value, name: String) {
+        self.dfg_mut().set_name(value, name)
+    }
+
+    /// Clear the name of a value.
+    fn clear_name(&mut self, value: Value) -> Option<String> {
+        self.dfg_mut().clear_name(value)
+    }
+
+    /// Set the anonymous name hint of a value.
+    fn set_anonymous_hint(&mut self, value: Value, hint: u32) {
+        self.dfg_mut().set_anonymous_hint(value, hint)
+    }
+
+    /// Clear the anonymous name hint of a value.
+    fn clear_anonymous_hint(&mut self, value: Value) -> Option<u32> {
+        self.dfg_mut().clear_anonymous_hint(value)
+    }
+
+    /// Replace all uses of a value with another.
+    ///
+    /// Returns how many uses were replaced.
+    fn replace_use(&mut self, from: Value, to: Value) -> usize {
+        self.dfg_mut().replace_use(from, to)
+    }
+
+    /// Replace the uses of a value with another, in a single instruction.
+    ///
+    /// Returns how many uses were replaced.
+    fn replace_value_within_inst(&mut self, from: Value, to: Value, inst: Inst) -> usize {
+        self.dfg_mut().replace_value_within_inst(from, to, inst)
+    }
+
+    /// Replace all uses of a block with another.
+    ///
+    /// Returns how many blocks were replaced.
+    fn replace_block_use(&mut self, from: Block, to: Block) -> usize {
+        self.dfg_mut().replace_block_use(from, to)
+    }
+
+    /// Replace all uses of a block with another, in a single instruction.
+    ///
+    /// Returns how many blocks were replaced.
+    fn replace_block_within_inst(&mut self, from: Block, to: Block, inst: Inst) -> usize {
+        self.dfg_mut().replace_block_within_inst(from, to, inst)
+    }
+
+    /// Remove all uses of a block.
+    ///
+    /// Replaces all uses of the block with an invalid block placeholder, and
+    /// removes phi node entries for the block.
+    ///
+    /// Returns how many blocks were removed.
+    fn remove_block_use(&mut self, block: Block) -> usize {
+        self.dfg_mut().remove_block_use(block)
+    }
+
+    /// Remove all uses of a block, from a single instruction.
+    ///
+    /// Replaces all uses of the block with an invalid block placeholder, and
+    /// removes phi node entries for the block.
+    ///
+    /// Returns how many blocks were removed.
+    fn remove_block_from_inst(&mut self, block: Block, inst: Inst) -> usize {
+        self.dfg_mut().remove_block_from_inst(block, inst)
+    }
+
+    /// Add a location hint to an instruction.
+    ///
+    /// Annotates the byte offset of an instruction in the input file.
+    fn set_location_hint(&mut self, inst: Inst, loc: usize) {
+        self.dfg_mut().set_location_hint(inst, loc)
     }
 }
 

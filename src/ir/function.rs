@@ -4,12 +4,14 @@
 
 use crate::{
     ir::{
-        Block, ControlFlowGraph, DataFlowGraph, FunctionInsertPos, FunctionLayout, Inst, InstData,
-        InstLayout, Signature, Unit, UnitBuilder, UnitKind, UnitName, Value,
+        Block, BlockData, ControlFlowGraph, DataFlowGraph, ExtUnit, ExtUnitData, FunctionInsertPos,
+        FunctionLayout, Inst, InstData, InstLayout, Signature, Unit, UnitBuilder, UnitKind,
+        UnitName, Value, ValueData,
     },
     ty::Type,
     verifier::Verifier,
 };
+use std::ops::{Index, IndexMut};
 
 /// A function.
 #[derive(Serialize, Deserialize)]
@@ -35,6 +37,58 @@ impl Function {
         };
         func.dfg.make_args_for_signature(&func.sig);
         func
+    }
+}
+
+impl Index<Value> for Function {
+    type Output = ValueData;
+    fn index(&self, idx: Value) -> &ValueData {
+        self.dfg.index(idx)
+    }
+}
+
+impl Index<Inst> for Function {
+    type Output = InstData;
+    fn index(&self, idx: Inst) -> &InstData {
+        self.dfg.index(idx)
+    }
+}
+
+impl Index<ExtUnit> for Function {
+    type Output = ExtUnitData;
+    fn index(&self, idx: ExtUnit) -> &ExtUnitData {
+        self.dfg.index(idx)
+    }
+}
+
+impl Index<Block> for Function {
+    type Output = BlockData;
+    fn index(&self, idx: Block) -> &BlockData {
+        self.cfg.index(idx)
+    }
+}
+
+impl IndexMut<Value> for Function {
+    fn index_mut(&mut self, idx: Value) -> &mut ValueData {
+        self.dfg.index_mut(idx)
+    }
+}
+
+impl IndexMut<Inst> for Function {
+    fn index_mut(&mut self, idx: Inst) -> &mut InstData {
+        self.dfg.index_mut(idx)
+    }
+}
+
+impl IndexMut<ExtUnit> for Function {
+    fn index_mut(&mut self, idx: ExtUnit) -> &mut ExtUnitData {
+        self.dfg.index_mut(idx)
+    }
+}
+
+impl IndexMut<Block> for Function {
+    fn index_mut(&mut self, idx: Block) -> &mut BlockData {
+        self.cfg.index_mut(idx)
     }
 }
 
@@ -144,6 +198,71 @@ impl<'u> FunctionBuilder<'u> {
             func,
             pos: FunctionInsertPos::None,
         }
+    }
+}
+
+impl Index<Value> for FunctionBuilder<'_> {
+    type Output = ValueData;
+    fn index(&self, idx: Value) -> &ValueData {
+        self.func.index(idx)
+    }
+}
+
+impl Index<Inst> for FunctionBuilder<'_> {
+    type Output = InstData;
+    fn index(&self, idx: Inst) -> &InstData {
+        self.func.index(idx)
+    }
+}
+
+impl Index<ExtUnit> for FunctionBuilder<'_> {
+    type Output = ExtUnitData;
+    fn index(&self, idx: ExtUnit) -> &ExtUnitData {
+        self.func.index(idx)
+    }
+}
+
+impl Index<Block> for FunctionBuilder<'_> {
+    type Output = BlockData;
+    fn index(&self, idx: Block) -> &BlockData {
+        self.func.index(idx)
+    }
+}
+
+impl IndexMut<Value> for FunctionBuilder<'_> {
+    fn index_mut(&mut self, idx: Value) -> &mut ValueData {
+        self.func.index_mut(idx)
+    }
+}
+
+impl IndexMut<Inst> for FunctionBuilder<'_> {
+    fn index_mut(&mut self, idx: Inst) -> &mut InstData {
+        self.func.index_mut(idx)
+    }
+}
+
+impl IndexMut<ExtUnit> for FunctionBuilder<'_> {
+    fn index_mut(&mut self, idx: ExtUnit) -> &mut ExtUnitData {
+        self.func.index_mut(idx)
+    }
+}
+
+impl IndexMut<Block> for FunctionBuilder<'_> {
+    fn index_mut(&mut self, idx: Block) -> &mut BlockData {
+        self.func.index_mut(idx)
+    }
+}
+
+impl<'u> std::ops::Deref for FunctionBuilder<'u> {
+    type Target = Function;
+    fn deref(&self) -> &Function {
+        self.func
+    }
+}
+
+impl<'u> std::ops::DerefMut for FunctionBuilder<'u> {
+    fn deref_mut(&mut self) -> &mut Function {
+        self.func
     }
 }
 

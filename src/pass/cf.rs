@@ -26,13 +26,13 @@ pub fn run_on_inst(builder: &mut impl UnitBuilder, inst: Inst) -> bool {
     builder.insert_before(inst);
 
     // Don't bother folding instructions which don't yield a result.
-    if !builder.dfg().has_result(inst) {
+    if !builder.unit().has_result(inst) {
         return false;
     }
 
     // Fold all other instructions.
-    let value = builder.dfg().inst_result(inst);
-    let ty = builder.dfg().value_type(value);
+    let value = builder.unit().inst_result(inst);
+    let ty = builder.unit().value_type(value);
     let data = &builder.dfg()[inst];
     let replacement = match data.opcode() {
         Opcode::InsSlice => fold_ins_slice(builder, inst),
@@ -49,19 +49,18 @@ pub fn run_on_inst(builder: &mut impl UnitBuilder, inst: Inst) -> bool {
         },
     };
     if let Some(replacement) = replacement {
-        let new_ty = builder.dfg().value_type(replacement);
+        let new_ty = builder.unit().value_type(replacement);
         assert_eq!(
             ty,
             new_ty,
             "types before (lhs) and after (rhs) folding must match (before: {})",
             inst.dump(builder.dfg(), builder.try_cfg()),
         );
-        let dfg = builder.unit_mut().dfg_mut();
-        if let Some(name) = dfg.get_name(value).map(String::from) {
-            dfg.set_name(replacement, name);
-            dfg.clear_name(value);
+        if let Some(name) = builder.unit().get_name(value).map(String::from) {
+            builder.set_name(replacement, name);
+            builder.clear_name(value);
         }
-        dfg.replace_use(value, replacement);
+        builder.replace_use(value, replacement);
         // builder.prune_if_unused(inst);
         true
     } else {
@@ -73,7 +72,7 @@ pub fn run_on_inst(builder: &mut impl UnitBuilder, inst: Inst) -> bool {
 ///
 /// If the value is an instruction, folds it.
 pub fn run_on_value(builder: &mut impl UnitBuilder, value: Value) -> bool {
-    if let Some(inst) = builder.dfg().get_value_inst(value) {
+    if let Some(inst) = builder.unit().get_value_inst(value) {
         run_on_inst(builder, inst)
     } else {
         false
@@ -91,7 +90,7 @@ fn fold_unary(builder: &mut impl UnitBuilder, op: Opcode, ty: Type, arg: Value) 
 
 /// Fold a unary instruction on integers.
 fn fold_unary_int(builder: &mut impl UnitBuilder, op: Opcode, arg: Value) -> Option<Value> {
-    let imm = builder.dfg().get_const_int(arg)?;
+    let imm = builder.unit().get_const_int(arg)?;
     let result = IntValue::try_unary_op(op, imm)?;
     Some(builder.ins().const_int(result))
 }
@@ -117,8 +116,8 @@ fn fold_binary_int(
     width: usize,
     args: [Value; 2],
 ) -> Option<Value> {
-    let imm0 = builder.dfg().get_const_int(args[0]);
-    let imm1 = builder.dfg().get_const_int(args[1]);
+    let imm0 = builder.unit().get_const_int(args[0]);
+    let imm1 = builder.unit().get_const_int(args[1]);
 
     // Handle symmetric operations between a constant and a variable argument.
     let (arg_kon, arg_var) = match (imm0, imm1) {
@@ -175,7 +174,7 @@ fn fold_shift(builder: &mut impl UnitBuilder, inst: Inst, ty: &Type) -> Option<V
     let hidden = dfg[inst].args()[1];
     let amount = dfg[inst].args()[2];
 
-    let const_amount = dfg.get_const_int(amount);
+    let const_amount = builder.unit().get_const_int(amount);
     let left = dfg[inst].opcode() == Opcode::Shl;
 
     // Handle the trivial case where the shift amount is zero.
@@ -186,8 +185,8 @@ fn fold_shift(builder: &mut impl UnitBuilder, inst: Inst, ty: &Type) -> Option<V
     // Handle the case where the shfit amount is constant.
     if let Some(amount) = const_amount {
         let amount = amount.to_usize();
-        let base_width = dfg.value_type(base).len();
-        let hidden_width = dfg.value_type(hidden).len();
+        let base_width = builder.unit().value_type(base).len();
+        let hidden_width = builder.unit().value_type(hidden).len();
         let amount = min(amount, hidden_width);
 
         // Handle the case where the amount fully shifts out the base.
@@ -198,7 +197,7 @@ fn fold_shift(builder: &mut impl UnitBuilder, inst: Inst, ty: &Type) -> Option<V
                 hidden_width + base_width - amount
             };
             let r = builder.ins().ext_slice(hidden, offset, base_width);
-            Some(fold_ext_slice(builder, builder.dfg().value_inst(r)).unwrap_or(r));
+            Some(fold_ext_slice(builder, builder.unit().value_inst(r)).unwrap_or(r));
         }
         // Handle the case where the result is a mixture of the base and the
         // hidden value.
@@ -224,7 +223,7 @@ fn fold_shift(builder: &mut impl UnitBuilder, inst: Inst, ty: &Type) -> Option<V
             run_on_value(builder, b);
             run_on_value(builder, z0);
             run_on_value(builder, z1);
-            return Some(fold_ins_slice(builder, builder.dfg().value_inst(z2)).unwrap_or(z2));
+            return Some(fold_ins_slice(builder, builder.unit().value_inst(z2)).unwrap_or(z2));
         }
     }
 
@@ -241,14 +240,17 @@ fn fold_ins_slice(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
 
     // Handle the trivial cases where we override the entire value, or nothing
     // at all.
-    match dfg.value_type(target).as_ref() {
+    match builder.unit().value_type(target).as_ref() {
         IntType(_) | ArrayType(..) if len == 0 => return Some(target),
         IntType(w) | ArrayType(w, _) if len == *w => return Some(value),
         _ => (),
     }
 
     // Handle the case where both operands are constant integers.
-    if let (Some(target), Some(value)) = (dfg.get_const_int(target), dfg.get_const_int(value)) {
+    if let (Some(target), Some(value)) = (
+        builder.unit().get_const_int(target),
+        builder.unit().get_const_int(value),
+    ) {
         let mut r = target.clone();
         r.insert_slice(data.imms()[0], len, value);
         return Some(builder.ins().const_int(r));
@@ -261,20 +263,20 @@ fn fold_ins_slice(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
 fn fold_ext_slice(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
     let dfg = builder.dfg();
     let data = &dfg[inst];
-    let ty = &dfg.inst_type(inst);
+    let ty = &builder.unit().inst_type(inst);
     let target = data.args()[0];
     let len = data.imms()[1];
 
     // Handle the trivial case where we extract the entire value, or nothing
     // at all.
-    match dfg.value_type(target).as_ref() {
+    match builder.unit().value_type(target).as_ref() {
         IntType(..) | ArrayType(..) if len == 0 => return Some(builder.ins().const_zero(ty)),
         IntType(w) | ArrayType(w, _) if len == *w => return Some(target),
         _ => (),
     }
 
     // Handle the case where the target is a constant integer.
-    if let Some(imm) = dfg.get_const_int(target) {
+    if let Some(imm) = builder.unit().get_const_int(target) {
         let r = imm.extract_slice(data.imms()[0], len);
         return Some(builder.ins().const_int(r));
     }
@@ -287,7 +289,7 @@ fn fold_ext_field(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
     let dfg = builder.dfg();
     let data = &dfg[inst];
     let target = data.args()[0];
-    let target_inst = dfg.get_value_inst(target)?;
+    let target_inst = builder.unit().get_value_inst(target)?;
     let target_data = &dfg[target_inst];
     let offset = data.imms()[0];
     match target_data.opcode() {
@@ -304,6 +306,6 @@ fn fold_mux(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
     let dfg = builder.dfg();
     let choices = dfg[inst].args()[0];
     let sel = dfg[inst].args()[1];
-    let const_sel = dfg.get_const_int(sel)?.to_usize();
+    let const_sel = builder.unit().get_const_int(sel)?.to_usize();
     Some(builder.ins().ext_field(choices, const_sel))
 }

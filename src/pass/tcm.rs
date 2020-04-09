@@ -40,7 +40,6 @@ impl Pass for TemporalCodeMotion {
         let temp_pt = PredecessorTable::new_temporal(unit.dfg(), unit.func_layout());
         let temp_dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &temp_pt);
         for tr in &trg.regions {
-            let dfg = unit.dfg();
             let layout = unit.func_layout();
             if tr.head_blocks.len() != 1 {
                 trace!("Skipping {} for prb move (multiple head blocks)", tr.id);
@@ -50,8 +49,8 @@ impl Pass for TemporalCodeMotion {
             let mut hoist = vec![];
             for bb in tr.blocks() {
                 for inst in layout.insts(bb) {
-                    if dfg[inst].opcode() == Opcode::Prb
-                        && dfg.get_value_inst(dfg[inst].args()[0]).is_none()
+                    if unit[inst].opcode() == Opcode::Prb
+                        && unit.unit().get_value_inst(unit[inst].args()[0]).is_none()
                     {
                         // Check if the new prb location would dominate its old
                         // location temporally.
@@ -59,7 +58,7 @@ impl Pass for TemporalCodeMotion {
 
                         // Only move when the move instruction would still
                         // dominate all its uses.
-                        for user_inst in dfg.uses(dfg.inst_result(inst)) {
+                        for &user_inst in unit.unit().uses(unit.unit().inst_result(inst)) {
                             let user_bb = unit.func_layout().inst_block(user_inst).unwrap();
                             let dom = temp_dt.dominates(head_bb, user_bb);
                             dominates &= dom;
@@ -69,7 +68,7 @@ impl Pass for TemporalCodeMotion {
                         } else {
                             trace!(
                                 "Skipping {} for prb move (would not dominate uses)",
-                                inst.dump(dfg, unit.try_cfg())
+                                inst.dump(unit.dfg(), unit.try_cfg())
                             );
                         }
                     }
@@ -202,7 +201,7 @@ fn add_aux_blocks(_ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
                     bb.dump(unit.cfg()),
                     inst.dump(unit.dfg(), unit.try_cfg())
                 );
-                unit.dfg_mut().replace_block_within_inst(bb, aux_bb, inst);
+                unit.replace_block_within_inst(bb, aux_bb, inst);
             }
             modified = true;
         }
@@ -224,37 +223,35 @@ fn push_drives(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
     // of their sequential dependency.
     let mut aliases = HashMap::<Value, Value>::new();
     let mut drv_seq = HashMap::<Value, Vec<Inst>>::new();
-    let dfg = unit.dfg();
-    let cfg = unit.cfg();
     for &bb in dt.blocks_post_order().iter().rev() {
         trace!("Checking {} for aliases", bb.dump(unit.cfg()));
         for inst in unit.func_layout().insts(bb) {
-            let data = &dfg[inst];
+            let data = &unit[inst];
             if let Opcode::Drv | Opcode::DrvCond = data.opcode() {
                 // Gather drive sequences to the same signal.
                 let signal = data.args()[0];
                 let signal = aliases.get(&signal).cloned().unwrap_or(signal);
                 trace!(
                     "  Drive {} ({})",
-                    signal.dump(dfg),
-                    inst.dump(dfg, Some(cfg))
+                    signal.dump(unit.dfg()),
+                    inst.dump(unit.dfg(), unit.try_cfg())
                 );
                 drv_seq.entry(signal).or_default().push(inst);
-            } else if let Some(value) = dfg.get_inst_result(inst) {
+            } else if let Some(value) = unit.unit().get_inst_result(inst) {
                 // Gather signal aliases.
-                if !dfg.value_type(value).is_signal() {
+                if !unit.unit().value_type(value).is_signal() {
                     continue;
                 }
                 for &arg in data.args() {
-                    if !dfg.value_type(arg).is_signal() {
+                    if !unit.unit().value_type(arg).is_signal() {
                         continue;
                     }
                     let arg = aliases.get(&arg).cloned().unwrap_or(arg);
                     trace!(
                         "  Alias {} of {} ({})",
-                        value.dump(dfg),
-                        arg.dump(dfg),
-                        inst.dump(dfg, Some(cfg))
+                        value.dump(unit.dfg()),
+                        arg.dump(unit.dfg()),
+                        inst.dump(unit.dfg(), unit.try_cfg())
                     );
                     aliases.insert(value, arg);
                 }

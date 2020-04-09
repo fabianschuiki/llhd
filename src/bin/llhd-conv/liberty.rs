@@ -368,11 +368,11 @@ impl<'a> RootVisitor<'a> {
         let mut ent = Entity::new(cell_name, sig);
         let mut builder = EntityBuilder::new(&mut ent);
         for (name, &arg) in input_map.iter().chain(output_map.iter()) {
-            let arg = builder.dfg().arg_value(arg);
-            builder.dfg_mut().set_name(arg, name.clone());
+            let arg = builder.unit().arg_value(arg);
+            builder.set_name(arg, name.clone());
         }
         for (arg, func) in funcs {
-            let arg = builder.dfg().arg_value(arg);
+            let arg = builder.unit().arg_value(arg);
             let value = match self.emit_term(&mut builder, &input_map, func) {
                 Ok(v) => v,
                 Err(e) => {
@@ -380,7 +380,7 @@ impl<'a> RootVisitor<'a> {
                         "{}: invalid function on `{}`; {}",
                         builder.entity.name(),
                         builder
-                            .dfg()
+                            .unit()
                             .get_name(arg)
                             .map(str::to_owned)
                             .unwrap_or_else(|| format!("{}", arg)),

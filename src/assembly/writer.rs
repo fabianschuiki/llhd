@@ -52,7 +52,7 @@ impl<T: Write> Writer<T> {
             }
             comma = true;
             write!(uw.writer.sink, "{} ", func.sig().arg_type(arg))?;
-            uw.write_value_name(func.dfg().arg_value(arg))?;
+            uw.write_value_name(func.arg_value(arg))?;
         }
         write!(uw.writer.sink, ") {} {{\n", func.sig().return_type())?;
         for block in func.layout.blocks() {
@@ -79,7 +79,7 @@ impl<T: Write> Writer<T> {
             }
             comma = true;
             write!(uw.writer.sink, "{} ", prok.sig().arg_type(arg))?;
-            uw.write_value_name(prok.dfg().arg_value(arg))?;
+            uw.write_value_name(prok.arg_value(arg))?;
         }
         write!(uw.writer.sink, ") -> (")?;
         let mut comma = false;
@@ -89,7 +89,7 @@ impl<T: Write> Writer<T> {
             }
             comma = true;
             write!(uw.writer.sink, "{} ", prok.sig().arg_type(arg))?;
-            uw.write_value_name(prok.dfg().arg_value(arg))?;
+            uw.write_value_name(prok.arg_value(arg))?;
         }
         write!(uw.writer.sink, ") {{\n")?;
         for block in prok.layout.blocks() {
@@ -116,7 +116,7 @@ impl<T: Write> Writer<T> {
             }
             comma = true;
             write!(uw.writer.sink, "{} ", ent.sig().arg_type(arg))?;
-            uw.write_value_name(ent.dfg().arg_value(arg))?;
+            uw.write_value_name(ent.arg_value(arg))?;
         }
         write!(uw.writer.sink, ") -> (")?;
         let mut comma = false;
@@ -126,7 +126,7 @@ impl<T: Write> Writer<T> {
             }
             comma = true;
             write!(uw.writer.sink, "{} ", ent.sig().arg_type(arg))?;
-            uw.write_value_name(ent.dfg().arg_value(arg))?;
+            uw.write_value_name(ent.arg_value(arg))?;
         }
         write!(uw.writer.sink, ") {{\n")?;
         for inst in ent.layout.insts() {
@@ -178,7 +178,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
 
         // Check if the value has an explicit name set, or if we should just
         // generate a temporary name.
-        let name = self.uniquify_name(self.unit.dfg().get_name(value));
+        let name = self.uniquify_name(self.unit.get_name(value));
 
         // Emit the name and associate it with the value for later reuse.
         write!(self.writer.sink, "%{}", name)?;
@@ -239,25 +239,24 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
     /// Emit the use of a value.
     pub fn write_value_use(&mut self, value: Value, with_type: bool) -> Result<()> {
         if with_type {
-            write!(self.writer.sink, "{} ", self.unit.dfg().value_type(value))?;
+            write!(self.writer.sink, "{} ", self.unit.value_type(value))?;
         }
         self.write_value_name(value)
     }
 
     /// Emit an instruction.
     pub fn write_inst(&mut self, inst: Inst) -> Result<()> {
-        let dfg = self.unit.dfg();
-        if dfg.has_result(inst) {
-            self.write_value_name(dfg.inst_result(inst))?;
+        if self.unit.has_result(inst) {
+            self.write_value_name(self.unit.inst_result(inst))?;
             write!(self.writer.sink, " = ")?;
         }
-        let data = &dfg[inst];
+        let data = &self.unit[inst];
         match data.opcode() {
             Opcode::ConstInt => write!(
                 self.writer.sink,
                 "{} {} {}",
                 data.opcode(),
-                dfg.value_type(dfg.inst_result(inst)),
+                self.unit.value_type(self.unit.inst_result(inst)),
                 data.get_const_int().unwrap().value
             )?,
             Opcode::ConstTime => write!(
@@ -396,7 +395,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     self.writer.sink,
                     "{} {}",
                     data.opcode(),
-                    dfg.inst_type(inst)
+                    self.unit.inst_type(inst)
                 )?;
                 for &arg in data.args() {
                     write!(self.writer.sink, ", ")?;
@@ -411,12 +410,12 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     self.writer.sink,
                     "{} {} {} (",
                     data.opcode(),
-                    if dfg.has_result(inst) {
-                        dfg.value_type(dfg.inst_result(inst))
+                    if self.unit.has_result(inst) {
+                        self.unit.value_type(self.unit.inst_result(inst))
                     } else {
                         crate::void_ty()
                     },
-                    dfg[data.get_ext_unit().unwrap()].name,
+                    self.unit[data.get_ext_unit().unwrap()].name,
                 )?;
                 let mut comma = false;
                 for &arg in data.input_args() {
@@ -433,7 +432,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     self.writer.sink,
                     "{} {} (",
                     data.opcode(),
-                    dfg[data.get_ext_unit().unwrap()].name,
+                    self.unit[data.get_ext_unit().unwrap()].name,
                 )?;
                 let mut comma = false;
                 for &arg in data.input_args() {
@@ -460,7 +459,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     self.writer.sink,
                     "{} {} ",
                     data.opcode(),
-                    dfg.value_type(dfg.inst_result(inst))
+                    self.unit.value_type(self.unit.inst_result(inst))
                 )?;
                 let mut comma = false;
                 for (&arg, &block) in data.args().iter().zip(data.blocks().iter()) {

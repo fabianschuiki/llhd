@@ -49,21 +49,21 @@ impl Pass for GlobalCommonSubexprElim {
             // Don't mess with instructions that produce no result or have side
             // effects.
             let opcode = unit.dfg()[inst].opcode();
-            if !unit.dfg().has_result(inst)
+            if !unit.unit().has_result(inst)
                 || opcode == Opcode::Ld
                 || opcode == Opcode::Var
                 || opcode == Opcode::Sig
             {
                 continue;
             }
-            let value = unit.dfg().inst_result(inst);
+            let value = unit.unit().inst_result(inst);
             trace!("Examining {}", inst.dump(unit.dfg(), unit.try_cfg()));
 
             // Try the candidates.
             if let Some(aliases) = values.get_mut(&unit.dfg()[inst]) {
                 'inner: for &cv in aliases.iter() {
                     trace!("  Trying {}", cv.dump(unit.dfg()));
-                    let cv_inst = unit.dfg().value_inst(cv);
+                    let cv_inst = unit.unit().value_inst(cv);
                     let inst_bb = unit.func_layout().inst_block(inst).unwrap();
                     let cv_bb = unit.func_layout().inst_block(cv_inst).unwrap();
 
@@ -85,7 +85,7 @@ impl Pass for GlobalCommonSubexprElim {
                             inst.dump(unit.dfg(), unit.try_cfg()),
                             cv.dump(unit.dfg()),
                         );
-                        unit.dfg_mut().replace_use(value, cv);
+                        unit.replace_use(value, cv);
                         unit.prune_if_unused(inst);
                         modified = true;
                         continue 'outer;
@@ -99,7 +99,7 @@ impl Pass for GlobalCommonSubexprElim {
                             cv.dump(unit.dfg()),
                             value.dump(unit.dfg()),
                         );
-                        unit.dfg_mut().replace_use(cv, value);
+                        unit.replace_use(cv, value);
                         unit.prune_if_unused(cv_inst);
                         aliases.remove(&cv); // crazy that this works; NLL <3
                         modified = true;
@@ -160,7 +160,7 @@ impl Pass for GlobalCommonSubexprElim {
                         cv.dump(unit.dfg()),
                         value.dump(unit.dfg()),
                     );
-                    unit.dfg_mut().replace_use(cv, value);
+                    unit.replace_use(cv, value);
                     unit.prune_if_unused(cv_inst);
                     aliases.remove(&cv); // crazy that this works; NLL <3
                     modified = true;
@@ -194,10 +194,10 @@ impl Pass for GlobalCommonSubexprElim {
             // Don't mess with instructions that produce no result or have side
             // effects.
             let opcode = unit.dfg()[inst].opcode();
-            if !unit.dfg().has_result(inst) || opcode == Opcode::Var || opcode == Opcode::Sig {
+            if !unit.unit().has_result(inst) || opcode == Opcode::Var || opcode == Opcode::Sig {
                 continue;
             }
-            let value = unit.dfg().inst_result(inst);
+            let value = unit.unit().inst_result(inst);
             trace!("Examining {}", inst.dump(unit.dfg(), unit.try_cfg()));
 
             // Replace the current inst with the recorded value, if there is
@@ -208,7 +208,7 @@ impl Pass for GlobalCommonSubexprElim {
                     inst.dump(unit.dfg(), unit.try_cfg()),
                     cv.dump(unit.dfg()),
                 );
-                unit.dfg_mut().replace_use(value, cv);
+                unit.replace_use(value, cv);
                 unit.prune_if_unused(inst);
                 modified = true;
             }

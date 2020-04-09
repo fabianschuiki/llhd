@@ -4,12 +4,14 @@
 
 use crate::{
     ir::{
-        Block, ControlFlowGraph, DataFlowGraph, EntityInsertPos, FunctionLayout, Inst, InstData,
-        InstLayout, Signature, Unit, UnitBuilder, UnitKind, UnitName,
+        Block, BlockData, ControlFlowGraph, DataFlowGraph, EntityInsertPos, ExtUnit, ExtUnitData,
+        FunctionLayout, Inst, InstData, InstLayout, Signature, Unit, UnitBuilder, UnitKind,
+        UnitName, Value, ValueData,
     },
     ty::Type,
     verifier::Verifier,
 };
+use std::ops::{Index, IndexMut};
 
 /// An entity.
 #[derive(Serialize, Deserialize)]
@@ -32,6 +34,60 @@ impl Entity {
         };
         ent.dfg.make_args_for_signature(&ent.sig);
         ent
+    }
+}
+
+impl Index<Value> for Entity {
+    type Output = ValueData;
+    fn index(&self, idx: Value) -> &ValueData {
+        self.dfg.index(idx)
+    }
+}
+
+impl Index<Inst> for Entity {
+    type Output = InstData;
+    fn index(&self, idx: Inst) -> &InstData {
+        self.dfg.index(idx)
+    }
+}
+
+impl Index<ExtUnit> for Entity {
+    type Output = ExtUnitData;
+    fn index(&self, idx: ExtUnit) -> &ExtUnitData {
+        self.dfg.index(idx)
+    }
+}
+
+impl Index<Block> for Entity {
+    type Output = BlockData;
+    fn index(&self, _idx: Block) -> &BlockData {
+        panic!("indexing into entity with a block")
+        // self.cfg.index(idx)
+    }
+}
+
+impl IndexMut<Value> for Entity {
+    fn index_mut(&mut self, idx: Value) -> &mut ValueData {
+        self.dfg.index_mut(idx)
+    }
+}
+
+impl IndexMut<Inst> for Entity {
+    fn index_mut(&mut self, idx: Inst) -> &mut InstData {
+        self.dfg.index_mut(idx)
+    }
+}
+
+impl IndexMut<ExtUnit> for Entity {
+    fn index_mut(&mut self, idx: ExtUnit) -> &mut ExtUnitData {
+        self.dfg.index_mut(idx)
+    }
+}
+
+impl IndexMut<Block> for Entity {
+    fn index_mut(&mut self, _idx: Block) -> &mut BlockData {
+        panic!("indexing into entity with a block")
+        // self.cfg.index_mut(idx)
     }
 }
 
@@ -138,6 +194,71 @@ impl<'u> EntityBuilder<'u> {
             entity,
             pos: EntityInsertPos::Append,
         }
+    }
+}
+
+impl Index<Value> for EntityBuilder<'_> {
+    type Output = ValueData;
+    fn index(&self, idx: Value) -> &ValueData {
+        self.entity.index(idx)
+    }
+}
+
+impl Index<Inst> for EntityBuilder<'_> {
+    type Output = InstData;
+    fn index(&self, idx: Inst) -> &InstData {
+        self.entity.index(idx)
+    }
+}
+
+impl Index<ExtUnit> for EntityBuilder<'_> {
+    type Output = ExtUnitData;
+    fn index(&self, idx: ExtUnit) -> &ExtUnitData {
+        self.entity.index(idx)
+    }
+}
+
+impl Index<Block> for EntityBuilder<'_> {
+    type Output = BlockData;
+    fn index(&self, idx: Block) -> &BlockData {
+        self.entity.index(idx)
+    }
+}
+
+impl IndexMut<Value> for EntityBuilder<'_> {
+    fn index_mut(&mut self, idx: Value) -> &mut ValueData {
+        self.entity.index_mut(idx)
+    }
+}
+
+impl IndexMut<Inst> for EntityBuilder<'_> {
+    fn index_mut(&mut self, idx: Inst) -> &mut InstData {
+        self.entity.index_mut(idx)
+    }
+}
+
+impl IndexMut<ExtUnit> for EntityBuilder<'_> {
+    fn index_mut(&mut self, idx: ExtUnit) -> &mut ExtUnitData {
+        self.entity.index_mut(idx)
+    }
+}
+
+impl IndexMut<Block> for EntityBuilder<'_> {
+    fn index_mut(&mut self, idx: Block) -> &mut BlockData {
+        self.entity.index_mut(idx)
+    }
+}
+
+impl<'u> std::ops::Deref for EntityBuilder<'u> {
+    type Target = Entity;
+    fn deref(&self) -> &Entity {
+        self.entity
+    }
+}
+
+impl<'u> std::ops::DerefMut for EntityBuilder<'u> {
+    fn deref_mut(&mut self) -> &mut Entity {
+        self.entity
     }
 }
 

@@ -55,19 +55,19 @@ impl DataFlowGraph {
     /// Add a placeholder value.
     ///
     /// This function is intended to be used when constructing PHI nodes.
-    pub fn add_placeholder(&mut self, ty: Type) -> Value {
+    pub(super) fn add_placeholder(&mut self, ty: Type) -> Value {
         self.add_value(ValueData::Placeholder { ty })
     }
 
     /// Remove a placeholder value.
-    pub fn remove_placeholder(&mut self, value: Value) {
+    pub(super) fn remove_placeholder(&mut self, value: Value) {
         assert!(!self.has_uses(value));
         assert!(self[value].is_placeholder());
         self.remove_value(value);
     }
 
     /// Check if a value is a placeholder.
-    pub fn is_placeholder(&self, value: Value) -> bool {
+    pub(super) fn is_placeholder(&self, value: Value) -> bool {
         self[value].is_placeholder()
     }
 
@@ -106,7 +106,7 @@ impl DataFlowGraph {
     }
 
     /// Add an instruction.
-    pub fn add_inst(&mut self, data: InstData, ty: Type) -> Inst {
+    pub(super) fn add_inst(&mut self, data: InstData, ty: Type) -> Inst {
         let inst = self.insts.add(data);
         if !ty.is_void() {
             let result = self.add_value(ValueData::Inst { ty, inst });
@@ -117,7 +117,7 @@ impl DataFlowGraph {
     }
 
     /// Remove an instruction.
-    pub fn remove_inst(&mut self, inst: Inst) {
+    pub(super) fn remove_inst(&mut self, inst: Inst) {
         if self.has_result(inst) {
             let value = self.inst_result(inst);
             assert!(!self.has_uses(value));
@@ -129,22 +129,22 @@ impl DataFlowGraph {
     }
 
     /// Returns whether an instruction produces a result.
-    pub fn has_result(&self, inst: Inst) -> bool {
+    pub(super) fn has_result(&self, inst: Inst) -> bool {
         self.results.storage.contains_key(&inst.index())
     }
 
     /// Returns the result of an instruction.
-    pub fn inst_result(&self, inst: Inst) -> Value {
+    pub(super) fn inst_result(&self, inst: Inst) -> Value {
         self.results[inst]
     }
 
     /// Returns the result of an instruction.
-    pub fn get_inst_result(&self, inst: Inst) -> Option<Value> {
+    pub(super) fn get_inst_result(&self, inst: Inst) -> Option<Value> {
         self.results.get(inst).cloned()
     }
 
     /// Returns the value of an argument.
-    pub fn arg_value(&self, arg: Arg) -> Value {
+    pub(super) fn arg_value(&self, arg: Arg) -> Value {
         self.args[arg]
     }
 
@@ -160,7 +160,7 @@ impl DataFlowGraph {
     }
 
     /// Returns the type of a value.
-    pub fn value_type(&self, value: Value) -> Type {
+    pub(super) fn value_type(&self, value: Value) -> Type {
         match &self[value] {
             ValueData::Invalid => panic!("invalid value"),
             ValueData::Inst { ty, .. } => ty.clone(),
@@ -170,7 +170,7 @@ impl DataFlowGraph {
     }
 
     /// Returns the type of an instruction.
-    pub fn inst_type(&self, inst: Inst) -> Type {
+    pub(super) fn inst_type(&self, inst: Inst) -> Type {
         if self.has_result(inst) {
             self.value_type(self.inst_result(inst))
         } else {
@@ -179,7 +179,7 @@ impl DataFlowGraph {
     }
 
     /// Return the argument that produces `value`.
-    pub fn get_value_arg(&self, value: Value) -> Option<Arg> {
+    pub(super) fn get_value_arg(&self, value: Value) -> Option<Arg> {
         match self[value] {
             ValueData::Arg { arg, .. } => Some(arg),
             _ => None,
@@ -187,7 +187,7 @@ impl DataFlowGraph {
     }
 
     /// Return the argument that produces `value`, or panic.
-    pub fn value_arg(&self, value: Value) -> Arg {
+    pub(super) fn value_arg(&self, value: Value) -> Arg {
         match self.get_value_arg(value) {
             Some(arg) => arg,
             None => panic!("value {} not an argument", value),
@@ -195,7 +195,7 @@ impl DataFlowGraph {
     }
 
     /// Return the instruction that produces `value`.
-    pub fn get_value_inst(&self, value: Value) -> Option<Inst> {
+    pub(super) fn get_value_inst(&self, value: Value) -> Option<Inst> {
         match self[value] {
             ValueData::Inst { inst, .. } => Some(inst),
             _ => None,
@@ -203,7 +203,7 @@ impl DataFlowGraph {
     }
 
     /// Return the instruction that produces `value`, or panic.
-    pub fn value_inst(&self, value: Value) -> Inst {
+    pub(super) fn value_inst(&self, value: Value) -> Inst {
         match self.get_value_inst(value) {
             Some(inst) => inst,
             None => panic!("value {} not the result of an instruction", value),
@@ -211,39 +211,39 @@ impl DataFlowGraph {
     }
 
     /// Return the name of a value.
-    pub fn get_name(&self, value: Value) -> Option<&str> {
+    pub(super) fn get_name(&self, value: Value) -> Option<&str> {
         self.names.get(&value).map(AsRef::as_ref)
     }
 
     /// Set the name of a value.
-    pub fn set_name(&mut self, value: Value, name: String) {
+    pub(super) fn set_name(&mut self, value: Value, name: String) {
         self.names.insert(value, name);
     }
 
     /// Clear the name of a value.
-    pub fn clear_name(&mut self, value: Value) -> Option<String> {
+    pub(super) fn clear_name(&mut self, value: Value) -> Option<String> {
         self.names.remove(&value)
     }
 
     /// Return the anonymous name hint of a value.
-    pub fn get_anonymous_hint(&self, value: Value) -> Option<u32> {
+    pub(super) fn get_anonymous_hint(&self, value: Value) -> Option<u32> {
         self.anonymous_hints.get(&value).cloned()
     }
 
     /// Set the anonymous name hint of a value.
-    pub fn set_anonymous_hint(&mut self, value: Value, hint: u32) {
+    pub(super) fn set_anonymous_hint(&mut self, value: Value, hint: u32) {
         self.anonymous_hints.insert(value, hint);
     }
 
     /// Clear the anonymous name hint of a value.
-    pub fn clear_anonymous_hint(&mut self, value: Value) -> Option<u32> {
+    pub(super) fn clear_anonymous_hint(&mut self, value: Value) -> Option<u32> {
         self.anonymous_hints.remove(&value)
     }
 
     /// Replace all uses of a value with another.
     ///
     /// Returns how many uses were replaced.
-    pub fn replace_use(&mut self, from: Value, to: Value) -> usize {
+    pub(super) fn replace_use(&mut self, from: Value, to: Value) -> usize {
         let mut count = 0;
         for inst in self
             .value_uses
@@ -259,7 +259,12 @@ impl DataFlowGraph {
     /// Replace the uses of a value with another, in a single instruction.
     ///
     /// Returns how many uses were replaced.
-    pub fn replace_value_within_inst(&mut self, from: Value, to: Value, inst: Inst) -> usize {
+    pub(super) fn replace_value_within_inst(
+        &mut self,
+        from: Value,
+        to: Value,
+        inst: Inst,
+    ) -> usize {
         #[allow(deprecated)]
         let count = self[inst].replace_value(from, to);
         self.value_uses.entry(from).or_default().remove(&inst);
@@ -268,24 +273,24 @@ impl DataFlowGraph {
     }
 
     /// Iterate over all uses of a value.
-    pub fn uses(&self, value: Value) -> impl Iterator<Item = Inst> + '_ {
-        self.value_uses[&value].iter().cloned()
+    pub(super) fn uses(&self, value: Value) -> &HashSet<Inst> {
+        &self.value_uses[&value]
     }
 
     /// Check if a value is used.
-    pub fn has_uses(&self, value: Value) -> bool {
-        self.uses(value).count() > 0
+    pub(super) fn has_uses(&self, value: Value) -> bool {
+        !self.uses(value).is_empty()
     }
 
     /// Check if a value has exactly one use.
-    pub fn has_one_use(&self, value: Value) -> bool {
-        self.uses(value).count() == 1
+    pub(super) fn has_one_use(&self, value: Value) -> bool {
+        self.uses(value).len() == 1
     }
 
     /// Replace all uses of a block with another.
     ///
     /// Returns how many blocks were replaced.
-    pub fn replace_block_use(&mut self, from: Block, to: Block) -> usize {
+    pub(super) fn replace_block_use(&mut self, from: Block, to: Block) -> usize {
         let mut count = 0;
         for inst in self
             .block_uses
@@ -301,7 +306,12 @@ impl DataFlowGraph {
     /// Replace all uses of a block with another, in a single instruction.
     ///
     /// Returns how many blocks were replaced.
-    pub fn replace_block_within_inst(&mut self, from: Block, to: Block, inst: Inst) -> usize {
+    pub(super) fn replace_block_within_inst(
+        &mut self,
+        from: Block,
+        to: Block,
+        inst: Inst,
+    ) -> usize {
         #[allow(deprecated)]
         let count = self[inst].replace_block(from, to);
         self.block_uses.entry(from).or_default().remove(&inst);
@@ -315,7 +325,7 @@ impl DataFlowGraph {
     /// removes phi node entries for the block.
     ///
     /// Returns how many blocks were removed.
-    pub fn remove_block_use(&mut self, block: Block) -> usize {
+    pub(super) fn remove_block_use(&mut self, block: Block) -> usize {
         let mut count = 0;
         for inst in self
             .block_uses
@@ -334,7 +344,7 @@ impl DataFlowGraph {
     /// removes phi node entries for the block.
     ///
     /// Returns how many blocks were removed.
-    pub fn remove_block_from_inst(&mut self, block: Block, inst: Inst) -> usize {
+    pub(super) fn remove_block_from_inst(&mut self, block: Block, inst: Inst) -> usize {
         #[allow(deprecated)]
         let count = self[inst].remove_block(block);
         self.block_uses.entry(block).or_default().remove(&inst);
@@ -347,7 +357,7 @@ impl DataFlowGraph {
     /// Returns `None` if the value is not constant. Note that this *does not*
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
-    pub fn get_const(&self, value: Value) -> Option<crate::Value> {
+    pub(super) fn get_const(&self, value: Value) -> Option<crate::Value> {
         use super::Opcode;
         let inst = self.get_value_inst(value)?;
         match self[inst].opcode() {
@@ -364,7 +374,7 @@ impl DataFlowGraph {
     /// Returns `None` if the value is not constant. Note that this *does not*
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
-    pub fn get_const_time(&self, value: Value) -> Option<&crate::TimeValue> {
+    pub(super) fn get_const_time(&self, value: Value) -> Option<&crate::TimeValue> {
         let inst = self.get_value_inst(value)?;
         self[inst].get_const_time()
     }
@@ -374,7 +384,7 @@ impl DataFlowGraph {
     /// Returns `None` if the value is not constant. Note that this *does not*
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
-    pub fn get_const_int(&self, value: Value) -> Option<&crate::IntValue> {
+    pub(super) fn get_const_int(&self, value: Value) -> Option<&crate::IntValue> {
         let inst = self.get_value_inst(value)?;
         self[inst].get_const_int()
     }
@@ -384,7 +394,7 @@ impl DataFlowGraph {
     /// Returns `None` if the value is not constant. Note that this *does not*
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
-    pub fn get_const_array(&self, value: Value) -> Option<crate::ArrayValue> {
+    pub(super) fn get_const_array(&self, value: Value) -> Option<crate::ArrayValue> {
         use super::Opcode;
         let inst = self.get_value_inst(value)?;
         match self[inst].opcode() {
@@ -409,7 +419,7 @@ impl DataFlowGraph {
     /// Returns `None` if the value is not constant. Note that this *does not*
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
-    pub fn get_const_struct(&self, value: Value) -> Option<crate::StructValue> {
+    pub(super) fn get_const_struct(&self, value: Value) -> Option<crate::StructValue> {
         use super::Opcode;
         let inst = self.get_value_inst(value)?;
         match self[inst].opcode() {
@@ -428,7 +438,7 @@ impl DataFlowGraph {
     /// Add a location hint to an instruction.
     ///
     /// Annotates the byte offset of an instruction in the input file.
-    pub fn set_location_hint(&mut self, inst: Inst, loc: usize) {
+    pub(super) fn set_location_hint(&mut self, inst: Inst, loc: usize) {
         self.location_hints.insert(inst, loc);
     }
 
@@ -436,7 +446,7 @@ impl DataFlowGraph {
     ///
     /// Returns the byte offset of the instruction in the input file, or None if there
     /// is no hint for the instruction.
-    pub fn location_hint(&self, inst: Inst) -> Option<usize> {
+    pub(super) fn location_hint(&self, inst: Inst) -> Option<usize> {
         self.location_hints.get(&inst).cloned()
     }
 }

@@ -3,7 +3,7 @@
 //! Temporary representation of LLHD IR after parsing.
 
 use crate::{
-    ir::{self, Opcode, Signature, UnitBuilder, UnitName},
+    ir::{self, Opcode, Signature, Unit as _, UnitBuilder, UnitName},
     ty::Type,
     value::{IntValue, TimeValue},
 };
@@ -313,25 +313,24 @@ impl<'a> Inst<'a> {
         };
         if let (Some(name), InstOrValue::Value(value)) = (self.name, result) {
             if let Some(ph) = context.value_names.insert(name, value) {
-                let dfg = builder.dfg_mut();
-                if dfg.is_placeholder(ph) {
-                    dfg.replace_use(ph, value);
-                    dfg.remove_placeholder(ph);
+                if builder.unit().is_placeholder(ph) {
+                    builder.replace_use(ph, value);
+                    builder.remove_placeholder(ph);
                 } else {
                     panic!("`{}` defined multiple times", name);
                 }
             }
             match name {
-                LocalName::Anonymous(index) => builder.dfg_mut().set_anonymous_hint(value, index),
-                LocalName::Named(name) => builder.dfg_mut().set_name(value, name.to_owned()),
+                LocalName::Anonymous(index) => builder.set_anonymous_hint(value, index),
+                LocalName::Named(name) => builder.set_name(value, name.to_owned()),
             }
         }
         if let Some(loc) = self.loc {
             let inst = match result {
                 InstOrValue::Inst(inst) => inst,
-                InstOrValue::Value(value) => builder.dfg().value_inst(value),
+                InstOrValue::Value(value) => builder.unit().value_inst(value),
             };
-            builder.dfg_mut().set_location_hint(inst, loc);
+            builder.set_location_hint(inst, loc);
         }
     }
 }
@@ -424,12 +423,12 @@ impl<'a> TypedValue<'a> {
     fn build(self, builder: &mut impl UnitBuilder, context: &mut Context<'a>) -> ir::Value {
         match context.value_names.get(&self.value.0).cloned() {
             Some(v) => {
-                // assert_eq!(builder.dfg().value_type(v), self.ty, "type mismatch");
+                // assert_eq!(builder.unit().value_type(v), self.ty, "type mismatch");
                 // The above will be caught by the verifier in a more gentle way
                 v
             }
             None => {
-                let value = builder.dfg_mut().add_placeholder(self.ty);
+                let value = builder.add_placeholder(self.ty);
                 context.value_names.insert(self.value.0, value);
                 value
             }

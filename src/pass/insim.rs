@@ -13,16 +13,15 @@ pub struct InstSimplification;
 impl Pass for InstSimplification {
     fn run_on_inst(ctx: &PassContext, inst: Inst, ub: &mut impl UnitBuilder) -> bool {
         ub.insert_after(inst);
-        let dfg = ub.dfg();
-        match dfg[inst].opcode() {
+        match ub[inst].opcode() {
             // drv ... if 0 -> removed
             // drv ... if 1 -> drv ...
             Opcode::DrvCond => {
-                if let Some(konst) = dfg.get_const_int(dfg[inst].args()[3]) {
+                if let Some(konst) = ub.unit().get_const_int(ub[inst].args()[3]) {
                     if konst.is_one() {
-                        let signal = dfg[inst].args()[0];
-                        let value = dfg[inst].args()[1];
-                        let delay = dfg[inst].args()[2];
+                        let signal = ub[inst].args()[0];
+                        let value = ub[inst].args()[1];
+                        let delay = ub[inst].args()[2];
                         ub.ins().drv(signal, value, delay);
                     }
                     ub.remove_inst(inst);
@@ -30,24 +29,23 @@ impl Pass for InstSimplification {
             }
             _ => (),
         }
-        let dfg = ub.dfg();
-        let value = match dfg.get_inst_result(inst) {
+        let value = match ub.unit().get_inst_result(inst) {
             Some(value) => value,
             None => return false,
         };
-        match dfg[inst].opcode() {
+        match ub[inst].opcode() {
             // and %a, %a -> %a
             // or %a, %a -> %a
-            Opcode::And | Opcode::Or if dfg[inst].args()[0] == dfg[inst].args()[1] => {
-                replace(inst, value, dfg[inst].args()[0], ub)
+            Opcode::And | Opcode::Or if ub[inst].args()[0] == ub[inst].args()[1] => {
+                replace(inst, value, ub[inst].args()[0], ub)
             }
             // xor %a, %a -> 0
             // [us]rem %a, %a -> 0
             // [us]mod %a, %a -> 0
             Opcode::Xor | Opcode::Umod | Opcode::Urem | Opcode::Smod | Opcode::Srem
-                if dfg[inst].args()[0] == dfg[inst].args()[1] =>
+                if ub[inst].args()[0] == ub[inst].args()[1] =>
             {
-                let ty = ub.dfg().value_type(value);
+                let ty = ub.unit().value_type(value);
                 let zero = ub.ins().const_zero(&ty);
                 replace(inst, value, zero, ub)
             }
@@ -63,7 +61,7 @@ fn replace(from_inst: Inst, from_value: Value, to: Value, ub: &mut impl UnitBuil
         from_inst.dump(ub.dfg(), ub.try_cfg()),
         to.dump(ub.dfg())
     );
-    ub.dfg_mut().replace_use(from_value, to) > 0
+    ub.replace_use(from_value, to) > 0
 }
 
 fn simplify_mux(_ctx: &PassContext, inst: Inst, value: Value, ub: &mut impl UnitBuilder) -> bool {
@@ -72,7 +70,7 @@ fn simplify_mux(_ctx: &PassContext, inst: Inst, value: Value, ub: &mut impl Unit
     // Check if all options are identical, in which case simply replace us with
     // the option directly.
     let array = dfg[inst].args()[0];
-    if let Some(array_inst) = dfg.get_value_inst(array) {
+    if let Some(array_inst) = ub.unit().get_value_inst(array) {
         let mut iter = dfg[array_inst].args().iter().cloned();
         let first = match iter.next() {
             Some(first) => first,

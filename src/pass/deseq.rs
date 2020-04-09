@@ -137,9 +137,9 @@ fn deseq_process(ctx: &PassContext, unit: &mut ProcessBuilder) -> Option<Entity>
     let mut entity = Entity::new(unit.unit().name().clone(), unit.unit().sig().clone());
     let mut builder = EntityBuilder::new(&mut entity);
     for arg in unit.unit().sig().args() {
-        if let Some(name) = unit.dfg().get_name(unit.dfg().arg_value(arg)) {
-            let v = builder.dfg().arg_value(arg);
-            builder.dfg_mut().set_name(v, name.to_string());
+        if let Some(name) = unit.unit().get_name(unit.unit().arg_value(arg)) {
+            let v = builder.unit().arg_value(arg);
+            builder.set_name(v, name.to_string());
         }
     }
     let mut mig = Migrator::new(unit, &mut builder, &trg, tr0, tr1);
@@ -189,7 +189,7 @@ fn canonicalize(
 ) -> Dnf {
     let dfg = unit.dfg();
     let dnf = canonicalize_inner(ctx, unit, trg, cond, inv);
-    let desc = if let Some(inst) = dfg.get_value_inst(cond) {
+    let desc = if let Some(inst) = unit.unit().get_value_inst(cond) {
         inst.dump(dfg, unit.try_cfg()).to_string()
     } else {
         cond.dump(dfg).to_string()
@@ -213,13 +213,13 @@ fn canonicalize_inner(
     let dfg = unit.dfg();
 
     // Don't bother with values of the wrong type.
-    let ty = dfg.value_type(cond);
+    let ty = unit.unit().value_type(cond);
     if ty != crate::ty::int_ty(1) {
         return Dnf::single(Term::Invalid(cond), inv);
     }
 
     // Canonicalize instructions.
-    if let Some(inst) = dfg.get_value_inst(cond) {
+    if let Some(inst) = unit.unit().get_value_inst(cond) {
         let data = &dfg[inst];
         match data.opcode() {
             Opcode::ConstInt => {
@@ -663,12 +663,12 @@ impl<'a, 'b> Migrator<'a, 'b> {
         ties: &BTreeMap<(Value, TemporalRegion), TriggerLevel>,
     ) -> Option<Value> {
         // Migrate arguments.
-        if let Some(arg) = self.src.dfg().get_value_arg(value) {
-            return Some(self.dst.dfg().arg_value(arg));
+        if let Some(arg) = self.src.unit().get_value_arg(value) {
+            return Some(self.dst.unit().arg_value(arg));
         }
 
         // Migrate instructions.
-        if let Some(inst) = self.src.dfg().get_value_inst(value) {
+        if let Some(inst) = self.src.unit().get_value_inst(value) {
             let bb = self.src.func_layout().inst_block(inst)?;
             let tr = self.trg[bb];
 
@@ -723,12 +723,12 @@ impl<'a, 'b> Migrator<'a, 'b> {
             v
         } else {
             trace!("    Migrated {}", src_value.dump(self.src.dfg()));
-            let ty = self.src.dfg().value_type(src_value);
+            let ty = self.src.unit().value_type(src_value);
             let inst = self.dst.ins().build(data.clone(), ty);
-            let value = self.dst.dfg().inst_result(inst);
+            let value = self.dst.unit().inst_result(inst);
             self.cache.insert(data, value);
-            if let Some(name) = self.src.dfg().get_name(src_value) {
-                self.dst.dfg_mut().set_name(value, name.to_string());
+            if let Some(name) = self.src.unit().get_name(src_value) {
+                self.dst.set_name(value, name.to_string());
             }
             value
         }
