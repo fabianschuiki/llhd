@@ -197,42 +197,6 @@ pub trait Unit:
         self.kind() == UnitKind::Entity
     }
 
-    /// Access this unit as a `Function`, if it is one.
-    #[deprecated(note = "use get_data() instead")]
-    fn get_function(&self) -> Option<&UnitData> {
-        None
-    }
-
-    /// Access this unit as a mutable `Function`, if it is one.
-    #[deprecated(note = "use get_data_mut() instead")]
-    fn get_function_mut(&mut self) -> Option<&mut UnitData> {
-        None
-    }
-
-    /// Access this unit as a `Process`, if it is one.
-    #[deprecated(note = "use get_data() instead")]
-    fn get_process(&self) -> Option<&UnitData> {
-        None
-    }
-
-    /// Access this unit as a mutable `Process`, if it is one.
-    #[deprecated(note = "use get_data_mut() instead")]
-    fn get_process_mut(&mut self) -> Option<&mut UnitData> {
-        None
-    }
-
-    /// Access this unit as an `Entity`, if it is one.
-    #[deprecated(note = "use get_data() instead")]
-    fn get_entity(&self) -> Option<&UnitData> {
-        None
-    }
-
-    /// Access this unit as a mutablen `Entity`, if it is one.
-    #[deprecated(note = "use get_data_mut() instead")]
-    fn get_entity_mut(&mut self) -> Option<&mut UnitData> {
-        None
-    }
-
     /// Access this unit as a `UnitData`, if it is one.
     fn get_data(&self) -> Option<&UnitData> {
         None

@@ -110,48 +110,6 @@ impl Unit for UnitData {
         self.kind
     }
 
-    fn get_function(&self) -> Option<&UnitData> {
-        match self.kind {
-            UnitKind::Function => Some(self),
-            _ => None,
-        }
-    }
-
-    fn get_function_mut(&mut self) -> Option<&mut UnitData> {
-        match self.kind {
-            UnitKind::Function => Some(self),
-            _ => None,
-        }
-    }
-
-    fn get_process(&self) -> Option<&UnitData> {
-        match self.kind {
-            UnitKind::Process => Some(self),
-            _ => None,
-        }
-    }
-
-    fn get_process_mut(&mut self) -> Option<&mut UnitData> {
-        match self.kind {
-            UnitKind::Process => Some(self),
-            _ => None,
-        }
-    }
-
-    fn get_entity(&self) -> Option<&UnitData> {
-        match self.kind {
-            UnitKind::Entity => Some(self),
-            _ => None,
-        }
-    }
-
-    fn get_entity_mut(&mut self) -> Option<&mut UnitData> {
-        match self.kind {
-            UnitKind::Entity => Some(self),
-            _ => None,
-        }
-    }
-
     fn get_data(&self) -> Option<&UnitData> {
         Some(self)
     }
