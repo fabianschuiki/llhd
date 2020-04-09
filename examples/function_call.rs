@@ -5,9 +5,9 @@ fn main() {
     let name = UnitName::global("foo");
     let mut sig = Signature::new();
     sig.set_return_type(llhd::int_ty(32));
-    let mut func = Function::new(name, sig);
+    let mut func = UnitData::new(UnitKind::Function, name, sig);
     {
-        let mut builder = FunctionBuilder::new(&mut func);
+        let mut builder = UnitDataBuilder::new(&mut func);
         let bb = builder.named_block("entry");
         builder.append_to(bb);
         let mut sig = Signature::new();

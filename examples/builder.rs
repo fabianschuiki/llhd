@@ -10,14 +10,14 @@ fn main() {
     println!("{}", ent.dump());
 }
 
-fn build_function(name: UnitName) -> Function {
+fn build_function(name: UnitName) -> UnitData {
     let mut sig = Signature::new();
     let arg1 = sig.add_input(llhd::int_ty(32));
     let arg2 = sig.add_input(llhd::int_ty(32));
     sig.set_return_type(llhd::void_ty());
-    let mut func = Function::new(name, sig);
+    let mut func = UnitData::new(UnitKind::Function, name, sig);
     {
-        let mut builder = FunctionBuilder::new(&mut func);
+        let mut builder = UnitDataBuilder::new(&mut func);
         let arg1 = builder.unit().arg_value(arg1);
         let arg2 = builder.unit().arg_value(arg2);
         let bb1 = builder.block();
@@ -45,14 +45,14 @@ fn build_function(name: UnitName) -> Function {
     func
 }
 
-fn build_process(name: UnitName) -> Process {
+fn build_process(name: UnitName) -> UnitData {
     let mut sig = Signature::new();
     let clk = sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
     let inp = sig.add_input(llhd::signal_ty(llhd::int_ty(32)));
     let oup = sig.add_output(llhd::signal_ty(llhd::int_ty(32)));
-    let mut prok = Process::new(name, sig);
+    let mut prok = UnitData::new(UnitKind::Process, name, sig);
     {
-        let mut builder = ProcessBuilder::new(&mut prok);
+        let mut builder = UnitDataBuilder::new(&mut prok);
         let clk = builder.unit().arg_value(clk);
         let inp = builder.unit().arg_value(inp);
         let _oup = builder.unit().arg_value(oup);
@@ -67,15 +67,15 @@ fn build_process(name: UnitName) -> Process {
     prok
 }
 
-fn build_entity(name: UnitName) -> Entity {
+fn build_entity(name: UnitName) -> UnitData {
     let mut sig = Signature::new();
     let _clk = sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
     let _rst = sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
     let inp = sig.add_input(llhd::signal_ty(llhd::int_ty(32)));
     let _oup = sig.add_output(llhd::signal_ty(llhd::int_ty(32)));
-    let mut ent = Entity::new(name, sig);
+    let mut ent = UnitData::new(UnitKind::Entity, name, sig);
     {
-        let mut builder = EntityBuilder::new(&mut ent);
+        let mut builder = UnitDataBuilder::new(&mut ent);
         let v1 = builder.ins().const_int((32, 42));
         let v2 = builder.ins().const_int((32, 2));
         let v3 = builder.ins().add(v1, v2);

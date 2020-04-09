@@ -4,9 +4,9 @@ use llhd::ir::prelude::*;
 fn main() {
     let name = UnitName::global("foo");
     let sig = Signature::new();
-    let mut ent = Entity::new(name, sig);
+    let mut ent = UnitData::new(UnitKind::Entity, name, sig);
     {
-        let mut builder = EntityBuilder::new(&mut ent);
+        let mut builder = UnitDataBuilder::new(&mut ent);
         let mut sig = Signature::new();
         sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
         sig.add_input(llhd::signal_ty(llhd::int_ty(42)));
