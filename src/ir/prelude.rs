@@ -4,7 +4,6 @@
 
 #[allow(deprecated)]
 pub use crate::ir::{
-    Arg, Block, Entity, EntityBuilder, Function, FunctionBuilder, Inst, ModUnit, Module, Opcode,
-    Process, ProcessBuilder, RegMode, RegTrigger, Signature, Unit, UnitBuilder, UnitData,
-    UnitDataBuilder, UnitKind, UnitName, Value,
+    Arg, Block, Inst, ModUnit, Module, Opcode, RegMode, RegTrigger, Signature, Unit, UnitBuilder,
+    UnitData, UnitDataBuilder, UnitKind, UnitName, Value,
 };

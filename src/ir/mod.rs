@@ -9,25 +9,19 @@ use crate::{impl_table_key, ty::Type};
 
 mod cfg;
 mod dfg;
-mod entity;
-mod function;
 mod inst;
 mod layout;
 mod module;
 pub mod prelude;
-mod process;
 mod sig;
 mod unit;
 mod unit_data;
 
 pub use self::cfg::*;
 pub use self::dfg::*;
-pub use self::entity::*;
-pub use self::function::*;
 pub use self::inst::*;
 pub use self::layout::*;
 pub use self::module::*;
-pub use self::process::*;
 pub use self::sig::*;
 pub use self::unit::*;
 pub use self::unit_data::*;

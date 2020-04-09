@@ -26,24 +26,6 @@ pub trait Pass {
             .reduce(|| false, |a, b| a || b)
     }
 
-    /// Run this pass on an entire function.
-    #[allow(deprecated)]
-    fn run_on_function(ctx: &PassContext, func: &mut FunctionBuilder) -> bool {
-        Self::run_on_cfg(ctx, func)
-    }
-
-    /// Run this pass on an entire process.
-    #[allow(deprecated)]
-    fn run_on_process(ctx: &PassContext, prok: &mut ProcessBuilder) -> bool {
-        Self::run_on_cfg(ctx, prok)
-    }
-
-    /// Run this pass on an entire entity.
-    #[allow(deprecated)]
-    fn run_on_entity(ctx: &PassContext, entity: &mut EntityBuilder) -> bool {
-        Self::run_on_cfg(ctx, entity)
-    }
-
     /// Run this pass on an entire unit.
     fn run_on_unit(ctx: &PassContext, data: &mut UnitDataBuilder) -> bool {
         Self::run_on_cfg(ctx, data)

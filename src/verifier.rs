@@ -41,38 +41,6 @@ impl Verifier {
         }
     }
 
-    /// Verify the integrity of a `Function`.
-    #[deprecated]
-    #[allow(deprecated)]
-    pub(crate) fn verify_function(&mut self, func: &Function) {
-        self.unit_name = Some(format!("func {}", func.name));
-        self.return_type = Some(func.sig().return_type());
-        self.flags = UnitFlags::FUNCTION;
-        self.verify_function_layout(func, &func.layout, false);
-        self.unit_name = None;
-        self.return_type = None;
-    }
-
-    /// Verify the integrity of a `Process`.
-    #[deprecated]
-    #[allow(deprecated)]
-    pub(crate) fn verify_process(&mut self, prok: &Process) {
-        self.unit_name = Some(format!("proc {}", prok.name));
-        self.flags = UnitFlags::PROCESS;
-        self.verify_function_layout(prok, &prok.layout, false);
-        self.unit_name = None;
-    }
-
-    /// Verify the integrity of an `Entity`.
-    #[deprecated]
-    #[allow(deprecated)]
-    pub(crate) fn verify_entity(&mut self, ent: &Entity) {
-        self.unit_name = Some(format!("entity {}", ent.name));
-        self.flags = UnitFlags::ENTITY;
-        self.verify_function_layout(ent, &ent.layout, true);
-        self.unit_name = None;
-    }
-
     /// Verify the integrity of a `UnitData`.
     pub fn verify_unit(&mut self, unit: &UnitData) {
         self.unit_name = Some(format!("{} {}", unit.kind, unit.name));
