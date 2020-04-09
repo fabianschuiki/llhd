@@ -22,20 +22,20 @@ use std::collections::{BTreeSet, HashMap};
 #[derive(Serialize, Deserialize)]
 pub struct Module {
     /// The units in this module.
-    pub(crate) units: PrimaryTable<ModUnit, UnitData>,
+    pub(crate) units: PrimaryTable<UnitId, UnitData>,
     /// The order of units in the module.
-    unit_order: BTreeSet<ModUnit>,
+    unit_order: BTreeSet<UnitId>,
     /// The declarations in this module.
     pub(crate) decls: PrimaryTable<DeclId, DeclData>,
     /// The order of declarations in the module.
     decl_order: BTreeSet<DeclId>,
     /// The local link table. Maps an external unit declared within a unit to a
     /// unit in the module.
-    link_table: Option<HashMap<(ModUnit, ExtUnit), LinkedUnit>>,
+    link_table: Option<HashMap<(UnitId, ExtUnit), LinkedUnit>>,
     /// The location of units in the input file. If the module was read from a
     /// file, this table *may* contain additional hints on the byte offsets
     /// where the units were located.
-    location_hints: HashMap<ModUnit, usize>,
+    location_hints: HashMap<UnitId, usize>,
 }
 
 impl Module {
@@ -57,7 +57,7 @@ impl Module {
     }
 
     /// Add a unit to the module.
-    pub fn add_unit(&mut self, data: UnitData) -> ModUnit {
+    pub fn add_unit(&mut self, data: UnitData) -> UnitId {
         let unit = self.units.add(data);
         self.unit_order.insert(unit);
         self.link_table = None;
@@ -65,7 +65,7 @@ impl Module {
     }
 
     /// Remove a unit from the module.
-    pub fn remove_unit(&mut self, unit: ModUnit) {
+    pub fn remove_unit(&mut self, unit: UnitId) {
         self.units.remove(unit);
         self.unit_order.remove(&unit);
     }
@@ -94,7 +94,7 @@ impl Module {
     }
 
     /// Return an iterator over the units in this module.
-    pub fn units<'a>(&'a self) -> impl Iterator<Item = ModUnit> + 'a {
+    pub fn units<'a>(&'a self) -> impl Iterator<Item = UnitId> + 'a {
         self.unit_order.iter().cloned()
     }
 
@@ -125,12 +125,12 @@ impl Module {
     }
 
     /// Return an unit in the module. Panic if the unit is a declaration.
-    pub fn unit(&self, unit: ModUnit) -> &dyn Unit {
+    pub fn unit(&self, unit: UnitId) -> &dyn Unit {
         &self[unit]
     }
 
     /// Return a mutable unit in the module. Panic if the unit is a declaration.
-    pub fn unit_mut(&mut self, unit: ModUnit) -> &mut dyn Unit {
+    pub fn unit_mut(&mut self, unit: UnitId) -> &mut dyn Unit {
         self.link_table = None;
         &mut self[unit]
     }
@@ -241,7 +241,7 @@ impl Module {
     /// Lookup what an external unit links to.
     ///
     /// The module must be linked for this to work.
-    pub fn lookup_ext_unit(&self, ext_unit: ExtUnit, within: ModUnit) -> Option<LinkedUnit> {
+    pub fn lookup_ext_unit(&self, ext_unit: ExtUnit, within: UnitId) -> Option<LinkedUnit> {
         self.link_table
             .as_ref()
             .and_then(|lt| lt.get(&(within, ext_unit)))
@@ -251,7 +251,7 @@ impl Module {
     /// Add a location hint to a unit.
     ///
     /// Annotates the byte offset of a unit in the input file.
-    pub fn set_location_hint(&mut self, mod_unit: ModUnit, loc: usize) {
+    pub fn set_location_hint(&mut self, mod_unit: UnitId, loc: usize) {
         self.location_hints.insert(mod_unit, loc);
     }
 
@@ -259,20 +259,20 @@ impl Module {
     ///
     /// Returns the byte offset of the unit in the input file, or None if there
     /// is no hint for the value.
-    pub fn location_hint(&self, mod_unit: ModUnit) -> Option<usize> {
+    pub fn location_hint(&self, mod_unit: UnitId) -> Option<usize> {
         self.location_hints.get(&mod_unit).cloned()
     }
 }
 
-impl std::ops::Index<ModUnit> for Module {
+impl std::ops::Index<UnitId> for Module {
     type Output = UnitData;
-    fn index(&self, idx: ModUnit) -> &UnitData {
+    fn index(&self, idx: UnitId) -> &UnitData {
         &self.units[idx]
     }
 }
 
-impl std::ops::IndexMut<ModUnit> for Module {
-    fn index_mut(&mut self, idx: ModUnit) -> &mut UnitData {
+impl std::ops::IndexMut<UnitId> for Module {
+    fn index_mut(&mut self, idx: UnitId) -> &mut UnitData {
         self.link_table = None;
         &mut self.units[idx]
     }
@@ -323,8 +323,6 @@ impl std::fmt::Display for ModuleDumper<'_> {
 }
 
 impl_table_key! {
-    /// An unit definition or declaration in a module.
-    struct ModUnit(u32) as "u";
     /// A unit definition in a module.
     struct UnitId(u32) as "u";
     /// A unit declaration in a module.
@@ -346,7 +344,7 @@ pub struct DeclData {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum LinkedUnit {
     /// A unit definition.
-    Def(ModUnit),
+    Def(UnitId),
     /// A unit declaration.
     Decl(DeclId),
 }

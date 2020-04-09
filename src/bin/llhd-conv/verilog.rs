@@ -40,7 +40,7 @@ pub fn write(output: &mut impl Write, module: &llhd::ir::Module) -> Result<()> {
     Ok(())
 }
 
-type UnitValue = (llhd::ir::ModUnit, llhd::ir::Value);
+type UnitValue = (llhd::ir::UnitId, llhd::ir::Value);
 
 #[derive(Default)]
 struct Context {
@@ -73,7 +73,7 @@ impl Context {
 /// Emit an LLHD entity as a new Verilog module.
 fn write_entity(
     output: &mut impl Write,
-    mod_unit: llhd::ir::ModUnit,
+    mod_unit: llhd::ir::UnitId,
     entity: &llhd::ir::UnitData,
     ctx: &mut Context,
 ) -> Result<()> {
@@ -108,7 +108,7 @@ fn write_entity(
 /// Emit an LLHD entity within an existing Verilog module.
 fn write_entity_body(
     output: &mut impl Write,
-    _mod_unit: llhd::ir::ModUnit,
+    _mod_unit: llhd::ir::UnitId,
     entity: &llhd::ir::UnitData,
     _ctx: &mut Context,
     _bound: HashMap<llhd::ir::Value, llhd::ir::Value>,
