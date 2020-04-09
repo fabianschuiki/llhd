@@ -23,10 +23,10 @@ impl Pass for Desequentialization {
             .storage
             .par_iter_mut()
             .map(|(_, unit)| match unit {
-                ModUnitData::Process(ref mut u) => {
-                    match deseq_process(ctx, &mut ProcessBuilder::new(u)) {
+                ModUnitData::Data(ref mut u) if u.kind == UnitKind::Process => {
+                    match deseq_process(ctx, &mut UnitDataBuilder::new(u)) {
                         Some(entity) => {
-                            *unit = ModUnitData::Entity(entity);
+                            *unit = ModUnitData::Data(entity);
                             true
                         }
                         _ => false,
@@ -38,7 +38,7 @@ impl Pass for Desequentialization {
     }
 }
 
-fn deseq_process(ctx: &PassContext, unit: &mut ProcessBuilder) -> Option<Entity> {
+fn deseq_process(ctx: &PassContext, unit: &mut UnitDataBuilder) -> Option<UnitData> {
     info!("Deseq [{}]", unit.unit().name());
     let dfg = unit.dfg();
     let layout = unit.func_layout();
@@ -134,8 +134,12 @@ fn deseq_process(ctx: &PassContext, unit: &mut ProcessBuilder) -> Option<Entity>
         .collect();
 
     // Create a replacement entity.
-    let mut entity = Entity::new(unit.unit().name().clone(), unit.unit().sig().clone());
-    let mut builder = EntityBuilder::new(&mut entity);
+    let mut entity = UnitData::new(
+        UnitKind::Entity,
+        unit.unit().name().clone(),
+        unit.unit().sig().clone(),
+    );
+    let mut builder = UnitDataBuilder::new(&mut entity);
     for arg in unit.unit().sig().args() {
         if let Some(name) = unit.unit().get_name(unit.unit().arg_value(arg)) {
             let v = builder.unit().arg_value(arg);
@@ -182,7 +186,7 @@ fn deseq_process(ctx: &PassContext, unit: &mut ProcessBuilder) -> Option<Entity>
 /// signals where possible.
 fn canonicalize(
     ctx: &PassContext,
-    unit: &ProcessBuilder,
+    unit: &UnitDataBuilder,
     trg: &TemporalRegionGraph,
     cond: Value,
     inv: bool,
@@ -205,7 +209,7 @@ fn canonicalize(
 
 fn canonicalize_inner(
     ctx: &PassContext,
-    unit: &ProcessBuilder,
+    unit: &UnitDataBuilder,
     trg: &TemporalRegionGraph,
     cond: Value,
     inv: bool,
@@ -395,7 +399,7 @@ enum Term {
 /// Detect the edge and level triggers described by a DNF.
 fn detect_triggers(
     ctx: &PassContext,
-    unit: &ProcessBuilder,
+    unit: &UnitDataBuilder,
     tr0: TemporalRegion,
     tr1: TemporalRegion,
     dnf: &Dnf,
@@ -415,7 +419,7 @@ fn detect_triggers(
 
 fn detect_term_triggers(
     _ctx: &PassContext,
-    unit: &ProcessBuilder,
+    unit: &UnitDataBuilder,
     tr0: TemporalRegion,
     tr1: TemporalRegion,
     conds: &BTreeMap<Term, bool>,
@@ -513,8 +517,8 @@ enum TriggerLevel {
 
 /// A helper struct to migrate data flow into an entity.
 struct Migrator<'a, 'b> {
-    src: &'a ProcessBuilder<'b>,
-    dst: &'a mut EntityBuilder<'b>,
+    src: &'a UnitDataBuilder<'b>,
+    dst: &'a mut UnitDataBuilder<'b>,
     trg: &'a TemporalRegionGraph,
     tr0: TemporalRegion,
     tr1: TemporalRegion,
@@ -526,8 +530,8 @@ struct Migrator<'a, 'b> {
 
 impl<'a, 'b> Migrator<'a, 'b> {
     pub fn new(
-        src: &'a ProcessBuilder<'b>,
-        dst: &'a mut EntityBuilder<'b>,
+        src: &'a UnitDataBuilder<'b>,
+        dst: &'a mut UnitDataBuilder<'b>,
         trg: &'a TemporalRegionGraph,
         tr0: TemporalRegion,
         tr1: TemporalRegion,

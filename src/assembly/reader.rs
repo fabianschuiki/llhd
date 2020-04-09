@@ -17,9 +17,7 @@ pub struct Context<'a> {
 }
 
 pub enum Unit {
-    Function(ir::Function, usize),
-    Process(ir::Process, usize),
-    Entity(ir::Entity, usize),
+    Data(ir::UnitData, usize),
     Declare(ir::UnitName, ir::Signature, usize),
 }
 

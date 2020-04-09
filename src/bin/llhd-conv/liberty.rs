@@ -365,8 +365,8 @@ impl<'a> RootVisitor<'a> {
             funcs.push((arg, func));
             output_map.insert(name, arg);
         }
-        let mut ent = Entity::new(cell_name, sig);
-        let mut builder = EntityBuilder::new(&mut ent);
+        let mut ent = UnitData::new(UnitKind::Entity, cell_name, sig);
+        let mut builder = UnitDataBuilder::new(&mut ent);
         for (name, &arg) in input_map.iter().chain(output_map.iter()) {
             let arg = builder.unit().arg_value(arg);
             builder.set_name(arg, name.clone());
@@ -378,7 +378,7 @@ impl<'a> RootVisitor<'a> {
                 Err(e) => {
                     eprintln!(
                         "{}: invalid function on `{}`; {}",
-                        builder.entity.name(),
+                        builder.unit().name(),
                         builder
                             .unit()
                             .get_name(arg)
@@ -391,12 +391,12 @@ impl<'a> RootVisitor<'a> {
             };
             builder.ins().con(arg, value);
         }
-        self.module.add_entity(ent);
+        self.module.add_unit(ent);
     }
 
     fn emit_term(
         &mut self,
-        builder: &mut EntityBuilder,
+        builder: &mut UnitDataBuilder,
         map: &HashMap<String, Arg>,
         func: FunctionTerm,
     ) -> Result<Value, String> {

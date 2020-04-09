@@ -25,6 +25,7 @@ pub struct Process {
 
 impl Process {
     /// Create a new process.
+    #[deprecated]
     pub fn new(name: UnitName, sig: Signature) -> Self {
         assert!(!sig.has_return_type());
         let mut prok = Self {
@@ -184,6 +185,7 @@ pub struct ProcessBuilder<'u> {
 
 impl<'u> ProcessBuilder<'u> {
     /// Create a new function builder.
+    #[deprecated]
     pub fn new(prok: &'u mut Process) -> Self {
         Self {
             prok,

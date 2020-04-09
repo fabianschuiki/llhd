@@ -27,11 +27,14 @@ impl Pass for ProcessLowering {
 fn lower_mod_unit(ctx: &PassContext, mod_unit: &mut ModUnitData) -> bool {
     // Check if this is a process and it is suitable for lowering.
     let process = match mod_unit {
-        ModUnitData::Process(ref mut u) => {
-            if !is_suitable(ctx, &mut ProcessBuilder::new(u)) {
+        ModUnitData::Data(ref mut u) if u.is_process() => {
+            if !is_suitable(ctx, &mut UnitDataBuilder::new(u)) {
                 return false;
             }
-            std::mem::replace(u, Process::new(u.name().clone(), u.sig().clone()))
+            std::mem::replace(
+                u,
+                UnitData::new(UnitKind::Process, u.name().clone(), u.sig().clone()),
+            )
         }
         _ => return false,
     };
@@ -39,21 +42,22 @@ fn lower_mod_unit(ctx: &PassContext, mod_unit: &mut ModUnitData) -> bool {
     // Lower the process to an entity.
     trace!("Lowering {} to an entity", process.name());
     let term = process.layout.terminator(process.layout.entry());
-    let mut entity = Entity {
+    let mut entity = UnitData {
+        kind: UnitKind::Entity,
         dfg: process.dfg,
         cfg: process.cfg,
         layout: process.layout,
         name: process.name,
         sig: process.sig,
     };
-    EntityBuilder::new(&mut entity).remove_inst(term);
-    *mod_unit = ModUnitData::Entity(entity);
+    UnitDataBuilder::new(&mut entity).remove_inst(term);
+    *mod_unit = ModUnitData::Data(entity);
 
     true
 }
 
 /// Check if a process is suitable for lowering to an entity.
-fn is_suitable(_ctx: &PassContext, ub: &mut ProcessBuilder) -> bool {
+fn is_suitable(_ctx: &PassContext, ub: &mut UnitDataBuilder) -> bool {
     let dfg = ub.dfg();
     let layout = ub.func_layout();
 

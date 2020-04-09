@@ -25,6 +25,7 @@ pub struct Function {
 
 impl Function {
     /// Create a new function.
+    #[deprecated]
     pub fn new(name: UnitName, sig: Signature) -> Self {
         assert!(!sig.has_outputs());
         assert!(sig.has_return_type());
@@ -185,6 +186,7 @@ pub struct FunctionBuilder<'u> {
 
 impl<'u> FunctionBuilder<'u> {
     /// Create a new function builder.
+    #[deprecated]
     pub fn new(func: &'u mut Function) -> Self {
         Self {
             func,

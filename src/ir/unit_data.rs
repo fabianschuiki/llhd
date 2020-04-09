@@ -33,7 +33,6 @@ impl UnitData {
                 assert!(sig.has_return_type());
             }
             UnitKind::Process | UnitKind::Entity => {
-                assert!(sig.has_outputs());
                 assert!(!sig.has_return_type());
             }
         }
@@ -48,7 +47,6 @@ impl UnitData {
         if kind == UnitKind::Entity {
             let bb = data.cfg.add_block();
             data.layout.append_block(bb);
-            data.dfg.make_args_for_signature(&data.sig);
         }
         data.dfg.make_args_for_signature(&data.sig);
         data
@@ -199,83 +197,84 @@ impl Unit for UnitData {
 /// Temporary object used to build a single `UnitData`.
 pub struct UnitDataBuilder<'u> {
     /// The unit currently being built.
-    pub func: &'u mut UnitData,
+    pub data: &'u mut UnitData,
     /// The position where we are currently inserting instructions.
     pos: FunctionInsertPos,
 }
 
 impl<'u> UnitDataBuilder<'u> {
     /// Create a new unit builder.
-    pub fn new(func: &'u mut UnitData) -> Self {
-        Self {
-            func,
-            pos: FunctionInsertPos::None,
-        }
+    pub fn new(data: &'u mut UnitData) -> Self {
+        let pos = match data.kind {
+            UnitKind::Entity => FunctionInsertPos::Append(data.layout.entry()),
+            _ => FunctionInsertPos::None,
+        };
+        Self { data, pos }
     }
 }
 
 impl Index<Value> for UnitDataBuilder<'_> {
     type Output = ValueData;
     fn index(&self, idx: Value) -> &ValueData {
-        self.func.index(idx)
+        self.data.index(idx)
     }
 }
 
 impl Index<Inst> for UnitDataBuilder<'_> {
     type Output = InstData;
     fn index(&self, idx: Inst) -> &InstData {
-        self.func.index(idx)
+        self.data.index(idx)
     }
 }
 
 impl Index<ExtUnit> for UnitDataBuilder<'_> {
     type Output = ExtUnitData;
     fn index(&self, idx: ExtUnit) -> &ExtUnitData {
-        self.func.index(idx)
+        self.data.index(idx)
     }
 }
 
 impl Index<Block> for UnitDataBuilder<'_> {
     type Output = BlockData;
     fn index(&self, idx: Block) -> &BlockData {
-        self.func.index(idx)
+        self.data.index(idx)
     }
 }
 
 impl IndexMut<Value> for UnitDataBuilder<'_> {
     fn index_mut(&mut self, idx: Value) -> &mut ValueData {
-        self.func.index_mut(idx)
+        self.data.index_mut(idx)
     }
 }
 
 impl IndexMut<Inst> for UnitDataBuilder<'_> {
     fn index_mut(&mut self, idx: Inst) -> &mut InstData {
-        self.func.index_mut(idx)
+        self.data.index_mut(idx)
     }
 }
 
 impl IndexMut<ExtUnit> for UnitDataBuilder<'_> {
     fn index_mut(&mut self, idx: ExtUnit) -> &mut ExtUnitData {
-        self.func.index_mut(idx)
+        self.data.index_mut(idx)
     }
 }
 
 impl IndexMut<Block> for UnitDataBuilder<'_> {
     fn index_mut(&mut self, idx: Block) -> &mut BlockData {
-        self.func.index_mut(idx)
+        self.data.index_mut(idx)
     }
 }
 
 impl<'u> std::ops::Deref for UnitDataBuilder<'u> {
     type Target = UnitData;
     fn deref(&self) -> &UnitData {
-        self.func
+        self.data
     }
 }
 
 impl<'u> std::ops::DerefMut for UnitDataBuilder<'u> {
     fn deref_mut(&mut self) -> &mut UnitData {
-        self.func
+        self.data
     }
 }
 
@@ -283,42 +282,42 @@ impl UnitBuilder for UnitDataBuilder<'_> {
     type Unit = UnitData;
 
     fn unit(&self) -> &UnitData {
-        self.func
+        self.data
     }
 
     fn unit_mut(&mut self) -> &mut UnitData {
-        self.func
+        self.data
     }
 
     fn build_inst(&mut self, data: InstData, ty: Type) -> Inst {
-        let inst = self.func.dfg.add_inst(data, ty);
-        self.pos.add_inst(inst, &mut self.func.layout);
+        let inst = self.data.dfg.add_inst(data, ty);
+        self.pos.add_inst(inst, &mut self.data.layout);
         inst
     }
 
     fn remove_inst(&mut self, inst: Inst) {
-        self.func.dfg.remove_inst(inst);
-        self.pos.remove_inst(inst, &self.func.layout);
-        self.func.layout.remove_inst(inst);
+        self.data.dfg.remove_inst(inst);
+        self.pos.remove_inst(inst, &self.data.layout);
+        self.data.layout.remove_inst(inst);
     }
 
     fn block(&mut self) -> Block {
-        let bb = self.func.cfg.add_block();
-        self.func.layout.append_block(bb);
+        let bb = self.data.cfg.add_block();
+        self.data.layout.append_block(bb);
         bb
     }
 
     fn remove_block(&mut self, bb: Block) {
-        let insts: Vec<_> = self.func.layout.insts(bb).collect();
-        self.func.dfg_mut().remove_block_use(bb);
-        self.func.layout.remove_block(bb);
-        self.func.cfg_mut().remove_block(bb);
+        let insts: Vec<_> = self.data.layout.insts(bb).collect();
+        self.data.dfg_mut().remove_block_use(bb);
+        self.data.layout.remove_block(bb);
+        self.data.cfg_mut().remove_block(bb);
         for inst in insts {
-            if self.func.dfg().has_result(inst) {
-                let value = self.func.dfg().inst_result(inst);
-                self.func.dfg_mut().replace_use(value, Value::invalid());
+            if self.data.dfg().has_result(inst) {
+                let value = self.data.dfg().inst_result(inst);
+                self.data.dfg_mut().replace_use(value, Value::invalid());
             }
-            self.func.dfg_mut().remove_inst(inst);
+            self.data.dfg_mut().remove_inst(inst);
         }
     }
 

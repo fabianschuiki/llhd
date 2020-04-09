@@ -25,6 +25,7 @@ pub struct Entity {
 
 impl Entity {
     /// Create a new entity.
+    #[deprecated]
     pub fn new(name: UnitName, sig: Signature) -> Self {
         assert!(!sig.has_return_type());
         let mut ent = Self {
@@ -185,6 +186,7 @@ pub struct EntityBuilder<'u> {
 
 impl<'u> EntityBuilder<'u> {
     /// Create a new entity builder.
+    #[deprecated]
     pub fn new(entity: &mut Entity) -> EntityBuilder {
         let bb = entity.layout.entry();
         EntityBuilder {

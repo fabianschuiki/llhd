@@ -18,14 +18,23 @@ pub trait Pass {
             .storage
             .par_iter_mut()
             .map(|(_, unit)| match unit {
-                ModUnitData::Function(ref mut u) => {
+                ModUnitData::Function(ref mut u) =>
+                {
+                    #[allow(deprecated)]
                     Self::run_on_function(ctx, &mut FunctionBuilder::new(u))
                 }
-                ModUnitData::Process(ref mut u) => {
+                ModUnitData::Process(ref mut u) =>
+                {
+                    #[allow(deprecated)]
                     Self::run_on_process(ctx, &mut ProcessBuilder::new(u))
                 }
-                ModUnitData::Entity(ref mut u) => {
+                ModUnitData::Entity(ref mut u) =>
+                {
+                    #[allow(deprecated)]
                     Self::run_on_entity(ctx, &mut EntityBuilder::new(u))
+                }
+                ModUnitData::Data(ref mut u) => {
+                    Self::run_on_unit(ctx, &mut UnitDataBuilder::new(u))
                 }
                 _ => false,
             })
@@ -45,6 +54,11 @@ pub trait Pass {
     /// Run this pass on an entire entity.
     fn run_on_entity(ctx: &PassContext, entity: &mut EntityBuilder) -> bool {
         Self::run_on_cfg(ctx, entity)
+    }
+
+    /// Run this pass on an entire unit.
+    fn run_on_unit(ctx: &PassContext, data: &mut UnitDataBuilder) -> bool {
+        Self::run_on_cfg(ctx, data)
     }
 
     /// Run this pass on an entire function or process.

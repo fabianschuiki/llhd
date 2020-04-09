@@ -8,9 +8,7 @@ pub Module: Module = <units: Unit*> Comment => {
     let mut module = Module::new();
     for unit in units {
         let (mu, loc) = match unit {
-            ast::Unit::Function(x, loc) => (module.add_function(x), loc),
-            ast::Unit::Process(x, loc) => (module.add_process(x), loc),
-            ast::Unit::Entity(x, loc) => (module.add_entity(x), loc),
+            ast::Unit::Data(x, loc) => (module.add_unit(x), loc),
             ast::Unit::Declare(name, sig, loc) => (module.declare(name, sig), loc),
         };
         module.set_location_hint(mu, loc);
@@ -22,9 +20,9 @@ pub Module: Module = <units: Unit*> Comment => {
 
 // A unit.
 Unit: ast::Unit = {
-    Comment <loc:@L> <u:Function> => ast::Unit::Function(u, loc),
-    Comment <loc:@L> <u:Process> => ast::Unit::Process(u, loc),
-    Comment <loc:@L> <u:Entity> => ast::Unit::Entity(u, loc),
+    Comment <loc:@L> <u:Function> => ast::Unit::Data(u, loc),
+    Comment <loc:@L> <u:Process> => ast::Unit::Data(u, loc),
+    Comment <loc:@L> <u:Entity> => ast::Unit::Data(u, loc),
     Comment <loc:@L> "declare" <name: UnitName> <sig: Signature> => ast::Unit::Declare(name, sig, loc),
 };
 
@@ -50,7 +48,7 @@ Signature: Signature = {
 };
 
 // A function.
-Function: Function =
+Function: UnitData =
     "func" <name: UnitName>
     "(" <args: Args> ")"
     <retty: Type>
@@ -62,8 +60,8 @@ Function: Function =
         .map(|(ty, name)| (sig.add_input(ty), name))
         .collect();
     sig.set_return_type(retty);
-    let mut func = Function::new(name, sig);
-    let mut builder = FunctionBuilder::new(&mut func);
+    let mut func = UnitData::new(UnitKind::Function, name, sig);
+    let mut builder = UnitDataBuilder::new(&mut func);
     let mut context = ast::Context::default();
     for (arg, name) in args {
         let v = builder.unit().arg_value(arg);
@@ -79,7 +77,7 @@ Function: Function =
 };
 
 // A process.
-Process: Process =
+Process: UnitData =
     "proc" <name: UnitName>
     "(" <input_args: Args> ")"
     "->"
@@ -95,8 +93,8 @@ Process: Process =
         .into_iter()
         .map(|(ty, name)| (sig.add_output(ty), name))
         .collect();
-    let mut prok = Process::new(name, sig);
-    let mut builder = ProcessBuilder::new(&mut prok);
+    let mut prok = UnitData::new(UnitKind::Process, name, sig);
+    let mut builder = UnitDataBuilder::new(&mut prok);
     let mut context = ast::Context::default();
     for (arg, name) in input_args {
         let v = builder.unit().arg_value(arg);
@@ -119,7 +117,7 @@ Process: Process =
 };
 
 // An entity.
-Entity: Entity =
+Entity: UnitData =
     "entity" <name: UnitName>
     "(" <input_args: Args> ")"
     "->"
@@ -135,8 +133,8 @@ Entity: Entity =
         .into_iter()
         .map(|(ty, name)| (sig.add_output(ty), name))
         .collect();
-    let mut ent = Entity::new(name, sig);
-    let mut builder = EntityBuilder::new(&mut ent);
+    let mut ent = UnitData::new(UnitKind::Entity, name, sig);
+    let mut builder = UnitDataBuilder::new(&mut ent);
     let mut context = ast::Context::default();
     for (arg, name) in input_args {
         let v = builder.unit().arg_value(arg);

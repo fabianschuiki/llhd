@@ -4,7 +4,7 @@
 
 use anyhow::{bail, Result};
 use itertools::Itertools;
-use llhd::ir::Unit;
+use llhd::ir::{Unit, UnitKind};
 use std::{
     collections::{HashMap, HashSet},
     io::Write,
@@ -17,12 +17,16 @@ pub fn write(output: &mut impl Write, module: &llhd::ir::Module) -> Result<()> {
     debug!("Emitting Verilog code");
     let mut skipped = vec![];
     for mod_unit in module.units() {
-        if let Some(entity) = module.get_entity(mod_unit) {
-            if entity.name().is_global() {
-                write_entity(output, mod_unit, entity, &mut Context::default())?;
+        let unit = match module[mod_unit].get_data() {
+            Some(d) => d,
+            None => continue,
+        };
+        if unit.kind() == UnitKind::Entity {
+            if unit.name().is_global() {
+                write_entity(output, mod_unit, unit, &mut Context::default())?;
             }
         } else {
-            let name = module[mod_unit].name();
+            let name = unit.name();
             error!("Unit {} not supported", name);
             skipped.push(name);
         }
@@ -70,7 +74,7 @@ impl Context {
 fn write_entity(
     output: &mut impl Write,
     mod_unit: llhd::ir::ModUnit,
-    entity: &llhd::ir::Entity,
+    entity: &llhd::ir::UnitData,
     ctx: &mut Context,
 ) -> Result<()> {
     let name = sanitize_unit_name(entity.name());
@@ -105,7 +109,7 @@ fn write_entity(
 fn write_entity_body(
     output: &mut impl Write,
     _mod_unit: llhd::ir::ModUnit,
-    entity: &llhd::ir::Entity,
+    entity: &llhd::ir::UnitData,
     _ctx: &mut Context,
     _bound: HashMap<llhd::ir::Value, llhd::ir::Value>,
 ) -> Result<()> {
