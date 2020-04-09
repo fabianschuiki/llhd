@@ -5,7 +5,7 @@
 use crate::{
     ir::{
         Arg, Block, BlockData, ControlFlowGraph, DataFlowGraph, Entity, ExtUnit, ExtUnitData,
-        Function, FunctionLayout, Inst, InstBuilder, InstData, Process, Signature, Value,
+        Function, FunctionLayout, Inst, InstBuilder, InstData, Process, Signature, UnitData, Value,
         ValueData,
     },
     ty::Type,
@@ -91,6 +91,16 @@ pub enum UnitKind {
     Process,
     /// An `Entity`.
     Entity,
+}
+
+impl std::fmt::Display for UnitKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            UnitKind::Function => write!(f, "func"),
+            UnitKind::Process => write!(f, "proc"),
+            UnitKind::Entity => write!(f, "entity"),
+        }
+    }
 }
 
 /// A `Function`, `Process`, or `Entity`.
@@ -215,6 +225,16 @@ pub trait Unit:
 
     /// Access this unit as a mutablen `Entity`, if it is one.
     fn get_entity_mut(&mut self) -> Option<&mut Entity> {
+        None
+    }
+
+    /// Access this unit as a `UnitData`, if it is one.
+    fn get_data(&self) -> Option<&UnitData> {
+        None
+    }
+
+    /// Access this unit as a mutable `UnitData`, if it is one.
+    fn get_data_mut(&mut self) -> Option<&mut UnitData> {
         None
     }
 

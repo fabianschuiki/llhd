@@ -69,6 +69,26 @@ impl Verifier {
         self.unit_name = None;
     }
 
+    /// Verify the integrity of a `UnitData`.
+    pub fn verify_unit(&mut self, unit: &UnitData) {
+        self.unit_name = Some(format!("{} {}", unit.kind, unit.name));
+        match unit.kind {
+            UnitKind::Function => {
+                self.return_type = Some(unit.sig().return_type());
+                self.flags = UnitFlags::FUNCTION;
+            }
+            UnitKind::Process => {
+                self.flags = UnitFlags::PROCESS;
+            }
+            UnitKind::Entity => {
+                self.flags = UnitFlags::ENTITY;
+            }
+        }
+        self.verify_function_layout(unit, &unit.layout, unit.kind == UnitKind::Entity);
+        self.unit_name = None;
+        self.return_type = None;
+    }
+
     /// Verify the integrity of the BB and instruction layout.
     pub fn verify_function_layout(
         &mut self,

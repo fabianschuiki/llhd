@@ -18,6 +18,7 @@ pub mod prelude;
 mod process;
 mod sig;
 mod unit;
+mod unit_data;
 
 pub use self::cfg::*;
 pub use self::dfg::*;
@@ -29,6 +30,7 @@ pub use self::module::*;
 pub use self::process::*;
 pub use self::sig::*;
 pub use self::unit::*;
+pub use self::unit_data::*;
 
 /// The position where new instructions will be inserted into a `Function` or
 /// `Process`.
