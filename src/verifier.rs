@@ -38,6 +38,7 @@ impl Verifier {
                 ModUnitData::Function(x) => self.verify_function(x),
                 ModUnitData::Process(x) => self.verify_process(x),
                 ModUnitData::Entity(x) => self.verify_entity(x),
+                ModUnitData::Data(x) => self.verify_unit(x),
                 ModUnitData::Declare { .. } => (),
             }
         }

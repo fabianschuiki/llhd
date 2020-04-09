@@ -11,7 +11,7 @@ use crate::{
     impl_table_key,
     ir::{
         ControlFlowGraph, DataFlowGraph, Entity, ExtUnit, Function, FunctionLayout, Process,
-        Signature, Unit, UnitName,
+        Signature, Unit, UnitData, UnitName,
     },
     table::PrimaryTable,
     verifier::Verifier,
@@ -69,26 +69,31 @@ impl Module {
 
     /// Add a function to the module.
     pub fn add_function(&mut self, func: Function) -> ModUnit {
-        self.add_unit(ModUnitData::Function(func))
+        self.add_mod_unit(ModUnitData::Function(func))
     }
 
     /// Add a process to the module.
     pub fn add_process(&mut self, prok: Process) -> ModUnit {
-        self.add_unit(ModUnitData::Process(prok))
+        self.add_mod_unit(ModUnitData::Process(prok))
     }
 
     /// Add an entity to the module.
     pub fn add_entity(&mut self, ent: Entity) -> ModUnit {
-        self.add_unit(ModUnitData::Entity(ent))
+        self.add_mod_unit(ModUnitData::Entity(ent))
+    }
+
+    /// Add a unit to the module.
+    pub fn add_unit(&mut self, data: UnitData) -> ModUnit {
+        self.add_mod_unit(ModUnitData::Data(data))
     }
 
     /// Declare an external unit.
     pub fn declare(&mut self, name: UnitName, sig: Signature) -> ModUnit {
-        self.add_unit(ModUnitData::Declare { sig, name })
+        self.add_mod_unit(ModUnitData::Declare { sig, name })
     }
 
     /// Add a unit to the module.
-    fn add_unit(&mut self, data: ModUnitData) -> ModUnit {
+    fn add_mod_unit(&mut self, data: ModUnitData) -> ModUnit {
         let unit = self.units.add(data);
         self.unit_order.insert(unit);
         self.link_table = None;
@@ -403,6 +408,7 @@ impl std::fmt::Display for ModuleDumper<'_> {
                 ModUnitData::Function(unit) => write!(f, "{}", unit.dump())?,
                 ModUnitData::Process(unit) => write!(f, "{}", unit.dump())?,
                 ModUnitData::Entity(unit) => write!(f, "{}", unit.dump())?,
+                ModUnitData::Data(unit) => write!(f, "{}", unit.dump())?,
                 ModUnitData::Declare { sig, name } => write!(f, "declare {} {}", name, sig)?,
             }
         }
@@ -424,6 +430,8 @@ pub enum ModUnitData {
     Process(Process),
     /// The unit is an entity.
     Entity(Entity),
+    /// The unit is a regular unit.
+    Data(UnitData),
     /// The unit is a declaration of an external unit.
     Declare { sig: Signature, name: UnitName },
 }
@@ -469,12 +477,37 @@ impl ModUnitData {
         }
     }
 
+    /// If this unit is an entity, return it. Otherwise return `None`.
+    pub fn get_entity_mut(&mut self) -> Option<&mut Entity> {
+        match self {
+            ModUnitData::Entity(unit) => Some(unit),
+            _ => None,
+        }
+    }
+
+    /// If this unit is a unit, return it. Otherwise return `None`.
+    pub fn get_data(&self) -> Option<&UnitData> {
+        match self {
+            ModUnitData::Data(unit) => Some(unit),
+            _ => None,
+        }
+    }
+
+    /// If this unit is a unit, return it. Otherwise return `None`.
+    pub fn get_data_mut(&mut self) -> Option<&mut UnitData> {
+        match self {
+            ModUnitData::Data(unit) => Some(unit),
+            _ => None,
+        }
+    }
+
     /// If this unit is not a declaration, return it. Otherwise return `None`.
     pub fn get_unit_mut(&mut self) -> Option<&mut dyn Unit> {
         match self {
             ModUnitData::Function(unit) => Some(unit),
             ModUnitData::Process(unit) => Some(unit),
             ModUnitData::Entity(unit) => Some(unit),
+            ModUnitData::Data(unit) => Some(unit),
             _ => None,
         }
     }
@@ -485,14 +518,7 @@ impl ModUnitData {
             ModUnitData::Function(unit) => Some(unit),
             ModUnitData::Process(unit) => Some(unit),
             ModUnitData::Entity(unit) => Some(unit),
-            _ => None,
-        }
-    }
-
-    /// If this unit is an entity, return it. Otherwise return `None`.
-    pub fn get_entity_mut(&mut self) -> Option<&mut Entity> {
-        match self {
-            ModUnitData::Entity(unit) => Some(unit),
+            ModUnitData::Data(unit) => Some(unit),
             _ => None,
         }
     }
@@ -539,6 +565,14 @@ impl ModUnitData {
         }
     }
 
+    /// Check whether this is a unit.
+    pub fn is_unit(&self) -> bool {
+        match self {
+            ModUnitData::Data(..) => true,
+            _ => false,
+        }
+    }
+
     /// Check whether this is a declaration of an external unit.
     pub fn is_declaration(&self) -> bool {
         match self {
@@ -553,6 +587,7 @@ impl ModUnitData {
             ModUnitData::Function(unit) => unit.sig(),
             ModUnitData::Process(unit) => unit.sig(),
             ModUnitData::Entity(unit) => unit.sig(),
+            ModUnitData::Data(unit) => unit.sig(),
             ModUnitData::Declare { sig, .. } => sig,
         }
     }
@@ -563,6 +598,7 @@ impl ModUnitData {
             ModUnitData::Function(unit) => unit.name(),
             ModUnitData::Process(unit) => unit.name(),
             ModUnitData::Entity(unit) => unit.name(),
+            ModUnitData::Data(unit) => unit.name(),
             ModUnitData::Declare { name, .. } => name,
         }
     }
@@ -573,6 +609,7 @@ impl ModUnitData {
             ModUnitData::Function(unit) => Some(unit.dfg()),
             ModUnitData::Process(unit) => Some(unit.dfg()),
             ModUnitData::Entity(unit) => Some(unit.dfg()),
+            ModUnitData::Data(unit) => Some(unit.dfg()),
             _ => None,
         }
     }
@@ -583,6 +620,7 @@ impl ModUnitData {
             ModUnitData::Function(unit) => Some(unit.dfg_mut()),
             ModUnitData::Process(unit) => Some(unit.dfg_mut()),
             ModUnitData::Entity(unit) => Some(unit.dfg_mut()),
+            ModUnitData::Data(unit) => Some(unit.dfg_mut()),
             _ => None,
         }
     }
@@ -592,6 +630,7 @@ impl ModUnitData {
         match self {
             ModUnitData::Function(unit) => Some(unit.cfg()),
             ModUnitData::Process(unit) => Some(unit.cfg()),
+            ModUnitData::Data(unit) => Some(unit.cfg()),
             _ => None,
         }
     }
@@ -601,6 +640,7 @@ impl ModUnitData {
         match self {
             ModUnitData::Function(unit) => Some(unit.cfg_mut()),
             ModUnitData::Process(unit) => Some(unit.cfg_mut()),
+            ModUnitData::Data(unit) => Some(unit.cfg_mut()),
             _ => None,
         }
     }
@@ -611,6 +651,7 @@ impl ModUnitData {
             ModUnitData::Function(unit) => Some(unit.func_layout()),
             ModUnitData::Process(unit) => Some(unit.func_layout()),
             ModUnitData::Entity(unit) => Some(unit.func_layout()),
+            ModUnitData::Data(unit) => Some(unit.func_layout()),
             _ => None,
         }
     }
@@ -621,6 +662,7 @@ impl ModUnitData {
             ModUnitData::Function(unit) => Some(unit.func_layout_mut()),
             ModUnitData::Process(unit) => Some(unit.func_layout_mut()),
             ModUnitData::Entity(unit) => Some(unit.func_layout_mut()),
+            ModUnitData::Data(unit) => Some(unit.func_layout_mut()),
             _ => None,
         }
     }

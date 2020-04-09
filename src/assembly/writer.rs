@@ -2,7 +2,7 @@
 
 //! Emitting LLHD IR assembly.
 
-use crate::ir::{prelude::*, ModUnitData};
+use crate::ir::{prelude::*, ModUnitData, UnitData, UnitKind};
 use std::{
     collections::{HashMap, HashSet},
     io::{Result, Write},
@@ -35,6 +35,7 @@ impl<T: Write> Writer<T> {
                 ModUnitData::Function(x) => self.write_function(x)?,
                 ModUnitData::Process(x) => self.write_process(x)?,
                 ModUnitData::Entity(x) => self.write_entity(x)?,
+                ModUnitData::Data(x) => self.write_unit(x)?,
                 ModUnitData::Declare { sig, name } => self.write_declaration(sig, name)?,
             }
         }
@@ -133,6 +134,49 @@ impl<T: Write> Writer<T> {
             write!(uw.writer.sink, "    ")?;
             uw.write_inst(inst)?;
             write!(uw.writer.sink, "\n")?;
+        }
+        write!(uw.writer.sink, "}}\n")?;
+        Ok(())
+    }
+
+    /// Emit assembly for a unit.
+    pub fn write_unit(&mut self, data: &UnitData) -> Result<()> {
+        let mut uw = UnitWriter::new(self, data);
+        write!(uw.writer.sink, "{} {} (", data.kind, data.name())?;
+        let mut comma = false;
+        for arg in data.sig().inputs() {
+            if comma {
+                write!(uw.writer.sink, ", ")?;
+            }
+            comma = true;
+            write!(uw.writer.sink, "{} ", data.sig().arg_type(arg))?;
+            uw.write_value_name(data.arg_value(arg))?;
+        }
+        if data.kind == UnitKind::Function {
+            write!(uw.writer.sink, ") {} {{\n", data.sig().return_type())?;
+        } else {
+            write!(uw.writer.sink, ") -> (")?;
+            let mut comma = false;
+            for arg in data.sig().outputs() {
+                if comma {
+                    write!(uw.writer.sink, ", ")?;
+                }
+                comma = true;
+                write!(uw.writer.sink, "{} ", data.sig().arg_type(arg))?;
+                uw.write_value_name(data.arg_value(arg))?;
+            }
+            write!(uw.writer.sink, ") {{\n")?;
+        }
+        for block in data.layout.blocks() {
+            if data.kind != UnitKind::Entity {
+                uw.write_block_name(block)?;
+                write!(uw.writer.sink, ":\n")?;
+            }
+            for inst in data.layout.insts(block) {
+                write!(uw.writer.sink, "    ")?;
+                uw.write_inst(inst)?;
+                write!(uw.writer.sink, "\n")?;
+            }
         }
         write!(uw.writer.sink, "}}\n")?;
         Ok(())
