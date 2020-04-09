@@ -7,8 +7,6 @@
 //! node of an LLHD intermediate representation, and is the unit of information
 //! ingested by the reader and emitted by the writer.
 
-#![allow(deprecated)]
-
 use crate::{
     impl_table_key,
     ir::{ExtUnit, Signature, Unit, UnitData, UnitName},
@@ -102,34 +100,28 @@ impl Module {
 
     /// Return an iterator over the functions in this module.
     pub fn functions<'a>(&'a self) -> impl Iterator<Item = &'a UnitData> + 'a {
-        self.units().flat_map(move |unit| self[unit].get_function())
+        self.units()
+            .map(move |unit| &self[unit])
+            .filter(|unit| unit.is_function())
     }
 
     /// Return an iterator over the processes in this module.
     pub fn processes<'a>(&'a self) -> impl Iterator<Item = &'a UnitData> + 'a {
-        self.units().flat_map(move |unit| self[unit].get_process())
+        self.units()
+            .map(move |unit| &self[unit])
+            .filter(|unit| unit.is_process())
     }
 
     /// Return an iterator over the entities in this module.
     pub fn entities<'a>(&'a self) -> impl Iterator<Item = &'a UnitData> + 'a {
-        self.units().flat_map(move |unit| self[unit].get_entity())
+        self.units()
+            .map(move |unit| &self[unit])
+            .filter(|unit| unit.is_entity())
     }
 
     /// Return an iterator over the external unit declarations in this module.
     pub fn decls<'a>(&'a self) -> impl Iterator<Item = DeclId> + 'a {
         self.decl_order.iter().cloned()
-    }
-
-    /// Get the name of a unit.
-    #[deprecated]
-    pub fn unit_name(&self, unit: ModUnit) -> &UnitName {
-        self[unit].name()
-    }
-
-    /// Get the signature of a unit.
-    #[deprecated]
-    pub fn unit_sig(&self, unit: ModUnit) -> &Signature {
-        self[unit].sig()
     }
 
     /// Return an unit in the module. Panic if the unit is a declaration.
@@ -202,7 +194,7 @@ impl Module {
                         eprintln!(
                             "unit {} not found; referenced in {}",
                             data.name,
-                            self.unit_name(unit)
+                            self[unit].name()
                         );
                         failed = true;
                         continue;
@@ -213,7 +205,7 @@ impl Module {
                         "signature mismatch: {} has {}, but reference in {} expects {}",
                         data.name,
                         to_sig,
-                        self.unit_name(unit),
+                        self[unit].name(),
                         data.sig
                     );
                     failed = true;
