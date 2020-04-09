@@ -17,6 +17,7 @@ use std::ops::{Index, IndexMut};
 
 /// A function.
 #[derive(Serialize, Deserialize)]
+#[deprecated]
 pub struct Function {
     pub name: UnitName,
     pub sig: Signature,
@@ -98,14 +99,6 @@ impl IndexMut<Block> for Function {
 impl Unit for Function {
     fn kind(&self) -> UnitKind {
         UnitKind::Function
-    }
-
-    fn get_function(&self) -> Option<&Function> {
-        Some(self)
-    }
-
-    fn get_function_mut(&mut self) -> Option<&mut Function> {
-        Some(self)
     }
 
     fn dfg(&self) -> &DataFlowGraph {

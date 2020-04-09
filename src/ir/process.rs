@@ -17,6 +17,7 @@ use std::ops::{Index, IndexMut};
 
 /// A process.
 #[derive(Serialize, Deserialize)]
+#[deprecated]
 pub struct Process {
     pub name: UnitName,
     pub sig: Signature,
@@ -97,14 +98,6 @@ impl IndexMut<Block> for Process {
 impl Unit for Process {
     fn kind(&self) -> UnitKind {
         UnitKind::Process
-    }
-
-    fn get_process(&self) -> Option<&Process> {
-        Some(self)
-    }
-
-    fn get_process_mut(&mut self) -> Option<&mut Process> {
-        Some(self)
     }
 
     fn dfg(&self) -> &DataFlowGraph {

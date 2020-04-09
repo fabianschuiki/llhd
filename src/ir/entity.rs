@@ -17,6 +17,7 @@ use std::ops::{Index, IndexMut};
 
 /// An entity.
 #[derive(Serialize, Deserialize)]
+#[deprecated]
 pub struct Entity {
     pub name: UnitName,
     pub sig: Signature,
@@ -101,14 +102,6 @@ impl IndexMut<Block> for Entity {
 impl Unit for Entity {
     fn kind(&self) -> UnitKind {
         UnitKind::Entity
-    }
-
-    fn get_entity(&self) -> Option<&Entity> {
-        Some(self)
-    }
-
-    fn get_entity_mut(&mut self) -> Option<&mut Entity> {
-        Some(self)
     }
 
     fn dfg(&self) -> &DataFlowGraph {

@@ -4,9 +4,8 @@
 
 use crate::{
     ir::{
-        Arg, Block, BlockData, ControlFlowGraph, DataFlowGraph, Entity, ExtUnit, ExtUnitData,
-        Function, FunctionLayout, Inst, InstBuilder, InstData, Process, Signature, UnitData, Value,
-        ValueData,
+        Arg, Block, BlockData, ControlFlowGraph, DataFlowGraph, ExtUnit, ExtUnitData,
+        FunctionLayout, Inst, InstBuilder, InstData, Signature, UnitData, Value, ValueData,
     },
     ty::Type,
 };
@@ -199,32 +198,38 @@ pub trait Unit:
     }
 
     /// Access this unit as a `Function`, if it is one.
-    fn get_function(&self) -> Option<&Function> {
+    #[deprecated(note = "use get_data() instead")]
+    fn get_function(&self) -> Option<&UnitData> {
         None
     }
 
     /// Access this unit as a mutable `Function`, if it is one.
-    fn get_function_mut(&mut self) -> Option<&mut Function> {
+    #[deprecated(note = "use get_data_mut() instead")]
+    fn get_function_mut(&mut self) -> Option<&mut UnitData> {
         None
     }
 
     /// Access this unit as a `Process`, if it is one.
-    fn get_process(&self) -> Option<&Process> {
+    #[deprecated(note = "use get_data() instead")]
+    fn get_process(&self) -> Option<&UnitData> {
         None
     }
 
     /// Access this unit as a mutable `Process`, if it is one.
-    fn get_process_mut(&mut self) -> Option<&mut Process> {
+    #[deprecated(note = "use get_data_mut() instead")]
+    fn get_process_mut(&mut self) -> Option<&mut UnitData> {
         None
     }
 
     /// Access this unit as an `Entity`, if it is one.
-    fn get_entity(&self) -> Option<&Entity> {
+    #[deprecated(note = "use get_data() instead")]
+    fn get_entity(&self) -> Option<&UnitData> {
         None
     }
 
     /// Access this unit as a mutablen `Entity`, if it is one.
-    fn get_entity_mut(&mut self) -> Option<&mut Entity> {
+    #[deprecated(note = "use get_data_mut() instead")]
+    fn get_entity_mut(&mut self) -> Option<&mut UnitData> {
         None
     }
 

@@ -42,7 +42,9 @@ impl Verifier {
     }
 
     /// Verify the integrity of a `Function`.
-    pub fn verify_function(&mut self, func: &Function) {
+    #[deprecated]
+    #[allow(deprecated)]
+    pub(crate) fn verify_function(&mut self, func: &Function) {
         self.unit_name = Some(format!("func {}", func.name));
         self.return_type = Some(func.sig().return_type());
         self.flags = UnitFlags::FUNCTION;
@@ -52,7 +54,9 @@ impl Verifier {
     }
 
     /// Verify the integrity of a `Process`.
-    pub fn verify_process(&mut self, prok: &Process) {
+    #[deprecated]
+    #[allow(deprecated)]
+    pub(crate) fn verify_process(&mut self, prok: &Process) {
         self.unit_name = Some(format!("proc {}", prok.name));
         self.flags = UnitFlags::PROCESS;
         self.verify_function_layout(prok, &prok.layout, false);
@@ -60,7 +64,9 @@ impl Verifier {
     }
 
     /// Verify the integrity of an `Entity`.
-    pub fn verify_entity(&mut self, ent: &Entity) {
+    #[deprecated]
+    #[allow(deprecated)]
+    pub(crate) fn verify_entity(&mut self, ent: &Entity) {
         self.unit_name = Some(format!("entity {}", ent.name));
         self.flags = UnitFlags::ENTITY;
         self.verify_function_layout(ent, &ent.layout, true);
