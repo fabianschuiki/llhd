@@ -44,22 +44,13 @@ pub trait Pass {
 
     /// Run this pass on an entire entity.
     fn run_on_entity(ctx: &PassContext, entity: &mut EntityBuilder) -> bool {
-        let mut modified = false;
-        for inst in entity.entity.layout.insts().collect::<Vec<_>>() {
-            modified |= Self::run_on_inst(ctx, inst, entity);
-        }
-        modified
+        Self::run_on_cfg(ctx, entity)
     }
 
     /// Run this pass on an entire function or process.
     fn run_on_cfg(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
         let mut modified = false;
-        let mut insts = vec![];
-        for bb in unit.func_layout().blocks() {
-            for inst in unit.func_layout().insts(bb) {
-                insts.push(inst);
-            }
-        }
+        let insts: Vec<_> = unit.func_layout().all_insts().collect();
         for inst in insts {
             modified |= Self::run_on_inst(ctx, inst, unit);
         }

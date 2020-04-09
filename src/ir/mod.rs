@@ -86,49 +86,6 @@ impl FunctionInsertPos {
     }
 }
 
-/// The position where new instructions will be inserted into an `Entity`.
-#[derive(Clone, Copy)]
-enum EntityInsertPos {
-    Append,
-    Prepend,
-    After(Inst),
-    Before(Inst),
-}
-
-impl EntityInsertPos {
-    /// Insert an instruction and update the insertion postition.
-    fn add_inst(&mut self, inst: Inst, layout: &mut InstLayout) {
-        use EntityInsertPos::*;
-        match *self {
-            Append => layout.append_inst(inst),
-            Prepend => {
-                layout.prepend_inst(inst);
-                *self = After(inst);
-            }
-            After(other) => {
-                layout.insert_inst_after(inst, other);
-                *self = After(inst);
-            }
-            Before(other) => layout.insert_inst_before(inst, other),
-        }
-    }
-
-    /// Update the insertion position in response to removing an instruction.
-    fn remove_inst(&mut self, inst: Inst, layout: &InstLayout) {
-        use EntityInsertPos::*;
-        match *self {
-            // If we inserted after i, now insert before i's successor, or if i
-            // was the last inst, at the end of the entity.
-            After(i) if i == inst => *self = layout.next_inst(i).map(Before).unwrap_or(Append),
-            // If we inserted before i, now insert after i's predecessor, or if
-            // i was the first inst, at the beginning of the entity.
-            Before(i) if i == inst => *self = layout.prev_inst(i).map(After).unwrap_or(Prepend),
-            // Everything else we just keep as is.
-            _ => (),
-        }
-    }
-}
-
 impl_table_key! {
     /// An instruction.
     struct Inst(u32) as "i";

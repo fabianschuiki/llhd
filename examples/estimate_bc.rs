@@ -4,11 +4,7 @@
 extern crate clap;
 
 use clap::Arg;
-use llhd::{
-    assembly::parse_module,
-    ir::{prelude::*, ModUnitData},
-    verifier::Verifier,
-};
+use llhd::{assembly::parse_module, verifier::Verifier};
 use std::{fs::File, io::Read};
 
 fn main() {
@@ -34,21 +30,11 @@ fn main() {
         let mut insts = vec![];
         let mut blocks = vec![];
 
-        match module[unit] {
-            ModUnitData::Entity(ref e) => insts.extend(e.inst_layout().insts()),
-            ModUnitData::Process(ref p) => {
-                for b in p.func_layout().blocks() {
-                    blocks.push(b);
-                    insts.extend(p.func_layout().insts(b));
-                }
+        if let Some(layout) = module[unit].get_func_layout() {
+            for b in layout.blocks() {
+                blocks.push(b);
+                insts.extend(layout.insts(b));
             }
-            ModUnitData::Function(ref f) => {
-                for b in f.func_layout().blocks() {
-                    blocks.push(b);
-                    insts.extend(f.func_layout().insts(b));
-                }
-            }
-            _ => (),
         }
 
         num_bytes += module.unit_name(unit).to_string().len();

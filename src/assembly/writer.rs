@@ -129,7 +129,7 @@ impl<T: Write> Writer<T> {
             uw.write_value_name(ent.arg_value(arg))?;
         }
         write!(uw.writer.sink, ") {{\n")?;
-        for inst in ent.layout.insts() {
+        for inst in ent.layout.all_insts() {
             write!(uw.writer.sink, "    ")?;
             uw.write_inst(inst)?;
             write!(uw.writer.sink, "\n")?;

@@ -26,7 +26,7 @@ impl Pass for ProcessLowering {
 
 fn lower_mod_unit(ctx: &PassContext, mod_unit: &mut ModUnitData) -> bool {
     // Check if this is a process and it is suitable for lowering.
-    let mut process = match mod_unit {
+    let process = match mod_unit {
         ModUnitData::Process(ref mut u) => {
             if !is_suitable(ctx, &mut ProcessBuilder::new(u)) {
                 return false;
@@ -41,7 +41,8 @@ fn lower_mod_unit(ctx: &PassContext, mod_unit: &mut ModUnitData) -> bool {
     let term = process.layout.terminator(process.layout.entry());
     let mut entity = Entity {
         dfg: process.dfg,
-        layout: process.layout.bbs.storage.drain().next().unwrap().1.layout,
+        cfg: process.cfg,
+        layout: process.layout,
         name: process.name,
         sig: process.sig,
     };

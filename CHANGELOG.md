@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Changed
-- Folded `ControlFlowGraph` and `DataFlowGraph` into `Unit` and `UnitBuilder`
+- Folded `ControlFlowGraph` and `DataFlowGraph` into `Unit` and `UnitBuilder`.
+- Change `Entity` to have a CFG and function layout as well.
 
 ## 0.12.0 - 2020-04-09
 ### Added

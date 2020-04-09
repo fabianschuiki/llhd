@@ -10,8 +10,8 @@
 use crate::{
     impl_table_key,
     ir::{
-        ControlFlowGraph, DataFlowGraph, Entity, ExtUnit, Function, FunctionLayout, InstLayout,
-        Process, Signature, Unit, UnitName,
+        ControlFlowGraph, DataFlowGraph, Entity, ExtUnit, Function, FunctionLayout, Process,
+        Signature, Unit, UnitName,
     },
     table::PrimaryTable,
     verifier::Verifier,
@@ -610,6 +610,7 @@ impl ModUnitData {
         match self {
             ModUnitData::Function(unit) => Some(unit.func_layout()),
             ModUnitData::Process(unit) => Some(unit.func_layout()),
+            ModUnitData::Entity(unit) => Some(unit.func_layout()),
             _ => None,
         }
     }
@@ -619,24 +620,7 @@ impl ModUnitData {
         match self {
             ModUnitData::Function(unit) => Some(unit.func_layout_mut()),
             ModUnitData::Process(unit) => Some(unit.func_layout_mut()),
-            _ => None,
-        }
-    }
-
-    /// Return the function layout of the unit, if there is one.
-    pub fn get_inst_layout(&self) -> Option<&InstLayout> {
-        match self {
-            ModUnitData::Function(unit) => Some(unit.inst_layout()),
-            ModUnitData::Process(unit) => Some(unit.inst_layout()),
-            _ => None,
-        }
-    }
-
-    /// Return the mutable function layout of the unit, if there is one.
-    pub fn get_inst_layout_mut(&mut self) -> Option<&mut InstLayout> {
-        match self {
-            ModUnitData::Function(unit) => Some(unit.inst_layout_mut()),
-            ModUnitData::Process(unit) => Some(unit.inst_layout_mut()),
+            ModUnitData::Entity(unit) => Some(unit.func_layout_mut()),
             _ => None,
         }
     }

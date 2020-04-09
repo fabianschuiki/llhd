@@ -5,8 +5,8 @@
 use crate::{
     ir::{
         Arg, Block, BlockData, ControlFlowGraph, DataFlowGraph, Entity, ExtUnit, ExtUnitData,
-        Function, FunctionLayout, Inst, InstBuilder, InstData, InstLayout, Process, Signature,
-        Value, ValueData,
+        Function, FunctionLayout, Inst, InstBuilder, InstData, Process, Signature, Value,
+        ValueData,
     },
     ty::Type,
 };
@@ -155,16 +155,6 @@ pub trait Unit:
     ///
     /// Panics if the unit is an `Entity`.
     fn func_layout_mut(&mut self) -> &mut FunctionLayout;
-
-    /// Get the unit's entity layout.
-    ///
-    /// Panics if the unit is a `Function` or `Process`.
-    fn inst_layout(&self) -> &InstLayout;
-
-    /// Get the unit's entity layout.
-    ///
-    /// Panics if the unit is a `Function` or `Process`.
-    fn inst_layout_mut(&mut self) -> &mut InstLayout;
 
     /// Dump the unit in human-readable form.
     fn dump(&self) -> UnitDumper
@@ -549,20 +539,6 @@ pub trait UnitBuilder:
     /// Panics if the unit is an `Entity`.
     fn func_layout_mut(&mut self) -> &mut FunctionLayout {
         self.unit_mut().func_layout_mut()
-    }
-
-    /// Get the entity layout of the unit being built.
-    ///
-    /// Panics if the unit is a `Function` or `Process`.
-    fn inst_layout(&self) -> &InstLayout {
-        self.unit().inst_layout()
-    }
-
-    /// Get the entity layout of the unit being built.
-    ///
-    /// Panics if the unit is a `Function` or `Process`.
-    fn inst_layout_mut(&mut self) -> &mut InstLayout {
-        self.unit_mut().inst_layout_mut()
     }
 
     /// Import an external unit for use within this unit.

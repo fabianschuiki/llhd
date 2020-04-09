@@ -48,7 +48,7 @@ impl Verifier {
         self.unit_name = Some(format!("func {}", func.name));
         self.return_type = Some(func.sig().return_type());
         self.flags = UnitFlags::FUNCTION;
-        self.verify_function_layout(func, &func.layout);
+        self.verify_function_layout(func, &func.layout, false);
         self.unit_name = None;
         self.return_type = None;
     }
@@ -57,7 +57,7 @@ impl Verifier {
     pub fn verify_process(&mut self, prok: &Process) {
         self.unit_name = Some(format!("proc {}", prok.name));
         self.flags = UnitFlags::PROCESS;
-        self.verify_function_layout(prok, &prok.layout);
+        self.verify_function_layout(prok, &prok.layout, false);
         self.unit_name = None;
     }
 
@@ -65,12 +65,17 @@ impl Verifier {
     pub fn verify_entity(&mut self, ent: &Entity) {
         self.unit_name = Some(format!("entity {}", ent.name));
         self.flags = UnitFlags::ENTITY;
-        self.verify_inst_layout(ent, &ent.layout);
+        self.verify_function_layout(ent, &ent.layout, true);
         self.unit_name = None;
     }
 
     /// Verify the integrity of the BB and instruction layout.
-    pub fn verify_function_layout(&mut self, unit: &impl Unit, layout: &FunctionLayout) {
+    pub fn verify_function_layout(
+        &mut self,
+        unit: &impl Unit,
+        layout: &FunctionLayout,
+        is_entity: bool,
+    ) {
         if layout.first_block().is_none() {
             self.errors.push(VerifierError {
                 unit: self.unit_name.clone(),
@@ -80,7 +85,7 @@ impl Verifier {
         }
         for bb in layout.blocks() {
             // Check that the block has at least one instruction.
-            if layout.first_inst(bb).is_none() {
+            if layout.first_inst(bb).is_none() && !is_entity {
                 self.errors.push(VerifierError {
                     unit: self.unit_name.clone(),
                     object: Some(bb.to_string()),
@@ -91,7 +96,10 @@ impl Verifier {
             for inst in layout.insts(bb) {
                 // Check that there are no terminator instructions in the middle
                 // of the block.
-                if unit[inst].opcode().is_terminator() && Some(inst) != layout.last_inst(bb) {
+                if !is_entity
+                    && unit[inst].opcode().is_terminator()
+                    && Some(inst) != layout.last_inst(bb)
+                {
                     self.errors.push(VerifierError {
                         unit: self.unit_name.clone(),
                         object: Some(inst.dump(unit.dfg(), unit.try_cfg()).to_string()),
@@ -104,7 +112,10 @@ impl Verifier {
                 }
 
                 // Check that the last instruction in the block is a terminator.
-                if Some(inst) == layout.last_inst(bb) && !unit[inst].opcode().is_terminator() {
+                if !is_entity
+                    && Some(inst) == layout.last_inst(bb)
+                    && !unit[inst].opcode().is_terminator()
+                {
                     self.errors.push(VerifierError {
                         unit: self.unit_name.clone(),
                         object: Some(bb.to_string()),

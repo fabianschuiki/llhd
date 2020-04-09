@@ -437,6 +437,11 @@ impl FunctionLayout {
         self.bbs[bb].layout.insts()
     }
 
+    /// Return an iterator over all instructions in layout order.
+    pub fn all_insts<'a>(&'a self) -> impl Iterator<Item = Inst> + 'a {
+        self.blocks().flat_map(move |bb| self.insts(bb))
+    }
+
     /// Get the first instruction in the layout.
     pub fn first_inst(&self, bb: Block) -> Option<Inst> {
         self.bbs[bb].layout.first_inst()

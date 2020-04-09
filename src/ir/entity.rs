@@ -4,9 +4,9 @@
 
 use crate::{
     ir::{
-        Block, BlockData, ControlFlowGraph, DataFlowGraph, EntityInsertPos, ExtUnit, ExtUnitData,
-        FunctionLayout, Inst, InstData, InstLayout, Signature, Unit, UnitBuilder, UnitKind,
-        UnitName, Value, ValueData,
+        Block, BlockData, ControlFlowGraph, DataFlowGraph, ExtUnit, ExtUnitData, FunctionInsertPos,
+        FunctionLayout, Inst, InstData, Signature, Unit, UnitBuilder, UnitKind, UnitName, Value,
+        ValueData,
     },
     ty::Type,
     verifier::Verifier,
@@ -19,7 +19,8 @@ pub struct Entity {
     pub name: UnitName,
     pub sig: Signature,
     pub dfg: DataFlowGraph,
-    pub layout: InstLayout,
+    pub cfg: ControlFlowGraph,
+    pub layout: FunctionLayout,
 }
 
 impl Entity {
@@ -30,8 +31,11 @@ impl Entity {
             name,
             sig,
             dfg: DataFlowGraph::new(),
-            layout: InstLayout::new(),
+            cfg: ControlFlowGraph::new(),
+            layout: FunctionLayout::new(),
         };
+        let bb = ent.cfg.add_block();
+        ent.layout.append_block(bb);
         ent.dfg.make_args_for_signature(&ent.sig);
         ent
     }
@@ -137,24 +141,16 @@ impl Unit for Entity {
     }
 
     fn func_layout(&self) -> &FunctionLayout {
-        panic!("func_layout() called on entity");
-    }
-
-    fn func_layout_mut(&mut self) -> &mut FunctionLayout {
-        panic!("func_layout_mut() called on entity");
-    }
-
-    fn inst_layout(&self) -> &InstLayout {
         &self.layout
     }
 
-    fn inst_layout_mut(&mut self) -> &mut InstLayout {
+    fn func_layout_mut(&mut self) -> &mut FunctionLayout {
         &mut self.layout
     }
 
     fn dump_fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "entity {} {} {{\n", self.name, self.sig.dump(&self.dfg))?;
-        for inst in self.layout.insts() {
+        for inst in self.layout.all_insts() {
             write!(f, "    {}\n", inst.dump(&self.dfg, None))?;
         }
         write!(f, "}}")?;
@@ -184,15 +180,16 @@ pub struct EntityBuilder<'u> {
     /// The entity currently being built.
     pub entity: &'u mut Entity,
     /// The position where we are currently inserting instructions.
-    pos: EntityInsertPos,
+    pos: FunctionInsertPos,
 }
 
 impl<'u> EntityBuilder<'u> {
     /// Create a new entity builder.
     pub fn new(entity: &mut Entity) -> EntityBuilder {
+        let bb = entity.layout.entry();
         EntityBuilder {
             entity,
-            pos: EntityInsertPos::Append,
+            pos: FunctionInsertPos::Append(bb),
         }
     }
 }
@@ -294,11 +291,11 @@ impl UnitBuilder for EntityBuilder<'_> {
     }
 
     fn insert_at_end(&mut self) {
-        self.pos = EntityInsertPos::Append;
+        self.pos = FunctionInsertPos::Append(self.unit().func_layout().entry());
     }
 
     fn insert_at_beginning(&mut self) {
-        self.pos = EntityInsertPos::Prepend;
+        self.pos = FunctionInsertPos::Prepend(self.unit().func_layout().entry());
     }
 
     fn append_to(&mut self, _: Block) {
@@ -310,10 +307,10 @@ impl UnitBuilder for EntityBuilder<'_> {
     }
 
     fn insert_after(&mut self, inst: Inst) {
-        self.pos = EntityInsertPos::After(inst);
+        self.pos = FunctionInsertPos::After(inst);
     }
 
     fn insert_before(&mut self, inst: Inst) {
-        self.pos = EntityInsertPos::Before(inst);
+        self.pos = FunctionInsertPos::Before(inst);
     }
 }

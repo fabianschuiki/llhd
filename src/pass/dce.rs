@@ -130,15 +130,6 @@ impl Pass for DeadCodeElim {
 
         modified
     }
-
-    fn run_on_entity(_ctx: &PassContext, unit: &mut EntityBuilder) -> bool {
-        info!("DCE [{}]", unit.unit().name());
-        let mut modified = false;
-        for inst in unit.entity.layout.insts().collect::<Vec<_>>() {
-            modified |= unit.prune_if_unused(inst);
-        }
-        modified
-    }
 }
 
 /// Check if a branch that terminates a block is trivial.
