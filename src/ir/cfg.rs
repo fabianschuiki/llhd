@@ -33,42 +33,42 @@ impl ControlFlowGraph {
     }
 
     /// Add a BB to the graph.
-    pub fn add_block(&mut self) -> Block {
+    pub(super) fn add_block(&mut self) -> Block {
         self.blocks.add(BlockData { name: None })
     }
 
     /// Remove a BB from the graph.
-    pub fn remove_block(&mut self, bb: Block) {
+    pub(super) fn remove_block(&mut self, bb: Block) {
         self.blocks.remove(bb);
     }
 
     /// Return the name of a BB.
-    pub fn get_name(&self, bb: Block) -> Option<&str> {
+    pub(super) fn get_name(&self, bb: Block) -> Option<&str> {
         self[bb].name.as_ref().map(AsRef::as_ref)
     }
 
     /// Set the name of a BB.
-    pub fn set_name(&mut self, bb: Block, name: String) {
+    pub(super) fn set_name(&mut self, bb: Block, name: String) {
         self[bb].name = Some(name);
     }
 
     /// Clear the name of a BB.
-    pub fn clear_name(&mut self, bb: Block) -> Option<String> {
+    pub(super) fn clear_name(&mut self, bb: Block) -> Option<String> {
         std::mem::replace(&mut self[bb].name, None)
     }
 
     /// Return the anonymous name hint of a BB.
-    pub fn get_anonymous_hint(&self, bb: Block) -> Option<u32> {
+    pub(super) fn get_anonymous_hint(&self, bb: Block) -> Option<u32> {
         self.anonymous_hints.get(&bb).cloned()
     }
 
     /// Set the anonymous name hint of a BB.
-    pub fn set_anonymous_hint(&mut self, bb: Block, hint: u32) {
+    pub(super) fn set_anonymous_hint(&mut self, bb: Block, hint: u32) {
         self.anonymous_hints.insert(bb, hint);
     }
 
     /// Clear the anonymous name hint of a BB.
-    pub fn clear_anonymous_hint(&mut self, bb: Block) -> Option<u32> {
+    pub(super) fn clear_anonymous_hint(&mut self, bb: Block) -> Option<u32> {
         self.anonymous_hints.remove(&bb)
     }
 }

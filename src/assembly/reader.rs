@@ -39,8 +39,8 @@ impl<'a> Block<'a> {
             }
         };
         match self.name {
-            LocalName::Anonymous(index) => builder.cfg_mut().set_anonymous_hint(bb, index),
-            LocalName::Named(name) => builder.cfg_mut().set_name(bb, name.to_owned()),
+            LocalName::Anonymous(index) => builder.set_anonymous_block_hint(bb, index),
+            LocalName::Named(name) => builder.set_block_name(bb, name.to_owned()),
         }
         builder.append_to(bb);
         for inst in self.insts {

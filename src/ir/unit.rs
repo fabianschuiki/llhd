@@ -278,6 +278,16 @@ pub trait Unit {
     fn extern_sig(&self, ext: ExtUnit) -> &Signature {
         &self.dfg()[ext].sig
     }
+
+    /// Return the name of a BB.
+    fn get_block_name(&self, bb: Block) -> Option<&str> {
+        self.cfg().get_name(bb)
+    }
+
+    /// Return the anonymous name hint of a BB.
+    fn get_anonymous_block_hint(&self, bb: Block) -> Option<u32> {
+        self.cfg().get_anonymous_hint(bb)
+    }
 }
 
 /// Temporary object to dump an `Entity` in human-readable form for debugging.
@@ -440,6 +450,26 @@ pub trait UnitBuilder {
         } else {
             false
         }
+    }
+
+    /// Set the name of a BB.
+    fn set_block_name(&mut self, bb: Block, name: String) {
+        self.cfg_mut().set_name(bb, name)
+    }
+
+    /// Clear the name of a BB.
+    fn clear_block_name(&mut self, bb: Block) -> Option<String> {
+        self.cfg_mut().clear_name(bb)
+    }
+
+    /// Set the anonymous name hint of a BB.
+    fn set_anonymous_block_hint(&mut self, bb: Block, hint: u32) {
+        self.cfg_mut().set_anonymous_hint(bb, hint)
+    }
+
+    /// Clear the anonymous name hint of a BB.
+    fn clear_anonymous_block_hint(&mut self, bb: Block) -> Option<u32> {
+        self.cfg_mut().clear_anonymous_hint(bb)
     }
 }
 
