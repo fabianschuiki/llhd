@@ -105,10 +105,10 @@ fn write_entity(
 /// Emit an LLHD entity within an existing Verilog module.
 fn write_entity_body(
     output: &mut impl Write,
-    mod_unit: llhd::ir::ModUnit,
+    _mod_unit: llhd::ir::ModUnit,
     entity: &llhd::ir::Entity,
-    ctx: &mut Context,
-    bound: HashMap<llhd::ir::Value, llhd::ir::Value>,
+    _ctx: &mut Context,
+    _bound: HashMap<llhd::ir::Value, llhd::ir::Value>,
 ) -> Result<()> {
     debug!("Emitting entity {}", entity.name());
     write!(output, "\n    // Entity {}\n", entity.name())?;
