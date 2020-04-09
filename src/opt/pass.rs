@@ -1,7 +1,6 @@
 // Copyright (c) 2017-2020 Fabian Schuiki
 
 use crate::ir::prelude::*;
-use crate::ir::ModUnitData;
 use rayon::prelude::*;
 
 /// An optimization pass.
@@ -17,12 +16,7 @@ pub trait Pass {
             .units
             .storage
             .par_iter_mut()
-            .map(|(_, unit)| match unit {
-                ModUnitData::Data(ref mut u) => {
-                    Self::run_on_unit(ctx, &mut UnitDataBuilder::new(u))
-                }
-                _ => false,
-            })
+            .map(|(_, unit)| Self::run_on_unit(ctx, &mut UnitDataBuilder::new(unit)))
             .reduce(|| false, |a, b| a || b)
     }
 

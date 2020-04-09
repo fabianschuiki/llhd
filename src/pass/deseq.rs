@@ -3,7 +3,7 @@
 //! Desequentialization
 
 use crate::ir::prelude::*;
-use crate::ir::{DataFlowGraph, InstData, ModUnitData};
+use crate::ir::{DataFlowGraph, InstData};
 use crate::opt::prelude::*;
 use crate::pass::tcm::{TemporalRegion, TemporalRegionGraph};
 use crate::value::IntValue;
@@ -22,17 +22,18 @@ impl Pass for Desequentialization {
             .units
             .storage
             .par_iter_mut()
-            .map(|(_, unit)| match unit {
-                ModUnitData::Data(ref mut u) if u.kind == UnitKind::Process => {
-                    match deseq_process(ctx, &mut UnitDataBuilder::new(u)) {
+            .map(|(_, unit)| {
+                if unit.kind == UnitKind::Process {
+                    match deseq_process(ctx, &mut UnitDataBuilder::new(unit)) {
                         Some(entity) => {
-                            *unit = ModUnitData::Data(entity);
+                            *unit = entity;
                             true
                         }
                         _ => false,
                     }
+                } else {
+                    false
                 }
-                _ => false,
             })
             .reduce(|| false, |a, b| a || b)
     }

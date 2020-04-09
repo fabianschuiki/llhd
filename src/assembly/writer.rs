@@ -2,7 +2,7 @@
 
 //! Emitting LLHD IR assembly.
 
-use crate::ir::{prelude::*, ModUnitData, UnitData, UnitKind};
+use crate::ir::{prelude::*, UnitData, UnitKind};
 use std::{
     collections::{HashMap, HashSet},
     io::{Result, Write},
@@ -23,18 +23,20 @@ impl<T: Write> Writer<T> {
     /// Emit assembly for a module.
     pub fn write_module(&mut self, module: &Module) -> Result<()> {
         let mut separate = false;
-        let mut was_declaration = false;
         for mod_unit in module.units() {
-            let is_declaration = module.is_declaration(mod_unit);
-            if separate && (!was_declaration || !is_declaration) {
+            if separate {
                 write!(self.sink, "\n")?;
             }
             separate = true;
-            was_declaration = is_declaration;
-            match &module[mod_unit] {
-                ModUnitData::Data(x) => self.write_unit(x)?,
-                ModUnitData::Declare { sig, name } => self.write_declaration(sig, name)?,
+            self.write_unit(&module[mod_unit])?;
+        }
+        for decl in module.decls() {
+            if separate {
+                write!(self.sink, "\n")?;
             }
+            separate = false;
+            let data = &module[decl];
+            self.write_declaration(&data.sig, &data.name)?;
         }
         Ok(())
     }

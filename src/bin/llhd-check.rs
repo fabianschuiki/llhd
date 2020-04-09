@@ -6,7 +6,7 @@ extern crate clap;
 extern crate log;
 
 use clap::Arg;
-use llhd::{assembly::parse_module, pass::tcm::TemporalRegionGraph, verifier::Verifier};
+use llhd::{assembly::parse_module, ir::Unit, pass::tcm::TemporalRegionGraph, verifier::Verifier};
 use std::{fs::File, io::Read, result::Result};
 
 fn main() {
@@ -68,7 +68,8 @@ fn main() {
         // Dump the temporal regions if requested by the user.
         if matches.is_present("emit-trg") {
             println!("Temporal Regions:");
-            for u in module.all_units() {
+            for u in module.units() {
+                let u = &module[u];
                 if u.is_entity() {
                     continue;
                 }

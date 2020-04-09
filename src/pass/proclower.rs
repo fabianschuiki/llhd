@@ -3,7 +3,6 @@
 //! Process Lowering
 
 use crate::ir::prelude::*;
-use crate::ir::ModUnitData;
 use crate::opt::prelude::*;
 use rayon::prelude::*;
 
@@ -19,24 +18,23 @@ impl Pass for ProcessLowering {
             .units
             .storage
             .par_iter_mut()
-            .map(|(_, unit)| lower_mod_unit(ctx, unit))
+            .map(|(_, unit)| lower_unit(ctx, unit))
             .reduce(|| false, |a, b| a || b)
     }
 }
 
-fn lower_mod_unit(ctx: &PassContext, mod_unit: &mut ModUnitData) -> bool {
+fn lower_unit(ctx: &PassContext, unit: &mut UnitData) -> bool {
     // Check if this is a process and it is suitable for lowering.
-    let process = match mod_unit {
-        ModUnitData::Data(ref mut u) if u.is_process() => {
-            if !is_suitable(ctx, &mut UnitDataBuilder::new(u)) {
-                return false;
-            }
-            std::mem::replace(
-                u,
-                UnitData::new(UnitKind::Process, u.name().clone(), u.sig().clone()),
-            )
+    let process = if unit.is_process() {
+        if !is_suitable(ctx, &mut UnitDataBuilder::new(unit)) {
+            return false;
         }
-        _ => return false,
+        std::mem::replace(
+            unit,
+            UnitData::new(UnitKind::Process, unit.name().clone(), unit.sig().clone()),
+        )
+    } else {
+        return false;
     };
 
     // Lower the process to an entity.
@@ -51,7 +49,7 @@ fn lower_mod_unit(ctx: &PassContext, mod_unit: &mut ModUnitData) -> bool {
         sig: process.sig,
     };
     UnitDataBuilder::new(&mut entity).remove_inst(term);
-    *mod_unit = ModUnitData::Data(entity);
+    *unit = entity;
 
     true
 }

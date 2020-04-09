@@ -4,7 +4,7 @@
 extern crate clap;
 
 use clap::Arg;
-use llhd::{assembly::parse_module, verifier::Verifier};
+use llhd::{assembly::parse_module, ir::Unit, verifier::Verifier};
 use std::{fs::File, io::Read};
 
 fn main() {
@@ -26,19 +26,18 @@ fn main() {
 
     let mut num_bytes = 0;
     for unit in module.units() {
-        eprintln!("Estimating {}", module.unit_name(unit));
+        eprintln!("Estimating {}", module[unit].name());
         let mut insts = vec![];
         let mut blocks = vec![];
 
-        if let Some(layout) = module[unit].get_func_layout() {
-            for b in layout.blocks() {
-                blocks.push(b);
-                insts.extend(layout.insts(b));
-            }
+        let layout = module[unit].func_layout();
+        for b in layout.blocks() {
+            blocks.push(b);
+            insts.extend(layout.insts(b));
         }
 
-        num_bytes += module.unit_name(unit).to_string().len();
-        let sig = module.unit_sig(unit);
+        num_bytes += module[unit].name().to_string().len();
+        let sig = module[unit].sig();
         num_bytes += sig.args().count() * 8;
 
         for &_ in &blocks {
@@ -47,13 +46,13 @@ fn main() {
             num_bytes += 4; // block size
         }
 
-        let dfg = module[unit].get_dfg().unwrap();
+        let unit = &module[unit];
         for &inst in &insts {
             num_bytes += 2; // opcode
             num_bytes += 2; // type
-            num_bytes += dfg[inst].args().len() * 2;
-            num_bytes += dfg[inst].blocks().len() * 2;
-            num_bytes += dfg[inst].imms().len() * 4; // average estimate
+            num_bytes += unit[inst].args().len() * 2;
+            num_bytes += unit[inst].blocks().len() * 2;
+            num_bytes += unit[inst].imms().len() * 4; // average estimate
         }
     }
 

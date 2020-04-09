@@ -34,10 +34,7 @@ impl Verifier {
     /// Verify the integrity of a `Module`.
     pub fn verify_module(&mut self, module: &Module) {
         for unit in module.units() {
-            match &module[unit] {
-                ModUnitData::Data(x) => self.verify_unit(x),
-                ModUnitData::Declare { .. } => (),
-            }
+            self.verify_unit(&module[unit]);
         }
     }
 

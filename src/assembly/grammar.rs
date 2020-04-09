@@ -1,5 +1,5 @@
 // auto-generated: "lalrpop 0.17.2"
-// sha256: b09b436da149c96cc8eeb5c6545f39bc936b8263e23cbda5f1575c38f16c5
+// sha256: 64bbcd169827874d07bbe48bfcdbcd5ea5a63893adca48a76a216df93fdc51
 use crate::assembly::reader as ast;
 use crate::{ty::*, ir::prelude::*, value::{IntValue, TimeValue}};
 use num::BigInt;
@@ -24624,11 +24624,15 @@ fn __action3<
     {
     let mut module = Module::new();
     for unit in units {
-        let (mu, loc) = match unit {
-            ast::Unit::Data(x, loc) => (module.add_unit(x), loc),
-            ast::Unit::Declare(name, sig, loc) => (module.declare(name, sig), loc),
-        };
-        module.set_location_hint(mu, loc);
+        match unit {
+            ast::Unit::Data(x, loc) => {
+                let unit = module.add_unit(x);
+                module.set_location_hint(unit, loc);
+            }
+            ast::Unit::Declare(name, sig, loc) => {
+                let decl = module.add_decl(DeclData { name, sig, loc: Some(loc) });
+            }
+        }
     }
     module.link();
     module.verify();
