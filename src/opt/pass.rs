@@ -18,21 +18,6 @@ pub trait Pass {
             .storage
             .par_iter_mut()
             .map(|(_, unit)| match unit {
-                ModUnitData::Function(ref mut u) =>
-                {
-                    #[allow(deprecated)]
-                    Self::run_on_function(ctx, &mut FunctionBuilder::new(u))
-                }
-                ModUnitData::Process(ref mut u) =>
-                {
-                    #[allow(deprecated)]
-                    Self::run_on_process(ctx, &mut ProcessBuilder::new(u))
-                }
-                ModUnitData::Entity(ref mut u) =>
-                {
-                    #[allow(deprecated)]
-                    Self::run_on_entity(ctx, &mut EntityBuilder::new(u))
-                }
                 ModUnitData::Data(ref mut u) => {
                     Self::run_on_unit(ctx, &mut UnitDataBuilder::new(u))
                 }

@@ -10,8 +10,8 @@
 use crate::{
     impl_table_key,
     ir::{
-        ControlFlowGraph, DataFlowGraph, Entity, ExtUnit, Function, FunctionLayout, Process,
-        Signature, Unit, UnitData, UnitName,
+        ControlFlowGraph, DataFlowGraph, ExtUnit, FunctionLayout, Signature, Unit, UnitData,
+        UnitName,
     },
     table::PrimaryTable,
     verifier::Verifier,
@@ -67,21 +67,6 @@ impl Module {
         ModuleDumper(self)
     }
 
-    /// Add a function to the module.
-    pub fn add_function(&mut self, func: Function) -> ModUnit {
-        self.add_mod_unit(ModUnitData::Function(func))
-    }
-
-    /// Add a process to the module.
-    pub fn add_process(&mut self, prok: Process) -> ModUnit {
-        self.add_mod_unit(ModUnitData::Process(prok))
-    }
-
-    /// Add an entity to the module.
-    pub fn add_entity(&mut self, ent: Entity) -> ModUnit {
-        self.add_mod_unit(ModUnitData::Entity(ent))
-    }
-
     /// Add a unit to the module.
     pub fn add_unit(&mut self, data: UnitData) -> ModUnit {
         self.add_mod_unit(ModUnitData::Data(data))
@@ -112,17 +97,17 @@ impl Module {
     }
 
     /// Return an iterator over the functions in this module.
-    pub fn functions<'a>(&'a self) -> impl Iterator<Item = &'a Function> + 'a {
+    pub fn functions<'a>(&'a self) -> impl Iterator<Item = &'a UnitData> + 'a {
         self.units().flat_map(move |unit| self[unit].get_function())
     }
 
     /// Return an iterator over the processes in this module.
-    pub fn processes<'a>(&'a self) -> impl Iterator<Item = &'a Process> + 'a {
+    pub fn processes<'a>(&'a self) -> impl Iterator<Item = &'a UnitData> + 'a {
         self.units().flat_map(move |unit| self[unit].get_process())
     }
 
     /// Return an iterator over the entities in this module.
-    pub fn entities<'a>(&'a self) -> impl Iterator<Item = &'a Entity> + 'a {
+    pub fn entities<'a>(&'a self) -> impl Iterator<Item = &'a UnitData> + 'a {
         self.units().flat_map(move |unit| self[unit].get_entity())
     }
 
@@ -169,25 +154,25 @@ impl Module {
 
     /// Return a function in the module, or `None` if the unit is not a
     /// function.
-    pub fn get_function(&self, unit: ModUnit) -> Option<&Function> {
+    pub fn get_function(&self, unit: ModUnit) -> Option<&UnitData> {
         self[unit].get_function()
     }
 
     /// Return a mutable function in the module, or `None` if the unit is not a
     /// function.
-    pub fn get_function_mut(&mut self, unit: ModUnit) -> Option<&mut Function> {
+    pub fn get_function_mut(&mut self, unit: ModUnit) -> Option<&mut UnitData> {
         self.link_table = None;
         self[unit].get_function_mut()
     }
 
     /// Return a function in the module. Panic if the unit is not a function.
-    pub fn function(&self, unit: ModUnit) -> &Function {
+    pub fn function(&self, unit: ModUnit) -> &UnitData {
         self[unit].get_function().expect("unit is not a function")
     }
 
     /// Return a mutable function in the module. Panic if the unit is not a
     /// function.
-    pub fn function_mut(&mut self, unit: ModUnit) -> &mut Function {
+    pub fn function_mut(&mut self, unit: ModUnit) -> &mut UnitData {
         self.link_table = None;
         self[unit]
             .get_function_mut()
@@ -196,50 +181,50 @@ impl Module {
 
     /// Return a process in the module, or `None` if the unit is not a
     /// process.
-    pub fn get_process(&self, unit: ModUnit) -> Option<&Process> {
+    pub fn get_process(&self, unit: ModUnit) -> Option<&UnitData> {
         self[unit].get_process()
     }
 
     /// Return a mutable process in the module, or `None` if the unit is not a
     /// process.
-    pub fn get_process_mut(&mut self, unit: ModUnit) -> Option<&mut Process> {
+    pub fn get_process_mut(&mut self, unit: ModUnit) -> Option<&mut UnitData> {
         self.link_table = None;
         self[unit].get_process_mut()
     }
 
     /// Return a process in the module. Panic if the unit is not a process.
-    pub fn process(&self, unit: ModUnit) -> &Process {
+    pub fn process(&self, unit: ModUnit) -> &UnitData {
         self[unit].get_process().expect("unit is not a process")
     }
 
     /// Return a mutable process in the module. Panic if the unit is not a
     /// process.
-    pub fn process_mut(&mut self, unit: ModUnit) -> &mut Process {
+    pub fn process_mut(&mut self, unit: ModUnit) -> &mut UnitData {
         self.link_table = None;
         self[unit].get_process_mut().expect("unit is not a process")
     }
 
     /// Return an entity in the module, or `None` if the unit is not an
     /// entity.
-    pub fn get_entity(&self, unit: ModUnit) -> Option<&Entity> {
+    pub fn get_entity(&self, unit: ModUnit) -> Option<&UnitData> {
         self[unit].get_entity()
     }
 
     /// Return a mutable entity in the module, or `None` if the unit is not an
     /// entity.
-    pub fn get_entity_mut(&mut self, unit: ModUnit) -> Option<&mut Entity> {
+    pub fn get_entity_mut(&mut self, unit: ModUnit) -> Option<&mut UnitData> {
         self.link_table = None;
         self[unit].get_entity_mut()
     }
 
     /// Return an entity in the module. Panic if the unit is not an entity.
-    pub fn entity(&self, unit: ModUnit) -> &Entity {
+    pub fn entity(&self, unit: ModUnit) -> &UnitData {
         self[unit].get_entity().expect("unit is not an entity")
     }
 
     /// Return a mutable entity in the module. Panic if the unit is not an
     /// entity.
-    pub fn entity_mut(&mut self, unit: ModUnit) -> &mut Entity {
+    pub fn entity_mut(&mut self, unit: ModUnit) -> &mut UnitData {
         self.link_table = None;
         self[unit].get_entity_mut().expect("unit is not an entity")
     }
@@ -405,9 +390,6 @@ impl std::fmt::Display for ModuleDumper<'_> {
             newline = true;
             write!(f, "{}: ", unit)?;
             match &self.0[unit] {
-                ModUnitData::Function(unit) => write!(f, "{}", unit.dump())?,
-                ModUnitData::Process(unit) => write!(f, "{}", unit.dump())?,
-                ModUnitData::Entity(unit) => write!(f, "{}", unit.dump())?,
                 ModUnitData::Data(unit) => write!(f, "{}", unit.dump())?,
                 ModUnitData::Declare { sig, name } => write!(f, "declare {} {}", name, sig)?,
             }
@@ -424,12 +406,6 @@ impl_table_key! {
 /// Internal table storage for units in a module.
 #[derive(Serialize, Deserialize)]
 pub enum ModUnitData {
-    /// The unit is a function.
-    Function(Function),
-    /// The unit is a process.
-    Process(Process),
-    /// The unit is an entity.
-    Entity(Entity),
     /// The unit is a regular unit.
     Data(UnitData),
     /// The unit is a declaration of an external unit.
@@ -438,49 +414,49 @@ pub enum ModUnitData {
 
 impl ModUnitData {
     /// If this unit is a function, return it. Otherwise return `None`.
-    pub fn get_function(&self) -> Option<&Function> {
+    pub fn get_function(&self) -> Option<&UnitData> {
         match self {
-            ModUnitData::Function(unit) => Some(unit),
+            ModUnitData::Data(unit) if unit.is_function() => Some(unit),
             _ => None,
         }
     }
 
     /// If this unit is a function, return it. Otherwise return `None`.
-    pub fn get_function_mut(&mut self) -> Option<&mut Function> {
+    pub fn get_function_mut(&mut self) -> Option<&mut UnitData> {
         match self {
-            ModUnitData::Function(unit) => Some(unit),
+            ModUnitData::Data(unit) if unit.is_function() => Some(unit),
             _ => None,
         }
     }
 
     /// If this unit is a process, return it. Otherwise return `None`.
-    pub fn get_process(&self) -> Option<&Process> {
+    pub fn get_process(&self) -> Option<&UnitData> {
         match self {
-            ModUnitData::Process(unit) => Some(unit),
+            ModUnitData::Data(unit) if unit.is_process() => Some(unit),
             _ => None,
         }
     }
 
     /// If this unit is a process, return it. Otherwise return `None`.
-    pub fn get_process_mut(&mut self) -> Option<&mut Process> {
+    pub fn get_process_mut(&mut self) -> Option<&mut UnitData> {
         match self {
-            ModUnitData::Process(unit) => Some(unit),
+            ModUnitData::Data(unit) if unit.is_process() => Some(unit),
             _ => None,
         }
     }
 
     /// If this unit is an entity, return it. Otherwise return `None`.
-    pub fn get_entity(&self) -> Option<&Entity> {
+    pub fn get_entity(&self) -> Option<&UnitData> {
         match self {
-            ModUnitData::Entity(unit) => Some(unit),
+            ModUnitData::Data(unit) if unit.is_entity() => Some(unit),
             _ => None,
         }
     }
 
     /// If this unit is an entity, return it. Otherwise return `None`.
-    pub fn get_entity_mut(&mut self) -> Option<&mut Entity> {
+    pub fn get_entity_mut(&mut self) -> Option<&mut UnitData> {
         match self {
-            ModUnitData::Entity(unit) => Some(unit),
+            ModUnitData::Data(unit) if unit.is_entity() => Some(unit),
             _ => None,
         }
     }
@@ -504,9 +480,6 @@ impl ModUnitData {
     /// If this unit is not a declaration, return it. Otherwise return `None`.
     pub fn get_unit_mut(&mut self) -> Option<&mut dyn Unit> {
         match self {
-            ModUnitData::Function(unit) => Some(unit),
-            ModUnitData::Process(unit) => Some(unit),
-            ModUnitData::Entity(unit) => Some(unit),
             ModUnitData::Data(unit) => Some(unit),
             _ => None,
         }
@@ -515,9 +488,6 @@ impl ModUnitData {
     /// If this unit is not a declaration, return it. Otherwise return `None`.
     pub fn get_unit(&self) -> Option<&dyn Unit> {
         match self {
-            ModUnitData::Function(unit) => Some(unit),
-            ModUnitData::Process(unit) => Some(unit),
-            ModUnitData::Entity(unit) => Some(unit),
             ModUnitData::Data(unit) => Some(unit),
             _ => None,
         }
@@ -544,7 +514,7 @@ impl ModUnitData {
     /// Check whether this is a function.
     pub fn is_function(&self) -> bool {
         match self {
-            ModUnitData::Function(..) => true,
+            ModUnitData::Data(unit) => unit.is_function(),
             _ => false,
         }
     }
@@ -552,7 +522,7 @@ impl ModUnitData {
     /// Check whether this is a process.
     pub fn is_process(&self) -> bool {
         match self {
-            ModUnitData::Process(..) => true,
+            ModUnitData::Data(unit) => unit.is_process(),
             _ => false,
         }
     }
@@ -560,7 +530,7 @@ impl ModUnitData {
     /// Check whether this is an entity.
     pub fn is_entity(&self) -> bool {
         match self {
-            ModUnitData::Entity(..) => true,
+            ModUnitData::Data(unit) => unit.is_entity(),
             _ => false,
         }
     }
@@ -584,9 +554,6 @@ impl ModUnitData {
     /// Return the signature of the unit.
     pub fn sig(&self) -> &Signature {
         match self {
-            ModUnitData::Function(unit) => unit.sig(),
-            ModUnitData::Process(unit) => unit.sig(),
-            ModUnitData::Entity(unit) => unit.sig(),
             ModUnitData::Data(unit) => unit.sig(),
             ModUnitData::Declare { sig, .. } => sig,
         }
@@ -595,9 +562,6 @@ impl ModUnitData {
     /// Return the name of the unit.
     pub fn name(&self) -> &UnitName {
         match self {
-            ModUnitData::Function(unit) => unit.name(),
-            ModUnitData::Process(unit) => unit.name(),
-            ModUnitData::Entity(unit) => unit.name(),
             ModUnitData::Data(unit) => unit.name(),
             ModUnitData::Declare { name, .. } => name,
         }
@@ -606,9 +570,6 @@ impl ModUnitData {
     /// Return the data flow graph of the unit, if there is one.
     pub fn get_dfg(&self) -> Option<&DataFlowGraph> {
         match self {
-            ModUnitData::Function(unit) => Some(unit.dfg()),
-            ModUnitData::Process(unit) => Some(unit.dfg()),
-            ModUnitData::Entity(unit) => Some(unit.dfg()),
             ModUnitData::Data(unit) => Some(unit.dfg()),
             _ => None,
         }
@@ -617,9 +578,6 @@ impl ModUnitData {
     /// Return the mutable data flow graph of the unit, if there is one.
     pub fn get_dfg_mut(&mut self) -> Option<&mut DataFlowGraph> {
         match self {
-            ModUnitData::Function(unit) => Some(unit.dfg_mut()),
-            ModUnitData::Process(unit) => Some(unit.dfg_mut()),
-            ModUnitData::Entity(unit) => Some(unit.dfg_mut()),
             ModUnitData::Data(unit) => Some(unit.dfg_mut()),
             _ => None,
         }
@@ -628,8 +586,6 @@ impl ModUnitData {
     /// Return the control flow graph of the unit, if there is one.
     pub fn get_cfg(&self) -> Option<&ControlFlowGraph> {
         match self {
-            ModUnitData::Function(unit) => Some(unit.cfg()),
-            ModUnitData::Process(unit) => Some(unit.cfg()),
             ModUnitData::Data(unit) => Some(unit.cfg()),
             _ => None,
         }
@@ -638,8 +594,6 @@ impl ModUnitData {
     /// Return the mutable control flow graph of the unit, if there is one.
     pub fn get_cfg_mut(&mut self) -> Option<&mut ControlFlowGraph> {
         match self {
-            ModUnitData::Function(unit) => Some(unit.cfg_mut()),
-            ModUnitData::Process(unit) => Some(unit.cfg_mut()),
             ModUnitData::Data(unit) => Some(unit.cfg_mut()),
             _ => None,
         }
@@ -648,9 +602,6 @@ impl ModUnitData {
     /// Return the function layout of the unit, if there is one.
     pub fn get_func_layout(&self) -> Option<&FunctionLayout> {
         match self {
-            ModUnitData::Function(unit) => Some(unit.func_layout()),
-            ModUnitData::Process(unit) => Some(unit.func_layout()),
-            ModUnitData::Entity(unit) => Some(unit.func_layout()),
             ModUnitData::Data(unit) => Some(unit.func_layout()),
             _ => None,
         }
@@ -659,9 +610,6 @@ impl ModUnitData {
     /// Return the mutable function layout of the unit, if there is one.
     pub fn get_func_layout_mut(&mut self) -> Option<&mut FunctionLayout> {
         match self {
-            ModUnitData::Function(unit) => Some(unit.func_layout_mut()),
-            ModUnitData::Process(unit) => Some(unit.func_layout_mut()),
-            ModUnitData::Entity(unit) => Some(unit.func_layout_mut()),
             ModUnitData::Data(unit) => Some(unit.func_layout_mut()),
             _ => None,
         }
