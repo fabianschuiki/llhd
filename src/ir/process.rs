@@ -2,6 +2,8 @@
 
 //! Representation of LLHD processes.
 
+#![allow(deprecated)]
+
 use crate::{
     ir::{
         Block, BlockData, ControlFlowGraph, DataFlowGraph, ExtUnit, ExtUnitData, FunctionInsertPos,
@@ -176,6 +178,7 @@ impl Unit for Process {
 }
 
 /// Temporary object used to build a single `Process`.
+#[deprecated]
 pub struct ProcessBuilder<'u> {
     /// The function currently being built.
     pub prok: &'u mut Process,

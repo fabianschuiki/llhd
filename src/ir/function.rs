@@ -2,6 +2,8 @@
 
 //! Representation of LLHD functions.
 
+#![allow(deprecated)]
+
 use crate::{
     ir::{
         Block, BlockData, ControlFlowGraph, DataFlowGraph, ExtUnit, ExtUnitData, FunctionInsertPos,
@@ -177,6 +179,7 @@ impl Unit for Function {
 }
 
 /// Temporary object used to build a single `Function`.
+#[deprecated]
 pub struct FunctionBuilder<'u> {
     /// The function currently being built.
     pub func: &'u mut Function,

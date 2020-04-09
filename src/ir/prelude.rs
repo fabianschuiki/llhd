@@ -2,6 +2,7 @@
 
 //! Re-exports of commonly used IR items.
 
+#[allow(deprecated)]
 pub use crate::ir::{
     Arg, Block, Entity, EntityBuilder, Function, FunctionBuilder, Inst, ModUnit, Module, Opcode,
     Process, ProcessBuilder, RegMode, RegTrigger, Signature, Unit, UnitBuilder, UnitData,

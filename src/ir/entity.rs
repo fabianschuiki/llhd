@@ -2,6 +2,8 @@
 
 //! Representation of LLHD processes.
 
+#![allow(deprecated)]
+
 use crate::{
     ir::{
         Block, BlockData, ControlFlowGraph, DataFlowGraph, ExtUnit, ExtUnitData, FunctionInsertPos,
@@ -177,6 +179,7 @@ impl Unit for Entity {
 }
 
 /// Temporary object used to build a single `Entity`.
+#[deprecated]
 pub struct EntityBuilder<'u> {
     /// The entity currently being built.
     pub entity: &'u mut Entity,
