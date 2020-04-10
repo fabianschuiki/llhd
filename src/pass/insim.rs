@@ -11,66 +11,66 @@ use crate::opt::prelude::*;
 pub struct InstSimplification;
 
 impl Pass for InstSimplification {
-    fn run_on_inst(ctx: &PassContext, inst: Inst, ub: &mut UnitBuilder) -> bool {
-        ub.insert_after(inst);
-        match ub[inst].opcode() {
+    fn run_on_inst(ctx: &PassContext, inst: Inst, unit: &mut UnitBuilder) -> bool {
+        unit.insert_after(inst);
+        match unit[inst].opcode() {
             // drv ... if 0 -> removed
             // drv ... if 1 -> drv ...
             Opcode::DrvCond => {
-                if let Some(konst) = ub.unit().get_const_int(ub[inst].args()[3]) {
+                if let Some(konst) = unit.get_const_int(unit[inst].args()[3]) {
                     if konst.is_one() {
-                        let signal = ub[inst].args()[0];
-                        let value = ub[inst].args()[1];
-                        let delay = ub[inst].args()[2];
-                        ub.ins().drv(signal, value, delay);
+                        let signal = unit[inst].args()[0];
+                        let value = unit[inst].args()[1];
+                        let delay = unit[inst].args()[2];
+                        unit.ins().drv(signal, value, delay);
                     }
-                    ub.remove_inst(inst);
+                    unit.remove_inst(inst);
                 }
             }
             _ => (),
         }
-        let value = match ub.unit().get_inst_result(inst) {
+        let value = match unit.get_inst_result(inst) {
             Some(value) => value,
             None => return false,
         };
-        match ub[inst].opcode() {
+        match unit[inst].opcode() {
             // and %a, %a -> %a
             // or %a, %a -> %a
-            Opcode::And | Opcode::Or if ub[inst].args()[0] == ub[inst].args()[1] => {
-                replace(inst, value, ub[inst].args()[0], ub)
+            Opcode::And | Opcode::Or if unit[inst].args()[0] == unit[inst].args()[1] => {
+                replace(inst, value, unit[inst].args()[0], unit)
             }
             // xor %a, %a -> 0
             // [us]rem %a, %a -> 0
             // [us]mod %a, %a -> 0
             Opcode::Xor | Opcode::Umod | Opcode::Urem | Opcode::Smod | Opcode::Srem
-                if ub[inst].args()[0] == ub[inst].args()[1] =>
+                if unit[inst].args()[0] == unit[inst].args()[1] =>
             {
-                let ty = ub.unit().value_type(value);
-                let zero = ub.ins().const_zero(&ty);
-                replace(inst, value, zero, ub)
+                let ty = unit.value_type(value);
+                let zero = unit.ins().const_zero(&ty);
+                replace(inst, value, zero, unit)
             }
-            Opcode::Mux => simplify_mux(ctx, inst, value, ub),
+            Opcode::Mux => simplify_mux(ctx, inst, value, unit),
             _ => false,
         }
     }
 }
 
-fn replace(from_inst: Inst, from_value: Value, to: Value, ub: &mut UnitBuilder) -> bool {
+fn replace(from_inst: Inst, from_value: Value, to: Value, unit: &mut UnitBuilder) -> bool {
     debug!(
         "Replace {} with {}",
-        from_inst.dump(ub.dfg(), ub.try_cfg()),
-        to.dump(ub.dfg())
+        from_inst.dump(unit.dfg(), unit.try_cfg()),
+        to.dump(unit.dfg())
     );
-    ub.replace_use(from_value, to) > 0
+    unit.replace_use(from_value, to) > 0
 }
 
-fn simplify_mux(_ctx: &PassContext, inst: Inst, value: Value, ub: &mut UnitBuilder) -> bool {
-    let dfg = ub.dfg();
+fn simplify_mux(_ctx: &PassContext, inst: Inst, value: Value, unit: &mut UnitBuilder) -> bool {
+    let dfg = unit.dfg();
 
     // Check if all options are identical, in which case simply replace us with
     // the option directly.
     let array = dfg[inst].args()[0];
-    if let Some(array_inst) = ub.unit().get_value_inst(array) {
+    if let Some(array_inst) = unit.get_value_inst(array) {
         let mut iter = dfg[array_inst].args().iter().cloned();
         let first = match iter.next() {
             Some(first) => first,
@@ -78,7 +78,7 @@ fn simplify_mux(_ctx: &PassContext, inst: Inst, value: Value, ub: &mut UnitBuild
         };
         let identical = iter.all(|a| a == first);
         if identical {
-            return replace(inst, value, first, ub);
+            return replace(inst, value, first, unit);
         }
     }
 

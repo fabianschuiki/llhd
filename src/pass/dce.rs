@@ -15,7 +15,7 @@ pub struct DeadCodeElim;
 
 impl Pass for DeadCodeElim {
     fn run_on_cfg(_ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
-        info!("DCE [{}]", unit.unit().name());
+        info!("DCE [{}]", unit.name());
         let mut modified = false;
 
         // Gather a list of instructions and investigate which branches and
@@ -116,7 +116,7 @@ impl Pass for DeadCodeElim {
                         &[into],
                         "Phi node must be trivially removable"
                     );
-                    let phi = unit.unit().inst_result(inst);
+                    let phi = unit.inst_result(inst);
                     let repl = unit[inst].args()[0];
                     unit.replace_use(phi, repl);
                 } else {
@@ -165,7 +165,7 @@ fn check_branch_trivial(
                 .iter()
                 .map(|&bb| check_block_retargetable(unit, bb, triv_bb, triv_br))
                 .collect();
-            if let Some(imm) = unit.unit().get_const_int(arg) {
+            if let Some(imm) = unit.get_const_int(arg) {
                 bbs[!imm.is_zero() as usize]
             } else if bbs[0] == bbs[1] {
                 bbs[0]

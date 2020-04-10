@@ -23,7 +23,7 @@ pub struct ControlFlowSimplification;
 
 impl Pass for ControlFlowSimplification {
     fn run_on_cfg(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
-        info!("CFS [{}]", unit.unit().name());
+        info!("CFS [{}]", unit.name());
         let mut modified = false;
 
         // Build the predecessor table and dominator tree.
@@ -90,7 +90,7 @@ impl Pass for ControlFlowSimplification {
                 inst.dump(unit.dfg(), unit.try_cfg()),
                 with.dump(unit.dfg()),
             );
-            let inst_value = unit.unit().inst_result(inst);
+            let inst_value = unit.inst_result(inst);
             unit.replace_use(inst_value, with);
             unit.prune_if_unused(inst);
             modified |= true;

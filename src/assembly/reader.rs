@@ -236,7 +236,7 @@ impl<'a> Inst<'a> {
                     Opcode::ExtSlice => builder.ins().ext_slice(target, imm[0], imm[1]),
                     x => unreachable!("ext {:?}", x),
                 };
-                assert_eq!(builder.unit().value_type(ins), ty);
+                assert_eq!(builder.value_type(ins), ty);
                 ins.into()
             }
             InstData::Call(ty, unit, args) => {
@@ -310,7 +310,7 @@ impl<'a> Inst<'a> {
         };
         if let (Some(name), InstOrValue::Value(value)) = (self.name, result) {
             if let Some(ph) = context.value_names.insert(name, value) {
-                if builder.unit().is_placeholder(ph) {
+                if builder.is_placeholder(ph) {
                     builder.replace_use(ph, value);
                     builder.remove_placeholder(ph);
                 } else {
@@ -325,7 +325,7 @@ impl<'a> Inst<'a> {
         if let Some(loc) = self.loc {
             let inst = match result {
                 InstOrValue::Inst(inst) => inst,
-                InstOrValue::Value(value) => builder.unit().value_inst(value),
+                InstOrValue::Value(value) => builder.value_inst(value),
             };
             builder.set_location_hint(inst, loc);
         }
@@ -420,7 +420,7 @@ impl<'a> TypedValue<'a> {
     fn build(self, builder: &mut UnitBuilder, context: &mut Context<'a>) -> ir::Value {
         match context.value_names.get(&self.value.0).cloned() {
             Some(v) => {
-                // assert_eq!(builder.unit().value_type(v), self.ty, "type mismatch");
+                // assert_eq!(builder.value_type(v), self.ty, "type mismatch");
                 // The above will be caught by the verifier in a more gentle way
                 v
             }

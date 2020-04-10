@@ -68,7 +68,7 @@ Function: UnitData =
     let mut builder = UnitBuilder::new_anonymous(&mut func);
     let mut context = ast::Context::default();
     for (arg, name) in args {
-        let v = builder.unit().arg_value(arg);
+        let v = builder.arg_value(arg);
         context.value_names.insert(name, v);
         if let ast::LocalName::Named(name) = name {
             builder.set_name(v, name.to_owned());
@@ -101,14 +101,14 @@ Process: UnitData =
     let mut builder = UnitBuilder::new_anonymous(&mut prok);
     let mut context = ast::Context::default();
     for (arg, name) in input_args {
-        let v = builder.unit().arg_value(arg);
+        let v = builder.arg_value(arg);
         context.value_names.insert(name, v);
         if let ast::LocalName::Named(name) = name {
             builder.set_name(v, name.to_owned());
         }
     }
     for (arg, name) in output_args {
-        let v = builder.unit().arg_value(arg);
+        let v = builder.arg_value(arg);
         context.value_names.insert(name, v);
         if let ast::LocalName::Named(name) = name {
             builder.set_name(v, name.to_owned());
@@ -141,14 +141,14 @@ Entity: UnitData =
     let mut builder = UnitBuilder::new_anonymous(&mut ent);
     let mut context = ast::Context::default();
     for (arg, name) in input_args {
-        let v = builder.unit().arg_value(arg);
+        let v = builder.arg_value(arg);
         context.value_names.insert(name, v);
         if let ast::LocalName::Named(name) = name {
             builder.set_name(v, name.to_owned());
         }
     }
     for (arg, name) in output_args {
-        let v = builder.unit().arg_value(arg);
+        let v = builder.arg_value(arg);
         context.value_names.insert(name, v);
         if let ast::LocalName::Named(name) = name {
             builder.set_name(v, name.to_owned());

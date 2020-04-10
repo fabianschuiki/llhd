@@ -29,7 +29,7 @@ pub struct TemporalCodeMotion;
 
 impl Pass for TemporalCodeMotion {
     fn run_on_cfg(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
-        info!("TCM [{}]", unit.unit().name());
+        info!("TCM [{}]", unit.name());
         let mut modified = false;
 
         // Build the temporal region graph.
@@ -50,7 +50,7 @@ impl Pass for TemporalCodeMotion {
             for bb in tr.blocks() {
                 for inst in layout.insts(bb) {
                     if unit[inst].opcode() == Opcode::Prb
-                        && unit.unit().get_value_inst(unit[inst].args()[0]).is_none()
+                        && unit.get_value_inst(unit[inst].args()[0]).is_none()
                     {
                         // Check if the new prb location would dominate its old
                         // location temporally.
@@ -58,7 +58,7 @@ impl Pass for TemporalCodeMotion {
 
                         // Only move when the move instruction would still
                         // dominate all its uses.
-                        for &user_inst in unit.unit().uses(unit.unit().inst_result(inst)) {
+                        for &user_inst in unit.uses(unit.inst_result(inst)) {
                             let user_bb = unit.func_layout().inst_block(user_inst).unwrap();
                             let dom = temp_dt.dominates(head_bb, user_bb);
                             dominates &= dom;
@@ -237,13 +237,13 @@ fn push_drives(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
                     inst.dump(unit.dfg(), unit.try_cfg())
                 );
                 drv_seq.entry(signal).or_default().push(inst);
-            } else if let Some(value) = unit.unit().get_inst_result(inst) {
+            } else if let Some(value) = unit.get_inst_result(inst) {
                 // Gather signal aliases.
-                if !unit.unit().value_type(value).is_signal() {
+                if !unit.value_type(value).is_signal() {
                     continue;
                 }
                 for &arg in data.args() {
-                    if !unit.unit().value_type(arg).is_signal() {
+                    if !unit.value_type(arg).is_signal() {
                         continue;
                     }
                     let arg = aliases.get(&arg).cloned().unwrap_or(arg);

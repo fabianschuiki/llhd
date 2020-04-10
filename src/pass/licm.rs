@@ -15,7 +15,7 @@ pub struct LoopIndepCodeMotion;
 
 impl Pass for LoopIndepCodeMotion {
     fn run_on_cfg(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
-        info!("LICM [{}]", unit.unit().name());
+        info!("LICM [{}]", unit.name());
         let mut modified = false;
 
         // Build the predecessor table and dominator tree.
@@ -93,7 +93,7 @@ fn move_instruction(
     let doms: Vec<_> = unit.dfg()[inst]
         .args()
         .iter()
-        .flat_map(|&arg| unit.unit().get_value_inst(arg))
+        .flat_map(|&arg| unit.get_value_inst(arg))
         .map(|inst| unit.func_layout().inst_block(inst).unwrap())
         .map(|block| dt.dominated_by(block))
         .collect();

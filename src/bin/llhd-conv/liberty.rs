@@ -368,20 +368,19 @@ impl<'a> RootVisitor<'a> {
         let mut ent = UnitData::new(UnitKind::Entity, cell_name, sig);
         let mut builder = UnitBuilder::new_anonymous(&mut ent);
         for (name, &arg) in input_map.iter().chain(output_map.iter()) {
-            let arg = builder.unit().arg_value(arg);
+            let arg = builder.arg_value(arg);
             builder.set_name(arg, name.clone());
         }
         for (arg, func) in funcs {
-            let arg = builder.unit().arg_value(arg);
+            let arg = builder.arg_value(arg);
             let value = match self.emit_term(&mut builder, &input_map, func) {
                 Ok(v) => v,
                 Err(e) => {
+                    let unit = builder.finish();
                     eprintln!(
                         "{}: invalid function on `{}`; {}",
-                        builder.unit().name(),
-                        builder
-                            .unit()
-                            .get_name(arg)
+                        unit.name(),
+                        unit.get_name(arg)
                             .map(str::to_owned)
                             .unwrap_or_else(|| format!("{}", arg)),
                         e
@@ -419,7 +418,7 @@ impl<'a> RootVisitor<'a> {
                 let arg = map.get(&name).cloned().ok_or_else(|| {
                     format!("term references argument `{}` which is not a pin", name)
                 })?;
-                builder.unit().arg_value(arg)
+                builder.arg_value(arg)
             }
         })
     }

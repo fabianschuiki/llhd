@@ -16,7 +16,7 @@ pub struct VarToPhiPromotion;
 
 impl Pass for VarToPhiPromotion {
     fn run_on_cfg(_ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
-        info!("VTPP [{}]", unit.unit().name());
+        info!("VTPP [{}]", unit.name());
         let mut modified = false;
 
         // Build the predecessor table and dominator tree.
@@ -35,14 +35,14 @@ impl Pass for VarToPhiPromotion {
                 let data = &dfg[inst];
                 match data.opcode() {
                     Opcode::Var => {
-                        store_table.insert(unit.unit().inst_result(inst), data.args()[0]);
+                        store_table.insert(unit.inst_result(inst), data.args()[0]);
                         vars.entry(inst).or_insert_with(Vec::new);
                     }
                     Opcode::St => {
                         let var = data.args()[0];
                         let val = data.args()[1];
                         store_table.insert(var, val);
-                        vars.entry(unit.unit().value_inst(var))
+                        vars.entry(unit.value_inst(var))
                             .or_insert_with(Vec::new)
                             .push(inst);
                     }
@@ -51,7 +51,7 @@ impl Pass for VarToPhiPromotion {
                             Some(&v) => Var::Value(v),
                             None => Var::Incoming(data.args()[0], block),
                         };
-                        value_table.insert(unit.unit().inst_result(inst), v);
+                        value_table.insert(unit.inst_result(inst), v);
                     }
                     _ => continue,
                 }
@@ -86,7 +86,7 @@ impl Pass for VarToPhiPromotion {
         // respective locations.
         for (ld, slot) in value_table {
             trace!("Replacing {} with {:?}", ld.dump(unit.dfg()), slot);
-            let inst = unit.unit().value_inst(ld);
+            let inst = unit.value_inst(ld);
             let value = match slot {
                 Var::Incoming(var, bb) => {
                     materialize_value(unit, &pt, var, bb, &block_outs, &mut HashSet::new())
@@ -188,7 +188,7 @@ fn materialize_value(
         );
         debug!(
             "Insert {} in {}",
-            unit.unit().value_inst(phi).dump(unit.dfg(), unit.try_cfg()),
+            unit.value_inst(phi).dump(unit.dfg(), unit.try_cfg()),
             block.dump(unit.cfg())
         );
         Some(phi)

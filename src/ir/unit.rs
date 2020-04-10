@@ -534,15 +534,8 @@ impl<'a> UnitBuilder<'a> {
     }
 
     /// Return the unit being built.
-    // #[deprecated(note = "simply drop the unit()")]
-    pub fn unit(&self) -> &Unit<'a> {
-        &self.unit
-    }
-
-    /// Return the mutable unit being built.
-    // #[deprecated(note = "simply drop the unit_mut()")]
-    pub fn unit_mut(&mut self) -> &mut Self {
-        self
+    pub fn unit(&'a self) -> Unit<'a> {
+        self.unit
     }
 
     /// Add a new instruction using an `InstBuilder`.

@@ -21,7 +21,7 @@ impl Pass for ProcessLowering {
 }
 
 fn lower_unit(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
-    if !unit.is_process() || !is_suitable(ctx, unit) {
+    if !unit.is_process() || !is_suitable(ctx, unit.unit()) {
         return false;
     }
     let data = UnitData::new(UnitKind::Process, unit.name().clone(), unit.sig().clone());
@@ -45,13 +45,13 @@ fn lower_unit(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
 }
 
 /// Check if a process is suitable for lowering to an entity.
-fn is_suitable(_ctx: &PassContext, ub: &mut UnitBuilder) -> bool {
+fn is_suitable(_ctx: &PassContext, ub: Unit) -> bool {
     let dfg = ub.dfg();
     let layout = ub.func_layout();
 
     // Ensure that there is only one basic block.
     if layout.blocks().count() != 1 {
-        trace!("Skipping {} (not just one block)", ub.unit().name());
+        trace!("Skipping {} (not just one block)", ub.name());
         return false;
     }
     let bb = layout.entry();
@@ -61,7 +61,7 @@ fn is_suitable(_ctx: &PassContext, ub: &mut UnitBuilder) -> bool {
     match ub[term].opcode() {
         Opcode::Wait | Opcode::WaitTime | Opcode::Halt => (),
         op => {
-            trace!("Skipping {} (wrong terminator {})", ub.unit().name(), op);
+            trace!("Skipping {} (wrong terminator {})", ub.name(), op);
             return false;
         }
     }
@@ -74,7 +74,7 @@ fn is_suitable(_ctx: &PassContext, ub: &mut UnitBuilder) -> bool {
         if !ub[inst].opcode().valid_in_entity() {
             trace!(
                 "Skipping {} ({} not allowed in entity)",
-                ub.unit().name(),
+                ub.name(),
                 inst.dump(ub.dfg(), ub.try_cfg())
             );
             return false;
@@ -85,12 +85,12 @@ fn is_suitable(_ctx: &PassContext, ub: &mut UnitBuilder) -> bool {
     // wait instruction's sensitivity list.
     match ub[term].opcode() {
         Opcode::Wait | Opcode::WaitTime => {
-            for arg in ub.unit().sig().inputs() {
-                let value = ub.unit().arg_value(arg);
-                if ub.unit().has_uses(value) && !ub[term].args().contains(&value) {
+            for arg in ub.sig().inputs() {
+                let value = ub.arg_value(arg);
+                if ub.has_uses(value) && !ub[term].args().contains(&value) {
                     trace!(
                         "Skipping {} ({} not in wait sensitivity list)",
-                        ub.unit().name(),
+                        ub.name(),
                         value.dump(dfg)
                     );
                     return false;

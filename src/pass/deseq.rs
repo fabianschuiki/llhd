@@ -38,7 +38,7 @@ impl Pass for Desequentialization {
 }
 
 fn deseq_process(ctx: &PassContext, unit: &mut UnitBuilder) -> Option<UnitData> {
-    info!("Deseq [{}]", unit.unit().name());
+    info!("Deseq [{}]", unit.name());
     let dfg = unit.dfg();
     let layout = unit.func_layout();
     let trg = TemporalRegionGraph::new(dfg, layout);
@@ -133,15 +133,11 @@ fn deseq_process(ctx: &PassContext, unit: &mut UnitBuilder) -> Option<UnitData> 
         .collect();
 
     // Create a replacement entity.
-    let mut entity = UnitData::new(
-        UnitKind::Entity,
-        unit.unit().name().clone(),
-        unit.unit().sig().clone(),
-    );
+    let mut entity = UnitData::new(UnitKind::Entity, unit.name().clone(), unit.sig().clone());
     let mut builder = UnitBuilder::new_anonymous(&mut entity);
     for arg in unit.unit().sig().args() {
-        if let Some(name) = unit.unit().get_name(unit.unit().arg_value(arg)) {
-            let v = builder.unit().arg_value(arg);
+        if let Some(name) = unit.get_name(unit.arg_value(arg)) {
+            let v = builder.arg_value(arg);
             builder.set_name(v, name.to_string());
         }
     }
@@ -173,7 +169,7 @@ fn deseq_process(ctx: &PassContext, unit: &mut UnitBuilder) -> Option<UnitData> 
     if migrated {
         Some(entity)
     } else {
-        trace!("Process {} not migrated", unit.unit().name());
+        trace!("Process {} not migrated", unit.name());
         None
     }
 }
@@ -192,7 +188,7 @@ fn canonicalize(
 ) -> Dnf {
     let dfg = unit.dfg();
     let dnf = canonicalize_inner(ctx, unit, trg, cond, inv);
-    let desc = if let Some(inst) = unit.unit().get_value_inst(cond) {
+    let desc = if let Some(inst) = unit.get_value_inst(cond) {
         inst.dump(dfg, unit.try_cfg()).to_string()
     } else {
         cond.dump(dfg).to_string()
@@ -216,13 +212,13 @@ fn canonicalize_inner(
     let dfg = unit.dfg();
 
     // Don't bother with values of the wrong type.
-    let ty = unit.unit().value_type(cond);
+    let ty = unit.value_type(cond);
     if ty != crate::ty::int_ty(1) {
         return Dnf::single(Term::Invalid(cond), inv);
     }
 
     // Canonicalize instructions.
-    if let Some(inst) = unit.unit().get_value_inst(cond) {
+    if let Some(inst) = unit.get_value_inst(cond) {
         let data = &dfg[inst];
         match data.opcode() {
             Opcode::ConstInt => {
@@ -666,12 +662,12 @@ impl<'a, 'b> Migrator<'a, 'b> {
         ties: &BTreeMap<(Value, TemporalRegion), TriggerLevel>,
     ) -> Option<Value> {
         // Migrate arguments.
-        if let Some(arg) = self.src.unit().get_value_arg(value) {
-            return Some(self.dst.unit().arg_value(arg));
+        if let Some(arg) = self.src.get_value_arg(value) {
+            return Some(self.dst.arg_value(arg));
         }
 
         // Migrate instructions.
-        if let Some(inst) = self.src.unit().get_value_inst(value) {
+        if let Some(inst) = self.src.get_value_inst(value) {
             let bb = self.src.func_layout().inst_block(inst)?;
             let tr = self.trg[bb];
 
@@ -726,11 +722,11 @@ impl<'a, 'b> Migrator<'a, 'b> {
             v
         } else {
             trace!("    Migrated {}", src_value.dump(self.src.dfg()));
-            let ty = self.src.unit().value_type(src_value);
+            let ty = self.src.value_type(src_value);
             let inst = self.dst.ins().build(data.clone(), ty);
-            let value = self.dst.unit().inst_result(inst);
+            let value = self.dst.inst_result(inst);
             self.cache.insert(data, value);
-            if let Some(name) = self.src.unit().get_name(src_value) {
+            if let Some(name) = self.src.get_name(src_value) {
                 self.dst.set_name(value, name.to_string());
             }
             value

@@ -390,7 +390,7 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
     }
 
     pub fn call(&mut self, unit: ExtUnit, args: Vec<Value>) -> Inst {
-        let ty = self.builder.unit().extern_sig(unit).return_type();
+        let ty = self.builder.extern_sig(unit).return_type();
         let data = InstData::Call {
             opcode: Opcode::Call,
             unit,
@@ -582,12 +582,12 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
 
     /// Convenience forward to `Unit`.
     fn value_type(&self, value: Value) -> Type {
-        self.builder.unit().value_type(value)
+        self.builder.value_type(value)
     }
 
     /// Convenience forward to `Unit`.
     fn inst_result(&self, inst: Inst) -> Value {
-        self.builder.unit().inst_result(inst)
+        self.builder.inst_result(inst)
     }
 
     /// Assign another value's name plus a suffix to the instruction being

@@ -21,7 +21,7 @@ pub struct GlobalCommonSubexprElim;
 
 impl Pass for GlobalCommonSubexprElim {
     fn run_on_cfg(_ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
-        info!("GCSE [{}]", unit.unit().name());
+        info!("GCSE [{}]", unit.name());
 
         // Build the predecessor table and dominator tree.
         let pred = PredecessorTable::new(unit.dfg(), unit.func_layout());
@@ -49,21 +49,21 @@ impl Pass for GlobalCommonSubexprElim {
             // Don't mess with instructions that produce no result or have side
             // effects.
             let opcode = unit.dfg()[inst].opcode();
-            if !unit.unit().has_result(inst)
+            if !unit.has_result(inst)
                 || opcode == Opcode::Ld
                 || opcode == Opcode::Var
                 || opcode == Opcode::Sig
             {
                 continue;
             }
-            let value = unit.unit().inst_result(inst);
+            let value = unit.inst_result(inst);
             trace!("Examining {}", inst.dump(unit.dfg(), unit.try_cfg()));
 
             // Try the candidates.
             if let Some(aliases) = values.get_mut(&unit.dfg()[inst]) {
                 'inner: for &cv in aliases.iter() {
                     trace!("  Trying {}", cv.dump(unit.dfg()));
-                    let cv_inst = unit.unit().value_inst(cv);
+                    let cv_inst = unit.value_inst(cv);
                     let inst_bb = unit.func_layout().inst_block(inst).unwrap();
                     let cv_bb = unit.func_layout().inst_block(cv_inst).unwrap();
 
