@@ -4,19 +4,40 @@
 
 use crate::{
     ir::{
-        prelude::*, ControlFlowGraph, DataFlowGraph, ExtUnit, ExtUnitData, FunctionInsertPos,
-        FunctionLayout, InstBuilder, InstData, UnitId,
+        prelude::*, BlockData, ControlFlowGraph, DataFlowGraph, ExtUnit, ExtUnitData,
+        FunctionInsertPos, FunctionLayout, InstBuilder, InstData, UnitId, ValueData,
     },
     verifier::Verifier,
     Type,
 };
-use std::{collections::HashSet, ops::Deref};
+use std::{
+    collections::HashSet,
+    ops::{Deref, Index, IndexMut},
+};
 
 /// An immutable function, process, or entity.
 #[derive(Clone, Copy)]
 pub struct Unit<'a> {
     unit: UnitId,
     data: &'a UnitData,
+}
+
+/// A mutable function, process, or entity.
+pub struct UnitBuilder<'a> {
+    /// The unit being modified.
+    unit: Unit<'a>,
+    /// The unit data being modified.
+    data: &'a mut UnitData,
+    /// The position where we are currently inserting instructions.
+    pos: FunctionInsertPos,
+}
+
+// Ensure the UnitBuilder can be used like a Unit.
+impl<'a> Deref for UnitBuilder<'a> {
+    type Target = Unit<'a>;
+    fn deref(&self) -> &Unit<'a> {
+        &self.unit
+    }
 }
 
 impl<'a> Unit<'a> {
@@ -325,24 +346,6 @@ impl std::fmt::Display for Unit<'_> {
     }
 }
 
-/// A mutable function, process, or entity.
-pub struct UnitBuilder<'a> {
-    /// The unit being modified.
-    unit: Unit<'a>,
-    /// The unit data being modified.
-    data: &'a mut UnitData,
-    /// The position where we are currently inserting instructions.
-    pos: FunctionInsertPos,
-}
-
-// Ensure the UnitBuilder can be used like a Unit.
-impl<'a> Deref for UnitBuilder<'a> {
-    type Target = Unit<'a>;
-    fn deref(&self) -> &Unit<'a> {
-        &self.unit
-    }
-}
-
 impl<'a> UnitBuilder<'a> {
     /// Finish building and make the unit immutable again.
     pub fn finish(self) -> Unit<'a> {
@@ -619,6 +622,90 @@ impl<'a> UnitBuilder<'a> {
     /// Annotates the byte offset of an instruction in the input file.
     pub fn set_location_hint(&mut self, inst: Inst, loc: usize) {
         self.dfg_mut().set_location_hint(inst, loc)
+    }
+}
+
+// Allow immutable indexing into `Unit`.
+
+impl Index<Value> for Unit<'_> {
+    type Output = ValueData;
+    fn index(&self, idx: Value) -> &ValueData {
+        self.data.dfg.index(idx)
+    }
+}
+
+impl Index<Inst> for Unit<'_> {
+    type Output = InstData;
+    fn index(&self, idx: Inst) -> &InstData {
+        self.data.dfg.index(idx)
+    }
+}
+
+impl Index<ExtUnit> for Unit<'_> {
+    type Output = ExtUnitData;
+    fn index(&self, idx: ExtUnit) -> &ExtUnitData {
+        self.data.dfg.index(idx)
+    }
+}
+
+impl Index<Block> for Unit<'_> {
+    type Output = BlockData;
+    fn index(&self, idx: Block) -> &BlockData {
+        self.data.cfg.index(idx)
+    }
+}
+
+// Allow immutable and mutable indexing into `UnitBuilder`.
+
+impl Index<Value> for UnitBuilder<'_> {
+    type Output = ValueData;
+    fn index(&self, idx: Value) -> &ValueData {
+        self.data.dfg.index(idx)
+    }
+}
+
+impl Index<Inst> for UnitBuilder<'_> {
+    type Output = InstData;
+    fn index(&self, idx: Inst) -> &InstData {
+        self.data.dfg.index(idx)
+    }
+}
+
+impl Index<ExtUnit> for UnitBuilder<'_> {
+    type Output = ExtUnitData;
+    fn index(&self, idx: ExtUnit) -> &ExtUnitData {
+        self.data.dfg.index(idx)
+    }
+}
+
+impl Index<Block> for UnitBuilder<'_> {
+    type Output = BlockData;
+    fn index(&self, idx: Block) -> &BlockData {
+        self.data.cfg.index(idx)
+    }
+}
+
+impl IndexMut<Value> for UnitBuilder<'_> {
+    fn index_mut(&mut self, idx: Value) -> &mut ValueData {
+        self.data.dfg.index_mut(idx)
+    }
+}
+
+impl IndexMut<Inst> for UnitBuilder<'_> {
+    fn index_mut(&mut self, idx: Inst) -> &mut InstData {
+        self.data.dfg.index_mut(idx)
+    }
+}
+
+impl IndexMut<ExtUnit> for UnitBuilder<'_> {
+    fn index_mut(&mut self, idx: ExtUnit) -> &mut ExtUnitData {
+        self.data.dfg.index_mut(idx)
+    }
+}
+
+impl IndexMut<Block> for UnitBuilder<'_> {
+    fn index_mut(&mut self, idx: Block) -> &mut BlockData {
+        self.data.cfg.index_mut(idx)
     }
 }
 
