@@ -16,6 +16,7 @@ pub mod prelude;
 mod sig;
 mod unit;
 mod unit_data;
+pub mod unit_v2;
 
 pub use self::cfg::*;
 pub use self::dfg::*;
