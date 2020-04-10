@@ -7,7 +7,7 @@ fn main() {
     sig.set_return_type(llhd::int_ty(32));
     let mut func = UnitData::new(UnitKind::Function, name, sig);
     {
-        let mut builder = UnitDataBuilder::new(&mut func);
+        let mut builder = UnitBuilder::new_anonymous(&mut func);
         let bb = builder.named_block("entry");
         builder.append_to(bb);
         let mut sig = Signature::new();
@@ -21,5 +21,5 @@ fn main() {
         let v3 = builder.unit().inst_result(v3);
         builder.ins().ret_value(v3);
     }
-    println!("{}", func.dump());
+    println!("{}", Unit::new_anonymous(&func));
 }

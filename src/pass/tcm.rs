@@ -28,7 +28,7 @@ use std::{
 pub struct TemporalCodeMotion;
 
 impl Pass for TemporalCodeMotion {
-    fn run_on_cfg(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+    fn run_on_cfg(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
         info!("TCM [{}]", unit.unit().name());
         let mut modified = false;
 
@@ -155,7 +155,7 @@ impl Pass for TemporalCodeMotion {
 /// into the same target block in a different region. This is needed to ensure
 /// that drives have a dedicated block to be pushed down into ahead of the next
 /// temporal region.
-fn add_aux_blocks(_ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+fn add_aux_blocks(_ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
     let pt = PredecessorTable::new(unit.dfg(), unit.func_layout());
     let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
     let mut modified = false;
@@ -211,7 +211,7 @@ fn add_aux_blocks(_ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
 }
 
 /// Push `drv` instructions downards into the tails of their temporal regions.
-fn push_drives(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+fn push_drives(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
     let mut modified = false;
 
     // We need the dominator tree of the current CFG.
@@ -310,7 +310,7 @@ fn push_drives(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
 fn push_drive(
     _ctx: &PassContext,
     drive: Inst,
-    unit: &mut impl UnitBuilder,
+    unit: &mut UnitBuilder,
     dt: &DominatorTree,
     trg: &TemporalRegionGraph,
 ) -> bool {
@@ -447,7 +447,7 @@ fn push_drive(
     true
 }
 
-fn coalesce_drives(_ctx: &PassContext, block: Block, unit: &mut impl UnitBuilder) -> bool {
+fn coalesce_drives(_ctx: &PassContext, block: Block, unit: &mut UnitBuilder) -> bool {
     let mut modified = false;
     let dfg = unit.dfg();
 
@@ -516,7 +516,7 @@ fn coalesce_drives(_ctx: &PassContext, block: Block, unit: &mut impl UnitBuilder
     modified
 }
 
-fn drive_cond(unit: &mut impl UnitBuilder, inst: Inst) -> Value {
+fn drive_cond(unit: &mut UnitBuilder, inst: Inst) -> Value {
     if unit.dfg()[inst].opcode() == Opcode::DrvCond {
         unit.dfg()[inst].args()[3]
     } else {

@@ -65,7 +65,7 @@ Function: UnitData =
         .collect();
     sig.set_return_type(retty);
     let mut func = UnitData::new(UnitKind::Function, name, sig);
-    let mut builder = UnitDataBuilder::new(&mut func);
+    let mut builder = UnitBuilder::new_anonymous(&mut func);
     let mut context = ast::Context::default();
     for (arg, name) in args {
         let v = builder.unit().arg_value(arg);
@@ -98,7 +98,7 @@ Process: UnitData =
         .map(|(ty, name)| (sig.add_output(ty), name))
         .collect();
     let mut prok = UnitData::new(UnitKind::Process, name, sig);
-    let mut builder = UnitDataBuilder::new(&mut prok);
+    let mut builder = UnitBuilder::new_anonymous(&mut prok);
     let mut context = ast::Context::default();
     for (arg, name) in input_args {
         let v = builder.unit().arg_value(arg);
@@ -138,7 +138,7 @@ Entity: UnitData =
         .map(|(ty, name)| (sig.add_output(ty), name))
         .collect();
     let mut ent = UnitData::new(UnitKind::Entity, name, sig);
-    let mut builder = UnitDataBuilder::new(&mut ent);
+    let mut builder = UnitBuilder::new_anonymous(&mut ent);
     let mut context = ast::Context::default();
     for (arg, name) in input_args {
         let v = builder.unit().arg_value(arg);

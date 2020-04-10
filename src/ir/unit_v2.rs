@@ -7,6 +7,7 @@ use crate::{
         prelude::*, BlockData, ControlFlowGraph, DataFlowGraph, ExtUnit, ExtUnitData,
         FunctionInsertPos, FunctionLayout, InstBuilder, InstData, UnitId, ValueData,
     },
+    table::TableKey,
     verifier::Verifier,
     Type,
 };
@@ -41,6 +42,17 @@ impl<'a> Deref for UnitBuilder<'a> {
 }
 
 impl<'a> Unit<'a> {
+    /// Create a new unit wrapper around raw unit data.
+    pub fn new(unit: UnitId, data: &'a UnitData) -> Self {
+        Self { unit, data }
+    }
+
+    /// Create a new unit wrapper around raw unit data that has not been added
+    /// to a module yet.
+    pub fn new_anonymous(data: &'a UnitData) -> Self {
+        Self::new(UnitId::invalid(), data)
+    }
+
     /// Get the unit's id.
     #[inline(always)]
     pub fn id(self) -> UnitId {
@@ -62,44 +74,44 @@ impl<'a> Unit<'a> {
 /// Unfiltered.
 impl<'a> Unit<'a> {
     /// Get the DFG of the unit being built.
-    pub fn dfg(&self) -> &DataFlowGraph {
+    pub fn dfg(self) -> &'a DataFlowGraph {
         &self.data.dfg
     }
 
     /// Get the CFG of the unit being built.
-    pub fn cfg(&self) -> &ControlFlowGraph {
+    pub fn cfg(self) -> &'a ControlFlowGraph {
         &self.data.cfg
     }
 
     /// Get the CFG of the unit being built.
-    pub fn try_cfg(&self) -> Option<&ControlFlowGraph> {
+    pub fn try_cfg(self) -> Option<&'a ControlFlowGraph> {
         Some(&self.data.cfg)
     }
 
     /// Get the unit's layout.
-    pub fn func_layout(&self) -> &FunctionLayout {
+    pub fn func_layout(self) -> &'a FunctionLayout {
         &self.data.layout
     }
 
     /// Get the unit's signature.
-    pub fn sig(&self) -> &Signature {
+    pub fn sig(self) -> &'a Signature {
         &self.data.sig
     }
 
     /// Get the unit's name.
-    pub fn name(&self) -> &UnitName {
+    pub fn name(self) -> &'a UnitName {
         &self.data.name
     }
 
     /// Dump the unit in human-readable form.
-    pub fn dump(&self) -> &Self {
+    pub fn dump(self) -> Self {
         self
     }
 
     /// Panic if the unit is not well-formed.
-    pub fn verify(&self) {
+    pub fn verify(self) {
         let mut verifier = Verifier::new();
-        verifier.verify_unit(&self.data);
+        verifier.verify_unit(self);
         match verifier.finish() {
             Ok(()) => (),
             Err(errs) => {
@@ -115,37 +127,37 @@ impl<'a> Unit<'a> {
     }
 
     /// Check if this unit is a `Function`.
-    pub fn is_function(&self) -> bool {
+    pub fn is_function(self) -> bool {
         self.kind() == UnitKind::Function
     }
 
     /// Check if this unit is a `Process`.
-    pub fn is_process(&self) -> bool {
+    pub fn is_process(self) -> bool {
         self.kind() == UnitKind::Process
     }
 
     /// Check if this unit is an `Entity`.
-    pub fn is_entity(&self) -> bool {
+    pub fn is_entity(self) -> bool {
         self.kind() == UnitKind::Entity
     }
 
     /// Return an iterator over the unit's input arguments.
-    pub fn input_args<'b>(&'b self) -> Box<dyn Iterator<Item = Value> + 'b> {
-        Box::new(self.sig().inputs().map(move |arg| self.arg_value(arg)))
+    pub fn input_args(self) -> impl Iterator<Item = Value> + 'a {
+        self.sig().inputs().map(move |arg| self.arg_value(arg))
     }
 
     /// Return an iterator over the unit's output arguments.
-    pub fn output_args<'b>(&'b self) -> Box<dyn Iterator<Item = Value> + 'b> {
-        Box::new(self.sig().outputs().map(move |arg| self.arg_value(arg)))
+    pub fn output_args(self) -> impl Iterator<Item = Value> + 'a {
+        self.sig().outputs().map(move |arg| self.arg_value(arg))
     }
 
     /// Return an iterator over the unit's arguments.
-    pub fn args<'b>(&'b self) -> Box<dyn Iterator<Item = Value> + 'b> {
-        Box::new(self.sig().args().map(move |arg| self.arg_value(arg)))
+    pub fn args(self) -> impl Iterator<Item = Value> + 'a {
+        self.sig().args().map(move |arg| self.arg_value(arg))
     }
 
     /// Get the input argument at position `pos`.
-    pub fn input_arg(&self, pos: usize) -> Value {
+    pub fn input_arg(self, pos: usize) -> Value {
         self.arg_value(
             self.sig()
                 .inputs()
@@ -155,7 +167,7 @@ impl<'a> Unit<'a> {
     }
 
     /// Get the output argument at position `pos`.
-    pub fn output_arg(&self, pos: usize) -> Value {
+    pub fn output_arg(self, pos: usize) -> Value {
         self.arg_value(
             self.sig()
                 .outputs()
@@ -165,106 +177,106 @@ impl<'a> Unit<'a> {
     }
 
     /// Return the name of an external unit.
-    pub fn extern_name(&self, ext: ExtUnit) -> &UnitName {
+    pub fn extern_name(self, ext: ExtUnit) -> &'a UnitName {
         &self.dfg()[ext].name
     }
 
     /// Return the signature of an external unit.
-    pub fn extern_sig(&self, ext: ExtUnit) -> &Signature {
+    pub fn extern_sig(self, ext: ExtUnit) -> &'a Signature {
         &self.dfg()[ext].sig
     }
 
     // ----- Control Flow Graph ------------------------------------------------
 
     /// Return the name of a BB.
-    pub fn get_block_name(&self, bb: Block) -> Option<&str> {
+    pub fn get_block_name(self, bb: Block) -> Option<&'a str> {
         self.cfg().get_name(bb)
     }
 
     /// Return the anonymous name hint of a BB.
-    pub fn get_anonymous_block_hint(&self, bb: Block) -> Option<u32> {
+    pub fn get_anonymous_block_hint(self, bb: Block) -> Option<u32> {
         self.cfg().get_anonymous_hint(bb)
     }
 
     // ----- Data Flow Graph ---------------------------------------------------
 
     /// Check if a value is a placeholder.
-    pub fn is_placeholder(&self, value: Value) -> bool {
+    pub fn is_placeholder(self, value: Value) -> bool {
         self.dfg().is_placeholder(value)
     }
 
     /// Returns whether an instruction produces a result.
-    pub fn has_result(&self, inst: Inst) -> bool {
+    pub fn has_result(self, inst: Inst) -> bool {
         self.dfg().has_result(inst)
     }
 
     /// Returns the result of an instruction.
-    pub fn inst_result(&self, inst: Inst) -> Value {
+    pub fn inst_result(self, inst: Inst) -> Value {
         self.dfg().inst_result(inst)
     }
 
     /// Returns the result of an instruction.
-    pub fn get_inst_result(&self, inst: Inst) -> Option<Value> {
+    pub fn get_inst_result(self, inst: Inst) -> Option<Value> {
         self.dfg().get_inst_result(inst)
     }
 
     /// Returns the value of an argument.
-    pub fn arg_value(&self, arg: Arg) -> Value {
+    pub fn arg_value(self, arg: Arg) -> Value {
         self.dfg().arg_value(arg)
     }
 
     /// Returns the type of a value.
-    pub fn value_type(&self, value: Value) -> Type {
+    pub fn value_type(self, value: Value) -> Type {
         self.dfg().value_type(value)
     }
 
     /// Returns the type of an instruction.
-    pub fn inst_type(&self, inst: Inst) -> Type {
+    pub fn inst_type(self, inst: Inst) -> Type {
         self.dfg().inst_type(inst)
     }
 
     /// Return the argument that produces `value`.
-    pub fn get_value_arg(&self, value: Value) -> Option<Arg> {
+    pub fn get_value_arg(self, value: Value) -> Option<Arg> {
         self.dfg().get_value_arg(value)
     }
 
     /// Return the argument that produces `value`, or panic.
-    pub fn value_arg(&self, value: Value) -> Arg {
+    pub fn value_arg(self, value: Value) -> Arg {
         self.dfg().value_arg(value)
     }
 
     /// Return the instruction that produces `value`.
-    pub fn get_value_inst(&self, value: Value) -> Option<Inst> {
+    pub fn get_value_inst(self, value: Value) -> Option<Inst> {
         self.dfg().get_value_inst(value)
     }
 
     /// Return the instruction that produces `value`, or panic.
-    pub fn value_inst(&self, value: Value) -> Inst {
+    pub fn value_inst(self, value: Value) -> Inst {
         self.dfg().value_inst(value)
     }
 
     /// Return the name of a value.
-    pub fn get_name(&self, value: Value) -> Option<&str> {
+    pub fn get_name(self, value: Value) -> Option<&'a str> {
         self.dfg().get_name(value)
     }
 
     /// Return the anonymous name hint of a value.
-    pub fn get_anonymous_hint(&self, value: Value) -> Option<u32> {
+    pub fn get_anonymous_hint(self, value: Value) -> Option<u32> {
         self.dfg().get_anonymous_hint(value)
     }
 
     /// Iterate over all uses of a value.
-    pub fn uses(&self, value: Value) -> &HashSet<Inst> {
+    pub fn uses(self, value: Value) -> &'a HashSet<Inst> {
         self.dfg().uses(value)
     }
 
     /// Check if a value is used.
-    pub fn has_uses(&self, value: Value) -> bool {
+    pub fn has_uses(self, value: Value) -> bool {
         self.dfg().has_uses(value)
     }
 
     /// Check if a value has exactly one use.
-    pub fn has_one_use(&self, value: Value) -> bool {
+    pub fn has_one_use(self, value: Value) -> bool {
         self.dfg().has_one_use(value)
     }
 
@@ -273,7 +285,7 @@ impl<'a> Unit<'a> {
     /// Returns `None` if the value is not constant. Note that this *does not*
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
-    pub fn get_const(&self, value: Value) -> Option<crate::Value> {
+    pub fn get_const(self, value: Value) -> Option<crate::Value> {
         self.dfg().get_const(value)
     }
 
@@ -282,7 +294,7 @@ impl<'a> Unit<'a> {
     /// Returns `None` if the value is not constant. Note that this *does not*
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
-    pub fn get_const_time(&self, value: Value) -> Option<&crate::TimeValue> {
+    pub fn get_const_time(self, value: Value) -> Option<&'a crate::TimeValue> {
         self.dfg().get_const_time(value)
     }
 
@@ -291,7 +303,7 @@ impl<'a> Unit<'a> {
     /// Returns `None` if the value is not constant. Note that this *does not*
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
-    pub fn get_const_int(&self, value: Value) -> Option<&crate::IntValue> {
+    pub fn get_const_int(self, value: Value) -> Option<&'a crate::IntValue> {
         self.dfg().get_const_int(value)
     }
 
@@ -300,7 +312,7 @@ impl<'a> Unit<'a> {
     /// Returns `None` if the value is not constant. Note that this *does not*
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
-    pub fn get_const_array(&self, value: Value) -> Option<crate::ArrayValue> {
+    pub fn get_const_array(self, value: Value) -> Option<crate::ArrayValue> {
         self.dfg().get_const_array(value)
     }
 
@@ -309,7 +321,7 @@ impl<'a> Unit<'a> {
     /// Returns `None` if the value is not constant. Note that this *does not*
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
-    pub fn get_const_struct(&self, value: Value) -> Option<crate::StructValue> {
+    pub fn get_const_struct(self, value: Value) -> Option<crate::StructValue> {
         self.dfg().get_const_struct(value)
     }
 
@@ -317,7 +329,7 @@ impl<'a> Unit<'a> {
     ///
     /// Returns the byte offset of the instruction in the input file, or None if there
     /// is no hint for the instruction.
-    pub fn location_hint(&self, inst: Inst) -> Option<usize> {
+    pub fn location_hint(self, inst: Inst) -> Option<usize> {
         self.dfg().location_hint(inst)
     }
 }
@@ -347,6 +359,27 @@ impl std::fmt::Display for Unit<'_> {
 }
 
 impl<'a> UnitBuilder<'a> {
+    /// Create a new builder for a unit.
+    pub fn new(unit: UnitId, data: &'a mut UnitData) -> Self {
+        let pos = match data.kind {
+            UnitKind::Entity => FunctionInsertPos::Append(data.layout.entry()),
+            _ => FunctionInsertPos::None,
+        };
+        Self {
+            unit: Unit::new(unit, unsafe { &*(data as *const _) }),
+            // Safety of the above is enforced by UnitBuilder by requiring all
+            // mutation of the unit to go through a mutable borrow of the
+            // builder itself.
+            data: data,
+            pos,
+        }
+    }
+
+    /// Create a new builder for a unit that has not yet been added to a module.
+    pub fn new_anonymous(data: &'a mut UnitData) -> Self {
+        Self::new(UnitId::invalid(), data)
+    }
+
     /// Finish building and make the unit immutable again.
     pub fn finish(self) -> Unit<'a> {
         self.unit
@@ -372,19 +405,19 @@ impl<'a> UnitBuilder<'a> {
     }
 
     /// Return the unit being built.
-    #[deprecated(note = "simply drop the unit()")]
-    pub fn unit(&self) -> &UnitData {
-        self.data
+    // #[deprecated(note = "simply drop the unit()")]
+    pub fn unit(&self) -> &Unit<'a> {
+        &self.unit
     }
 
     /// Return the mutable unit being built.
-    #[deprecated(note = "simply drop the unit_mut()")]
-    pub fn unit_mut(&mut self) -> &mut UnitData {
-        self.data
+    // #[deprecated(note = "simply drop the unit_mut()")]
+    pub fn unit_mut(&mut self) -> &mut Self {
+        self
     }
 
     /// Add a new instruction using an `InstBuilder`.
-    pub fn ins(&mut self) -> InstBuilder<&mut Self> {
+    pub fn ins(&mut self) -> InstBuilder<'a, '_> {
         InstBuilder::new(self)
     }
 

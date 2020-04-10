@@ -26,6 +26,7 @@ pub use self::module::*;
 pub use self::sig::*;
 pub use self::unit::*;
 pub use self::unit_data::*;
+pub use self::unit_v2::*;
 
 /// The position where new instructions will be inserted into a `Function` or
 /// `Process`.

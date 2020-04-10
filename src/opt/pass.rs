@@ -13,20 +13,18 @@ pub trait Pass {
     /// Run this pass on an entire module.
     fn run_on_module(ctx: &PassContext, module: &mut Module) -> bool {
         module
-            .units
-            .storage
-            .par_iter_mut()
-            .map(|(_, unit)| Self::run_on_unit(ctx, &mut UnitDataBuilder::new(unit)))
+            .par_units_mut()
+            .map(|mut unit| Self::run_on_unit(ctx, &mut unit))
             .reduce(|| false, |a, b| a || b)
     }
 
     /// Run this pass on an entire unit.
-    fn run_on_unit(ctx: &PassContext, data: &mut UnitDataBuilder) -> bool {
+    fn run_on_unit(ctx: &PassContext, data: &mut UnitBuilder) -> bool {
         Self::run_on_cfg(ctx, data)
     }
 
     /// Run this pass on an entire function or process.
-    fn run_on_cfg(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+    fn run_on_cfg(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
         let mut modified = false;
         let insts: Vec<_> = unit.func_layout().all_insts().collect();
         for inst in insts {
@@ -37,7 +35,7 @@ pub trait Pass {
 
     /// Run this pass on an instruction.
     #[allow(unused_variables)]
-    fn run_on_inst(ctx: &PassContext, inst: Inst, unit: &mut impl UnitBuilder) -> bool {
+    fn run_on_inst(ctx: &PassContext, inst: Inst, unit: &mut UnitBuilder) -> bool {
         false
     }
 }

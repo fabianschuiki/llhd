@@ -22,7 +22,7 @@ use std::{
 pub struct ControlFlowSimplification;
 
 impl Pass for ControlFlowSimplification {
-    fn run_on_cfg(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+    fn run_on_cfg(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
         info!("CFS [{}]", unit.unit().name());
         let mut modified = false;
 
@@ -104,7 +104,7 @@ impl Pass for ControlFlowSimplification {
 // list may be non-exhaustive in case of difficult phi nodes.
 fn prepare_phi(
     ctx: &PassContext,
-    unit: &impl UnitBuilder,
+    unit: &UnitBuilder,
     block: Block,
     inst: Inst,
     pt: &PredecessorTable,
@@ -136,7 +136,7 @@ fn prepare_phi(
 // coming from the `from` block, ultimately originating in the `target` block.
 fn justify_edge(
     ctx: &PassContext,
-    unit: &impl UnitBuilder,
+    unit: &UnitBuilder,
     from: Block,
     to: Block,
     target: Block,
@@ -197,7 +197,7 @@ enum Cond {
 
 fn build_discriminator(
     ctx: &PassContext,
-    unit: &mut impl UnitBuilder,
+    unit: &mut UnitBuilder,
     ways: &[(Value, Vec<Cond>)],
 ) -> Value {
     trace!("  Discriminating {:?}", ways);
@@ -255,7 +255,7 @@ fn build_discriminator(
 
 /// Check if a phi node can be elided because it produces the same value no
 /// matter what the incoming edge is.
-fn maybe_elide_phi(_ctx: &PassContext, unit: &impl UnitBuilder, inst: Inst) -> Option<Value> {
+fn maybe_elide_phi(_ctx: &PassContext, unit: &UnitBuilder, inst: Inst) -> Option<Value> {
     let set: HashSet<Value> = unit.dfg()[inst].args().iter().cloned().collect();
     if set.len() == 1 {
         set.into_iter().next()

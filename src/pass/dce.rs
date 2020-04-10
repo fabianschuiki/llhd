@@ -14,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 pub struct DeadCodeElim;
 
 impl Pass for DeadCodeElim {
-    fn run_on_cfg(_ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+    fn run_on_cfg(_ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
         info!("DCE [{}]", unit.unit().name());
         let mut modified = false;
 
@@ -134,7 +134,7 @@ impl Pass for DeadCodeElim {
 
 /// Check if a branch that terminates a block is trivial.
 fn check_branch_trivial(
-    unit: &impl UnitBuilder,
+    unit: &UnitBuilder,
     _block: Block,
     inst: Inst,
     triv_bb: &mut HashMap<Block, Option<Block>>,
@@ -182,7 +182,7 @@ fn check_branch_trivial(
 /// Check if a block can be trivially addressed from a different block, and if
 /// so, return a potential immediate forward through the block if trivial.
 fn check_block_retargetable(
-    unit: &impl UnitBuilder,
+    unit: &UnitBuilder,
     block: Block,
     triv_bb: &mut HashMap<Block, Option<Block>>,
     triv_br: &mut HashMap<Inst, Option<Block>>,
@@ -216,7 +216,7 @@ fn check_block_retargetable(
 }
 
 /// Eliminate unreachable and trivial blocks in a function layout.
-fn prune_blocks(builder: &mut impl UnitBuilder) -> bool {
+fn prune_blocks(builder: &mut UnitBuilder) -> bool {
     let mut modified = false;
 
     // Find all blocks reachable from the entry point.

@@ -18,8 +18,15 @@ use std::{
 pub trait TableKey: Copy {
     /// Create a new table key from an index.
     fn new(index: usize) -> Self;
+
+    /// Create an invalid table key.
+    fn invalid() -> Self;
+
     /// Return the index wrapped within this table key.
     fn index(self) -> usize;
+
+    /// Return whether this table key is invalid.
+    fn is_invalid(self) -> bool;
 }
 
 /// Generate a new opaque table key struct.
@@ -48,8 +55,16 @@ macro_rules! impl_table_key {
                     $name(index as $ity)
                 }
 
+                fn invalid() -> Self {
+                    $name(<$ity>::max_value())
+                }
+
                 fn index(self) -> usize {
                     self.0 as usize
+                }
+
+                fn is_invalid(self) -> bool {
+                    self.0 == <$ity>::max_value()
                 }
             }
         )*

@@ -11,7 +11,7 @@ use crate::opt::prelude::*;
 pub struct InstSimplification;
 
 impl Pass for InstSimplification {
-    fn run_on_inst(ctx: &PassContext, inst: Inst, ub: &mut impl UnitBuilder) -> bool {
+    fn run_on_inst(ctx: &PassContext, inst: Inst, ub: &mut UnitBuilder) -> bool {
         ub.insert_after(inst);
         match ub[inst].opcode() {
             // drv ... if 0 -> removed
@@ -55,7 +55,7 @@ impl Pass for InstSimplification {
     }
 }
 
-fn replace(from_inst: Inst, from_value: Value, to: Value, ub: &mut impl UnitBuilder) -> bool {
+fn replace(from_inst: Inst, from_value: Value, to: Value, ub: &mut UnitBuilder) -> bool {
     debug!(
         "Replace {} with {}",
         from_inst.dump(ub.dfg(), ub.try_cfg()),
@@ -64,7 +64,7 @@ fn replace(from_inst: Inst, from_value: Value, to: Value, ub: &mut impl UnitBuil
     ub.replace_use(from_value, to) > 0
 }
 
-fn simplify_mux(_ctx: &PassContext, inst: Inst, value: Value, ub: &mut impl UnitBuilder) -> bool {
+fn simplify_mux(_ctx: &PassContext, inst: Inst, value: Value, ub: &mut UnitBuilder) -> bool {
     let dfg = ub.dfg();
 
     // Check if all options are identical, in which case simply replace us with

@@ -2,8 +2,7 @@
 
 //! Process Lowering
 
-use crate::ir::prelude::*;
-use crate::opt::prelude::*;
+use crate::{ir::prelude::*, opt::prelude::*};
 use rayon::prelude::*;
 
 /// Process Lowering
@@ -15,30 +14,21 @@ impl Pass for ProcessLowering {
     fn run_on_module(ctx: &PassContext, module: &mut Module) -> bool {
         info!("ProcLower");
         module
-            .units
-            .storage
-            .par_iter_mut()
-            .map(|(_, unit)| lower_unit(ctx, unit))
+            .par_units_mut()
+            .map(|mut unit| lower_unit(ctx, &mut unit))
             .reduce(|| false, |a, b| a || b)
     }
 }
 
-fn lower_unit(ctx: &PassContext, unit: &mut UnitData) -> bool {
-    // Check if this is a process and it is suitable for lowering.
-    let process = if unit.is_process() {
-        if !is_suitable(ctx, &mut UnitDataBuilder::new(unit)) {
-            return false;
-        }
-        std::mem::replace(
-            unit,
-            UnitData::new(UnitKind::Process, unit.name().clone(), unit.sig().clone()),
-        )
-    } else {
+fn lower_unit(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
+    if !unit.is_process() || !is_suitable(ctx, unit) {
         return false;
-    };
+    }
+    let data = UnitData::new(UnitKind::Process, unit.name().clone(), unit.sig().clone());
+    let process = std::mem::replace(unit.data(), data);
 
     // Lower the process to an entity.
-    trace!("Lowering {} to an entity", process.name());
+    trace!("Lowering {} to an entity", process.name);
     let term = process.layout.terminator(process.layout.entry());
     let mut entity = UnitData {
         kind: UnitKind::Entity,
@@ -48,14 +38,14 @@ fn lower_unit(ctx: &PassContext, unit: &mut UnitData) -> bool {
         name: process.name,
         sig: process.sig,
     };
-    UnitDataBuilder::new(&mut entity).remove_inst(term);
-    *unit = entity;
+    UnitBuilder::new_anonymous(&mut entity).remove_inst(term);
+    *unit.data() = entity;
 
     true
 }
 
 /// Check if a process is suitable for lowering to an entity.
-fn is_suitable(_ctx: &PassContext, ub: &mut UnitDataBuilder) -> bool {
+fn is_suitable(_ctx: &PassContext, ub: &mut UnitBuilder) -> bool {
     let dfg = ub.dfg();
     let layout = ub.func_layout();
 

@@ -14,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 pub struct LoopIndepCodeMotion;
 
 impl Pass for LoopIndepCodeMotion {
-    fn run_on_cfg(ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+    fn run_on_cfg(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
         info!("LICM [{}]", unit.unit().name());
         let mut modified = false;
 
@@ -69,7 +69,7 @@ impl Pass for LoopIndepCodeMotion {
 
 fn move_instruction(
     _ctx: &PassContext,
-    unit: &mut impl UnitBuilder,
+    unit: &mut UnitBuilder,
     block: Block,
     inst: Inst,
     dt: &DominatorTree,

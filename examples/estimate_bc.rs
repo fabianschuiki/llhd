@@ -4,7 +4,7 @@
 extern crate clap;
 
 use clap::Arg;
-use llhd::{assembly::parse_module, ir::Unit, verifier::Verifier};
+use llhd::{assembly::parse_module, verifier::Verifier};
 use std::{fs::File, io::Read};
 
 fn main() {
@@ -26,18 +26,18 @@ fn main() {
 
     let mut num_bytes = 0;
     for unit in module.units() {
-        eprintln!("Estimating {}", module[unit].name());
+        eprintln!("Estimating {}", unit.name());
         let mut insts = vec![];
         let mut blocks = vec![];
 
-        let layout = module[unit].func_layout();
+        let layout = unit.func_layout();
         for b in layout.blocks() {
             blocks.push(b);
             insts.extend(layout.insts(b));
         }
 
-        num_bytes += module[unit].name().to_string().len();
-        let sig = module[unit].sig();
+        num_bytes += unit.name().to_string().len();
+        let sig = unit.sig();
         num_bytes += sig.args().count() * 8;
 
         for &_ in &blocks {
@@ -46,7 +46,6 @@ fn main() {
             num_bytes += 4; // block size
         }
 
-        let unit = &module[unit];
         for &inst in &insts {
             num_bytes += 2; // opcode
             num_bytes += 2; // type

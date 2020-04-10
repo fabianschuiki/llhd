@@ -9,10 +9,11 @@
 
 use crate::{
     impl_table_key,
-    ir::{ExtUnit, Signature, Unit, UnitData, UnitName},
-    table::PrimaryTable,
+    ir::{ExtUnit, Signature, Unit, UnitBuilder, UnitData, UnitName},
+    table::{PrimaryTable, TableKey},
     verifier::Verifier,
 };
+use rayon::prelude::*;
 use std::collections::{BTreeSet, HashMap};
 
 /// A module.
@@ -94,29 +95,44 @@ impl Module {
     }
 
     /// Return an iterator over the units in this module.
-    pub fn units<'a>(&'a self) -> impl Iterator<Item = UnitId> + 'a {
-        self.unit_order.iter().cloned()
+    pub fn units<'a>(&'a self) -> impl Iterator<Item = Unit<'a>> + 'a {
+        self.unit_order.iter().map(move |&id| self.unit(id))
+    }
+
+    /// Return a mutable iterator over the units in this module.
+    pub fn units_mut<'a>(&'a mut self) -> impl Iterator<Item = UnitBuilder<'a>> + 'a {
+        self.units
+            .storage
+            .iter_mut()
+            .map(|(&id, data)| UnitBuilder::new(UnitId::new(id), data))
+    }
+
+    /// Return a parallel iterator over the units in this module.
+    pub fn par_units<'a>(&'a self) -> impl ParallelIterator<Item = Unit<'a>> + 'a {
+        self.unit_order.par_iter().map(move |&id| self.unit(id))
+    }
+
+    /// Return a parallel mutable iterator over the units in this module.
+    pub fn par_units_mut<'a>(&'a mut self) -> impl ParallelIterator<Item = UnitBuilder<'a>> + 'a {
+        self.units
+            .storage
+            .par_iter_mut()
+            .map(|(&id, data)| UnitBuilder::new(UnitId::new(id), data))
     }
 
     /// Return an iterator over the functions in this module.
-    pub fn functions<'a>(&'a self) -> impl Iterator<Item = &'a UnitData> + 'a {
-        self.units()
-            .map(move |unit| &self[unit])
-            .filter(|unit| unit.is_function())
+    pub fn functions<'a>(&'a self) -> impl Iterator<Item = Unit<'a>> + 'a {
+        self.units().filter(|unit| unit.is_function())
     }
 
     /// Return an iterator over the processes in this module.
-    pub fn processes<'a>(&'a self) -> impl Iterator<Item = &'a UnitData> + 'a {
-        self.units()
-            .map(move |unit| &self[unit])
-            .filter(|unit| unit.is_process())
+    pub fn processes<'a>(&'a self) -> impl Iterator<Item = Unit<'a>> + 'a {
+        self.units().filter(|unit| unit.is_process())
     }
 
     /// Return an iterator over the entities in this module.
-    pub fn entities<'a>(&'a self) -> impl Iterator<Item = &'a UnitData> + 'a {
-        self.units()
-            .map(move |unit| &self[unit])
-            .filter(|unit| unit.is_entity())
+    pub fn entities<'a>(&'a self) -> impl Iterator<Item = Unit<'a>> + 'a {
+        self.units().filter(|unit| unit.is_entity())
     }
 
     /// Return an iterator over the external unit declarations in this module.
@@ -124,21 +140,21 @@ impl Module {
         self.decl_order.iter().cloned()
     }
 
-    /// Return an unit in the module. Panic if the unit is a declaration.
-    pub fn unit(&self, unit: UnitId) -> &dyn Unit {
-        &self[unit]
+    /// Return an unit in the module.
+    pub fn unit(&self, unit: UnitId) -> Unit {
+        Unit::new(unit, &self[unit])
     }
 
-    /// Return a mutable unit in the module. Panic if the unit is a declaration.
-    pub fn unit_mut(&mut self, unit: UnitId) -> &mut dyn Unit {
+    /// Return a mutable unit in the module.
+    pub fn unit_mut(&mut self, unit: UnitId) -> UnitBuilder {
         self.link_table = None;
-        &mut self[unit]
+        UnitBuilder::new(unit, &mut self[unit])
     }
 
     /// Return an iterator over the symbols in the module.
     pub fn symbols<'a>(&'a self) -> impl Iterator<Item = (&UnitName, LinkedUnit, &Signature)> + 'a {
         self.units()
-            .map(move |unit| (self[unit].name(), LinkedUnit::Def(unit), self[unit].sig()))
+            .map(|unit| (unit.name(), LinkedUnit::Def(unit.id()), unit.sig()))
             .chain(
                 self.decls()
                     .map(move |decl| (&self[decl].name, LinkedUnit::Decl(decl), &self[decl].sig)),
@@ -187,14 +203,14 @@ impl Module {
         // Resolve the external units in each unit.
         let mut linked = HashMap::new();
         for unit in self.units() {
-            for (ext_unit, data) in self[unit].dfg.ext_units.iter() {
+            for (ext_unit, data) in unit.dfg().ext_units.iter() {
                 let (to, to_sig) = match symbols.get(&data.name).cloned() {
                     Some(to) => to,
                     None => {
                         eprintln!(
                             "unit {} not found; referenced in {}",
                             data.name,
-                            self[unit].name()
+                            unit.name()
                         );
                         failed = true;
                         continue;
@@ -205,13 +221,13 @@ impl Module {
                         "signature mismatch: {} has {}, but reference in {} expects {}",
                         data.name,
                         to_sig,
-                        self[unit].name(),
+                        unit.name(),
                         data.sig
                     );
                     failed = true;
                     continue;
                 }
-                linked.insert((unit, ext_unit), to);
+                linked.insert((unit.id(), ext_unit), to);
             }
         }
         if failed {
@@ -304,8 +320,8 @@ impl std::fmt::Display for ModuleDumper<'_> {
                 writeln!(f, "")?;
             }
             newline = true;
-            write!(f, "{}: ", unit)?;
-            write!(f, "{}", self.0[unit].dump())?;
+            write!(f, "{}: ", unit.id())?;
+            write!(f, "{}", unit.dump())?;
         }
         if newline && !self.0.decls().count() > 0 {
             writeln!(f, "")?;

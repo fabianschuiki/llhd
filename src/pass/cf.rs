@@ -14,7 +14,7 @@ use std::cmp::min;
 pub struct ConstFolding;
 
 impl Pass for ConstFolding {
-    fn run_on_inst(_ctx: &PassContext, inst: Inst, unit: &mut impl UnitBuilder) -> bool {
+    fn run_on_inst(_ctx: &PassContext, inst: Inst, unit: &mut UnitBuilder) -> bool {
         run_on_inst(unit, inst)
     }
 }
@@ -22,7 +22,7 @@ impl Pass for ConstFolding {
 /// Fold a single instruction.
 ///
 /// Returns `true` if the unit that contains the instruction was modified.
-pub fn run_on_inst(builder: &mut impl UnitBuilder, inst: Inst) -> bool {
+pub fn run_on_inst(builder: &mut UnitBuilder, inst: Inst) -> bool {
     builder.insert_before(inst);
 
     // Don't bother folding instructions which don't yield a result.
@@ -71,7 +71,7 @@ pub fn run_on_inst(builder: &mut impl UnitBuilder, inst: Inst) -> bool {
 /// Fold a value.
 ///
 /// If the value is an instruction, folds it.
-pub fn run_on_value(builder: &mut impl UnitBuilder, value: Value) -> bool {
+pub fn run_on_value(builder: &mut UnitBuilder, value: Value) -> bool {
     if let Some(inst) = builder.unit().get_value_inst(value) {
         run_on_inst(builder, inst)
     } else {
@@ -80,7 +80,7 @@ pub fn run_on_value(builder: &mut impl UnitBuilder, value: Value) -> bool {
 }
 
 /// Fold a unary instruction.
-fn fold_unary(builder: &mut impl UnitBuilder, op: Opcode, ty: Type, arg: Value) -> Option<Value> {
+fn fold_unary(builder: &mut UnitBuilder, op: Opcode, ty: Type, arg: Value) -> Option<Value> {
     if ty.is_int() {
         fold_unary_int(builder, op, arg)
     } else {
@@ -89,19 +89,14 @@ fn fold_unary(builder: &mut impl UnitBuilder, op: Opcode, ty: Type, arg: Value) 
 }
 
 /// Fold a unary instruction on integers.
-fn fold_unary_int(builder: &mut impl UnitBuilder, op: Opcode, arg: Value) -> Option<Value> {
+fn fold_unary_int(builder: &mut UnitBuilder, op: Opcode, arg: Value) -> Option<Value> {
     let imm = builder.unit().get_const_int(arg)?;
     let result = IntValue::try_unary_op(op, imm)?;
     Some(builder.ins().const_int(result))
 }
 
 /// Fold a binary instruction.
-fn fold_binary(
-    builder: &mut impl UnitBuilder,
-    op: Opcode,
-    ty: Type,
-    args: [Value; 2],
-) -> Option<Value> {
+fn fold_binary(builder: &mut UnitBuilder, op: Opcode, ty: Type, args: [Value; 2]) -> Option<Value> {
     if ty.is_int() {
         fold_binary_int(builder, op, ty.unwrap_int(), args)
     } else {
@@ -111,7 +106,7 @@ fn fold_binary(
 
 /// Fold a binary instruction on integers.
 fn fold_binary_int(
-    builder: &mut impl UnitBuilder,
+    builder: &mut UnitBuilder,
     op: Opcode,
     width: usize,
     args: [Value; 2],
@@ -168,7 +163,7 @@ fn fold_binary_int(
 }
 
 /// Fold a shift instruction.
-fn fold_shift(builder: &mut impl UnitBuilder, inst: Inst, ty: &Type) -> Option<Value> {
+fn fold_shift(builder: &mut UnitBuilder, inst: Inst, ty: &Type) -> Option<Value> {
     let dfg = builder.dfg();
     let base = dfg[inst].args()[0];
     let hidden = dfg[inst].args()[1];
@@ -231,7 +226,7 @@ fn fold_shift(builder: &mut impl UnitBuilder, inst: Inst, ty: &Type) -> Option<V
 }
 
 /// Fold a slice insertion instruction.
-fn fold_ins_slice(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
+fn fold_ins_slice(builder: &mut UnitBuilder, inst: Inst) -> Option<Value> {
     let dfg = builder.dfg();
     let data = &dfg[inst];
     let target = data.args()[0];
@@ -260,7 +255,7 @@ fn fold_ins_slice(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
 }
 
 /// Fold a slice extraction instruction.
-fn fold_ext_slice(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
+fn fold_ext_slice(builder: &mut UnitBuilder, inst: Inst) -> Option<Value> {
     let dfg = builder.dfg();
     let data = &dfg[inst];
     let ty = &builder.unit().inst_type(inst);
@@ -285,7 +280,7 @@ fn fold_ext_slice(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
 }
 
 /// Fold a field extraction instruction.
-fn fold_ext_field(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
+fn fold_ext_field(builder: &mut UnitBuilder, inst: Inst) -> Option<Value> {
     let dfg = builder.dfg();
     let data = &dfg[inst];
     let target = data.args()[0];
@@ -302,7 +297,7 @@ fn fold_ext_field(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
 }
 
 /// Fold a mux instruction.
-fn fold_mux(builder: &mut impl UnitBuilder, inst: Inst) -> Option<Value> {
+fn fold_mux(builder: &mut UnitBuilder, inst: Inst) -> Option<Value> {
     let dfg = builder.dfg();
     let choices = dfg[inst].args()[0];
     let sel = dfg[inst].args()[1];

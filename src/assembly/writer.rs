@@ -2,7 +2,7 @@
 
 //! Emitting LLHD IR assembly.
 
-use crate::ir::{prelude::*, UnitData, UnitKind};
+use crate::ir::{prelude::*, UnitKind};
 use std::{
     collections::{HashMap, HashSet},
     io::{Result, Write},
@@ -23,12 +23,12 @@ impl<T: Write> Writer<T> {
     /// Emit assembly for a module.
     pub fn write_module(&mut self, module: &Module) -> Result<()> {
         let mut separate = false;
-        for mod_unit in module.units() {
+        for unit in module.units() {
             if separate {
                 write!(self.sink, "\n")?;
             }
             separate = true;
-            self.write_unit(&module[mod_unit])?;
+            self.write_unit(unit)?;
         }
         for decl in module.decls() {
             if separate {
@@ -42,9 +42,9 @@ impl<T: Write> Writer<T> {
     }
 
     /// Emit assembly for a unit.
-    pub fn write_unit(&mut self, data: &UnitData) -> Result<()> {
+    pub fn write_unit(&mut self, data: Unit) -> Result<()> {
         let mut uw = UnitWriter::new(self, data);
-        write!(uw.writer.sink, "{} {} (", data.kind, data.name())?;
+        write!(uw.writer.sink, "{} {} (", data.kind(), data.name())?;
         let mut comma = false;
         for arg in data.sig().inputs() {
             if comma {
@@ -54,7 +54,7 @@ impl<T: Write> Writer<T> {
             write!(uw.writer.sink, "{} ", data.sig().arg_type(arg))?;
             uw.write_value_name(data.arg_value(arg))?;
         }
-        if data.kind == UnitKind::Function {
+        if data.kind() == UnitKind::Function {
             write!(uw.writer.sink, ") {} {{\n", data.sig().return_type())?;
         } else {
             write!(uw.writer.sink, ") -> (")?;
@@ -69,12 +69,12 @@ impl<T: Write> Writer<T> {
             }
             write!(uw.writer.sink, ") {{\n")?;
         }
-        for block in data.layout.blocks() {
-            if data.kind != UnitKind::Entity {
+        for block in data.func_layout().blocks() {
+            if data.kind() != UnitKind::Entity {
                 uw.write_block_name(block)?;
                 write!(uw.writer.sink, ":\n")?;
             }
-            for inst in data.layout.insts(block) {
+            for inst in data.func_layout().insts(block) {
                 write!(uw.writer.sink, "    ")?;
                 uw.write_inst(inst)?;
                 write!(uw.writer.sink, "\n")?;
@@ -91,9 +91,9 @@ impl<T: Write> Writer<T> {
     }
 }
 
-pub struct UnitWriter<'a, T, U> {
+pub struct UnitWriter<'a, T> {
     writer: &'a mut Writer<T>,
-    unit: &'a U,
+    unit: Unit<'a>,
     value_names: HashMap<Value, Rc<String>>,
     block_names: HashMap<Block, Rc<String>>,
     name_indices: HashMap<Rc<String>, usize>,
@@ -101,9 +101,9 @@ pub struct UnitWriter<'a, T, U> {
     tmp_index: usize,
 }
 
-impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
+impl<'a, T: Write> UnitWriter<'a, T> {
     /// Create a new writer for a unit.
-    pub fn new(writer: &'a mut Writer<T>, unit: &'a U) -> Self {
+    pub fn new(writer: &'a mut Writer<T>, unit: Unit<'a>) -> Self {
         Self {
             writer,
             unit,
@@ -192,17 +192,18 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
 
     /// Emit an instruction.
     pub fn write_inst(&mut self, inst: Inst) -> Result<()> {
-        if self.unit.has_result(inst) {
-            self.write_value_name(self.unit.inst_result(inst))?;
+        let unit = self.unit;
+        if unit.has_result(inst) {
+            self.write_value_name(unit.inst_result(inst))?;
             write!(self.writer.sink, " = ")?;
         }
-        let data = &self.unit[inst];
+        let data = &unit[inst];
         match data.opcode() {
             Opcode::ConstInt => write!(
                 self.writer.sink,
                 "{} {} {}",
                 data.opcode(),
-                self.unit.value_type(self.unit.inst_result(inst)),
+                unit.value_type(unit.inst_result(inst)),
                 data.get_const_int().unwrap().value
             )?,
             Opcode::ConstTime => write!(
@@ -341,7 +342,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     self.writer.sink,
                     "{} {}",
                     data.opcode(),
-                    self.unit.inst_type(inst)
+                    unit.inst_type(inst)
                 )?;
                 for &arg in data.args() {
                     write!(self.writer.sink, ", ")?;
@@ -356,12 +357,12 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     self.writer.sink,
                     "{} {} {} (",
                     data.opcode(),
-                    if self.unit.has_result(inst) {
-                        self.unit.value_type(self.unit.inst_result(inst))
+                    if unit.has_result(inst) {
+                        unit.value_type(unit.inst_result(inst))
                     } else {
                         crate::void_ty()
                     },
-                    self.unit[data.get_ext_unit().unwrap()].name,
+                    unit[data.get_ext_unit().unwrap()].name,
                 )?;
                 let mut comma = false;
                 for &arg in data.input_args() {
@@ -378,7 +379,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     self.writer.sink,
                     "{} {} (",
                     data.opcode(),
-                    self.unit[data.get_ext_unit().unwrap()].name,
+                    unit[data.get_ext_unit().unwrap()].name,
                 )?;
                 let mut comma = false;
                 for &arg in data.input_args() {
@@ -405,7 +406,7 @@ impl<'a, T: Write, U: Unit> UnitWriter<'a, T, U> {
                     self.writer.sink,
                     "{} {} ",
                     data.opcode(),
-                    self.unit.value_type(self.unit.inst_result(inst))
+                    unit.value_type(unit.inst_result(inst))
                 )?;
                 let mut comma = false;
                 for (&arg, &block) in data.args().iter().zip(data.blocks().iter()) {

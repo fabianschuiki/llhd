@@ -3,7 +3,7 @@
 //! Temporary representation of LLHD IR after parsing.
 
 use crate::{
-    ir::{self, Opcode, Signature, Unit as _, UnitBuilder, UnitName},
+    ir::{self, Opcode, Signature, UnitBuilder, UnitName},
     ty::Type,
     value::{IntValue, TimeValue},
 };
@@ -27,7 +27,7 @@ pub struct Block<'a> {
 }
 
 impl<'a> Block<'a> {
-    pub fn build(self, builder: &mut impl UnitBuilder, context: &mut Context<'a>) {
+    pub fn build(self, builder: &mut UnitBuilder, context: &mut Context<'a>) {
         let bb = match context.block_names.get(&self.name).cloned() {
             Some(bb) => bb,
             None => {
@@ -114,7 +114,7 @@ impl<'a> Inst<'a> {
         x
     }
 
-    pub fn build(self, builder: &mut impl UnitBuilder, context: &mut Context<'a>) {
+    pub fn build(self, builder: &mut UnitBuilder, context: &mut Context<'a>) {
         let result: InstOrValue = match self.data {
             InstData::ConstInt(imm) => builder.ins().const_int(imm).into(),
             InstData::ConstTime(imm) => builder.ins().const_time(imm).into(),
@@ -230,7 +230,6 @@ impl<'a> Inst<'a> {
                 }
             }
             InstData::Ext(ty, target, imm) => {
-                use crate::ir::Unit;
                 let target = target.build(builder, context);
                 let ins = match self.opcode {
                     Opcode::ExtField => builder.ins().ext_field(target, imm[0]),
@@ -403,7 +402,7 @@ impl std::fmt::Display for Value<'_> {
 }
 
 impl Value<'_> {
-    fn build(self, _builder: &mut impl UnitBuilder, context: &mut Context) -> ir::Value {
+    fn build(self, _builder: &mut UnitBuilder, context: &mut Context) -> ir::Value {
         match context.value_names.get(&self.0) {
             Some(&v) => v,
             None => panic!("value {} has not been declared", self),
@@ -418,7 +417,7 @@ pub struct TypedValue<'a> {
 }
 
 impl<'a> TypedValue<'a> {
-    fn build(self, builder: &mut impl UnitBuilder, context: &mut Context<'a>) -> ir::Value {
+    fn build(self, builder: &mut UnitBuilder, context: &mut Context<'a>) -> ir::Value {
         match context.value_names.get(&self.value.0).cloned() {
             Some(v) => {
                 // assert_eq!(builder.unit().value_type(v), self.ty, "type mismatch");
@@ -450,7 +449,7 @@ impl std::fmt::Display for Label<'_> {
 }
 
 impl<'a> Label<'a> {
-    fn build(self, builder: &mut impl UnitBuilder, context: &mut Context<'a>) -> ir::Block {
+    fn build(self, builder: &mut UnitBuilder, context: &mut Context<'a>) -> ir::Block {
         match context.block_names.get(&self.0).cloned() {
             Some(bb) => bb,
             None => {

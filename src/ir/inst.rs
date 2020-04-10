@@ -6,7 +6,7 @@
 //! representation.
 
 use crate::{
-    ir::{Block, ControlFlowGraph, DataFlowGraph, ExtUnit, Inst, Unit, UnitBuilder, Value},
+    ir::{Block, ControlFlowGraph, DataFlowGraph, ExtUnit, Inst, UnitBuilder, Value},
     ty::{array_ty, int_ty, pointer_ty, signal_ty, struct_ty, void_ty, Type},
     value::{IntValue, TimeValue},
 };
@@ -14,14 +14,14 @@ use bitflags::bitflags;
 use std::borrow::Cow;
 
 /// A temporary object used to construct a single instruction.
-pub struct InstBuilder<B> {
-    builder: B,
+pub struct InstBuilder<'a, 'b> {
+    builder: &'b mut UnitBuilder<'a>,
     name: Option<String>,
 }
 
-impl<B> InstBuilder<B> {
+impl<'a, 'b> InstBuilder<'a, 'b> {
     /// Create a new instruction builder that inserts into `builder`.
-    pub fn new(builder: B) -> Self {
+    pub fn new(builder: &'b mut UnitBuilder<'a>) -> Self {
         Self {
             builder,
             name: None,
@@ -35,7 +35,7 @@ impl<B> InstBuilder<B> {
     }
 }
 
-impl<B: UnitBuilder> InstBuilder<&mut B> {
+impl<'a, 'b> InstBuilder<'a, 'b> {
     /// Construct the zero value for a type.
     ///
     /// This is a convenience function that creates the appropriate instruction
@@ -516,7 +516,7 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
 }
 
 /// Convenience functions to construct the different instruction formats.
-impl<B: UnitBuilder> InstBuilder<&mut B> {
+impl<'a, 'b> InstBuilder<'a, 'b> {
     /// `opcode`
     fn build_nullary(&mut self, opcode: Opcode) -> Inst {
         let data = InstData::Nullary { opcode };
@@ -566,7 +566,7 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
 }
 
 /// Fundamental convenience forwards to the wrapped builder.
-impl<B: UnitBuilder> InstBuilder<&mut B> {
+impl<'a, 'b> InstBuilder<'a, 'b> {
     /// Convenience forward to `UnitBuilder`.
     pub(crate) fn build(&mut self, data: InstData, ty: Type) -> Inst {
         let has_result = !ty.is_void();
@@ -595,7 +595,7 @@ impl<B: UnitBuilder> InstBuilder<&mut B> {
     ///
     /// If `value` has a name, the instruction's name will be
     /// `<value>.<suffix>`. Otherwise it will just be `<suffix>`.
-    pub fn suffix<'a>(mut self, value: Value, suffix: impl Into<Cow<'a, str>>) -> Self {
+    pub fn suffix<'c>(mut self, value: Value, suffix: impl Into<Cow<'c, str>>) -> Self {
         let suffix = suffix.into(); // moooh
         self.name = if let Some(name) = self.builder.dfg().get_name(value) {
             Some(format!("{}.{}", name, suffix))

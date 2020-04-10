@@ -6,7 +6,7 @@ extern crate clap;
 extern crate log;
 
 use clap::Arg;
-use llhd::{assembly::parse_module, ir::Unit, opt::prelude::*, verifier::Verifier};
+use llhd::{assembly::parse_module, opt::prelude::*, verifier::Verifier};
 use std::{
     fs::File,
     io::{BufWriter, Read},

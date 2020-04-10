@@ -4,7 +4,7 @@
 
 use anyhow::{bail, Result};
 use itertools::Itertools;
-use llhd::ir::{Unit, UnitKind};
+use llhd::ir::UnitKind;
 use std::{
     collections::{HashMap, HashSet},
     io::Write,
@@ -16,14 +16,10 @@ use std::{
 pub fn write(output: &mut impl Write, module: &llhd::ir::Module) -> Result<()> {
     debug!("Emitting Verilog code");
     let mut skipped = vec![];
-    for mod_unit in module.units() {
-        let unit = match module[mod_unit].get_data() {
-            Some(d) => d,
-            None => continue,
-        };
+    for unit in module.units() {
         if unit.kind() == UnitKind::Entity {
             if unit.name().is_global() {
-                write_entity(output, mod_unit, unit, &mut Context::default())?;
+                write_entity(output, unit, &mut Context::default())?;
             }
         } else {
             let name = unit.name();
@@ -50,7 +46,7 @@ struct Context {
 
 impl Context {
     /// Generate a printable name for a value.
-    fn value_name(&mut self, unit: &impl llhd::ir::Unit, value: UnitValue) -> Rc<String> {
+    fn value_name(&mut self, unit: llhd::ir::Unit, value: UnitValue) -> Rc<String> {
         if let Some(name) = self.name_map.get(&value).cloned() {
             return name;
         }
@@ -71,17 +67,14 @@ impl Context {
 }
 
 /// Emit an LLHD entity as a new Verilog module.
-fn write_entity(
-    output: &mut impl Write,
-    mod_unit: llhd::ir::UnitId,
-    entity: &llhd::ir::UnitData,
-    ctx: &mut Context,
-) -> Result<()> {
+fn write_entity(output: &mut impl Write, entity: llhd::ir::Unit, ctx: &mut Context) -> Result<()> {
     let name = sanitize_unit_name(entity.name());
     debug!("Creating entity {} as `{}`", entity.name(), name);
 
     // Emit the module header.
-    let ports = entity.args().map(|v| ctx.value_name(entity, (mod_unit, v)));
+    let ports = entity
+        .args()
+        .map(|v| ctx.value_name(entity, (entity.id(), v)));
     write!(output, "module {} ({});\n", name, ports.format(", "))?;
 
     // Emit the port declarations.
@@ -90,7 +83,7 @@ fn write_entity(
         .zip(repeat("input"))
         .chain(entity.output_args().zip(repeat("output")));
     for (v, dir) in ports {
-        let n = ctx.value_name(entity, (mod_unit, v));
+        let n = ctx.value_name(entity, (entity.id(), v));
         write!(
             output,
             "    {} {} {};\n",
@@ -100,7 +93,7 @@ fn write_entity(
         )?;
     }
 
-    write_entity_body(output, mod_unit, entity, ctx, Default::default())?;
+    write_entity_body(output, entity, ctx, Default::default())?;
     write!(output, "\nendmodule\n\n")?;
     Ok(())
 }
@@ -108,8 +101,7 @@ fn write_entity(
 /// Emit an LLHD entity within an existing Verilog module.
 fn write_entity_body(
     output: &mut impl Write,
-    _mod_unit: llhd::ir::UnitId,
-    entity: &llhd::ir::UnitData,
+    entity: llhd::ir::Unit,
     _ctx: &mut Context,
     _bound: HashMap<llhd::ir::Value, llhd::ir::Value>,
 ) -> Result<()> {

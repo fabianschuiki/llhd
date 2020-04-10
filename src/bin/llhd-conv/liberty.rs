@@ -366,7 +366,7 @@ impl<'a> RootVisitor<'a> {
             output_map.insert(name, arg);
         }
         let mut ent = UnitData::new(UnitKind::Entity, cell_name, sig);
-        let mut builder = UnitDataBuilder::new(&mut ent);
+        let mut builder = UnitBuilder::new_anonymous(&mut ent);
         for (name, &arg) in input_map.iter().chain(output_map.iter()) {
             let arg = builder.unit().arg_value(arg);
             builder.set_name(arg, name.clone());
@@ -396,7 +396,7 @@ impl<'a> RootVisitor<'a> {
 
     fn emit_term(
         &mut self,
-        builder: &mut UnitDataBuilder,
+        builder: &mut UnitBuilder,
         map: &HashMap<String, Arg>,
         func: FunctionTerm,
     ) -> Result<Value, String> {

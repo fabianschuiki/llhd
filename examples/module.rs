@@ -19,7 +19,7 @@ fn main() {
     // Create a process which calls the external function.
     let mut proc2 = UnitData::new(UnitKind::Process, UnitName::local("foo"), Signature::new());
     {
-        let mut builder = UnitDataBuilder::new(&mut proc2);
+        let mut builder = UnitBuilder::new_anonymous(&mut proc2);
         let bb = builder.block();
         builder.append_to(bb);
         let ext = builder.add_extern(UnitName::global("my_func"), func_sig);
@@ -31,7 +31,7 @@ fn main() {
     // Create an entity which instantiates the processes.
     let mut ent = UnitData::new(UnitKind::Entity, UnitName::local("bar"), Signature::new());
     {
-        let mut builder = UnitDataBuilder::new(&mut ent);
+        let mut builder = UnitBuilder::new_anonymous(&mut ent);
         let ext0 = builder.add_extern(UnitName::global("my_proc"), proc_sig);
         let ext1 = builder.add_extern(UnitName::local("foo"), Signature::new());
         builder.ins().inst(ext0, vec![], vec![]);

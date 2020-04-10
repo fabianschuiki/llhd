@@ -5,9 +5,9 @@ fn main() {
     let func = build_function(UnitName::Global("foo".to_owned()));
     let prok = build_process(UnitName::Global("bar".to_owned()));
     let ent = build_entity(UnitName::Global("top".to_owned()));
-    println!("{}", func.dump());
-    println!("{}", prok.dump());
-    println!("{}", ent.dump());
+    println!("{}", Unit::new_anonymous(&func));
+    println!("{}", Unit::new_anonymous(&prok));
+    println!("{}", Unit::new_anonymous(&ent));
 }
 
 fn build_function(name: UnitName) -> UnitData {
@@ -17,7 +17,7 @@ fn build_function(name: UnitName) -> UnitData {
     sig.set_return_type(llhd::void_ty());
     let mut func = UnitData::new(UnitKind::Function, name, sig);
     {
-        let mut builder = UnitDataBuilder::new(&mut func);
+        let mut builder = UnitBuilder::new_anonymous(&mut func);
         let arg1 = builder.unit().arg_value(arg1);
         let arg2 = builder.unit().arg_value(arg2);
         let bb1 = builder.block();
@@ -41,7 +41,7 @@ fn build_function(name: UnitName) -> UnitData {
         builder.ins().uge(v3, v4);
         builder.ins().ret_value(v7);
     }
-    func.verify();
+    Unit::new_anonymous(&func).verify();
     func
 }
 
@@ -52,7 +52,7 @@ fn build_process(name: UnitName) -> UnitData {
     let oup = sig.add_output(llhd::signal_ty(llhd::int_ty(32)));
     let mut prok = UnitData::new(UnitKind::Process, name, sig);
     {
-        let mut builder = UnitDataBuilder::new(&mut prok);
+        let mut builder = UnitBuilder::new_anonymous(&mut prok);
         let clk = builder.unit().arg_value(clk);
         let inp = builder.unit().arg_value(inp);
         let _oup = builder.unit().arg_value(oup);
@@ -63,7 +63,7 @@ fn build_process(name: UnitName) -> UnitData {
         builder.ins().neq(clk, inp);
         builder.ins().halt();
     }
-    prok.verify();
+    Unit::new_anonymous(&prok).verify();
     prok
 }
 
@@ -75,13 +75,13 @@ fn build_entity(name: UnitName) -> UnitData {
     let _oup = sig.add_output(llhd::signal_ty(llhd::int_ty(32)));
     let mut ent = UnitData::new(UnitKind::Entity, name, sig);
     {
-        let mut builder = UnitDataBuilder::new(&mut ent);
+        let mut builder = UnitBuilder::new_anonymous(&mut ent);
         let v1 = builder.ins().const_int((32, 42));
         let v2 = builder.ins().const_int((32, 2));
         let v3 = builder.ins().add(v1, v2);
         let inp = builder.unit().arg_value(inp);
         builder.ins().add(v3, inp);
     }
-    ent.verify();
+    Unit::new_anonymous(&ent).verify();
     ent
 }

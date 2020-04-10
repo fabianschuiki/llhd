@@ -15,7 +15,7 @@ use std::collections::{HashMap, HashSet};
 pub struct VarToPhiPromotion;
 
 impl Pass for VarToPhiPromotion {
-    fn run_on_cfg(_ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+    fn run_on_cfg(_ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
         info!("VTPP [{}]", unit.unit().name());
         let mut modified = false;
 
@@ -129,7 +129,7 @@ enum Var {
 
 /// Ensure that the value of a variable is available in a specified block.
 fn materialize_value(
-    unit: &mut impl UnitBuilder,
+    unit: &mut UnitBuilder,
     pt: &PredecessorTable,
     var: Value,
     block: Block,

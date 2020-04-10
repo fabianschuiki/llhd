@@ -20,7 +20,7 @@ use std::{
 pub struct GlobalCommonSubexprElim;
 
 impl Pass for GlobalCommonSubexprElim {
-    fn run_on_cfg(_ctx: &PassContext, unit: &mut impl UnitBuilder) -> bool {
+    fn run_on_cfg(_ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
         info!("GCSE [{}]", unit.unit().name());
 
         // Build the predecessor table and dominator tree.

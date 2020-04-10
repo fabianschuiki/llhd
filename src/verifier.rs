@@ -34,14 +34,14 @@ impl Verifier {
     /// Verify the integrity of a `Module`.
     pub fn verify_module(&mut self, module: &Module) {
         for unit in module.units() {
-            self.verify_unit(&module[unit]);
+            self.verify_unit(unit);
         }
     }
 
     /// Verify the integrity of a `UnitData`.
-    pub fn verify_unit(&mut self, unit: &UnitData) {
-        self.unit_name = Some(format!("{} {}", unit.kind, unit.name));
-        match unit.kind {
+    pub fn verify_unit(&mut self, unit: Unit) {
+        self.unit_name = Some(format!("{} {}", unit.kind(), unit.name()));
+        match unit.kind() {
             UnitKind::Function => {
                 self.return_type = Some(unit.sig().return_type());
                 self.flags = UnitFlags::FUNCTION;
@@ -53,18 +53,13 @@ impl Verifier {
                 self.flags = UnitFlags::ENTITY;
             }
         }
-        self.verify_function_layout(unit, &unit.layout, unit.kind == UnitKind::Entity);
+        self.verify_function_layout(unit, unit.func_layout(), unit.kind() == UnitKind::Entity);
         self.unit_name = None;
         self.return_type = None;
     }
 
     /// Verify the integrity of the BB and instruction layout.
-    pub fn verify_function_layout(
-        &mut self,
-        unit: &impl Unit,
-        layout: &FunctionLayout,
-        is_entity: bool,
-    ) {
+    pub fn verify_function_layout(&mut self, unit: Unit, layout: &FunctionLayout, is_entity: bool) {
         if layout.first_block().is_none() {
             self.errors.push(VerifierError {
                 unit: self.unit_name.clone(),
@@ -122,7 +117,7 @@ impl Verifier {
     }
 
     /// Verify the integrity of the instruction layout.
-    pub fn verify_inst_layout(&mut self, unit: &impl Unit, layout: &InstLayout) {
+    pub fn verify_inst_layout(&mut self, unit: Unit, layout: &InstLayout) {
         for inst in layout.insts() {
             self.verify_inst(inst, unit, layout);
         }
@@ -150,7 +145,7 @@ impl Verifier {
     }
 
     /// Verify the integrity of a single instruction.
-    pub fn verify_inst(&mut self, inst: Inst, unit: &impl Unit, layout: &impl Layout) {
+    pub fn verify_inst(&mut self, inst: Inst, unit: Unit, layout: &impl Layout) {
         InstVerifier {
             verifier: self,
             unit,
@@ -161,32 +156,36 @@ impl Verifier {
 }
 
 /// An instruction verifier.
-struct InstVerifier<'a, U, L> {
+struct InstVerifier<'a, L> {
     verifier: &'a mut Verifier,
-    unit: &'a U,
+    unit: Unit<'a>,
     layout: &'a L,
 }
 
-impl<'a, U, L> Deref for InstVerifier<'a, U, L> {
+impl<'a, L> Deref for InstVerifier<'a, L> {
     type Target = Verifier;
     fn deref(&self) -> &Verifier {
         self.verifier
     }
 }
 
-impl<'a, U, L> DerefMut for InstVerifier<'a, U, L> {
+impl<'a, L> DerefMut for InstVerifier<'a, L> {
     fn deref_mut(&mut self) -> &mut Verifier {
         self.verifier
     }
 }
 
-impl<'a, U, L> InstVerifier<'a, U, L>
+impl<'a, L> InstVerifier<'a, L>
 where
-    U: Unit,
     L: Layout,
 {
+    #[inline(always)]
+    fn unit(&self) -> Unit<'a> {
+        self.unit
+    }
+
     fn is_value_defined(&self, value: Value) -> bool {
-        match self.unit[value] {
+        match self.unit()[value] {
             ValueData::Invalid => false,
             ValueData::Inst { inst, .. } => self.layout.is_inst_inserted(inst),
             ValueData::Arg { .. } => true,
@@ -200,21 +199,23 @@ where
 
     /// Verify the integrity of a single instruction.
     pub fn verify_inst(&mut self, inst: Inst) {
+        let unit = self.unit;
+
         // Check that the instruction may appear in the surrounding unit.
-        if !self.unit[inst].opcode().valid_in().contains(self.flags) {
+        if !unit[inst].opcode().valid_in().contains(self.flags) {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
-                message: format!("{} may not appear in this unit", self.unit[inst].opcode()),
+                object: Some(inst.dump(unit.dfg(), unit.try_cfg()).to_string()),
+                message: format!("{} may not appear in this unit", unit[inst].opcode()),
             });
         }
 
         // Check that none of the arguments are invalid, and all have a
         // definition.
         let mut args_invalid = false;
-        for &value in self.unit[inst].args() {
+        for &value in unit[inst].args() {
             if value.is_invalid() {
-                if self.unit[inst].opcode() == Opcode::Reg {
+                if unit[inst].opcode() == Opcode::Reg {
                     // Optional trigger condition in register uses `invalid` to
                     // indicate that the value is not use. This is ugly.
                     continue;
@@ -222,36 +223,36 @@ where
                 args_invalid = true;
                 self.verifier.errors.push(VerifierError {
                     unit: self.verifier.unit_name.clone(),
-                    object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
-                    message: format!("{} uses invalid value", self.unit[inst].opcode()),
+                    object: Some(inst.dump(unit.dfg(), unit.try_cfg()).to_string()),
+                    message: format!("{} uses invalid value", unit[inst].opcode()),
                 });
                 continue;
             }
             if !self.is_value_defined(value) {
                 self.verifier.errors.push(VerifierError {
                     unit: self.verifier.unit_name.clone(),
-                    object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
-                    message: format!("value {} has no definition", value.dump(self.unit.dfg())),
+                    object: Some(inst.dump(unit.dfg(), unit.try_cfg()).to_string()),
+                    message: format!("value {} has no definition", value.dump(unit.dfg())),
                 });
             }
         }
-        for &block in self.unit[inst].blocks() {
+        for &block in unit[inst].blocks() {
             if block.is_invalid() {
                 args_invalid = true;
                 self.verifier.errors.push(VerifierError {
                     unit: self.verifier.unit_name.clone(),
-                    object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
-                    message: format!("{} uses invalid block", self.unit[inst].opcode()),
+                    object: Some(inst.dump(unit.dfg(), unit.try_cfg()).to_string()),
+                    message: format!("{} uses invalid block", unit[inst].opcode()),
                 });
                 continue;
             }
             if !self.is_block_defined(block) {
                 self.verifier.errors.push(VerifierError {
                     unit: self.verifier.unit_name.clone(),
-                    object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                    object: Some(inst.dump(unit.dfg(), unit.try_cfg()).to_string()),
                     message: format!(
                         "block {} has no definition",
-                        block.dump(self.unit.try_cfg().unwrap())
+                        block.dump(unit.try_cfg().unwrap())
                     ),
                 });
             }
@@ -262,17 +263,17 @@ where
 
         // Check for instruction-specific invariants. This match block acts as
         // the source of truth for all restrictions imposed by instructions.
-        match self.unit[inst].opcode() {
+        match unit[inst].opcode() {
             Opcode::ConstInt => {}
             Opcode::ConstTime => {}
             Opcode::Alias => {}
             Opcode::ArrayUniform => {}
             Opcode::Array => {
-                self.verify_args_match_ty(inst, self.unit.inst_type(inst).unwrap_array().1);
+                self.verify_args_match_ty(inst, unit.inst_type(inst).unwrap_array().1);
             }
             Opcode::Struct => {
-                for (i, ty) in self.unit.inst_type(inst).unwrap_struct().iter().enumerate() {
-                    self.verify_arg_matches_ty(inst, self.unit[inst].args()[i], ty);
+                for (i, ty) in unit.inst_type(inst).unwrap_struct().iter().enumerate() {
+                    self.verify_arg_matches_ty(inst, unit[inst].args()[i], ty);
                 }
             }
             Opcode::Not => {
@@ -348,18 +349,18 @@ where
             }
             Opcode::Con => {
                 self.assert_inst_binary(inst);
-                self.verify_arg_ty_is_signal(inst, self.unit[inst].args()[0]);
+                self.verify_arg_ty_is_signal(inst, unit[inst].args()[0]);
                 self.verify_arg_tys_match(inst);
             }
             Opcode::Del => {
                 self.assert_inst_ternary(inst);
-                self.verify_arg_ty_is_signal(inst, self.unit[inst].args()[0]);
+                self.verify_arg_ty_is_signal(inst, unit[inst].args()[0]);
                 self.verify_arg_matches_ty(
                     inst,
-                    self.unit[inst].args()[1],
-                    &self.unit.value_type(self.unit[inst].args()[0]),
+                    unit[inst].args()[1],
+                    &unit.value_type(unit[inst].args()[0]),
                 );
-                self.verify_arg_matches_ty(inst, self.unit[inst].args()[2], &time_ty());
+                self.verify_arg_matches_ty(inst, unit[inst].args()[2], &time_ty());
             }
             Opcode::Call => {
                 // TODO: properly check argument types match the declaration
@@ -402,7 +403,7 @@ where
             }
             Opcode::RetValue => {
                 self.assert_inst_unary(inst);
-                self.verify_return_type(inst, &self.unit.value_type(self.unit[inst].args()[0]));
+                self.verify_return_type(inst, &unit.value_type(unit[inst].args()[0]));
             }
             Opcode::Phi => {
                 self.assert_inst_phi(inst);
@@ -420,14 +421,14 @@ where
             }
             Opcode::WaitTime => {
                 self.assert_inst_wait(inst);
-                self.verify_arg_matches_ty(inst, self.unit[inst].args()[0], &time_ty());
+                self.verify_arg_matches_ty(inst, unit[inst].args()[0], &time_ty());
             }
         }
     }
 
     /// Assert that an instruction has nullary format.
     fn assert_inst_nullary(&mut self, inst: Inst) {
-        match &self.unit[inst] {
+        match &self.unit()[inst] {
             InstData::Nullary { .. } => (),
             fmt => panic!(
                 "{0:?} ({0}) should have nullary format, but has {1:?}",
@@ -439,7 +440,7 @@ where
 
     /// Assert that an instruction has unary format.
     fn assert_inst_unary(&mut self, inst: Inst) {
-        match &self.unit[inst] {
+        match &self.unit()[inst] {
             InstData::Unary { .. } => (),
             fmt => panic!(
                 "{0:?} ({0}) should have unary format, but has {1:?}",
@@ -451,7 +452,7 @@ where
 
     /// Assert that an instruction has binary format.
     fn assert_inst_binary(&mut self, inst: Inst) {
-        match &self.unit[inst] {
+        match &self.unit()[inst] {
             InstData::Binary { .. } => (),
             fmt => panic!(
                 "{0:?} ({0}) should have binary format, but has {1:?}",
@@ -463,7 +464,7 @@ where
 
     /// Assert that an instruction has ternary format.
     fn assert_inst_ternary(&mut self, inst: Inst) {
-        match &self.unit[inst] {
+        match &self.unit()[inst] {
             InstData::Ternary { .. } => (),
             fmt => panic!(
                 "{0:?} ({0}) should have ternary format, but has {1:?}",
@@ -475,7 +476,7 @@ where
 
     /// Assert that an instruction has quaternary format.
     fn assert_inst_quaternary(&mut self, inst: Inst) {
-        match &self.unit[inst] {
+        match &self.unit()[inst] {
             InstData::Quaternary { .. } => (),
             fmt => panic!(
                 "{0:?} ({0}) should have quaternary format, but has {1:?}",
@@ -487,7 +488,7 @@ where
 
     /// Assert that an instruction has jump format.
     fn assert_inst_jump(&mut self, inst: Inst) {
-        match &self.unit[inst] {
+        match &self.unit()[inst] {
             InstData::Jump { .. } => (),
             fmt => panic!(
                 "{0:?} ({0}) should have jump format, but has {1:?}",
@@ -499,7 +500,7 @@ where
 
     /// Assert that an instruction has phi format.
     fn assert_inst_phi(&mut self, inst: Inst) {
-        match &self.unit[inst] {
+        match &self.unit()[inst] {
             InstData::Phi { .. } => (),
             fmt => panic!(
                 "{0:?} ({0}) should have phi format, but has {1:?}",
@@ -511,7 +512,7 @@ where
 
     /// Assert that an instruction has branch format.
     fn assert_inst_branch(&mut self, inst: Inst) {
-        match &self.unit[inst] {
+        match &self.unit()[inst] {
             InstData::Branch { .. } => (),
             fmt => panic!(
                 "{0:?} ({0}) should have branch format, but has {1:?}",
@@ -523,7 +524,7 @@ where
 
     /// Assert that an instruction has wait format.
     fn assert_inst_wait(&mut self, inst: Inst) {
-        match &self.unit[inst] {
+        match &self.unit()[inst] {
             InstData::Wait { .. } => (),
             fmt => panic!(
                 "{0:?} ({0}) should have wait format, but has {1:?}",
@@ -535,7 +536,7 @@ where
 
     /// Assert that an instruction has reg format.
     fn assert_inst_reg(&mut self, inst: Inst) {
-        match &self.unit[inst] {
+        match &self.unit()[inst] {
             InstData::Reg { .. } => (),
             fmt => panic!(
                 "{0:?} ({0}) should have reg format, but has {1:?}",
@@ -547,7 +548,7 @@ where
 
     /// Assert that an instruction has ins/ext format.
     fn assert_inst_insext(&mut self, inst: Inst) {
-        match &self.unit[inst] {
+        match &self.unit()[inst] {
             InstData::InsExt { .. } => (),
             fmt => panic!(
                 "{0:?} ({0}) should have ins/ext format, but has {1:?}",
@@ -559,19 +560,19 @@ where
 
     /// Verify that the types of an instruction's arguments agree.
     fn verify_arg_tys_match(&mut self, inst: Inst) {
-        let ty = match self.unit[inst].args().get(0) {
+        let ty = match self.unit()[inst].args().get(0) {
             Some(&arg) => self.unit.value_type(arg),
             None => return,
         };
         let mut mismatch = false;
-        for &arg in &self.unit[inst].args()[1..] {
+        for &arg in &self.unit()[inst].args()[1..] {
             let arg_ty = self.unit.value_type(arg);
             if arg_ty != ty {
                 mismatch = true;
             }
         }
         if mismatch {
-            let tys: Vec<_> = self.unit[inst]
+            let tys: Vec<_> = self.unit()[inst]
                 .args()
                 .into_iter()
                 .map(|&arg| self.unit.value_type(arg).to_string())
@@ -606,7 +607,7 @@ where
 
     /// Verify that the types of an instruction's arguments match a given type.
     fn verify_args_match_ty(&mut self, inst: Inst, ty: &Type) {
-        for &arg in self.unit[inst].args() {
+        for &arg in self.unit()[inst].args() {
             self.verify_arg_matches_ty(inst, arg, ty);
         }
     }
@@ -677,9 +678,9 @@ where
     /// Verify that the types of a shift instruction line up.
     fn verify_shift_inst(&mut self, inst: Inst) {
         let ty = self.unit.inst_type(inst);
-        let base = self.unit[inst].args()[0];
-        let hidden = self.unit[inst].args()[1];
-        let amount = self.unit[inst].args()[2];
+        let base = self.unit()[inst].args()[0];
+        let hidden = self.unit()[inst].args()[1];
+        let amount = self.unit()[inst].args()[2];
         self.verify_arg_matches_ty(inst, base, &ty);
         let amount_ty = self.unit.value_type(amount);
         if !amount_ty.is_int() && !(amount_ty.is_signal() && amount_ty.unwrap_signal().is_int()) {
@@ -735,7 +736,7 @@ where
     /// Verify that the types of a mux instruction line up.
     fn verify_mux_inst(&mut self, inst: Inst) {
         let ty = self.unit.inst_type(inst);
-        let array = self.unit[inst].args()[0];
+        let array = self.unit()[inst].args()[0];
         let array_ty = self.unit.value_type(array);
         if !array_ty.is_array() || array_ty.unwrap_array().1 != &ty {
             self.verifier.errors.push(VerifierError {
@@ -747,7 +748,7 @@ where
                 ),
             });
         }
-        let sel = self.unit[inst].args()[1];
+        let sel = self.unit()[inst].args()[1];
         let sel_ty = self.unit.value_type(sel);
         if !sel_ty.is_int() && !(sel_ty.is_signal() && sel_ty.unwrap_signal().is_int()) {
             self.verifier.errors.push(VerifierError {
@@ -760,23 +761,23 @@ where
 
     /// Verify that the types of a reg instruction line up.
     fn verify_reg_inst(&mut self, inst: Inst) {
-        self.verify_arg_ty_is_signal(inst, self.unit[inst].args()[0]);
+        self.verify_arg_ty_is_signal(inst, self.unit()[inst].args()[0]);
         let ty = self
             .unit
-            .value_type(self.unit[inst].args()[0])
+            .value_type(self.unit()[inst].args()[0])
             .unwrap_signal()
             .clone();
-        for arg in self.unit[inst].data_args() {
+        for arg in self.unit()[inst].data_args() {
             self.verify_arg_matches_ty(inst, arg, &ty);
         }
-        for arg in self.unit[inst].trigger_args() {
+        for arg in self.unit()[inst].trigger_args() {
             if self.unit.value_type(arg).is_signal() {
                 self.verify_arg_matches_ty(inst, arg, &signal_ty(int_ty(1)));
             } else {
                 self.verify_arg_matches_ty(inst, arg, &int_ty(1));
             }
         }
-        for arg in self.unit[inst].gating_args() {
+        for arg in self.unit()[inst].gating_args() {
             if let Some(arg) = arg {
                 self.verify_arg_matches_ty(inst, arg, &int_ty(1));
             }
@@ -785,8 +786,8 @@ where
 
     /// Determine the field type for an insf/extf instruction.
     fn find_insext_field_type(&mut self, inst: Inst, allow_deref: bool) -> Option<Type> {
-        let field = self.unit[inst].imms()[0];
-        let target_ty = self.unit.value_type(self.unit[inst].args()[0]);
+        let field = self.unit()[inst].imms()[0];
+        let target_ty = self.unit.value_type(self.unit()[inst].args()[0]);
         let (target_ty, wrap): (_, &dyn Fn(Type) -> Type) = if allow_deref && target_ty.is_signal()
         {
             (target_ty.unwrap_signal(), &signal_ty)
@@ -828,9 +829,9 @@ where
 
     /// Determine the field type for an inss/exts instruction.
     fn find_insext_slice_type(&mut self, inst: Inst, allow_deref: bool) -> Option<Type> {
-        let offset = self.unit[inst].imms()[0];
-        let length = self.unit[inst].imms()[1];
-        let target_ty = self.unit.value_type(self.unit[inst].args()[0]);
+        let offset = self.unit()[inst].imms()[0];
+        let length = self.unit()[inst].imms()[1];
+        let target_ty = self.unit.value_type(self.unit()[inst].args()[0]);
         let (target_ty, wrap): (_, &dyn Fn(Type) -> Type) = if allow_deref && target_ty.is_signal()
         {
             (target_ty.unwrap_signal(), &signal_ty)
@@ -883,12 +884,12 @@ where
     /// Verify that the types of an insf instruction line up.
     fn verify_ins_field_inst(&mut self, inst: Inst) {
         let target_ty = self.unit.inst_type(inst);
-        self.verify_arg_matches_ty(inst, self.unit[inst].args()[0], &target_ty);
+        self.verify_arg_matches_ty(inst, self.unit()[inst].args()[0], &target_ty);
         let arg_ty = match self.find_insext_field_type(inst, false) {
             Some(ty) => ty,
             None => return,
         };
-        self.verify_arg_matches_ty(inst, self.unit[inst].args()[1], &arg_ty);
+        self.verify_arg_matches_ty(inst, self.unit()[inst].args()[1], &arg_ty);
     }
 
     /// Verify that the types of an extf instruction line up.
@@ -903,12 +904,12 @@ where
     /// Verify that the types of an inss instruction line up.
     fn verify_ins_slice_inst(&mut self, inst: Inst) {
         let target_ty = self.unit.inst_type(inst);
-        self.verify_arg_matches_ty(inst, self.unit[inst].args()[0], &target_ty);
+        self.verify_arg_matches_ty(inst, self.unit()[inst].args()[0], &target_ty);
         let arg_ty = match self.find_insext_slice_type(inst, false) {
             Some(ty) => ty,
             None => return,
         };
-        self.verify_arg_matches_ty(inst, self.unit[inst].args()[1], &arg_ty);
+        self.verify_arg_matches_ty(inst, self.unit()[inst].args()[1], &arg_ty);
     }
 
     /// Verify that the types of an exts instruction line up.
@@ -936,7 +937,7 @@ where
     /// Verify that the types of a prb instruction line up.
     fn verify_prb_inst(&mut self, inst: Inst) {
         let ty = self.unit.inst_type(inst);
-        let arg_ty = self.unit.value_type(self.unit[inst].args()[0]);
+        let arg_ty = self.unit.value_type(self.unit()[inst].args()[0]);
         if !arg_ty.is_signal() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
@@ -955,8 +956,8 @@ where
 
     /// Verify that the types of a drv instruction line up.
     fn verify_drv_inst(&mut self, inst: Inst) {
-        let ty = self.unit.value_type(self.unit[inst].args()[1]);
-        let arg_ty = self.unit.value_type(self.unit[inst].args()[0]);
+        let ty = self.unit.value_type(self.unit()[inst].args()[1]);
+        let arg_ty = self.unit.value_type(self.unit()[inst].args()[0]);
         if !arg_ty.is_signal() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
@@ -974,9 +975,9 @@ where
                 ),
             });
         }
-        self.verify_arg_matches_ty(inst, self.unit[inst].args()[2], &time_ty());
-        if self.unit[inst].opcode() == Opcode::DrvCond {
-            self.verify_arg_matches_ty(inst, self.unit[inst].args()[3], &int_ty(1));
+        self.verify_arg_matches_ty(inst, self.unit()[inst].args()[2], &time_ty());
+        if self.unit()[inst].opcode() == Opcode::DrvCond {
+            self.verify_arg_matches_ty(inst, self.unit()[inst].args()[3], &int_ty(1));
         }
     }
 
@@ -996,7 +997,7 @@ where
     /// Verify that the types of a ld instruction line up.
     fn verify_ld_inst(&mut self, inst: Inst) {
         let ty = self.unit.inst_type(inst);
-        let arg_ty = self.unit.value_type(self.unit[inst].args()[0]);
+        let arg_ty = self.unit.value_type(self.unit()[inst].args()[0]);
         if !arg_ty.is_pointer() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
@@ -1015,8 +1016,8 @@ where
 
     /// Verify that the types of a st instruction line up.
     fn verify_st_inst(&mut self, inst: Inst) {
-        let ty = self.unit.value_type(self.unit[inst].args()[1]);
-        let arg_ty = self.unit.value_type(self.unit[inst].args()[0]);
+        let ty = self.unit.value_type(self.unit()[inst].args()[1]);
+        let arg_ty = self.unit.value_type(self.unit()[inst].args()[0]);
         if !arg_ty.is_pointer() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
