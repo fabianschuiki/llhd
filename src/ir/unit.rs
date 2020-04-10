@@ -214,6 +214,7 @@ impl<'a> Unit<'a> {
     }
 
     /// Dump the unit in human-readable form.
+    #[deprecated(note = "simply drop the dump()")]
     pub fn dump(self) -> Self {
         self
     }
@@ -227,7 +228,7 @@ impl<'a> Unit<'a> {
             Err(errs) => {
                 eprintln!("");
                 eprintln!("Verified {}:", self.data.kind);
-                eprintln!("{}", self.dump());
+                eprintln!("{}", self);
                 eprintln!("");
                 eprintln!("Verification errors:");
                 eprintln!("{}", errs);

@@ -321,7 +321,7 @@ impl std::fmt::Display for ModuleDumper<'_> {
             }
             newline = true;
             write!(f, "{}: ", unit.id())?;
-            write!(f, "{}", unit.dump())?;
+            write!(f, "{}", unit)?;
         }
         if newline && !self.0.decls().count() > 0 {
             writeln!(f, "")?;
