@@ -15,7 +15,6 @@ mod module;
 pub mod prelude;
 mod sig;
 mod unit;
-pub mod unit_v2;
 
 pub use self::cfg::*;
 pub use self::dfg::*;
@@ -24,7 +23,6 @@ pub use self::layout::*;
 pub use self::module::*;
 pub use self::sig::*;
 pub use self::unit::*;
-pub use self::unit_v2::*;
 
 /// The position where new instructions will be inserted into a `Function` or
 /// `Process`.
