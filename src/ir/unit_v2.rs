@@ -16,29 +16,51 @@ use std::{
     ops::{Deref, Index, IndexMut},
 };
 
+/// A function, process, or entity.
+#[derive(Serialize, Deserialize)]
+pub struct UnitData {
+    pub kind: UnitKind,
+    pub name: UnitName,
+    pub sig: Signature,
+    pub dfg: DataFlowGraph,
+    pub cfg: ControlFlowGraph,
+    pub layout: FunctionLayout,
+}
+
+impl UnitData {
+    /// Create a new unit.
+    pub fn new(kind: UnitKind, name: UnitName, sig: Signature) -> Self {
+        match kind {
+            UnitKind::Function => {
+                assert!(!sig.has_outputs());
+                assert!(sig.has_return_type());
+            }
+            UnitKind::Process | UnitKind::Entity => {
+                assert!(!sig.has_return_type());
+            }
+        }
+        let mut data = Self {
+            kind,
+            name,
+            sig,
+            dfg: DataFlowGraph::new(),
+            cfg: ControlFlowGraph::new(),
+            layout: FunctionLayout::new(),
+        };
+        if kind == UnitKind::Entity {
+            let bb = data.cfg.add_block();
+            data.layout.append_block(bb);
+        }
+        data.dfg.make_args_for_signature(&data.sig);
+        data
+    }
+}
+
 /// An immutable function, process, or entity.
 #[derive(Clone, Copy)]
 pub struct Unit<'a> {
     unit: UnitId,
     data: &'a UnitData,
-}
-
-/// A mutable function, process, or entity.
-pub struct UnitBuilder<'a> {
-    /// The unit being modified.
-    unit: Unit<'a>,
-    /// The unit data being modified.
-    data: &'a mut UnitData,
-    /// The position where we are currently inserting instructions.
-    pos: FunctionInsertPos,
-}
-
-// Ensure the UnitBuilder can be used like a Unit.
-impl<'a> Deref for UnitBuilder<'a> {
-    type Target = Unit<'a>;
-    fn deref(&self) -> &Unit<'a> {
-        &self.unit
-    }
 }
 
 impl<'a> Unit<'a> {
@@ -355,6 +377,24 @@ impl std::fmt::Display for Unit<'_> {
         }
         write!(f, "}}")?;
         Ok(())
+    }
+}
+
+/// A mutable function, process, or entity.
+pub struct UnitBuilder<'a> {
+    /// The unit being modified.
+    unit: Unit<'a>,
+    /// The unit data being modified.
+    data: &'a mut UnitData,
+    /// The position where we are currently inserting instructions.
+    pos: FunctionInsertPos,
+}
+
+// Ensure the UnitBuilder can be used like a Unit.
+impl<'a> Deref for UnitBuilder<'a> {
+    type Target = Unit<'a>;
+    fn deref(&self) -> &Unit<'a> {
+        &self.unit
     }
 }
 
