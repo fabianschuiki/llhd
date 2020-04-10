@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Folded `ControlFlowGraph` and `DataFlowGraph` into `Unit` and `UnitBuilder`.
 - Change `Entity` to have a CFG and function layout as well.
+- Fold `Function`, `Process`, and `Entity` into unified `UnitData`.
+- Replace `Unit` and `UnitBuilder` traits with corresponding structs.
 
 ## 0.12.0 - 2020-04-09
 ### Added
