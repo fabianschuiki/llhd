@@ -757,13 +757,23 @@ The `neg` operation computes the two's complement of a value, effectively flippi
     %result = umul T %lhs, %rhs
     %result = udiv T %lhs, %rhs
     %result = umod T %lhs, %rhs
-    %result = urem T %lhs, %rhs
 
-The `add` and `sub` instructions add or subtract two values. The multiplicative operations are available in a signed (`s` prefix) and unsigned (`u` prefix) flavor. Input operands are interpreted according to this prefix. The `umul` `smul` instructions multiplies two values. The `udiv` `sdiv` instructions divides the left-hand side by the right-hand side value. The `umod` `smod` and `urem` `srem` operations compute the modulo and remainder of the division.
+The `add` and `sub` instructions add or subtract two values. The multiplicative operations are available in a signed (`s` prefix) and unsigned (`u` prefix) flavor. Input operands are interpreted according to this prefix. The `umul` `smul` instructions multiplies two values. The `udiv` `sdiv` instructions divides the left-hand side by the right-hand side value. The `umod` `smod` `srem` operations compute the modulo and remainder of the division.
 
 - `T` must be `iN`.
 - `%lhs` and `%rhs` are the left- and right-hand side arguments and must be of type `T`.
 - `%result` is of type `T`.
+
+##### Signed Modulus/Remainder Semantics
+
+The semantics of `smod` and `srem` for negative numbers are as follows. For positive numbers they are identical (`umod`).
+
+`%lhs` | `%rhs` | `smod` | `srem`
+------ | ------ | ------ | ------
+9      | 5      | 4      | 4
+9      | -5     | -1     | 4
+-9     | 5      | 1      | -4
+-9     | -5     | -4     | -4
 
 
 ### Comparison Operators
