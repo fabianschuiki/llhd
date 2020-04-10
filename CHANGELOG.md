@@ -5,11 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added
+- Add `UnitData` struct
+- Add `Unit` and `UnitBuilder` structs
+
 ### Changed
-- Folded `ControlFlowGraph` and `DataFlowGraph` into `Unit` and `UnitBuilder`.
-- Change `Entity` to have a CFG and function layout as well.
-- Fold `Function`, `Process`, and `Entity` into unified `UnitData`.
-- Replace `Unit` and `UnitBuilder` traits with corresponding structs.
+- Fold `ControlFlowGraph` and `DataFlowGraph` into `Unit` and `UnitBuilder`.
+
+### Removed
+- Remove `Function`, `Process`, and `Entity` structs
+- Remove `Unit` and `UnitBuilder` traits
 
 ## 0.12.0 - 2020-04-09
 ### Added
