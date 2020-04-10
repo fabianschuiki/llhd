@@ -52,7 +52,7 @@ pub fn run_on_inst(unit: &mut UnitBuilder, inst: Inst) -> bool {
             ty,
             new_ty,
             "types before (lhs) and after (rhs) folding must match (before: {})",
-            inst.dump(unit.dfg(), unit.try_cfg()),
+            inst.dump(&unit),
         );
         if let Some(name) = unit.get_name(value).map(String::from) {
             unit.set_name(replacement, name);

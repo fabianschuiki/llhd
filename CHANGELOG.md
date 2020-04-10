@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Fold `ControlFlowGraph` and `DataFlowGraph` into `Unit` and `UnitBuilder`.
+- Change `dump()` functions to take a `&Unit` instead of DFG/CFG.
 
 ### Removed
 - Remove `Function`, `Process`, and `Entity` structs

@@ -68,7 +68,7 @@ impl Pass for TemporalCodeMotion {
                         } else {
                             trace!(
                                 "Skipping {} for prb move (would not dominate uses)",
-                                inst.dump(unit.dfg(), unit.try_cfg())
+                                inst.dump(&unit)
                             );
                         }
                     }
@@ -79,11 +79,7 @@ impl Pass for TemporalCodeMotion {
                 if unit.func_layout().inst_block(inst) == Some(head_bb) {
                     continue;
                 }
-                debug!(
-                    "Hoisting {} into {}",
-                    inst.dump(unit.dfg(), unit.try_cfg()),
-                    head_bb.dump(unit.cfg())
-                );
+                debug!("Hoisting {} into {}", inst.dump(&unit), head_bb.dump(&unit));
                 let layout = unit.func_layout_mut();
                 layout.remove_inst(inst);
                 layout.prepend_inst(inst, head_bb);
@@ -105,15 +101,12 @@ impl Pass for TemporalCodeMotion {
             let merge: Vec<_> = merge.into_iter().map(|(_, is)| is).collect();
             for insts in merge {
                 if insts.len() <= 1 {
-                    trace!(
-                        "Skipping {} (no equivalents)",
-                        insts[0].dump(unit.dfg(), unit.try_cfg())
-                    );
+                    trace!("Skipping {} (no equivalents)", insts[0].dump(&unit));
                     continue;
                 }
                 trace!("Merging:",);
                 for i in &insts {
-                    trace!("  {}", i.dump(unit.dfg(), unit.try_cfg()));
+                    trace!("  {}", i.dump(&unit));
                 }
 
                 // Create a new basic block for the singleton wait inst.
@@ -170,7 +163,7 @@ fn add_aux_blocks(_ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
 
     // Process each block separately.
     for bb in head_bbs {
-        trace!("Adding aux blocks into {}", bb.dump(unit.cfg()));
+        trace!("Adding aux blocks into {}", bb.dump(&unit));
         let tr = trg[bb];
 
         // Gather a list of predecessor instructions per region, which branch
@@ -194,13 +187,9 @@ fn add_aux_blocks(_ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
             let aux_bb = unit.named_block("aux");
             unit.append_to(aux_bb);
             unit.ins().br(bb);
-            trace!("  Adding {} from {}", aux_bb.dump(unit.cfg()), src_tr);
+            trace!("  Adding {} from {}", aux_bb.dump(&unit), src_tr);
             for inst in insts {
-                trace!(
-                    "    Replacing {} in {}",
-                    bb.dump(unit.cfg()),
-                    inst.dump(unit.dfg(), unit.try_cfg())
-                );
+                trace!("    Replacing {} in {}", bb.dump(&unit), inst.dump(&unit));
                 unit.replace_block_within_inst(bb, aux_bb, inst);
             }
             modified = true;
@@ -224,18 +213,14 @@ fn push_drives(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
     let mut aliases = HashMap::<Value, Value>::new();
     let mut drv_seq = HashMap::<Value, Vec<Inst>>::new();
     for &bb in dt.blocks_post_order().iter().rev() {
-        trace!("Checking {} for aliases", bb.dump(unit.cfg()));
+        trace!("Checking {} for aliases", bb.dump(&unit));
         for inst in unit.func_layout().insts(bb) {
             let data = &unit[inst];
             if let Opcode::Drv | Opcode::DrvCond = data.opcode() {
                 // Gather drive sequences to the same signal.
                 let signal = data.args()[0];
                 let signal = aliases.get(&signal).cloned().unwrap_or(signal);
-                trace!(
-                    "  Drive {} ({})",
-                    signal.dump(unit.dfg()),
-                    inst.dump(unit.dfg(), unit.try_cfg())
-                );
+                trace!("  Drive {} ({})", signal.dump(&unit), inst.dump(&unit));
                 drv_seq.entry(signal).or_default().push(inst);
             } else if let Some(value) = unit.get_inst_result(inst) {
                 // Gather signal aliases.
@@ -249,9 +234,9 @@ fn push_drives(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
                     let arg = aliases.get(&arg).cloned().unwrap_or(arg);
                     trace!(
                         "  Alias {} of {} ({})",
-                        value.dump(unit.dfg()),
-                        arg.dump(unit.dfg()),
-                        inst.dump(unit.dfg(), unit.try_cfg())
+                        value.dump(&unit),
+                        arg.dump(&unit),
+                        inst.dump(&unit)
                     );
                     aliases.insert(value, arg);
                 }
@@ -265,29 +250,23 @@ fn push_drives(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
     // Try to migrate drive instructions into the tails of their respective
     // temporal regions.
     for (&signal, drives) in &drv_seq {
-        trace!("Moving drives on signal {}", signal.dump(unit.dfg()));
+        trace!("Moving drives on signal {}", signal.dump(&unit));
         // TODO: Don't directly move drives, but track if move is possible and what
         // the conditions are. Then do post-processing down below.
         for &drive in drives.iter().rev() {
             // Skip drives that are already in the right place.
             let drive_bb = unit.func_layout().inst_block(drive).unwrap();
             if trg.is_tail(drive_bb) {
-                trace!(
-                    "  Skipping {} (already in tail block)",
-                    drive.dump(unit.dfg(), unit.try_cfg()),
-                );
+                trace!("  Skipping {} (already in tail block)", drive.dump(&unit),);
                 continue;
             }
             if trg[trg[drive_bb]].tail_blocks.is_empty() {
-                trace!(
-                    "  Skipping {} (no tail blocks)",
-                    drive.dump(unit.dfg(), unit.try_cfg()),
-                );
+                trace!("  Skipping {} (no tail blocks)", drive.dump(&unit),);
                 continue;
             }
 
             // Perform the move.
-            // trace!("  Checking {}", drive.dump(unit.dfg(), unit.try_cfg()));
+            // trace!("  Checking {}", drive.dump(&unit));
             let moved = push_drive(ctx, drive, unit, &dt, &trg);
             modified |= moved;
 
@@ -314,8 +293,6 @@ fn push_drive(
     dt: &DominatorTree,
     trg: &TemporalRegionGraph,
 ) -> bool {
-    let dfg = unit.dfg();
-    let cfg = unit.cfg();
     let layout = unit.func_layout();
     let src_bb = layout.inst_block(drive).unwrap();
     let tr = trg[src_bb];
@@ -325,17 +302,17 @@ fn push_drive(
     // along the way that lead to the drive being executed, and check if the
     // arguments for the drive are available in the destination block.
     for dst_bb in trg[tr].tail_blocks() {
-        // trace!("    Will have to move to {}", dst_bb.dump(cfg));
+        // trace!("    Will have to move to {}", dst_bb.dump(&unit));
 
         // First check if all arguments of the drive instruction dominate the
         // destination block. If not, the move is not possible.
-        for &arg in dfg[drive].args() {
-            if !dt.value_dominates_block(dfg, layout, arg, dst_bb) {
+        for &arg in unit[drive].args() {
+            if !dt.value_dominates_block(unit.dfg(), layout, arg, dst_bb) {
                 trace!(
                     "  Skipping {} ({} does not dominate {})",
-                    drive.dump(dfg, Some(cfg)),
-                    arg.dump(dfg),
-                    dst_bb.dump(cfg)
+                    drive.dump(&unit),
+                    arg.dump(&unit),
+                    dst_bb.dump(&unit)
                 );
                 return false;
             }
@@ -357,30 +334,30 @@ fn push_drive(
                     break;
                 }
                 let term = layout.terminator(parent);
-                if dfg[term].opcode() == Opcode::BrCond {
-                    let cond_val = dfg[term].args()[0];
-                    if !dt.value_dominates_block(dfg, layout, cond_val, dst_bb) {
+                if unit[term].opcode() == Opcode::BrCond {
+                    let cond_val = unit[term].args()[0];
+                    if !dt.value_dominates_block(unit.dfg(), layout, cond_val, dst_bb) {
                         trace!(
                             "  Skipping {} (branch cond {} does not dominate {})",
-                            drive.dump(dfg, Some(cfg)),
-                            cond_val.dump(dfg),
-                            dst_bb.dump(cfg)
+                            drive.dump(&unit),
+                            cond_val.dump(&unit),
+                            dst_bb.dump(&unit)
                         );
                         return false;
                     }
-                    let cond_pol = dfg[term].blocks().iter().position(|&bb| bb == src_finger);
+                    let cond_pol = unit[term].blocks().iter().position(|&bb| bb == src_finger);
                     if let Some(cond_pol) = cond_pol {
                         conds.push((cond_val, cond_pol != 0));
                         trace!(
                             "    {} -> {} ({} == {})",
-                            parent.dump(cfg),
-                            src_finger.dump(cfg),
-                            cond_val.dump(dfg),
+                            parent.dump(&unit),
+                            src_finger.dump(&unit),
+                            cond_val.dump(&unit),
                             cond_pol
                         );
                     }
                 } else {
-                    trace!("    {} -> {}", parent.dump(cfg), src_finger.dump(cfg));
+                    trace!("    {} -> {}", parent.dump(&unit), src_finger.dump(&unit));
                 }
                 src_finger = parent;
             } else if i2 < i1 {
@@ -392,10 +369,7 @@ fn push_drive(
             }
         }
         if src_finger != dst_finger {
-            trace!(
-                "  Skipping {} (no common dominator)",
-                drive.dump(dfg, Some(cfg))
-            );
+            trace!("  Skipping {} (no common dominator)", drive.dump(&unit));
             return false;
         }
 
@@ -406,11 +380,7 @@ fn push_drive(
 
     // If we arrive here, all moves are possible and can now be executed.
     for (dst_bb, conds) in moves {
-        debug!(
-            "Moving {} to {}",
-            drive.dump(unit.dfg(), unit.try_cfg()),
-            dst_bb.dump(unit.cfg())
-        );
+        debug!("Moving {} to {}", drive.dump(&unit), dst_bb.dump(&unit));
 
         // Start by assembling the drive condition in the destination block. The
         // order is key here to allow for easy constant folding and subexpr
@@ -449,13 +419,12 @@ fn push_drive(
 
 fn coalesce_drives(_ctx: &PassContext, block: Block, unit: &mut UnitBuilder) -> bool {
     let mut modified = false;
-    let dfg = unit.dfg();
 
     // Group the drives by delay.
     let mut delay_groups = HashMap::<Value, Vec<Inst>>::new();
     for inst in unit.func_layout().insts(block) {
-        if let Opcode::Drv | Opcode::DrvCond = dfg[inst].opcode() {
-            let delay = dfg[inst].args()[2];
+        if let Opcode::Drv | Opcode::DrvCond = unit[inst].opcode() {
+            let delay = unit[inst].args()[2];
             delay_groups.entry(delay).or_default().push(inst);
         }
     }
@@ -476,7 +445,7 @@ fn coalesce_drives(_ctx: &PassContext, block: Block, unit: &mut UnitBuilder) -> 
             debug!(
                 "Coalescing {} drives on {}",
                 drives.len(),
-                target.dump(unit.dfg())
+                target.dump(&unit)
             );
             let mut drives = drives.into_iter();
 

@@ -228,13 +228,13 @@ impl std::fmt::Display for AnyObject {
 
 impl Value {
     /// Dump the value in human-readable form.
-    pub fn dump(self, dfg: &DataFlowGraph) -> ValueDumper {
-        ValueDumper(self, dfg)
+    pub fn dump<'a>(self, unit: &Unit<'a>) -> ValueDumper<'a> {
+        ValueDumper(self, *unit)
     }
 }
 
 /// Temporary object to dump a `Value` in human-readable form for debugging.
-pub struct ValueDumper<'a>(Value, &'a DataFlowGraph);
+pub struct ValueDumper<'a>(Value, Unit<'a>);
 
 impl std::fmt::Display for ValueDumper<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -252,21 +252,21 @@ impl std::fmt::Display for ValueDumper<'_> {
 
 impl Block {
     /// Dump the basic block in human-readable form.
-    pub fn dump(self, cfg: &ControlFlowGraph) -> BlockDumper {
-        BlockDumper(self, cfg)
+    pub fn dump<'a>(self, unit: &Unit<'a>) -> BlockDumper<'a> {
+        BlockDumper(self, *unit)
     }
 }
 
 /// Temporary object to dump a `Block` in human-readable form for debugging.
-pub struct BlockDumper<'a>(Block, &'a ControlFlowGraph);
+pub struct BlockDumper<'a>(Block, Unit<'a>);
 
 impl std::fmt::Display for BlockDumper<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.0.is_invalid() {
             write!(f, "%<invalid>")
-        } else if let Some(name) = self.1.get_name(self.0) {
+        } else if let Some(name) = self.1.get_block_name(self.0) {
             write!(f, "%{}", name)
-        } else if let Some(index) = self.1.get_anonymous_hint(self.0) {
+        } else if let Some(index) = self.1.get_anonymous_block_hint(self.0) {
             write!(f, "%{}", index)
         } else {
             write!(f, "%{}", self.0)

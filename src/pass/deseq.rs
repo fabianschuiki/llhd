@@ -2,11 +2,12 @@
 
 //! Desequentialization
 
-use crate::ir::prelude::*;
-use crate::ir::{DataFlowGraph, InstData};
-use crate::opt::prelude::*;
-use crate::pass::tcm::{TemporalRegion, TemporalRegionGraph};
-use crate::value::IntValue;
+use crate::{
+    ir::{prelude::*, InstData},
+    opt::prelude::*,
+    pass::tcm::{TemporalRegion, TemporalRegionGraph},
+    value::IntValue,
+};
 use rayon::prelude::*;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
@@ -84,7 +85,7 @@ fn deseq_process(ctx: &PassContext, unit: &mut UnitBuilder) -> Option<UnitData> 
         };
         (inst, sensitivity)
     };
-    trace!("Wait Inst: {}", wait_inst.dump(dfg, unit.try_cfg()));
+    trace!("Wait Inst: {}", wait_inst.dump(&unit));
     trace!("Sensitivity: {:?}", sensitivity);
 
     // Ensure that there is is only one basic block per temporal region.
@@ -108,10 +109,7 @@ fn deseq_process(ctx: &PassContext, unit: &mut UnitBuilder) -> Option<UnitData> 
         for inst in layout.insts(bb) {
             let data = &dfg[inst];
             if data.opcode() == Opcode::DrvCond {
-                trace!(
-                    "Canonicalizing condition of {}",
-                    inst.dump(dfg, unit.try_cfg())
-                );
+                trace!("Canonicalizing condition of {}", inst.dump(&unit));
                 conds.push((
                     inst,
                     bb,
@@ -160,10 +158,7 @@ fn deseq_process(ctx: &PassContext, unit: &mut UnitBuilder) -> Option<UnitData> 
         .difference(&mig.migrated_drives)
         .for_each(|inst| {
             migrated = false;
-            trace!(
-                "Skipping ({} not migrated)",
-                inst.dump(unit.dfg(), unit.try_cfg())
-            );
+            trace!("Skipping ({} not migrated)", inst.dump(&unit));
         });
 
     if migrated {
@@ -186,18 +181,17 @@ fn canonicalize(
     cond: Value,
     inv: bool,
 ) -> Dnf {
-    let dfg = unit.dfg();
     let dnf = canonicalize_inner(ctx, unit, trg, cond, inv);
     let desc = if let Some(inst) = unit.get_value_inst(cond) {
-        inst.dump(dfg, unit.try_cfg()).to_string()
+        inst.dump(&unit).to_string()
     } else {
-        cond.dump(dfg).to_string()
+        cond.dump(&unit).to_string()
     };
     trace!(
         "  {} {{ {} }} => {}",
         if inv { "neg" } else { "pos" },
         desc,
-        dnf.dump(dfg),
+        dnf.dump(&unit),
     );
     dnf
 }
@@ -293,15 +287,12 @@ impl Dnf {
         }
     }
 
-    pub fn dump<'a>(&'a self, dfg: &'a DataFlowGraph) -> DnfDumper<'a> {
-        DnfDumper(self, dfg)
+    pub fn dump<'a>(&'a self, unit: &Unit<'a>) -> DnfDumper<'a> {
+        DnfDumper(self, *unit)
     }
 
-    pub fn dump_term<'a>(
-        term: &'a BTreeMap<Term, bool>,
-        dfg: &'a DataFlowGraph,
-    ) -> DnfTermDumper<'a> {
-        DnfTermDumper(term, dfg)
+    pub fn dump_term<'a>(term: &'a BTreeMap<Term, bool>, unit: &Unit<'a>) -> DnfTermDumper<'a> {
+        DnfTermDumper(term, *unit)
     }
 
     /// Compute the boolean OR of two DNF expressions.
@@ -341,7 +332,7 @@ impl Dnf {
     }
 }
 
-struct DnfDumper<'a>(&'a Dnf, &'a DataFlowGraph);
+struct DnfDumper<'a>(&'a Dnf, Unit<'a>);
 
 impl std::fmt::Display for DnfDumper<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -355,13 +346,13 @@ impl std::fmt::Display for DnfDumper<'_> {
             }
         }
         for (vs, sep) in (self.0).0.iter().zip(once("").chain(repeat(" | "))) {
-            write!(f, "{}({})", sep, Dnf::dump_term(vs, self.1))?;
+            write!(f, "{}({})", sep, Dnf::dump_term(vs, &self.1))?;
         }
         Ok(())
     }
 }
 
-struct DnfTermDumper<'a>(&'a BTreeMap<Term, bool>, &'a DataFlowGraph);
+struct DnfTermDumper<'a>(&'a BTreeMap<Term, bool>, Unit<'a>);
 
 impl std::fmt::Display for DnfTermDumper<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -376,8 +367,8 @@ impl std::fmt::Display for DnfTermDumper<'_> {
             }
             match term {
                 Term::Zero => write!(f, "0")?,
-                Term::Signal(sig, tr) => write!(f, "{}@{}", sig.dump(self.1), tr)?,
-                Term::Invalid(v) => write!(f, "{}?", v.dump(self.1))?,
+                Term::Signal(sig, tr) => write!(f, "{}@{}", sig.dump(&self.1), tr)?,
+                Term::Invalid(v) => write!(f, "{}?", v.dump(&self.1))?,
             }
         }
         Ok(())
@@ -399,8 +390,7 @@ fn detect_triggers(
     tr1: TemporalRegion,
     dnf: &Dnf,
 ) -> Option<Vec<Trigger>> {
-    let dfg = unit.dfg();
-    trace!("Detecting triggers in {}", dnf.dump(dfg));
+    trace!("Detecting triggers in {}", dnf.dump(&unit));
     let mut trigs = vec![];
     for conds in &dnf.0 {
         let trig = match detect_term_triggers(ctx, unit, tr0, tr1, conds) {
@@ -419,8 +409,7 @@ fn detect_term_triggers(
     tr1: TemporalRegion,
     conds: &BTreeMap<Term, bool>,
 ) -> Option<Trigger> {
-    let dfg = unit.dfg();
-    trace!("  Analyzing {}", Dnf::dump_term(conds, dfg));
+    trace!("  Analyzing {}", Dnf::dump_term(conds, &unit));
 
     // Sort the level and edge sensitive terms.
     let mut edges = BTreeMap::new();
@@ -434,7 +423,7 @@ fn detect_term_triggers(
                     trace!(
                         "    {} {}",
                         if inv { "rising" } else { "falling" },
-                        sig.dump(dfg)
+                        sig.dump(&unit)
                     );
                     edges.insert(
                         sig,
@@ -446,9 +435,9 @@ fn detect_term_triggers(
                 } else {
                     trace!(
                         "    Skipping ({}@{} without corresponding {}@{})",
-                        sig.dump(dfg),
+                        sig.dump(&unit),
                         tr0,
-                        sig.dump(dfg),
+                        sig.dump(&unit),
                         tr1
                     );
                     return None;
@@ -459,7 +448,11 @@ fn detect_term_triggers(
             // sampling before the change contribute a level sensitivity.
             Term::Signal(sig, tr) if tr == tr1 => {
                 if conds.get(&Term::Signal(sig, tr0)).cloned() != Some(!inv) {
-                    trace!("    {} {}", if inv { "low" } else { "high" }, sig.dump(dfg));
+                    trace!(
+                        "    {} {}",
+                        if inv { "low" } else { "high" },
+                        sig.dump(&unit)
+                    );
                     levels.insert(
                         sig,
                         match inv {
@@ -543,10 +536,7 @@ impl<'a, 'b> Migrator<'a, 'b> {
     }
 
     pub fn migrate_drive(&mut self, drive: Inst, _bb: Block, trigs: &Vec<Trigger>) -> bool {
-        trace!(
-            "Migrating {}",
-            drive.dump(self.src.dfg(), self.src.try_cfg())
-        );
+        trace!("Migrating {}", drive.dump(&self.src));
         let drive_target = self.src.dfg()[drive].args()[0];
         let drive_value = self.src.dfg()[drive].args()[1];
 
@@ -625,7 +615,7 @@ impl<'a, 'b> Migrator<'a, 'b> {
                         None => {
                             trace!(
                                 "    Skipping {} (level-sensitive with no trigger)",
-                                drive.dump(self.src.dfg(), self.src.try_cfg())
+                                drive.dump(&self.src)
                             );
                             return false;
                         }
@@ -692,10 +682,7 @@ impl<'a, 'b> Migrator<'a, 'b> {
                 // Otherwise ensure that the probe occurs *after* the trigger.
                 // This is a requirement for modeling the behaviour with `reg`.
                 if tr != self.tr1 {
-                    trace!(
-                        "    Skipping {} (probe in wrong TR)",
-                        inst.dump(self.src.dfg(), self.src.try_cfg())
-                    );
+                    trace!("    Skipping {} (probe in wrong TR)", inst.dump(&self.src));
                     return None;
                 }
             }
@@ -712,7 +699,7 @@ impl<'a, 'b> Migrator<'a, 'b> {
         // Otherwise just refuse to migrate.
         trace!(
             "    Skipping {} (cannot be migrated)",
-            value.dump(self.src.dfg())
+            value.dump(&self.src)
         );
         None
     }
@@ -721,7 +708,7 @@ impl<'a, 'b> Migrator<'a, 'b> {
         if let Some(&v) = self.cache.get(&data) {
             v
         } else {
-            trace!("    Migrated {}", src_value.dump(self.src.dfg()));
+            trace!("    Migrated {}", src_value.dump(&self.src));
             let ty = self.src.value_type(src_value);
             let inst = self.dst.ins().build(data.clone(), ty);
             let value = self.dst.inst_result(inst);

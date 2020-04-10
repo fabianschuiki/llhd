@@ -34,7 +34,7 @@ impl Pass for LoopIndepCodeMotion {
         while let Some(&block) = work_pending.iter().next() {
             work_pending.remove(&block);
             work_done.insert(block);
-            trace!("Working on {}", block.dump(unit.cfg()));
+            trace!("Working on {}", block.dump(&unit));
 
             // Process the instructions in this block.
             for inst in unit.func_layout().insts(block).collect::<Vec<_>>() {
@@ -60,7 +60,7 @@ impl Pass for LoopIndepCodeMotion {
 
         trace!("Final block numbers:");
         for (bb, num) in block_numbers {
-            trace!("  {} = {}", bb.dump(unit.cfg()), num);
+            trace!("  {} = {}", bb.dump(&unit), num);
         }
 
         modified
@@ -86,7 +86,7 @@ fn move_instruction(
     {
         return false;
     }
-    trace!("  Working on {}", inst.dump(unit.dfg(), unit.try_cfg()));
+    trace!("  Working on {}", inst.dump(&unit));
 
     // To determine the possible insertion locations, we first need to find for
     // each argument of this instruction, which blocks its definition dominates.
@@ -109,11 +109,7 @@ fn move_instruction(
         }
         layout.remove_inst(inst);
         layout.insert_inst_before(inst, entry_term);
-        debug!(
-            "Move {} into {}",
-            inst.dump(unit.dfg(), unit.try_cfg()),
-            entry.dump(unit.cfg())
-        );
+        debug!("Move {} into {}", inst.dump(&unit), entry.dump(&unit));
         return true;
     }
     // trace!("    Dominated blocks: {:?}", doms);
@@ -139,17 +135,13 @@ fn move_instruction(
         Some(bb) => bb,
         None => return false,
     };
-    trace!("    Best block: {}", best_bb.dump(unit.cfg()));
+    trace!("    Best block: {}", best_bb.dump(&unit));
 
     // Move the instruction up into this block.
     if best_bb == block {
         return false;
     }
-    debug!(
-        "Move {} into {}",
-        inst.dump(unit.dfg(), unit.try_cfg()),
-        best_bb.dump(unit.cfg())
-    );
+    debug!("Move {} into {}", inst.dump(&unit), best_bb.dump(&unit));
     let layout = unit.func_layout_mut();
     let term = layout.terminator(best_bb);
     layout.remove_inst(inst);

@@ -4,7 +4,7 @@
 //! and entitites.
 
 use crate::{
-    ir::{Arg, DataFlowGraph},
+    ir::{Arg, Unit},
     table::PrimaryTable,
     ty::Type,
 };
@@ -119,8 +119,8 @@ impl Signature {
     }
 
     /// Dump the signature in human-readable form.
-    pub fn dump<'a>(&'a self, dfg: &'a DataFlowGraph) -> SignatureDumper<'a> {
-        SignatureDumper(self, dfg)
+    pub fn dump<'a>(&'a self, unit: &Unit<'a>) -> SignatureDumper<'a> {
+        SignatureDumper(self, *unit)
     }
 }
 
@@ -164,7 +164,7 @@ impl std::fmt::Debug for Signature {
 }
 
 /// Temporary object to dump a `Signature` in human-readable form for debugging.
-pub struct SignatureDumper<'a>(&'a Signature, &'a DataFlowGraph);
+pub struct SignatureDumper<'a>(&'a Signature, Unit<'a>);
 
 impl std::fmt::Display for SignatureDumper<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -177,7 +177,7 @@ impl std::fmt::Display for SignatureDumper<'_> {
                 "{}{} {}",
                 sep,
                 self.1.value_type(value),
-                value.dump(self.1)
+                value.dump(&self.1)
             )?;
         }
         write!(f, ")")?;
@@ -190,7 +190,7 @@ impl std::fmt::Display for SignatureDumper<'_> {
                     "{}{} {}",
                     sep,
                     self.1.value_type(value),
-                    value.dump(self.1)
+                    value.dump(&self.1)
                 )?;
             }
             write!(f, ")")?;

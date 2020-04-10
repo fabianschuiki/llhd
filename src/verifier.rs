@@ -86,10 +86,10 @@ impl Verifier {
                 {
                     self.errors.push(VerifierError {
                         unit: self.unit_name.clone(),
-                        object: Some(inst.dump(unit.dfg(), unit.try_cfg()).to_string()),
+                        object: Some(inst.dump(&unit).to_string()),
                         message: format!(
                             "terminator instruction `{}` must be at the end of block {}",
-                            inst.dump(unit.dfg(), unit.try_cfg()),
+                            inst.dump(&unit),
                             bb
                         ),
                     });
@@ -105,7 +105,7 @@ impl Verifier {
                         object: Some(bb.to_string()),
                         message: format!(
                             "last instruction `{}` must be a terminator",
-                            inst.dump(unit.dfg(), unit.try_cfg())
+                            inst.dump(&unit)
                         ),
                     })
                 }
@@ -205,7 +205,7 @@ where
         if !unit[inst].opcode().valid_in().contains(self.flags) {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(unit.dfg(), unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&unit).to_string()),
                 message: format!("{} may not appear in this unit", unit[inst].opcode()),
             });
         }
@@ -223,7 +223,7 @@ where
                 args_invalid = true;
                 self.verifier.errors.push(VerifierError {
                     unit: self.verifier.unit_name.clone(),
-                    object: Some(inst.dump(unit.dfg(), unit.try_cfg()).to_string()),
+                    object: Some(inst.dump(&unit).to_string()),
                     message: format!("{} uses invalid value", unit[inst].opcode()),
                 });
                 continue;
@@ -231,8 +231,8 @@ where
             if !self.is_value_defined(value) {
                 self.verifier.errors.push(VerifierError {
                     unit: self.verifier.unit_name.clone(),
-                    object: Some(inst.dump(unit.dfg(), unit.try_cfg()).to_string()),
-                    message: format!("value {} has no definition", value.dump(unit.dfg())),
+                    object: Some(inst.dump(&unit).to_string()),
+                    message: format!("value {} has no definition", value.dump(&unit)),
                 });
             }
         }
@@ -241,7 +241,7 @@ where
                 args_invalid = true;
                 self.verifier.errors.push(VerifierError {
                     unit: self.verifier.unit_name.clone(),
-                    object: Some(inst.dump(unit.dfg(), unit.try_cfg()).to_string()),
+                    object: Some(inst.dump(&unit).to_string()),
                     message: format!("{} uses invalid block", unit[inst].opcode()),
                 });
                 continue;
@@ -249,11 +249,8 @@ where
             if !self.is_block_defined(block) {
                 self.verifier.errors.push(VerifierError {
                     unit: self.verifier.unit_name.clone(),
-                    object: Some(inst.dump(unit.dfg(), unit.try_cfg()).to_string()),
-                    message: format!(
-                        "block {} has no definition",
-                        block.dump(unit.try_cfg().unwrap())
-                    ),
+                    object: Some(inst.dump(&unit).to_string()),
+                    message: format!("block {} has no definition", block.dump(&unit)),
                 });
             }
         }
@@ -580,7 +577,7 @@ where
             let tys: String = tys.join(", ");
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!("argument types must match (but are {})", tys),
             });
         }
@@ -592,7 +589,7 @@ where
         if !ty.is_signal() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!("argument {} type must be a signal (but is {})", arg, ty),
             });
         }
@@ -618,7 +615,7 @@ where
         if arg_ty != *ty {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!(
                     "argument {} must be of type {} (but is {})",
                     arg, ty, arg_ty,
@@ -635,7 +632,7 @@ where
         }
         self.verifier.errors.push(VerifierError {
             unit: self.verifier.unit_name.clone(),
-            object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+            object: Some(inst.dump(&self.unit).to_string()),
             message: format!("return type must be i1 (but is {})", ty),
         });
     }
@@ -658,7 +655,7 @@ where
         }
         self.verifier.errors.push(VerifierError {
             unit: self.verifier.unit_name.clone(),
-            object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+            object: Some(inst.dump(&self.unit).to_string()),
             message: format!("return type must be iN or iN$ (but is {})", ty),
         });
     }
@@ -669,7 +666,7 @@ where
         if inst_ty != *ty {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!("return type must be {} (but is {})", ty, inst_ty),
             });
         }
@@ -686,7 +683,7 @@ where
         if !amount_ty.is_int() && !(amount_ty.is_signal() && amount_ty.unwrap_signal().is_int()) {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!(
                     "type of shift amount must be iN or iN$ (but is {})",
                     amount_ty
@@ -700,7 +697,7 @@ where
         {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!(
                     "shift base and hidden value types must be compatible (but are {} and {})",
                     base_ty, hidden_ty
@@ -725,7 +722,7 @@ where
         }
         self.verifier.errors.push(VerifierError {
             unit: self.verifier.unit_name.clone(),
-            object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+            object: Some(inst.dump(&self.unit).to_string()),
             message: format!(
                 "shift base and hidden value types must be compatible (but are {} and {})",
                 base_ty, hidden_ty
@@ -741,7 +738,7 @@ where
         if !array_ty.is_array() || array_ty.unwrap_array().1 != &ty {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!(
                     "array {} element and return type {} must agree",
                     array_ty, ty
@@ -753,7 +750,7 @@ where
         if !sel_ty.is_int() && !(sel_ty.is_signal() && sel_ty.unwrap_signal().is_int()) {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!("type of selector must be iN or iN$ (but is {})", sel_ty),
             });
         }
@@ -802,7 +799,7 @@ where
                 None => {
                     self.verifier.errors.push(VerifierError {
                         unit: self.verifier.unit_name.clone(),
-                        object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                        object: Some(inst.dump(&self.unit).to_string()),
                         message: format!(
                             "field index {} out of bounds of struct type {}",
                             field, target_ty
@@ -816,7 +813,7 @@ where
         } else {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!(
                     "target must be of struct or array type (but is {})",
                     target_ty
@@ -845,7 +842,7 @@ where
             if array_len < offset + length {
                 self.verifier.errors.push(VerifierError {
                     unit: self.verifier.unit_name.clone(),
-                    object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                    object: Some(inst.dump(&self.unit).to_string()),
                     message: format!(
                         "access {}..{} out of array bounds 0..{}",
                         offset,
@@ -860,7 +857,7 @@ where
             if size < offset + length {
                 self.verifier.errors.push(VerifierError {
                     unit: self.verifier.unit_name.clone(),
-                    object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                    object: Some(inst.dump(&self.unit).to_string()),
                     message: format!(
                         "access {}..{} out of integer bounds 0..{}",
                         offset,
@@ -873,7 +870,7 @@ where
         } else {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!("target must be of array or iN type (but is {})", target_ty),
             });
             None
@@ -927,7 +924,7 @@ where
         if !ty.is_signal() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!("type {} must be a signal", ty),
             });
         }
@@ -941,14 +938,14 @@ where
         if !arg_ty.is_signal() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!("type {} must be a signal", ty),
             });
         }
         if ty != *arg_ty.unwrap_signal() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!("type {} must be signal of return type {}", arg_ty, ty),
             });
         }
@@ -961,14 +958,14 @@ where
         if !arg_ty.is_signal() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!("type {} must be a signal", ty),
             });
         }
         if ty != *arg_ty.unwrap_signal() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!(
                     "drive target type {} must be signal of driven value type {}",
                     arg_ty, ty
@@ -987,7 +984,7 @@ where
         if !ty.is_pointer() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!("type {} must be a pointer", ty),
             });
         }
@@ -1001,14 +998,14 @@ where
         if !arg_ty.is_pointer() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!("type {} must be a pointer", ty),
             });
         }
         if ty != *arg_ty.unwrap_pointer() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!("type {} must be pointer of return type {}", arg_ty, ty),
             });
         }
@@ -1021,14 +1018,14 @@ where
         if !arg_ty.is_pointer() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!("type {} must be a pointer", ty),
             });
         }
         if ty != *arg_ty.unwrap_pointer() {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!(
                     "store target type {} must be pointer of stored value type {}",
                     arg_ty, ty
@@ -1044,7 +1041,7 @@ where
         if func_ty != *ty {
             self.verifier.errors.push(VerifierError {
                 unit: self.verifier.unit_name.clone(),
-                object: Some(inst.dump(self.unit.dfg(), self.unit.try_cfg()).to_string()),
+                object: Some(inst.dump(&self.unit).to_string()),
                 message: format!(
                     "requires function to have return type {} (but has {})",
                     ty, func_ty

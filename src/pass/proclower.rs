@@ -21,7 +21,7 @@ impl Pass for ProcessLowering {
 }
 
 fn lower_unit(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
-    if !unit.is_process() || !is_suitable(ctx, unit.unit()) {
+    if !unit.is_process() || !is_suitable(ctx, &unit) {
         return false;
     }
     let data = UnitData::new(UnitKind::Process, unit.name().clone(), unit.sig().clone());
@@ -45,23 +45,22 @@ fn lower_unit(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
 }
 
 /// Check if a process is suitable for lowering to an entity.
-fn is_suitable(_ctx: &PassContext, ub: Unit) -> bool {
-    let dfg = ub.dfg();
-    let layout = ub.func_layout();
+fn is_suitable(_ctx: &PassContext, unit: &Unit) -> bool {
+    let layout = unit.func_layout();
 
     // Ensure that there is only one basic block.
     if layout.blocks().count() != 1 {
-        trace!("Skipping {} (not just one block)", ub.name());
+        trace!("Skipping {} (not just one block)", unit.name());
         return false;
     }
     let bb = layout.entry();
 
     // Ensure that the terminator instruction is a wait/halt.
     let term = layout.terminator(bb);
-    match ub[term].opcode() {
+    match unit[term].opcode() {
         Opcode::Wait | Opcode::WaitTime | Opcode::Halt => (),
         op => {
-            trace!("Skipping {} (wrong terminator {})", ub.name(), op);
+            trace!("Skipping {} (wrong terminator {})", unit.name(), op);
             return false;
         }
     }
@@ -71,11 +70,11 @@ fn is_suitable(_ctx: &PassContext, ub: Unit) -> bool {
         if inst == term {
             continue;
         }
-        if !ub[inst].opcode().valid_in_entity() {
+        if !unit[inst].opcode().valid_in_entity() {
             trace!(
                 "Skipping {} ({} not allowed in entity)",
-                ub.name(),
-                inst.dump(ub.dfg(), ub.try_cfg())
+                unit.name(),
+                inst.dump(&unit)
             );
             return false;
         }
@@ -83,15 +82,15 @@ fn is_suitable(_ctx: &PassContext, ub: Unit) -> bool {
 
     // Ensure that all input arguments that are used are also contained in the
     // wait instruction's sensitivity list.
-    match ub[term].opcode() {
+    match unit[term].opcode() {
         Opcode::Wait | Opcode::WaitTime => {
-            for arg in ub.sig().inputs() {
-                let value = ub.arg_value(arg);
-                if ub.has_uses(value) && !ub[term].args().contains(&value) {
+            for arg in unit.sig().inputs() {
+                let value = unit.arg_value(arg);
+                if unit.has_uses(value) && !unit[term].args().contains(&value) {
                     trace!(
                         "Skipping {} ({} not in wait sensitivity list)",
-                        ub.name(),
-                        value.dump(dfg)
+                        unit.name(),
+                        value.dump(&unit)
                     );
                     return false;
                 }

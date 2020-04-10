@@ -107,9 +107,8 @@ fn write_entity_body(
 ) -> Result<()> {
     debug!("Emitting entity {}", entity.name());
     write!(output, "\n    // Entity {}\n", entity.name())?;
-    let dfg = entity.dfg();
     for inst in entity.func_layout().all_insts() {
-        write!(output, "    // {}\n", inst.dump(dfg, None))?;
+        write!(output, "    // {}\n", inst.dump(&entity))?;
     }
     Ok(())
 }

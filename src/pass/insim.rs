@@ -56,11 +56,7 @@ impl Pass for InstSimplification {
 }
 
 fn replace(from_inst: Inst, from_value: Value, to: Value, unit: &mut UnitBuilder) -> bool {
-    debug!(
-        "Replace {} with {}",
-        from_inst.dump(unit.dfg(), unit.try_cfg()),
-        to.dump(unit.dfg())
-    );
+    debug!("Replace {} with {}", from_inst.dump(&unit), to.dump(&unit));
     unit.replace_use(from_value, to) > 0
 }
 

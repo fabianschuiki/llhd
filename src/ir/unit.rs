@@ -452,16 +452,12 @@ impl std::fmt::Display for Unit<'_> {
             "{} {} {} {{\n",
             self.data.kind,
             self.data.name,
-            self.data.sig.dump(&self.data.dfg)
+            self.data.sig.dump(self)
         )?;
         for bb in self.data.layout.blocks() {
-            write!(f, "{}:\n", bb.dump(&self.data.cfg))?;
+            write!(f, "{}:\n", bb.dump(self))?;
             for inst in self.data.layout.insts(bb) {
-                write!(
-                    f,
-                    "    {}\n",
-                    inst.dump(&self.data.dfg, Some(&self.data.cfg))
-                )?;
+                write!(f, "    {}\n", inst.dump(self))?;
             }
         }
         write!(f, "}}")?;
@@ -777,6 +773,14 @@ impl<'a> UnitBuilder<'a> {
     /// Annotates the byte offset of an instruction in the input file.
     pub fn set_location_hint(&mut self, inst: Inst, loc: usize) {
         self.dfg_mut().set_location_hint(inst, loc)
+    }
+}
+
+// Allow builders to be borrowed as the unit being built.
+
+impl<'a> std::borrow::Borrow<Unit<'a>> for UnitBuilder<'a> {
+    fn borrow(&self) -> &Unit<'a> {
+        &self.unit
     }
 }
 

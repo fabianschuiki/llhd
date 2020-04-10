@@ -59,10 +59,7 @@ impl Pass for ControlFlowSimplification {
         // covered values with the discriminator, which is now control-flow
         // independent.
         for (inst, ways) in phi_ways {
-            trace!(
-                "Implementing {} as multiplexer",
-                inst.dump(unit.dfg(), unit.try_cfg()),
-            );
+            trace!("Implementing {} as multiplexer", inst.dump(&unit),);
             unit.insert_before(inst);
             let disc = build_discriminator(ctx, unit, &ways);
             for (v, _) in ways {
@@ -85,11 +82,7 @@ impl Pass for ControlFlowSimplification {
             }
         }
         for (inst, with) in elide_phis {
-            trace!(
-                "Replace {} with {}",
-                inst.dump(unit.dfg(), unit.try_cfg()),
-                with.dump(unit.dfg()),
-            );
+            trace!("Replace {} with {}", inst.dump(&unit), with.dump(&unit),);
             let inst_value = unit.inst_result(inst);
             unit.replace_use(inst_value, with);
             unit.prune_if_unused(inst);
@@ -112,9 +105,9 @@ fn prepare_phi(
 ) -> Vec<(Value, Vec<Cond>)> {
     trace!(
         "Working on {} in {} against {}",
-        inst.dump(unit.dfg(), unit.try_cfg()),
-        block.dump(unit.cfg()),
-        immediate_dominator.dump(unit.cfg())
+        inst.dump(&unit),
+        block.dump(&unit),
+        immediate_dominator.dump(&unit)
     );
 
     // Try to find the transitive branch condition that leads to control flow in
@@ -123,7 +116,7 @@ fn prepare_phi(
     let mut ways = vec![];
     let data = &unit.dfg()[inst];
     for (&bb, &arg) in data.blocks().iter().zip(data.args().iter()) {
-        trace!("  Checking from {}", bb.dump(unit.cfg()));
+        trace!("  Checking from {}", bb.dump(&unit));
         let routes = justify_edge(ctx, unit, bb, block, immediate_dominator, &mut vec![], pt);
         ways.extend(routes.into_iter().map(|route| (arg, route)));
     }
@@ -143,11 +136,7 @@ fn justify_edge(
     seen: &mut Vec<Block>,
     pt: &PredecessorTable,
 ) -> Vec<Vec<Cond>> {
-    trace!(
-        "    Justifying {} -> {}",
-        from.dump(unit.cfg()),
-        to.dump(unit.cfg())
-    );
+    trace!("    Justifying {} -> {}", from.dump(&unit), to.dump(&unit));
 
     // Investigate the terminator of the `from` block to see under what
     // condition it transfers control to `to`.
@@ -225,7 +214,7 @@ fn build_discriminator(
         .map(|(v, (n, tick))| (v, (n, -tick.abs())))
         .max_by_key(|&(_, x)| x)
         .expect("some discriminator must be present");
-    trace!("    Discriminator is {} ({})", disc, disc.dump(unit.dfg()));
+    trace!("    Discriminator is {} ({})", disc, disc.dump(&unit));
 
     // Split the ways over the discriminator.
     let mux_conds = [Cond::Neg(disc), Cond::Pos(disc)];

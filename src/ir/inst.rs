@@ -6,7 +6,7 @@
 //! representation.
 
 use crate::{
-    ir::{Block, ControlFlowGraph, DataFlowGraph, ExtUnit, Inst, UnitBuilder, Value},
+    ir::{Block, ExtUnit, Inst, Unit, UnitBuilder, Value},
     ty::{array_ty, int_ty, pointer_ty, signal_ty, struct_ty, void_ty, Type},
     value::{IntValue, TimeValue},
 };
@@ -1271,44 +1271,40 @@ impl Opcode {
 }
 
 impl Inst {
-    pub fn dump<'a>(
-        self,
-        dfg: &'a DataFlowGraph,
-        cfg: Option<&'a ControlFlowGraph>,
-    ) -> InstDumper<'a> {
-        InstDumper(self, dfg, cfg)
+    pub fn dump<'a>(self, unit: &Unit<'a>) -> InstDumper<'a> {
+        InstDumper(self, *unit)
     }
 }
 
 /// Temporary object to dump an `Inst` in human-readable form for debugging.
-pub struct InstDumper<'a>(Inst, &'a DataFlowGraph, Option<&'a ControlFlowGraph>);
+pub struct InstDumper<'a>(Inst, Unit<'a>);
 
 impl std::fmt::Display for InstDumper<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let inst = self.0;
-        let dfg = self.1;
-        let data = &dfg[inst];
-        if dfg.has_result(inst) {
-            let result = dfg.inst_result(inst);
+        let unit = self.1;
+        let data = &unit[inst];
+        if unit.has_result(inst) {
+            let result = unit.inst_result(inst);
             write!(
                 f,
                 "{} = {} {}",
-                result.dump(dfg),
+                result.dump(&unit),
                 data.opcode(),
-                dfg.value_type(result)
+                unit.value_type(result)
             )?;
         } else {
             write!(f, "{}", data.opcode())?;
         }
-        if let InstData::Call { unit, .. } = *data {
-            write!(f, " {}", dfg[unit].name)?;
+        if let InstData::Call { unit: ext_unit, .. } = *data {
+            write!(f, " {}", unit[ext_unit].name)?;
             write!(f, " (")?;
             let mut comma = false;
             for arg in data.input_args() {
                 if comma {
                     write!(f, ", ")?;
                 }
-                write!(f, "{}", arg.dump(dfg))?;
+                write!(f, "{}", arg.dump(&unit))?;
                 comma = true;
             }
             write!(f, ")")?;
@@ -1319,7 +1315,7 @@ impl std::fmt::Display for InstDumper<'_> {
                     if comma {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{}", arg.dump(dfg))?;
+                    write!(f, "{}", arg.dump(&unit))?;
                     comma = true;
                 }
                 write!(f, ")")?;
@@ -1327,13 +1323,13 @@ impl std::fmt::Display for InstDumper<'_> {
         } else if let InstData::Reg { .. } = *data {
             write!(f, " {}", data.args()[0])?;
             for arg in data.data_args() {
-                write!(f, ", {}", arg.dump(dfg))?;
+                write!(f, ", {}", arg.dump(&unit))?;
             }
             for arg in data.mode_args() {
                 write!(f, ", {}", arg)?;
             }
             for arg in data.trigger_args() {
-                write!(f, ", {}", arg.dump(dfg))?;
+                write!(f, ", {}", arg.dump(&unit))?;
             }
         } else if let InstData::Phi { .. } = *data {
             let mut comma = false;
@@ -1342,7 +1338,7 @@ impl std::fmt::Display for InstDumper<'_> {
                 if comma {
                     write!(f, ", ")?;
                 }
-                write!(f, "[{}, {}]", arg.dump(dfg), block.dump(self.2.unwrap()))?;
+                write!(f, "[{}, {}]", arg.dump(&unit), block.dump(&unit))?;
                 comma = true;
             }
         } else {
@@ -1351,14 +1347,14 @@ impl std::fmt::Display for InstDumper<'_> {
                 if comma {
                     write!(f, ",")?;
                 }
-                write!(f, " {}", arg.dump(dfg))?;
+                write!(f, " {}", arg.dump(&unit))?;
                 comma = true;
             }
             for block in data.blocks() {
                 if comma {
                     write!(f, ",")?;
                 }
-                write!(f, " {}", block.dump(self.2.unwrap()))?;
+                write!(f, " {}", block.dump(&unit))?;
                 comma = true;
             }
             for imm in data.imms() {
