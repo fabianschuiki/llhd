@@ -1,0 +1,17 @@
+; RUN: llhd-opt %s -p proclower
+
+proc %fooA () -> () {
+entry:
+    halt
+}
+
+; CHECK:  entity %fooA () -> () {
+; CHECK:  }
+
+proc %fooB () -> () {
+entry:
+    wait %entry
+}
+
+; CHECK:  entity %fooB () -> () {
+; CHECK:  }

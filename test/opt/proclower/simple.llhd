@@ -1,0 +1,19 @@
+; RUN: llhd-opt %s -p proclower
+
+proc %foo (i32$ %a, i32$ %b) -> (i32$ %z) {
+entry:
+    %ap = prb i32$ %a
+    %bp = prb i32$ %b
+    %zn = xor i32 %ap, %bp
+    %dt = const time 0s 1d
+    drv i32$ %z, %zn, %dt
+    wait %entry, %a, %b
+}
+
+; CHECK:  entity %foo (i32$ %a, i32$ %b) -> (i32$ %z) {
+; CHECK:      %ap = prb i32$ %a
+; CHECK:      %bp = prb i32$ %b
+; CHECK:      %zn = xor i32 %ap, %bp
+; CHECK:      %dt = const time 0s 1d
+; CHECK:      drv i32$ %z, %zn, %dt
+; CHECK:  }

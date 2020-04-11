@@ -1,0 +1,17 @@
+; RUN: llhd-opt %s -p proclower
+
+proc %fooA (i32$ %a) -> () {
+entry:
+    halt
+}
+
+; CHECK:  entity %fooA (i32$ %a) -> () {
+; CHECK:  }
+
+proc %fooB (i32$ %a) -> () {
+entry:
+    wait %entry
+}
+
+; CHECK:  entity %fooB (i32$ %a) -> () {
+; CHECK:  }
