@@ -427,6 +427,14 @@ impl<'a> Unit<'a> {
     pub fn location_hint(self, inst: Inst) -> Option<usize> {
         self.dfg().location_hint(inst)
     }
+
+    /// Get the block ID bound.
+    ///
+    /// This function is useful for creating dense vectors to associate data
+    /// with blocks.
+    pub fn block_id_bound(self) -> usize {
+        self.data.cfg.blocks.capacity()
+    }
 }
 
 /// # Basic Block Layout
@@ -573,7 +581,10 @@ impl<'a> UnitBuilder<'a> {
     /// Create a new builder for a unit.
     pub fn new(unit: UnitId, data: &'a mut UnitData) -> Self {
         let pos = match data.kind {
-            UnitKind::Entity => InsertPos::Append(Unit::new(unit, data).entry()),
+            UnitKind::Entity => match Unit::new(unit, data).first_block() {
+                Some(bb) => InsertPos::Append(bb),
+                None => InsertPos::None,
+            },
             _ => InsertPos::None,
         };
         Self {

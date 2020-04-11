@@ -276,7 +276,7 @@ impl DominatorTree {
 
         let undef = std::u32::MAX;
         let mut doms = vec![undef; length];
-        let mut inv_post_order = vec![undef; unit.blocks().count()];
+        let mut inv_post_order = vec![undef; unit.block_id_bound()];
         for (i, &bb) in post_order.iter().enumerate() {
             inv_post_order[bb.index()] = i as u32;
         }
@@ -335,7 +335,7 @@ impl DominatorTree {
         }
         // trace!("[DomTree] converged {:?}", doms);
 
-        let mut doms_final = vec![Block::invalid(); unit.blocks().count()];
+        let mut doms_final = vec![Block::invalid(); unit.block_id_bound()];
         for bb in &post_order {
             doms_final[bb.index()] = post_order[doms[inv_post_order[bb.index()] as usize] as usize];
         }
