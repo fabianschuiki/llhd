@@ -2,7 +2,7 @@
 
 //! Instruction and BB ordering.
 
-#![allow(deprecated, dead_code)]
+#![allow(deprecated)]
 
 use crate::{
     ir::{Block, Inst},
@@ -10,21 +10,11 @@ use crate::{
 };
 use std::collections::HashMap;
 
-/// Common functionality between CFG and DFG unit layouts.
-#[deprecated]
-pub trait Layout {
-    /// Check if an instruction is inserted.
-    fn is_inst_inserted(&self, inst: Inst) -> bool;
-
-    /// Check if a block is inserted.
-    fn is_block_inserted(&self, block: Block) -> bool;
-}
-
 /// Determines the order of instructions and BBs in a `Function` or `Process`.
 #[derive(Default, Serialize, Deserialize)]
 pub struct FunctionLayout {
     /// A linked list of BBs in layout order.
-    pub(crate) bbs: SecondaryTable<Block, BlockNode>,
+    pub(super) bbs: SecondaryTable<Block, BlockNode>,
     /// The first BB in the layout.
     pub(super) first_bb: Option<Block>,
     /// The last BB in the layout.
@@ -35,10 +25,10 @@ pub struct FunctionLayout {
 
 /// A node in the layout's double-linked list of BBs.
 #[derive(Default, Serialize, Deserialize)]
-pub(crate) struct BlockNode {
+pub(super) struct BlockNode {
     pub(super) prev: Option<Block>,
     pub(super) next: Option<Block>,
-    pub(crate) layout: InstLayout,
+    pub(super) layout: InstLayout,
 }
 
 impl FunctionLayout {
@@ -48,216 +38,9 @@ impl FunctionLayout {
     }
 }
 
-impl Layout for FunctionLayout {
-    fn is_inst_inserted(&self, inst: Inst) -> bool {
-        self.inst_map.contains_key(&inst)
-    }
-
-    fn is_block_inserted(&self, bb: Block) -> bool {
-        self.bbs.contains(bb)
-    }
-}
-
-/// Basic block arrangement.
-///
-/// The following functions are used for laying out the basic blocks within a
-/// `Function` or `Process`.
-impl FunctionLayout {
-    /// Append a BB to the end of the function.
-    #[deprecated]
-    fn append_block(&mut self, bb: Block) {
-        self.bbs.add(
-            bb,
-            BlockNode {
-                prev: self.last_bb,
-                next: None,
-                layout: Default::default(),
-            },
-        );
-        if let Some(prev) = self.last_bb {
-            self.bbs[prev].next = Some(bb);
-        }
-        if self.first_bb.is_none() {
-            self.first_bb = Some(bb);
-        }
-        self.last_bb = Some(bb);
-    }
-
-    /// Prepend a BB to the beginning of a function.
-    ///
-    /// This effectively makes `bb` the new entry block.
-    #[deprecated]
-    fn prepend_block(&mut self, bb: Block) {
-        self.bbs.add(
-            bb,
-            BlockNode {
-                prev: None,
-                next: self.first_bb,
-                layout: Default::default(),
-            },
-        );
-        if let Some(next) = self.first_bb {
-            self.bbs[next].prev = Some(bb);
-        }
-        if self.last_bb.is_none() {
-            self.last_bb = Some(bb);
-        }
-        self.first_bb = Some(bb);
-    }
-
-    /// Insert a BB after another BB.
-    #[deprecated]
-    fn insert_block_after(&mut self, bb: Block, after: Block) {
-        self.bbs.add(
-            bb,
-            BlockNode {
-                prev: Some(after),
-                next: self.bbs[after].next,
-                layout: Default::default(),
-            },
-        );
-        if let Some(next) = self.bbs[after].next {
-            self.bbs[next].prev = Some(bb);
-        }
-        self.bbs[after].next = Some(bb);
-        if self.last_bb == Some(after) {
-            self.last_bb = Some(bb);
-        }
-    }
-
-    /// Insert a BB before another BB.
-    #[deprecated]
-    fn insert_block_before(&mut self, bb: Block, before: Block) {
-        self.bbs.add(
-            bb,
-            BlockNode {
-                prev: self.bbs[before].prev,
-                next: Some(before),
-                layout: Default::default(),
-            },
-        );
-        if let Some(prev) = self.bbs[before].prev {
-            self.bbs[prev].next = Some(bb);
-        }
-        self.bbs[before].prev = Some(bb);
-        if self.first_bb == Some(before) {
-            self.first_bb = Some(bb);
-        }
-    }
-
-    /// Remove a BB from the function.
-    #[deprecated]
-    fn remove_block(&mut self, bb: Block) {
-        let node = self.bbs.remove(bb).unwrap();
-        if let Some(next) = node.next {
-            self.bbs[next].prev = node.prev;
-        }
-        if let Some(prev) = node.prev {
-            self.bbs[prev].next = node.next;
-        }
-        if self.first_bb == Some(bb) {
-            self.first_bb = node.next;
-        }
-        if self.last_bb == Some(bb) {
-            self.last_bb = node.prev;
-        }
-    }
-
-    /// Swap the position of two BBs.
-    #[deprecated]
-    fn swap_blocks(&mut self, bb0: Block, bb1: Block) {
-        if bb0 == bb1 {
-            return;
-        }
-
-        let mut bb0_next = self.bbs[bb0].next;
-        let mut bb0_prev = self.bbs[bb0].prev;
-        let mut bb1_next = self.bbs[bb1].next;
-        let mut bb1_prev = self.bbs[bb1].prev;
-        if bb0_next == Some(bb1) {
-            bb0_next = Some(bb0);
-        }
-        if bb0_prev == Some(bb1) {
-            bb0_prev = Some(bb0);
-        }
-        if bb1_next == Some(bb0) {
-            bb1_next = Some(bb1);
-        }
-        if bb1_prev == Some(bb0) {
-            bb1_prev = Some(bb1);
-        }
-        self.bbs[bb0].next = bb1_next;
-        self.bbs[bb0].prev = bb1_prev;
-        self.bbs[bb1].next = bb0_next;
-        self.bbs[bb1].prev = bb0_prev;
-
-        if let Some(next) = bb0_next {
-            self.bbs[next].prev = Some(bb1);
-        }
-        if let Some(prev) = bb0_prev {
-            self.bbs[prev].next = Some(bb1);
-        }
-        if let Some(next) = bb1_next {
-            self.bbs[next].prev = Some(bb0);
-        }
-        if let Some(prev) = bb1_prev {
-            self.bbs[prev].next = Some(bb0);
-        }
-
-        if self.first_bb == Some(bb0) {
-            self.first_bb = Some(bb1);
-        } else if self.first_bb == Some(bb1) {
-            self.first_bb = Some(bb0);
-        }
-        if self.last_bb == Some(bb0) {
-            self.last_bb = Some(bb1);
-        } else if self.last_bb == Some(bb1) {
-            self.last_bb = Some(bb0);
-        }
-    }
-
-    /// Return an iterator over all BBs in layout order.
-    #[deprecated]
-    fn blocks<'a>(&'a self) -> impl Iterator<Item = Block> + 'a {
-        std::iter::successors(self.first_bb, move |&bb| self.next_block(bb))
-    }
-
-    /// Get the first BB in the layout. This is the entry block.
-    #[deprecated]
-    fn first_block(&self) -> Option<Block> {
-        self.first_bb
-    }
-
-    /// Get the last BB in the layout.
-    #[deprecated]
-    fn last_block(&self) -> Option<Block> {
-        self.last_bb
-    }
-
-    /// Get the BB preceding `bb` in the layout.
-    #[deprecated]
-    fn prev_block(&self, bb: Block) -> Option<Block> {
-        self.bbs[bb].prev
-    }
-
-    /// Get the BB following `bb` in the layout.
-    #[deprecated]
-    fn next_block(&self, bb: Block) -> Option<Block> {
-        self.bbs[bb].next
-    }
-
-    /// Get the entry block in the layout.
-    ///
-    /// The fallible alternative is `first_block(bb)`.
-    #[deprecated]
-    fn entry(&self) -> Block {
-        self.first_block().expect("entry block is required")
-    }
-}
-
 /// Determines the order of instructions.
 #[derive(Default, Serialize, Deserialize)]
-pub struct InstLayout {
+pub(super) struct InstLayout {
     /// A linked list of instructions in layout order.
     insts: SecondaryTable<Inst, InstNode>,
     /// The first instruction in the layout.
@@ -273,22 +56,7 @@ struct InstNode {
     next: Option<Inst>,
 }
 
-impl Layout for InstLayout {
-    fn is_inst_inserted(&self, inst: Inst) -> bool {
-        self.insts.contains(inst)
-    }
-
-    fn is_block_inserted(&self, _: Block) -> bool {
-        false
-    }
-}
-
 impl InstLayout {
-    /// Create a new instruction layout.
-    pub fn new() -> Self {
-        Default::default()
-    }
-
     /// Append an instruction to the end of the function.
     pub fn append_inst(&mut self, inst: Inst) {
         self.insts.add(
@@ -401,101 +169,5 @@ impl InstLayout {
     /// Get the instruction following `inst` in the layout.
     pub fn next_inst(&self, inst: Inst) -> Option<Inst> {
         self.insts[inst].next
-    }
-}
-
-/// Instruction arrangement.
-///
-/// The following functions are used for laying out the instructions within a
-/// `Function` or `Process`.
-impl FunctionLayout {
-    /// Get the BB which contains `inst`, or `None` if `inst` is not inserted.
-    #[deprecated]
-    fn inst_block(&self, inst: Inst) -> Option<Block> {
-        self.inst_map.get(&inst).cloned()
-    }
-
-    /// Append an instruction to the end of a BB.
-    #[deprecated]
-    fn append_inst(&mut self, inst: Inst, bb: Block) {
-        self.bbs[bb].layout.append_inst(inst);
-        self.inst_map.insert(inst, bb);
-    }
-
-    /// Prepend an instruction to the beginning of a BB.
-    #[deprecated]
-    fn prepend_inst(&mut self, inst: Inst, bb: Block) {
-        self.bbs[bb].layout.prepend_inst(inst);
-        self.inst_map.insert(inst, bb);
-    }
-
-    /// Insert an instruction after another instruction.
-    #[deprecated]
-    fn insert_inst_after(&mut self, inst: Inst, after: Inst) {
-        let bb = self.inst_block(after).expect("`after` not inserted");
-        self.bbs[bb].layout.insert_inst_after(inst, after);
-        self.inst_map.insert(inst, bb);
-    }
-
-    /// Insert an instruction before another instruction.
-    #[deprecated]
-    fn insert_inst_before(&mut self, inst: Inst, before: Inst) {
-        let bb = self.inst_block(before).expect("`before` not inserted");
-        self.bbs[bb].layout.insert_inst_before(inst, before);
-        self.inst_map.insert(inst, bb);
-    }
-
-    /// Remove an instruction from the function.
-    #[deprecated]
-    fn remove_inst(&mut self, inst: Inst) {
-        let bb = self.inst_block(inst).expect("`inst` not inserted");
-        self.bbs[bb].layout.remove_inst(inst);
-        self.inst_map.remove(&inst);
-    }
-
-    /// Return an iterator over all instructions in a block in layout order.
-    #[deprecated]
-    fn insts<'a>(&'a self, bb: Block) -> impl Iterator<Item = Inst> + 'a {
-        self.bbs[bb].layout.insts()
-    }
-
-    /// Return an iterator over all instructions in layout order.
-    #[deprecated]
-    fn all_insts<'a>(&'a self) -> impl Iterator<Item = Inst> + 'a {
-        self.blocks().flat_map(move |bb| self.insts(bb))
-    }
-
-    /// Get the first instruction in the layout.
-    #[deprecated]
-    fn first_inst(&self, bb: Block) -> Option<Inst> {
-        self.bbs[bb].layout.first_inst()
-    }
-
-    /// Get the last instruction in the layout.
-    #[deprecated]
-    fn last_inst(&self, bb: Block) -> Option<Inst> {
-        self.bbs[bb].layout.last_inst()
-    }
-
-    /// Get the instruction preceding `inst` in the layout.
-    #[deprecated]
-    fn prev_inst(&self, inst: Inst) -> Option<Inst> {
-        let bb = self.inst_block(inst).unwrap();
-        self.bbs[bb].layout.prev_inst(inst)
-    }
-
-    /// Get the instruction following `inst` in the layout.
-    #[deprecated]
-    fn next_inst(&self, inst: Inst) -> Option<Inst> {
-        let bb = self.inst_block(inst).unwrap();
-        self.bbs[bb].layout.next_inst(inst)
-    }
-
-    /// Get the terminator instruction in the layout.
-    ///
-    /// The fallible alternative is `last_inst(bb)`.
-    #[deprecated]
-    fn terminator(&self, bb: Block) -> Inst {
-        self.last_inst(bb).expect("block must have terminator")
     }
 }
