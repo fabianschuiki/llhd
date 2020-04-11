@@ -445,7 +445,7 @@ impl<'a> Unit<'a> {
     }
 }
 
-/// Basic block layout.
+/// # Basic Block Layout
 ///
 /// The following functions are used to query the basic block layout.
 impl<'a> Unit<'a> {
@@ -487,7 +487,7 @@ impl<'a> Unit<'a> {
     }
 }
 
-/// Instruction layout.
+/// # Instruction Layout
 ///
 /// The following functions are used to query the instruction layout within a
 /// block.
@@ -874,7 +874,7 @@ impl<'a> UnitBuilder<'a> {
     }
 }
 
-/// Basic block layout.
+/// # Basic Block Layout
 ///
 /// The following functions are used to modify the basic block layout.
 impl<'a> UnitBuilder<'a> {
@@ -1032,7 +1032,7 @@ impl<'a> UnitBuilder<'a> {
     }
 }
 
-/// Instruction layout.
+/// # Instruction Layout
 ///
 /// The following functions are used to modify the instruction layout within a
 /// block.
