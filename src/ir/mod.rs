@@ -19,7 +19,7 @@ mod unit;
 pub use self::cfg::*;
 pub use self::dfg::*;
 pub use self::inst::*;
-pub use self::layout::*;
+use self::layout::*;
 pub use self::module::*;
 pub use self::sig::*;
 pub use self::unit::*;

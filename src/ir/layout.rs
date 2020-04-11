@@ -10,7 +10,7 @@ use std::collections::HashMap;
 
 /// Determines the order of instructions and BBs in a `Function` or `Process`.
 #[derive(Default, Serialize, Deserialize)]
-pub struct FunctionLayout {
+pub(crate) struct FunctionLayout {
     /// A linked list of BBs in layout order.
     pub(super) bbs: SecondaryTable<Block, BlockNode>,
     /// The first BB in the layout.

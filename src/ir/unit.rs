@@ -112,7 +112,7 @@ pub struct UnitData {
     pub sig: Signature,
     pub dfg: DataFlowGraph,
     pub cfg: ControlFlowGraph,
-    pub layout: FunctionLayout,
+    pub(crate) layout: FunctionLayout,
 }
 
 impl UnitData {
@@ -197,11 +197,6 @@ impl<'a> Unit<'a> {
         Some(&self.data.cfg)
     }
 
-    /// Get the unit's layout.
-    pub fn func_layout(self) -> &'a FunctionLayout {
-        &self.data.layout
-    }
-
     /// Get the unit's signature.
     pub fn sig(self) -> &'a Signature {
         &self.data.sig
@@ -213,7 +208,7 @@ impl<'a> Unit<'a> {
     }
 
     /// Dump the unit in human-readable form.
-    #[deprecated(note = "simply drop the dump()")]
+    #[deprecated(since = "0.13.0", note = "simply drop the dump()")]
     pub fn dump(self) -> Self {
         self
     }
@@ -763,11 +758,6 @@ impl<'a> UnitBuilder<'a> {
     /// Get the mutable CFG of the unit being built.
     pub fn try_cfg_mut(&mut self) -> Option<&mut ControlFlowGraph> {
         Some(&mut self.data().cfg)
-    }
-
-    /// Get the function/process layout of the unit being built.
-    pub fn func_layout_mut(&mut self) -> &mut FunctionLayout {
-        &mut self.data().layout
     }
 
     /// Import an external unit for use within this unit.

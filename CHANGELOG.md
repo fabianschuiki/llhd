@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove `Unit` and `UnitBuilder` traits.
 - Remove `Layout` trait.
 - Remove `InstLayout` struct.
+- Remove `func_layout()` and `func_layout_mut()` functions.
 
 ## 0.12.0 - 2020-04-09
 ### Added
