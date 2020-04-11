@@ -968,24 +968,27 @@ The `sig` instruction creates a signal in an entity with the initial value `%ini
 
 #### Probing the Value on a Signal (`prb`)
 
-    %result = prb T$ %sig
+    %result = prb T$ %signal
 
-The `prb` instruction probes the current value of a signal `%sig`.
+The `prb` instruction probes the current value of a signal `%signal`.
 
 - `T` may be any type.
-- `%sig` must be of type `T$`.
+- `%signal` must be of type `T$`.
 - `%result` is of type `T`.
 
 
 #### Driving a Value onto a Signal (`drv`)
 
-    drv T$ %sig, %value
+    drv T$ %signal, %value after %delay
+    drv T$ %signal, %value after %delay if %cond
 
-The `drv` instruction drives a `%value` onto a signal `%sig`.
+The `drv` instruction schedules signal `%signal` to change to a new value `%value` after the delay `%delay` has passed. In presence of the optional gating condition `%cond`, the instruction acts as a no-op if `%cond` is 0.
 
 - `T` may be any type.
-- `%sig` must be of type `T$`.
+- `%signal` must be of type `T$`.
 - `%value` must be of type `T`.
+- `%delay` must be of type `time`.
+- `%cond` must be of type `i1`.
 
 
 ### Structure and Hierarchy
