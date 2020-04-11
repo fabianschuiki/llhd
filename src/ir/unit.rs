@@ -563,7 +563,7 @@ pub struct UnitBuilder<'a> {
     /// The unit data being modified.
     data: &'a mut UnitData,
     /// The position where we are currently inserting instructions.
-    pos: FunctionInsertPos,
+    pos: InsertPos,
 }
 
 // Ensure the UnitBuilder can be used like a Unit.
@@ -578,8 +578,8 @@ impl<'a> UnitBuilder<'a> {
     /// Create a new builder for a unit.
     pub fn new(unit: UnitId, data: &'a mut UnitData) -> Self {
         let pos = match data.kind {
-            UnitKind::Entity => FunctionInsertPos::Append(Unit::new(unit, data).entry()),
-            _ => FunctionInsertPos::None,
+            UnitKind::Entity => InsertPos::Append(Unit::new(unit, data).entry()),
+            _ => InsertPos::None,
         };
         Self {
             unit: Unit::new(unit, unsafe { &*(data as *const _) }),
@@ -634,17 +634,17 @@ impl<'a> UnitBuilder<'a> {
     pub fn build_inst(&mut self, data: InstData, ty: Type) -> Inst {
         let inst = self.data.dfg.add_inst(data, ty);
         match self.pos {
-            FunctionInsertPos::None => panic!("no block selected to insert instruction"),
-            FunctionInsertPos::Append(bb) => self.append_inst(inst, bb),
-            FunctionInsertPos::Prepend(bb) => {
+            InsertPos::None => panic!("no block selected to insert instruction"),
+            InsertPos::Append(bb) => self.append_inst(inst, bb),
+            InsertPos::Prepend(bb) => {
                 self.prepend_inst(inst, bb);
-                self.pos = FunctionInsertPos::After(inst);
+                self.pos = InsertPos::After(inst);
             }
-            FunctionInsertPos::After(other) => {
+            InsertPos::After(other) => {
                 self.insert_inst_after(inst, other);
-                self.pos = FunctionInsertPos::After(inst);
+                self.pos = InsertPos::After(inst);
             }
-            FunctionInsertPos::Before(other) => self.insert_inst_before(inst, other),
+            InsertPos::Before(other) => self.insert_inst_before(inst, other),
         }
         inst
     }
@@ -658,19 +658,19 @@ impl<'a> UnitBuilder<'a> {
         match self.pos {
             // If we inserted after i, now insert before i's successor, or if i
             // was the last inst in the block, at the end of the block.
-            FunctionInsertPos::After(i) if i == inst => {
+            InsertPos::After(i) if i == inst => {
                 self.pos = self
                     .next_inst(i)
-                    .map(FunctionInsertPos::Before)
-                    .unwrap_or(FunctionInsertPos::Append(self.inst_block(i).unwrap()))
+                    .map(InsertPos::Before)
+                    .unwrap_or(InsertPos::Append(self.inst_block(i).unwrap()))
             }
             // If we inserted before i, now insert after i's predecessor, or if
             // i was the first inst in the block, at the beginning of the block.
-            FunctionInsertPos::Before(i) if i == inst => {
+            InsertPos::Before(i) if i == inst => {
                 self.pos = self
                     .prev_inst(i)
-                    .map(FunctionInsertPos::After)
-                    .unwrap_or(FunctionInsertPos::Prepend(self.inst_block(i).unwrap()))
+                    .map(InsertPos::After)
+                    .unwrap_or(InsertPos::Prepend(self.inst_block(i).unwrap()))
             }
             // Everything else we just keep as is.
             _ => (),
@@ -712,32 +712,32 @@ impl<'a> UnitBuilder<'a> {
 
     /// Append all following instructions at the end of the unit.
     pub fn insert_at_end(&mut self) {
-        self.pos = FunctionInsertPos::Append(self.entry());
+        self.pos = InsertPos::Append(self.entry());
     }
 
     /// Prepend all following instructions at the beginning of the unit.
     pub fn insert_at_beginning(&mut self) {
-        self.pos = FunctionInsertPos::Prepend(self.entry());
+        self.pos = InsertPos::Prepend(self.entry());
     }
 
     /// Append all following instructions to the end of `bb`.
     pub fn append_to(&mut self, bb: Block) {
-        self.pos = FunctionInsertPos::Append(bb);
+        self.pos = InsertPos::Append(bb);
     }
 
     /// Prepend all following instructions to the beginning of `bb`.
     pub fn prepend_to(&mut self, bb: Block) {
-        self.pos = FunctionInsertPos::Prepend(bb);
+        self.pos = InsertPos::Prepend(bb);
     }
 
     /// Insert all following instructions after `inst`.
     pub fn insert_after(&mut self, inst: Inst) {
-        self.pos = FunctionInsertPos::After(inst);
+        self.pos = InsertPos::After(inst);
     }
 
     /// Insert all following instructions before `inst`.
     pub fn insert_before(&mut self, inst: Inst) {
-        self.pos = FunctionInsertPos::Before(inst);
+        self.pos = InsertPos::Before(inst);
     }
 
     /// Get the mutable DFG of the unit being built.
@@ -1199,7 +1199,7 @@ impl IndexMut<Block> for UnitBuilder<'_> {
 
 /// The position where new instructions will be inserted.
 #[derive(Clone, Copy)]
-enum FunctionInsertPos {
+enum InsertPos {
     None,
     Append(Block),
     Prepend(Block),
