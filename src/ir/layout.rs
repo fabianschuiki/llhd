@@ -410,27 +410,27 @@ impl InstLayout {
 impl FunctionLayout {
     /// Get the BB which contains `inst`, or `None` if `inst` is not inserted.
     #[deprecated]
-    pub fn inst_block(&self, inst: Inst) -> Option<Block> {
+    fn inst_block(&self, inst: Inst) -> Option<Block> {
         self.inst_map.get(&inst).cloned()
     }
 
     /// Append an instruction to the end of a BB.
     #[deprecated]
-    pub fn append_inst(&mut self, inst: Inst, bb: Block) {
+    fn append_inst(&mut self, inst: Inst, bb: Block) {
         self.bbs[bb].layout.append_inst(inst);
         self.inst_map.insert(inst, bb);
     }
 
     /// Prepend an instruction to the beginning of a BB.
     #[deprecated]
-    pub fn prepend_inst(&mut self, inst: Inst, bb: Block) {
+    fn prepend_inst(&mut self, inst: Inst, bb: Block) {
         self.bbs[bb].layout.prepend_inst(inst);
         self.inst_map.insert(inst, bb);
     }
 
     /// Insert an instruction after another instruction.
     #[deprecated]
-    pub fn insert_inst_after(&mut self, inst: Inst, after: Inst) {
+    fn insert_inst_after(&mut self, inst: Inst, after: Inst) {
         let bb = self.inst_block(after).expect("`after` not inserted");
         self.bbs[bb].layout.insert_inst_after(inst, after);
         self.inst_map.insert(inst, bb);
@@ -438,7 +438,7 @@ impl FunctionLayout {
 
     /// Insert an instruction before another instruction.
     #[deprecated]
-    pub fn insert_inst_before(&mut self, inst: Inst, before: Inst) {
+    fn insert_inst_before(&mut self, inst: Inst, before: Inst) {
         let bb = self.inst_block(before).expect("`before` not inserted");
         self.bbs[bb].layout.insert_inst_before(inst, before);
         self.inst_map.insert(inst, bb);
@@ -446,7 +446,7 @@ impl FunctionLayout {
 
     /// Remove an instruction from the function.
     #[deprecated]
-    pub fn remove_inst(&mut self, inst: Inst) {
+    fn remove_inst(&mut self, inst: Inst) {
         let bb = self.inst_block(inst).expect("`inst` not inserted");
         self.bbs[bb].layout.remove_inst(inst);
         self.inst_map.remove(&inst);
@@ -454,38 +454,38 @@ impl FunctionLayout {
 
     /// Return an iterator over all instructions in a block in layout order.
     #[deprecated]
-    pub fn insts<'a>(&'a self, bb: Block) -> impl Iterator<Item = Inst> + 'a {
+    fn insts<'a>(&'a self, bb: Block) -> impl Iterator<Item = Inst> + 'a {
         self.bbs[bb].layout.insts()
     }
 
     /// Return an iterator over all instructions in layout order.
     #[deprecated]
-    pub fn all_insts<'a>(&'a self) -> impl Iterator<Item = Inst> + 'a {
+    fn all_insts<'a>(&'a self) -> impl Iterator<Item = Inst> + 'a {
         self.blocks().flat_map(move |bb| self.insts(bb))
     }
 
     /// Get the first instruction in the layout.
     #[deprecated]
-    pub fn first_inst(&self, bb: Block) -> Option<Inst> {
+    fn first_inst(&self, bb: Block) -> Option<Inst> {
         self.bbs[bb].layout.first_inst()
     }
 
     /// Get the last instruction in the layout.
     #[deprecated]
-    pub fn last_inst(&self, bb: Block) -> Option<Inst> {
+    fn last_inst(&self, bb: Block) -> Option<Inst> {
         self.bbs[bb].layout.last_inst()
     }
 
     /// Get the instruction preceding `inst` in the layout.
     #[deprecated]
-    pub fn prev_inst(&self, inst: Inst) -> Option<Inst> {
+    fn prev_inst(&self, inst: Inst) -> Option<Inst> {
         let bb = self.inst_block(inst).unwrap();
         self.bbs[bb].layout.prev_inst(inst)
     }
 
     /// Get the instruction following `inst` in the layout.
     #[deprecated]
-    pub fn next_inst(&self, inst: Inst) -> Option<Inst> {
+    fn next_inst(&self, inst: Inst) -> Option<Inst> {
         let bb = self.inst_block(inst).unwrap();
         self.bbs[bb].layout.next_inst(inst)
     }
@@ -494,7 +494,7 @@ impl FunctionLayout {
     ///
     /// The fallible alternative is `last_inst(bb)`.
     #[deprecated]
-    pub fn terminator(&self, bb: Block) -> Inst {
+    fn terminator(&self, bb: Block) -> Inst {
         self.last_inst(bb).expect("block must have terminator")
     }
 }
