@@ -744,29 +744,22 @@ The `neg` operation computes the two's complement of a value, effectively flippi
     %1 = neg i8 %0  ; %1 = -42
 
 
-#### Binary Arithmetic (`add` `sub` `smul` `sdiv` `smod` `srem` `umul` `udiv` `umod` `urem`)
+#### Binary Arithmetic (`add` `sub` `mul` `udiv` `sdiv` `umod` `smod` `srem`)
 
     %result = add  T %lhs, %rhs
     %result = sub  T %lhs, %rhs
+    %result = mul T %lhs, %rhs
 
-    %result = smul T %lhs, %rhs
+    %result = udiv T %lhs, %rhs
     %result = sdiv T %lhs, %rhs
+
+    %result = umod T %lhs, %rhs
     %result = smod T %lhs, %rhs
     %result = srem T %lhs, %rhs
 
-    %result = umul T %lhs, %rhs
-    %result = udiv T %lhs, %rhs
-    %result = umod T %lhs, %rhs
-
-The `add` and `sub` instructions add or subtract two values. The multiplicative operations are available in a signed (`s` prefix) and unsigned (`u` prefix) flavor. Input operands are interpreted according to this prefix. The `umul` `smul` instructions multiplies two values. The `udiv` `sdiv` instructions divides the left-hand side by the right-hand side value. The `umod` `smod` `srem` operations compute the modulo and remainder of the division.
-
-- `T` must be `iN`.
-- `%lhs` and `%rhs` are the left- and right-hand side arguments and must be of type `T`.
-- `%result` is of type `T`.
-
-##### Signed Modulus/Remainder Semantics
-
-The semantics of `smod` and `srem` for negative numbers are as follows. For positive numbers they are identical (`umod`).
+The `add`, `sub`, and `mul` instructions add, subtract, or multiply two values.
+The `udiv` and `sdiv` instructions divide the `%lhs` by the `%rhs`, interpreting the values as either unsigned or signed values, respectively.
+The `umod`, `smod`, and `srem` instructions compute the modulus and remainder of dividing the `%lhs` by `%rhs`. The semantics for signed numbers are as follows:
 
 `%lhs` | `%rhs` | `smod` | `srem`
 ------ | ------ | ------ | ------
@@ -774,6 +767,10 @@ The semantics of `smod` and `srem` for negative numbers are as follows. For posi
 9      | -5     | -1     | 4
 -9     | 5      | 1      | -4
 -9     | -5     | -4     | -4
+
+- `T` must be `iN`.
+- `%lhs` and `%rhs` must be of type `T`.
+- `%result` is of type `T`.
 
 
 ### Comparison Operators
