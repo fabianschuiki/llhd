@@ -2,7 +2,7 @@
 
 //! Instruction and BB ordering.
 
-#![allow(deprecated)]
+#![allow(deprecated, dead_code)]
 
 use crate::{
     ir::{Block, Inst},

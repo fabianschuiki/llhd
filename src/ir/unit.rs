@@ -5,7 +5,7 @@
 use crate::{
     ir::{
         layout::BlockNode, prelude::*, BlockData, ControlFlowGraph, DataFlowGraph, ExtUnit,
-        ExtUnitData, FunctionInsertPos, FunctionLayout, InstBuilder, InstData, UnitId, ValueData,
+        ExtUnitData, FunctionLayout, InstBuilder, InstData, UnitId, ValueData,
     },
     table::TableKey,
     verifier::Verifier,
@@ -633,7 +633,19 @@ impl<'a> UnitBuilder<'a> {
     /// Add a new instruction.
     pub fn build_inst(&mut self, data: InstData, ty: Type) -> Inst {
         let inst = self.data.dfg.add_inst(data, ty);
-        self.pos.add_inst(inst, &mut self.data.layout);
+        match self.pos {
+            FunctionInsertPos::None => panic!("no block selected to insert instruction"),
+            FunctionInsertPos::Append(bb) => self.append_inst(inst, bb),
+            FunctionInsertPos::Prepend(bb) => {
+                self.prepend_inst(inst, bb);
+                self.pos = FunctionInsertPos::After(inst);
+            }
+            FunctionInsertPos::After(other) => {
+                self.insert_inst_after(inst, other);
+                self.pos = FunctionInsertPos::After(inst);
+            }
+            FunctionInsertPos::Before(other) => self.insert_inst_before(inst, other),
+        }
         inst
     }
 
@@ -643,7 +655,26 @@ impl<'a> UnitBuilder<'a> {
     /// flow graph, and deletes it. The `Inst` is no longer valid afterwards.
     pub fn delete_inst(&mut self, inst: Inst) {
         self.data.dfg.remove_inst(inst);
-        self.pos.remove_inst(inst, &self.data.layout);
+        match self.pos {
+            // If we inserted after i, now insert before i's successor, or if i
+            // was the last inst in the block, at the end of the block.
+            FunctionInsertPos::After(i) if i == inst => {
+                self.pos = self
+                    .next_inst(i)
+                    .map(FunctionInsertPos::Before)
+                    .unwrap_or(FunctionInsertPos::Append(self.inst_block(i).unwrap()))
+            }
+            // If we inserted before i, now insert after i's predecessor, or if
+            // i was the first inst in the block, at the beginning of the block.
+            FunctionInsertPos::Before(i) if i == inst => {
+                self.pos = self
+                    .prev_inst(i)
+                    .map(FunctionInsertPos::After)
+                    .unwrap_or(FunctionInsertPos::Prepend(self.inst_block(i).unwrap()))
+            }
+            // Everything else we just keep as is.
+            _ => (),
+        }
         self.remove_inst(inst);
     }
 
@@ -1164,6 +1195,16 @@ impl IndexMut<Block> for UnitBuilder<'_> {
     fn index_mut(&mut self, idx: Block) -> &mut BlockData {
         self.data.cfg.index_mut(idx)
     }
+}
+
+/// The position where new instructions will be inserted.
+#[derive(Clone, Copy)]
+enum FunctionInsertPos {
+    None,
+    Append(Block),
+    Prepend(Block),
+    After(Inst),
+    Before(Inst),
 }
 
 #[allow(dead_code)]

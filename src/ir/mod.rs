@@ -24,66 +24,6 @@ pub use self::module::*;
 pub use self::sig::*;
 pub use self::unit::*;
 
-/// The position where new instructions will be inserted into a `Function` or
-/// `Process`.
-#[derive(Clone, Copy)]
-enum FunctionInsertPos {
-    None,
-    Append(Block),
-    Prepend(Block),
-    After(Inst),
-    Before(Inst),
-}
-
-impl FunctionInsertPos {
-    /// Insert an instruction and update the insertion postition.
-    // TODO: Move these into `Unit`.
-    #[allow(deprecated)]
-    fn add_inst(&mut self, inst: Inst, layout: &mut FunctionLayout) {
-        use FunctionInsertPos::*;
-        match *self {
-            None => panic!("no block selected to insert instruction"),
-            Append(bb) => layout.append_inst(inst, bb),
-            Prepend(bb) => {
-                layout.prepend_inst(inst, bb);
-                *self = After(inst);
-            }
-            After(other) => {
-                layout.insert_inst_after(inst, other);
-                *self = After(inst);
-            }
-            Before(other) => layout.insert_inst_before(inst, other),
-        }
-    }
-
-    /// Update the insertion position in response to removing an instruction.
-    // TODO: Move these into `Unit`.
-    #[allow(deprecated)]
-    fn remove_inst(&mut self, inst: Inst, layout: &FunctionLayout) {
-        use FunctionInsertPos::*;
-        match *self {
-            // If we inserted after i, now insert before i's successor, or if i
-            // was the last inst in the block, at the end of the block.
-            After(i) if i == inst => {
-                *self = layout
-                    .next_inst(i)
-                    .map(Before)
-                    .unwrap_or(Append(layout.inst_block(i).unwrap()))
-            }
-            // If we inserted before i, now insert after i's predecessor, or if
-            // i was the first inst in the block, at the beginning of the block.
-            Before(i) if i == inst => {
-                *self = layout
-                    .prev_inst(i)
-                    .map(After)
-                    .unwrap_or(Prepend(layout.inst_block(i).unwrap()))
-            }
-            // Everything else we just keep as is.
-            _ => (),
-        }
-    }
-}
-
 impl_table_key! {
     /// An instruction.
     struct Inst(u32) as "i";
