@@ -454,6 +454,11 @@ impl<'a> Unit<'a> {
         std::iter::successors(layout.first_bb, move |&bb| self.next_block(bb))
     }
 
+    /// Check if a block is inserted into the layout.
+    pub fn is_block_inserted(self, bb: Block) -> bool {
+        self.data.layout.bbs.contains(bb)
+    }
+
     /// Get the first BB in the layout. This is the entry block.
     pub fn first_block(self) -> Option<Block> {
         let layout = &self.data.layout;
@@ -504,6 +509,11 @@ impl<'a> Unit<'a> {
     /// Return an iterator over all instructions in layout order.
     pub fn all_insts(self) -> impl Iterator<Item = Inst> + 'a {
         self.blocks().flat_map(move |bb| self.insts(bb))
+    }
+
+    /// Check if an instruction is inserted into the layout.
+    pub fn is_inst_inserted(self, inst: Inst) -> bool {
+        self.data.layout.inst_map.contains_key(&inst)
     }
 
     /// Get the first instruction in the layout.

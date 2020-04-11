@@ -53,13 +53,7 @@ impl Verifier {
                 self.flags = UnitFlags::ENTITY;
             }
         }
-        self.verify_function_layout(unit, unit.func_layout(), unit.kind() == UnitKind::Entity);
-        self.unit_name = None;
-        self.return_type = None;
-    }
 
-    /// Verify the integrity of the BB and instruction layout.
-    pub fn verify_function_layout(&mut self, unit: Unit, layout: &FunctionLayout, is_entity: bool) {
         if unit.first_block().is_none() {
             self.errors.push(VerifierError {
                 unit: self.unit_name.clone(),
@@ -69,7 +63,7 @@ impl Verifier {
         }
         for bb in unit.blocks() {
             // Check that the block has at least one instruction.
-            if unit.first_inst(bb).is_none() && !is_entity {
+            if unit.first_inst(bb).is_none() && !unit.is_entity() {
                 self.errors.push(VerifierError {
                     unit: self.unit_name.clone(),
                     object: Some(bb.to_string()),
@@ -80,7 +74,7 @@ impl Verifier {
             for inst in unit.insts(bb) {
                 // Check that there are no terminator instructions in the middle
                 // of the block.
-                if !is_entity
+                if !unit.is_entity()
                     && unit[inst].opcode().is_terminator()
                     && Some(inst) != unit.last_inst(bb)
                 {
@@ -96,7 +90,7 @@ impl Verifier {
                 }
 
                 // Check that the last instruction in the block is a terminator.
-                if !is_entity
+                if !unit.is_entity()
                     && Some(inst) == unit.last_inst(bb)
                     && !unit[inst].opcode().is_terminator()
                 {
@@ -111,16 +105,12 @@ impl Verifier {
                 }
 
                 // Check the instruction itself.
-                self.verify_inst(inst, unit, layout);
+                self.verify_inst(inst, unit);
             }
         }
-    }
 
-    /// Verify the integrity of the instruction layout.
-    pub fn verify_inst_layout(&mut self, unit: Unit, layout: &InstLayout) {
-        for inst in layout.insts() {
-            self.verify_inst(inst, unit, layout);
-        }
+        self.unit_name = None;
+        self.return_type = None;
     }
 
     /// Finish verification and return the result.
@@ -145,40 +135,35 @@ impl Verifier {
     }
 
     /// Verify the integrity of a single instruction.
-    pub fn verify_inst(&mut self, inst: Inst, unit: Unit, layout: &impl Layout) {
+    pub fn verify_inst(&mut self, inst: Inst, unit: Unit) {
         InstVerifier {
             verifier: self,
             unit,
-            layout,
         }
         .verify_inst(inst);
     }
 }
 
 /// An instruction verifier.
-struct InstVerifier<'a, L> {
+struct InstVerifier<'a> {
     verifier: &'a mut Verifier,
     unit: Unit<'a>,
-    layout: &'a L,
 }
 
-impl<'a, L> Deref for InstVerifier<'a, L> {
+impl<'a> Deref for InstVerifier<'a> {
     type Target = Verifier;
     fn deref(&self) -> &Verifier {
         self.verifier
     }
 }
 
-impl<'a, L> DerefMut for InstVerifier<'a, L> {
+impl<'a> DerefMut for InstVerifier<'a> {
     fn deref_mut(&mut self) -> &mut Verifier {
         self.verifier
     }
 }
 
-impl<'a, L> InstVerifier<'a, L>
-where
-    L: Layout,
-{
+impl<'a> InstVerifier<'a> {
     #[inline(always)]
     fn unit(&self) -> Unit<'a> {
         self.unit
@@ -187,14 +172,14 @@ where
     fn is_value_defined(&self, value: Value) -> bool {
         match self.unit()[value] {
             ValueData::Invalid => false,
-            ValueData::Inst { inst, .. } => self.layout.is_inst_inserted(inst),
+            ValueData::Inst { inst, .. } => self.unit.is_inst_inserted(inst),
             ValueData::Arg { .. } => true,
             ValueData::Placeholder { .. } => false,
         }
     }
 
     fn is_block_defined(&self, block: Block) -> bool {
-        self.layout.is_block_inserted(block)
+        self.unit.is_block_inserted(block)
     }
 
     /// Verify the integrity of a single instruction.

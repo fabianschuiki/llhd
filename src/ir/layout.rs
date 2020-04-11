@@ -11,6 +11,7 @@ use crate::{
 use std::collections::HashMap;
 
 /// Common functionality between CFG and DFG unit layouts.
+#[deprecated]
 pub trait Layout {
     /// Check if an instruction is inserted.
     fn is_inst_inserted(&self, inst: Inst) -> bool;
