@@ -16,4 +16,4 @@ LLHD is written in [Rust](https://www.rust-lang.org/). Upon stabilization, a C i
 
 The scientific paper on LLHD is available on arXiv:
 
-- F. Schuiki, A. Kurth, T. Grosser, L. Benini (2020). "LLHD: A Multi-level Intermediate Representation for Hardware Description Languages". [   arXiv:2004.03494](https://arxiv.org/abs/2004.03494)
+- F. Schuiki, A. Kurth, T. Grosser, L. Benini (2020). *"LLHD: A Multi-level Intermediate Representation for Hardware Description Languages".* [arXiv:2004.03494](https://arxiv.org/abs/2004.03494) ([PDF](https://arxiv.org/pdf/2004.03494))
