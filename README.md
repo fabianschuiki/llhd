@@ -11,3 +11,9 @@ Welcome to the Low Level Hardware Description language. LLHD aims at introducing
 - [API Documentation](https://docs.rs/llhd/)
 
 LLHD is written in [Rust](https://www.rust-lang.org/). Upon stabilization, a C interface will be added to the library, allowing it to be used from virtually every other programming language.
+
+## Paper
+
+The scientific paper on LLHD is available on arXiv:
+
+- F. Schuiki, A. Kurth, T. Grosser, L. Benini (2020). "LLHD: A Multi-level Intermediate Representation for Hardware Description Languages". [   arXiv:2004.03494](https://arxiv.org/abs/2004.03494)
