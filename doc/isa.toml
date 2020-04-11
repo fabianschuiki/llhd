@@ -1,0 +1,88 @@
+# Copyright (c) 2017-2020 Fabian Schuiki
+# This file specifies the LLHD instruction set.
+
+# Arithmetic
+
+[[spec]]
+opcode = ["neg"]
+format = "unary"
+arg_types = ["T"]
+result = "T"
+allow_types.T = ["iN"]
+
+[[spec]]
+opcode = ["add", "sub", "mul", "div", "umod", "smod", "srem"]
+format = "binary"
+arg_types = ["T", "T"]
+result = "T"
+allow_types.T = ["iN"]
+
+# Comparison
+
+[[spec]]
+opcode = ["eq", "neq", "ult", "ugt", "ule", "uge", "slt", "sgt", "sle", "sge"]
+format = "binary"
+arg_types = ["T", "T"]
+result = "i1"
+
+[[spec]]
+opcode = ["eq", "neq"]
+doc = """
+Equality Operators
+
+Compare two values for equality or inequality.
+"""
+
+[[spec]]
+opcode = ["ult", "ugt", "ule", "uge", "slt", "sgt", "sle", "sge"]
+doc = """
+Relational Operators
+
+Compare two values according to their numerical ordering.
+"""
+
+[[spec]]
+opcode = ["ult", "ugt", "ule", "uge"]
+allow_types.T = "time"
+
+[[spec]]
+opcode = ["smod", "srem"]
+doc = """
+The semantics of `smod` and `srem` for negative numbers are as follows. For positive numbers they are identical to `umod`.
+"""
+
+# Drives
+
+[[spec]]
+opcode = ["drv-uncond", "drv-cond"]
+syntax = """
+drv T$ %signal, %value after %delay
+drv T$ %signal, %value after %delay if %cond
+"""
+doc = """
+The `drv` instruction schedules signal `%signal` to change to a new value `%value` after the delay `%delay` has passed.
+In presence of the optional gating condition, the instruction acts as a no-op if `%cond` is 0.
+"""
+
+[[spec]]
+opcode = ["drv-uncond"]
+format = "ternary"
+args = ["signal", "value", "delay"]
+arg_types = ["T$", "T", "time"]
+
+[[spec]]
+opcode = ["drv-cond"]
+format = "quaternary"
+args = ["signal", "value", "delay", "cond"]
+arg_types = ["T$", "T", "time", "i1"]
+
+# Register
+
+[[spec]]
+opcode = ["reg"]
+group = "hier"
+format = "reg"
+syntax = """
+reg T$ %signal, [%value, <mode> %trigger (after %delay)? (if $gate)?], ...
+"""
+arg_types = ["T$", "T", "i1", "time", "i1"]
