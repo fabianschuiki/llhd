@@ -574,7 +574,7 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         if let Some(name) = self.name.take() {
             if has_result {
                 let value = self.inst_result(inst);
-                self.builder.dfg_mut().set_name(value, name);
+                self.builder.set_name(value, name);
             }
         }
         inst
@@ -597,7 +597,7 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
     /// `<value>.<suffix>`. Otherwise it will just be `<suffix>`.
     pub fn suffix<'c>(mut self, value: Value, suffix: impl Into<Cow<'c, str>>) -> Self {
         let suffix = suffix.into(); // moooh
-        self.name = if let Some(name) = self.builder.dfg().get_name(value) {
+        self.name = if let Some(name) = self.builder.get_name(value) {
             Some(format!("{}.{}", name, suffix))
         } else {
             Some(suffix.into_owned())

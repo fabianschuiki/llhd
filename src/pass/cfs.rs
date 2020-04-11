@@ -48,7 +48,7 @@ impl Pass for ControlFlowSimplification {
                 None => continue,
             };
             for inst in unit.insts(block) {
-                if !unit.dfg()[inst].opcode().is_phi() {
+                if !unit[inst].opcode().is_phi() {
                     continue;
                 }
                 let ways = prepare_phi(ctx, unit, block, inst, &pt, imm_dom);
@@ -74,7 +74,7 @@ impl Pass for ControlFlowSimplification {
         let mut elide_phis = vec![];
         for block in unit.blocks() {
             for inst in unit.insts(block) {
-                if !unit.dfg()[inst].opcode().is_phi() {
+                if !unit[inst].opcode().is_phi() {
                     continue;
                 }
                 if let Some(with) = maybe_elide_phi(ctx, unit, inst) {
@@ -115,7 +115,7 @@ fn prepare_phi(
     // `immediate_dominator` to reach `block` via each of the edges in the phi
     // node.
     let mut ways = vec![];
-    let data = &unit.dfg()[inst];
+    let data = &unit[inst];
     for (&bb, &arg) in data.blocks().iter().zip(data.args().iter()) {
         trace!("  Checking from {}", bb.dump(&unit));
         let routes = justify_edge(ctx, unit, bb, block, immediate_dominator, &mut vec![], pt);
@@ -142,7 +142,7 @@ fn justify_edge(
     // Investigate the terminator of the `from` block to see under what
     // condition it transfers control to `to`.
     let from_term = unit.terminator(from);
-    let data = &unit.dfg()[from_term];
+    let data = &unit[from_term];
     let cond = match data.opcode() {
         // Unconditional branches and waits are trivial, since the transfer
         // control flow in any case.
@@ -246,7 +246,7 @@ fn build_discriminator(
 /// Check if a phi node can be elided because it produces the same value no
 /// matter what the incoming edge is.
 fn maybe_elide_phi(_ctx: &PassContext, unit: &UnitBuilder, inst: Inst) -> Option<Value> {
-    let set: HashSet<Value> = unit.dfg()[inst].args().iter().cloned().collect();
+    let set: HashSet<Value> = unit[inst].args().iter().cloned().collect();
     if set.len() == 1 {
         set.into_iter().next()
     } else {

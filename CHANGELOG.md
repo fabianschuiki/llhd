@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove `Layout` trait.
 - Remove `func_layout()` and `func_layout_mut()` functions.
 - Remove `cfg()`, `cfg_mut()`, `try_cfg()`, and `try_cfg_mut()` functions.
+- Remove `dfg()` and `dfg_mut()` functions.
 - Remove `sig()` and `name()` from `UnitBuilder`.
 
 ## 0.12.0 - 2020-04-09

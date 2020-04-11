@@ -9,7 +9,7 @@ use crate::{
     },
     table::TableKey,
     verifier::Verifier,
-    Type,
+    void_ty, Type,
 };
 use std::{
     collections::HashSet,
@@ -135,10 +135,11 @@ impl UnitData {
             cfg: Default::default(),
             layout: Default::default(),
         };
+        let mut unit = UnitBuilder::new_anonymous(&mut data);
         if kind == UnitKind::Entity {
-            UnitBuilder::new_anonymous(&mut data).block();
+            unit.block();
         }
-        data.dfg.make_args_for_signature(&data.sig);
+        unit.make_args_for_signature(&unit.sig().clone());
         data
     }
 }
@@ -177,14 +178,6 @@ impl<'a> Unit<'a> {
     /// Get the kind of this unit.
     pub fn kind(&self) -> UnitKind {
         self.data.kind
-    }
-}
-
-/// Unfiltered.
-impl<'a> Unit<'a> {
-    /// Get the DFG of the unit being built.
-    pub fn dfg(self) -> &'a DataFlowGraph {
-        &self.data.dfg
     }
 
     /// Get the unit's signature.
@@ -273,16 +266,22 @@ impl<'a> Unit<'a> {
 
     /// Return the name of an external unit.
     pub fn extern_name(self, ext: ExtUnit) -> &'a UnitName {
-        &self.dfg()[ext].name
+        &self.data.dfg[ext].name
     }
 
     /// Return the signature of an external unit.
     pub fn extern_sig(self, ext: ExtUnit) -> &'a Signature {
-        &self.dfg()[ext].sig
+        &self.data.dfg[ext].sig
     }
 
-    // ----- Control Flow Graph ------------------------------------------------
+    /// Return an iterator over the external units used by this unit.
+    pub fn extern_units(self) -> impl Iterator<Item = (ExtUnit, &'a ExtUnitData)> + 'a {
+        self.data.dfg.ext_units.iter()
+    }
+}
 
+/// # Control Flow Graph
+impl<'a> Unit<'a> {
     /// Return the name of a BB.
     pub fn get_block_name(self, bb: Block) -> Option<&'a str> {
         self.data.cfg[bb].name.as_ref().map(AsRef::as_ref)
@@ -292,87 +291,109 @@ impl<'a> Unit<'a> {
     pub fn get_anonymous_block_hint(self, bb: Block) -> Option<u32> {
         self.data.cfg.anonymous_hints.get(&bb).cloned()
     }
+}
 
-    // ----- Data Flow Graph ---------------------------------------------------
-
+/// # Data Flow Graph
+impl<'a> Unit<'a> {
     /// Check if a value is a placeholder.
     pub fn is_placeholder(self, value: Value) -> bool {
-        self.dfg().is_placeholder(value)
+        self[value].is_placeholder()
     }
 
     /// Returns whether an instruction produces a result.
     pub fn has_result(self, inst: Inst) -> bool {
-        self.dfg().has_result(inst)
+        self.data.dfg.results.storage.contains_key(&inst.index())
     }
 
     /// Returns the result of an instruction.
     pub fn inst_result(self, inst: Inst) -> Value {
-        self.dfg().inst_result(inst)
+        self.data.dfg.results[inst]
     }
 
     /// Returns the result of an instruction.
     pub fn get_inst_result(self, inst: Inst) -> Option<Value> {
-        self.dfg().get_inst_result(inst)
+        self.data.dfg.results.get(inst).cloned()
     }
 
     /// Returns the value of an argument.
     pub fn arg_value(self, arg: Arg) -> Value {
-        self.dfg().arg_value(arg)
+        self.data.dfg.args[arg]
     }
 
     /// Returns the type of a value.
     pub fn value_type(self, value: Value) -> Type {
-        self.dfg().value_type(value)
+        match &self[value] {
+            ValueData::Invalid => panic!("invalid value"),
+            ValueData::Inst { ty, .. } => ty.clone(),
+            ValueData::Arg { ty, .. } => ty.clone(),
+            ValueData::Placeholder { ty, .. } => ty.clone(),
+        }
     }
 
     /// Returns the type of an instruction.
     pub fn inst_type(self, inst: Inst) -> Type {
-        self.dfg().inst_type(inst)
+        if self.has_result(inst) {
+            self.value_type(self.inst_result(inst))
+        } else {
+            void_ty()
+        }
     }
 
     /// Return the argument that produces `value`.
     pub fn get_value_arg(self, value: Value) -> Option<Arg> {
-        self.dfg().get_value_arg(value)
+        match self[value] {
+            ValueData::Arg { arg, .. } => Some(arg),
+            _ => None,
+        }
     }
 
     /// Return the argument that produces `value`, or panic.
     pub fn value_arg(self, value: Value) -> Arg {
-        self.dfg().value_arg(value)
+        match self.get_value_arg(value) {
+            Some(arg) => arg,
+            None => panic!("value {} not an argument", value),
+        }
     }
 
     /// Return the instruction that produces `value`.
     pub fn get_value_inst(self, value: Value) -> Option<Inst> {
-        self.dfg().get_value_inst(value)
+        match self[value] {
+            ValueData::Inst { inst, .. } => Some(inst),
+            _ => None,
+        }
     }
 
     /// Return the instruction that produces `value`, or panic.
     pub fn value_inst(self, value: Value) -> Inst {
-        self.dfg().value_inst(value)
+        match self.get_value_inst(value) {
+            Some(inst) => inst,
+            None => panic!("value {} not the result of an instruction", value),
+        }
     }
 
     /// Return the name of a value.
     pub fn get_name(self, value: Value) -> Option<&'a str> {
-        self.dfg().get_name(value)
+        self.data.dfg.names.get(&value).map(AsRef::as_ref)
     }
 
     /// Return the anonymous name hint of a value.
     pub fn get_anonymous_hint(self, value: Value) -> Option<u32> {
-        self.dfg().get_anonymous_hint(value)
+        self.data.dfg.anonymous_hints.get(&value).cloned()
     }
 
     /// Iterate over all uses of a value.
     pub fn uses(self, value: Value) -> &'a HashSet<Inst> {
-        self.dfg().uses(value)
+        &self.data.dfg.value_uses[&value]
     }
 
     /// Check if a value is used.
     pub fn has_uses(self, value: Value) -> bool {
-        self.dfg().has_uses(value)
+        !self.uses(value).is_empty()
     }
 
     /// Check if a value has exactly one use.
     pub fn has_one_use(self, value: Value) -> bool {
-        self.dfg().has_one_use(value)
+        self.uses(value).len() == 1
     }
 
     /// Resolve a constant value.
@@ -381,7 +402,14 @@ impl<'a> Unit<'a> {
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
     pub fn get_const(self, value: Value) -> Option<crate::Value> {
-        self.dfg().get_const(value)
+        let inst = self.get_value_inst(value)?;
+        match self[inst].opcode() {
+            Opcode::ConstInt => self.get_const_int(value).cloned().map(Into::into),
+            Opcode::ConstTime => self.get_const_time(value).cloned().map(Into::into),
+            Opcode::Array | Opcode::ArrayUniform => self.get_const_array(value).map(Into::into),
+            Opcode::Struct => self.get_const_struct(value).map(Into::into),
+            _ => None,
+        }
     }
 
     /// Resolve a constant time value.
@@ -390,7 +418,8 @@ impl<'a> Unit<'a> {
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
     pub fn get_const_time(self, value: Value) -> Option<&'a crate::TimeValue> {
-        self.dfg().get_const_time(value)
+        let inst = self.get_value_inst(value)?;
+        self.data.dfg[inst].get_const_time()
     }
 
     /// Resolve a constant integer value.
@@ -399,7 +428,8 @@ impl<'a> Unit<'a> {
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
     pub fn get_const_int(self, value: Value) -> Option<&'a crate::IntValue> {
-        self.dfg().get_const_int(value)
+        let inst = self.get_value_inst(value)?;
+        self.data.dfg[inst].get_const_int()
     }
 
     /// Resolve a constant array value.
@@ -408,7 +438,22 @@ impl<'a> Unit<'a> {
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
     pub fn get_const_array(self, value: Value) -> Option<crate::ArrayValue> {
-        self.dfg().get_const_array(value)
+        let inst = self.get_value_inst(value)?;
+        match self[inst].opcode() {
+            Opcode::Array => {
+                let args: Option<Vec<_>> = self[inst]
+                    .args()
+                    .iter()
+                    .map(|&a| self.get_const(a))
+                    .collect();
+                Some(crate::ArrayValue::new(args?))
+            }
+            Opcode::ArrayUniform => Some(crate::ArrayValue::new_uniform(
+                self[inst].imms()[0],
+                self.get_const(self[inst].args()[0])?,
+            )),
+            _ => None,
+        }
     }
 
     /// Resolve a constant struct value.
@@ -417,7 +462,18 @@ impl<'a> Unit<'a> {
     /// perform constant folding. Rather, the value must resolve to an
     /// instruction which produces a constant value.
     pub fn get_const_struct(self, value: Value) -> Option<crate::StructValue> {
-        self.dfg().get_const_struct(value)
+        let inst = self.get_value_inst(value)?;
+        match self[inst].opcode() {
+            Opcode::Struct => {
+                let args: Option<Vec<_>> = self[inst]
+                    .args()
+                    .iter()
+                    .map(|&a| self.get_const(a))
+                    .collect();
+                Some(crate::StructValue::new(args?))
+            }
+            _ => None,
+        }
     }
 
     /// Get the location hint associated with an instruction.
@@ -425,7 +481,7 @@ impl<'a> Unit<'a> {
     /// Returns the byte offset of the instruction in the input file, or None if there
     /// is no hint for the instruction.
     pub fn location_hint(self, inst: Inst) -> Option<usize> {
-        self.dfg().location_hint(inst)
+        self.data.dfg.location_hints.get(&inst).cloned()
     }
 
     /// Get the block ID bound.
@@ -612,10 +668,7 @@ impl<'a> UnitBuilder<'a> {
     pub fn data(&mut self) -> &mut UnitData {
         self.data
     }
-}
 
-/// Unfiltered.
-impl<'a> UnitBuilder<'a> {
     /// Return the unit being built.
     pub fn unit(&'a self) -> Unit<'a> {
         self.unit
@@ -628,7 +681,7 @@ impl<'a> UnitBuilder<'a> {
 
     /// Add a new instruction.
     pub fn build_inst(&mut self, data: InstData, ty: Type) -> Inst {
-        let inst = self.data.dfg.add_inst(data, ty);
+        let inst = self.add_inst_dfg(data, ty);
         match self.pos {
             InsertPos::None => panic!("no block selected to insert instruction"),
             InsertPos::Append(bb) => self.append_inst(inst, bb),
@@ -650,7 +703,7 @@ impl<'a> UnitBuilder<'a> {
     /// Removes the instruction from the layout, data flwo graph, and control
     /// flow graph, and deletes it. The `Inst` is no longer valid afterwards.
     pub fn delete_inst(&mut self, inst: Inst) {
-        self.data.dfg.remove_inst(inst);
+        self.remove_inst_dfg(inst);
         match self.pos {
             // If we inserted after i, now insert before i's successor, or if i
             // was the last inst in the block, at the end of the block.
@@ -694,15 +747,15 @@ impl<'a> UnitBuilder<'a> {
     /// flow graph, deletes it. The `Block` is no longer valid afterwards.
     pub fn delete_block(&mut self, bb: Block) {
         let insts: Vec<_> = self.insts(bb).collect();
-        self.data.dfg.remove_block_use(bb);
+        self.remove_block_use(bb);
         self.remove_block(bb);
         self.data.cfg.blocks.remove(bb);
         for inst in insts {
-            if self.data.dfg.has_result(inst) {
-                let value = self.data.dfg.inst_result(inst);
-                self.data.dfg.replace_use(value, Value::invalid());
+            if self.has_result(inst) {
+                let value = self.inst_result(inst);
+                self.replace_use(value, Value::invalid());
             }
-            self.data.dfg.remove_inst(inst);
+            self.remove_inst_dfg(inst);
         }
     }
 
@@ -736,27 +789,22 @@ impl<'a> UnitBuilder<'a> {
         self.pos = InsertPos::Before(inst);
     }
 
-    /// Get the mutable DFG of the unit being built.
-    pub fn dfg_mut(&mut self) -> &mut DataFlowGraph {
-        &mut self.data().dfg
-    }
-
     /// Import an external unit for use within this unit.
     pub fn add_extern(&mut self, name: UnitName, sig: Signature) -> ExtUnit {
-        self.dfg_mut().ext_units.add(ExtUnitData { sig, name })
+        self.data.dfg.ext_units.add(ExtUnitData { sig, name })
     }
 
     /// Remove an instruction if its value is not being read.
     ///
     /// Returns true if the instruction was removed.
     pub fn prune_if_unused(&mut self, inst: Inst) -> bool {
-        if self.dfg().has_result(inst) && !self.dfg().has_uses(self.dfg().inst_result(inst)) {
+        if self.has_result(inst) && !self.has_uses(self.inst_result(inst)) {
             #[allow(unreachable_patterns)]
-            let inst_args: Vec<_> = self.dfg()[inst]
+            let inst_args: Vec<_> = self[inst]
                 .args()
                 .iter()
                 .cloned()
-                .flat_map(|arg| self.dfg().get_value_inst(arg))
+                .flat_map(|arg| self.get_value_inst(arg))
                 .collect();
             self.delete_inst(inst);
             for inst in inst_args {
@@ -767,9 +815,10 @@ impl<'a> UnitBuilder<'a> {
             false
         }
     }
+}
 
-    // ----- Control Flow Graph ------------------------------------------------
-
+/// # Control Flow Graph
+impl<'a> UnitBuilder<'a> {
     /// Set the name of a BB.
     pub fn set_block_name(&mut self, bb: Block, name: String) {
         self.data.cfg[bb].name = Some(name);
@@ -789,72 +838,198 @@ impl<'a> UnitBuilder<'a> {
     pub fn clear_anonymous_block_hint(&mut self, bb: Block) -> Option<u32> {
         self.data.cfg.anonymous_hints.remove(&bb)
     }
+}
 
-    // ----- Data Flow Graph ---------------------------------------------------
-
+/// # Data Flow Graph
+impl<'a> UnitBuilder<'a> {
     /// Add a placeholder value.
     ///
     /// This function is intended to be used when constructing PHI nodes.
     pub fn add_placeholder(&mut self, ty: Type) -> Value {
-        self.dfg_mut().add_placeholder(ty)
+        self.add_value(ValueData::Placeholder { ty })
     }
 
     /// Remove a placeholder value.
     pub fn remove_placeholder(&mut self, value: Value) {
-        self.dfg_mut().remove_placeholder(value)
+        assert!(!self.has_uses(value));
+        assert!(self[value].is_placeholder());
+        self.remove_value(value);
+    }
+
+    /// Add a value.
+    fn add_value(&mut self, data: ValueData) -> Value {
+        let v = self.data.dfg.values.add(data);
+        self.data.dfg.value_uses.insert(v, Default::default());
+        v
+    }
+
+    /// Remove a value.
+    fn remove_value(&mut self, value: Value) -> ValueData {
+        let data = self.data.dfg.values.remove(value);
+        self.data.dfg.value_uses.remove(&value);
+        data
+    }
+
+    /// Register a value use.
+    fn update_uses(&mut self, inst: Inst) {
+        for value in self[inst].args().to_vec() {
+            self.data
+                .dfg
+                .value_uses
+                .entry(value)
+                .or_default()
+                .insert(inst);
+        }
+        for block in self[inst].blocks().to_vec() {
+            self.data
+                .dfg
+                .block_uses
+                .entry(block)
+                .or_default()
+                .insert(inst);
+        }
+    }
+
+    /// Remove a value use.
+    fn remove_uses(&mut self, inst: Inst, data: InstData) {
+        for value in data.args() {
+            self.data
+                .dfg
+                .value_uses
+                .get_mut(value)
+                .unwrap()
+                .remove(&inst);
+        }
+        for block in data.blocks() {
+            self.data
+                .dfg
+                .block_uses
+                .get_mut(block)
+                .unwrap()
+                .remove(&inst);
+        }
     }
 
     /// Add an instruction.
-    pub fn add_inst(&mut self, data: InstData, ty: Type) -> Inst {
-        self.dfg_mut().add_inst(data, ty)
+    fn add_inst_dfg(&mut self, data: InstData, ty: Type) -> Inst {
+        let inst = self.data.dfg.insts.add(data);
+        if !ty.is_void() {
+            let result = self.add_value(ValueData::Inst { ty, inst });
+            self.data.dfg.results.add(inst, result);
+        }
+        self.update_uses(inst);
+        inst
+    }
+
+    /// Remove an instruction.
+    fn remove_inst_dfg(&mut self, inst: Inst) {
+        if self.has_result(inst) {
+            let value = self.inst_result(inst);
+            assert!(!self.has_uses(value));
+            self.remove_value(value);
+        }
+        let data = self.data.dfg.insts.remove(inst);
+        self.remove_uses(inst, data);
+        self.data.dfg.results.remove(inst);
+    }
+
+    /// Create values for the arguments in a signature.
+    pub(crate) fn make_args_for_signature(&mut self, sig: &Signature) {
+        for arg in sig.args() {
+            let value = self.add_value(ValueData::Arg {
+                ty: sig.arg_type(arg),
+                arg: arg,
+            });
+            self.data.dfg.args.add(arg, value);
+        }
     }
 
     /// Set the name of a value.
     pub fn set_name(&mut self, value: Value, name: String) {
-        self.dfg_mut().set_name(value, name)
+        self.data.dfg.names.insert(value, name);
     }
 
     /// Clear the name of a value.
     pub fn clear_name(&mut self, value: Value) -> Option<String> {
-        self.dfg_mut().clear_name(value)
+        self.data.dfg.names.remove(&value)
     }
 
     /// Set the anonymous name hint of a value.
     pub fn set_anonymous_hint(&mut self, value: Value, hint: u32) {
-        self.dfg_mut().set_anonymous_hint(value, hint)
+        self.data.dfg.anonymous_hints.insert(value, hint);
     }
 
     /// Clear the anonymous name hint of a value.
     pub fn clear_anonymous_hint(&mut self, value: Value) -> Option<u32> {
-        self.dfg_mut().clear_anonymous_hint(value)
+        self.data.dfg.anonymous_hints.remove(&value)
     }
 
     /// Replace all uses of a value with another.
     ///
     /// Returns how many uses were replaced.
     pub fn replace_use(&mut self, from: Value, to: Value) -> usize {
-        self.dfg_mut().replace_use(from, to)
+        let mut count = 0;
+        for inst in self
+            .data
+            .dfg
+            .value_uses
+            .get(&from)
+            .cloned()
+            .unwrap_or_else(Default::default)
+        {
+            count += self.replace_value_within_inst(from, to, inst);
+        }
+        count
     }
 
     /// Replace the uses of a value with another, in a single instruction.
     ///
     /// Returns how many uses were replaced.
     pub fn replace_value_within_inst(&mut self, from: Value, to: Value, inst: Inst) -> usize {
-        self.dfg_mut().replace_value_within_inst(from, to, inst)
+        #[allow(deprecated)]
+        let count = self[inst].replace_value(from, to);
+        self.data
+            .dfg
+            .value_uses
+            .entry(from)
+            .or_default()
+            .remove(&inst);
+        self.update_uses(inst);
+        count
     }
 
     /// Replace all uses of a block with another.
     ///
     /// Returns how many blocks were replaced.
     pub fn replace_block_use(&mut self, from: Block, to: Block) -> usize {
-        self.dfg_mut().replace_block_use(from, to)
+        let mut count = 0;
+        for inst in self
+            .data
+            .dfg
+            .block_uses
+            .get(&from)
+            .cloned()
+            .unwrap_or_else(Default::default)
+        {
+            count += self.replace_block_within_inst(from, to, inst);
+        }
+        count
     }
 
     /// Replace all uses of a block with another, in a single instruction.
     ///
     /// Returns how many blocks were replaced.
     pub fn replace_block_within_inst(&mut self, from: Block, to: Block, inst: Inst) -> usize {
-        self.dfg_mut().replace_block_within_inst(from, to, inst)
+        #[allow(deprecated)]
+        let count = self[inst].replace_block(from, to);
+        self.data
+            .dfg
+            .block_uses
+            .entry(from)
+            .or_default()
+            .remove(&inst);
+        self.update_uses(inst);
+        count
     }
 
     /// Remove all uses of a block.
@@ -864,7 +1039,18 @@ impl<'a> UnitBuilder<'a> {
     ///
     /// Returns how many blocks were removed.
     pub fn remove_block_use(&mut self, block: Block) -> usize {
-        self.dfg_mut().remove_block_use(block)
+        let mut count = 0;
+        for inst in self
+            .data
+            .dfg
+            .block_uses
+            .get(&block)
+            .cloned()
+            .unwrap_or_else(Default::default)
+        {
+            count += self.remove_block_from_inst(block, inst);
+        }
+        count
     }
 
     /// Remove all uses of a block, from a single instruction.
@@ -874,14 +1060,23 @@ impl<'a> UnitBuilder<'a> {
     ///
     /// Returns how many blocks were removed.
     pub fn remove_block_from_inst(&mut self, block: Block, inst: Inst) -> usize {
-        self.dfg_mut().remove_block_from_inst(block, inst)
+        #[allow(deprecated)]
+        let count = self[inst].remove_block(block);
+        self.data
+            .dfg
+            .block_uses
+            .entry(block)
+            .or_default()
+            .remove(&inst);
+        self.update_uses(inst);
+        count
     }
 
     /// Add a location hint to an instruction.
     ///
     /// Annotates the byte offset of an instruction in the input file.
     pub fn set_location_hint(&mut self, inst: Inst, loc: usize) {
-        self.dfg_mut().set_location_hint(inst, loc)
+        self.data.dfg.location_hints.insert(inst, loc);
     }
 }
 

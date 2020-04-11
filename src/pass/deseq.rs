@@ -40,7 +40,6 @@ impl Pass for Desequentialization {
 
 fn deseq_process(ctx: &PassContext, unit: &mut UnitBuilder) -> Option<UnitData> {
     info!("Deseq [{}]", unit.name());
-    let dfg = unit.dfg();
     let trg = TemporalRegionGraph::new(unit);
 
     // Identify the relevant temporal regions.
@@ -73,7 +72,7 @@ fn deseq_process(ctx: &PassContext, unit: &mut UnitBuilder) -> Option<UnitData> 
                 return None;
             }
         };
-        let data = &dfg[inst];
+        let data = &unit[inst];
         let sensitivity: BTreeSet<_> = match data.opcode() {
             Opcode::Wait => data.args().iter().cloned().collect(),
             Opcode::WaitTime => data.args().iter().skip(1).cloned().collect(),
@@ -106,7 +105,7 @@ fn deseq_process(ctx: &PassContext, unit: &mut UnitBuilder) -> Option<UnitData> 
     let mut conds = vec![];
     for bb in unit.blocks() {
         for inst in unit.insts(bb) {
-            let data = &dfg[inst];
+            let data = &unit[inst];
             if data.opcode() == Opcode::DrvCond {
                 trace!("Canonicalizing condition of {}", inst.dump(&unit));
                 conds.push((
@@ -202,7 +201,7 @@ fn canonicalize_inner(
     cond: Value,
     inv: bool,
 ) -> Dnf {
-    let dfg = unit.dfg();
+    let dfg = unit;
 
     // Don't bother with values of the wrong type.
     let ty = unit.value_type(cond);
@@ -536,8 +535,8 @@ impl<'a, 'b> Migrator<'a, 'b> {
 
     pub fn migrate_drive(&mut self, drive: Inst, _bb: Block, trigs: &Vec<Trigger>) -> bool {
         trace!("Migrating {}", drive.dump(&self.src));
-        let drive_target = self.src.dfg()[drive].args()[0];
-        let drive_value = self.src.dfg()[drive].args()[1];
+        let drive_target = self.src[drive].args()[0];
+        let drive_value = self.src[drive].args()[1];
 
         let mig_target = match self.migrate_value(drive_target, &Default::default()) {
             Some(v) => v,
@@ -661,9 +660,9 @@ impl<'a, 'b> Migrator<'a, 'b> {
             let tr = self.trg[bb];
 
             // Handle signal probes.
-            if self.src.dfg()[inst].opcode() == Opcode::Prb {
+            if self.src[inst].opcode() == Opcode::Prb {
                 // See if this signal is tied to a fixed value.
-                let sig = self.src.dfg()[inst].args()[0];
+                let sig = self.src[inst].args()[0];
                 if let Some(&level) = ties.get(&(sig, tr)) {
                     let data = InstData::ConstInt {
                         opcode: Opcode::ConstInt,
@@ -687,7 +686,7 @@ impl<'a, 'b> Migrator<'a, 'b> {
             }
 
             // Handle regular signals.
-            let mut data = self.src.dfg()[inst].clone();
+            let mut data = self.src[inst].clone();
             #[allow(deprecated)]
             for arg in data.args_mut() {
                 *arg = self.migrate_value(*arg, ties)?;

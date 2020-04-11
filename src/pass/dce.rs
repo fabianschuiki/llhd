@@ -215,7 +215,7 @@ fn prune_blocks(unit: &mut UnitBuilder) -> bool {
     unreachable.remove(&first_bb);
     while let Some(block) = todo.pop() {
         let term_inst = unit.terminator(block);
-        for &bb in unit.dfg()[term_inst].blocks() {
+        for &bb in unit[term_inst].blocks() {
             if unreachable.remove(&bb) {
                 todo.push(bb);
             }

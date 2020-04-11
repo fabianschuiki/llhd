@@ -203,7 +203,7 @@ impl Module {
         // Resolve the external units in each unit.
         let mut linked = HashMap::new();
         for unit in self.units() {
-            for (ext_unit, data) in unit.dfg().ext_units.iter() {
+            for (ext_unit, data) in unit.extern_units() {
                 let (to, to_sig) = match symbols.get(&data.name).cloned() {
                     Some(to) => to,
                     None => {

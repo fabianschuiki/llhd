@@ -61,13 +61,11 @@ fn replace(from_inst: Inst, from_value: Value, to: Value, unit: &mut UnitBuilder
 }
 
 fn simplify_mux(_ctx: &PassContext, inst: Inst, value: Value, unit: &mut UnitBuilder) -> bool {
-    let dfg = unit.dfg();
-
     // Check if all options are identical, in which case simply replace us with
     // the option directly.
-    let array = dfg[inst].args()[0];
+    let array = unit[inst].args()[0];
     if let Some(array_inst) = unit.get_value_inst(array) {
-        let mut iter = dfg[array_inst].args().iter().cloned();
+        let mut iter = unit[array_inst].args().iter().cloned();
         let first = match iter.next() {
             Some(first) => first,
             None => return false,

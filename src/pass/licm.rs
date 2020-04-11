@@ -43,16 +43,16 @@ impl Pass for LoopIndepCodeMotion {
 
             // Work on the successors of this block.
             let term = unit.terminator(block);
-            if unit.dfg()[term].opcode().is_terminator() {
+            if unit[term].opcode().is_terminator() {
                 work_pending.extend(
-                    unit.dfg()[term]
+                    unit[term]
                         .blocks()
                         .iter()
                         .cloned()
                         .filter(|bb| !work_done.contains(bb)),
                 );
                 let next_number = block_numbers[&block] + 1;
-                for bb in unit.dfg()[term].blocks().iter().cloned() {
+                for bb in unit[term].blocks().iter().cloned() {
                     block_numbers.entry(bb).or_insert(next_number);
                 }
             }
@@ -90,7 +90,7 @@ fn move_instruction(
 
     // To determine the possible insertion locations, we first need to find for
     // each argument of this instruction, which blocks its definition dominates.
-    let doms: Vec<_> = unit.dfg()[inst]
+    let doms: Vec<_> = unit[inst]
         .args()
         .iter()
         .flat_map(|&arg| unit.get_value_inst(arg))

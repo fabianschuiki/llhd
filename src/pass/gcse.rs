@@ -48,7 +48,7 @@ impl Pass for GlobalCommonSubexprElim {
         'outer: for inst in insts {
             // Don't mess with instructions that produce no result or have side
             // effects.
-            let opcode = unit.dfg()[inst].opcode();
+            let opcode = unit[inst].opcode();
             if !unit.has_result(inst)
                 || opcode == Opcode::Ld
                 || opcode == Opcode::Var
@@ -60,7 +60,7 @@ impl Pass for GlobalCommonSubexprElim {
             trace!("Examining {}", inst.dump(&unit));
 
             // Try the candidates.
-            if let Some(aliases) = values.get_mut(&unit.dfg()[inst]) {
+            if let Some(aliases) = values.get_mut(&unit[inst]) {
                 'inner: for &cv in aliases.iter() {
                     trace!("  Trying {}", cv.dump(&unit));
                     let cv_inst = unit.value_inst(cv);
@@ -155,7 +155,7 @@ impl Pass for GlobalCommonSubexprElim {
             // Insert the instruction into the table.
             // trace!("Recording {}", inst.dump(&unit));
             values
-                .entry(unit.dfg()[inst].clone())
+                .entry(unit[inst].clone())
                 .or_insert_with(Default::default)
                 .insert(value);
         }

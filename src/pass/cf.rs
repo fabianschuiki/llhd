@@ -33,7 +33,7 @@ pub fn run_on_inst(unit: &mut UnitBuilder, inst: Inst) -> bool {
     // Fold all other instructions.
     let value = unit.inst_result(inst);
     let ty = unit.value_type(value);
-    let data = &unit.dfg()[inst];
+    let data = &unit[inst];
     let replacement = match data.opcode() {
         Opcode::InsSlice => fold_ins_slice(unit, inst),
         Opcode::ExtSlice => fold_ext_slice(unit, inst),
@@ -162,13 +162,12 @@ fn fold_binary_int(
 
 /// Fold a shift instruction.
 fn fold_shift(unit: &mut UnitBuilder, inst: Inst, ty: &Type) -> Option<Value> {
-    let dfg = unit.dfg();
-    let base = dfg[inst].args()[0];
-    let hidden = dfg[inst].args()[1];
-    let amount = dfg[inst].args()[2];
+    let base = unit[inst].args()[0];
+    let hidden = unit[inst].args()[1];
+    let amount = unit[inst].args()[2];
 
     let const_amount = unit.get_const_int(amount);
-    let left = dfg[inst].opcode() == Opcode::Shl;
+    let left = unit[inst].opcode() == Opcode::Shl;
 
     // Handle the trivial case where the shift amount is zero.
     if const_amount.map(IntValue::is_zero).unwrap_or(false) {
@@ -223,8 +222,7 @@ fn fold_shift(unit: &mut UnitBuilder, inst: Inst, ty: &Type) -> Option<Value> {
 
 /// Fold a slice insertion instruction.
 fn fold_ins_slice(unit: &mut UnitBuilder, inst: Inst) -> Option<Value> {
-    let dfg = unit.dfg();
-    let data = &dfg[inst];
+    let data = &unit[inst];
     let target = data.args()[0];
     let value = data.args()[1];
     let len = data.imms()[1];
@@ -249,8 +247,7 @@ fn fold_ins_slice(unit: &mut UnitBuilder, inst: Inst) -> Option<Value> {
 
 /// Fold a slice extraction instruction.
 fn fold_ext_slice(unit: &mut UnitBuilder, inst: Inst) -> Option<Value> {
-    let dfg = unit.dfg();
-    let data = &dfg[inst];
+    let data = &unit[inst];
     let ty = &unit.inst_type(inst);
     let target = data.args()[0];
     let len = data.imms()[1];
@@ -274,11 +271,10 @@ fn fold_ext_slice(unit: &mut UnitBuilder, inst: Inst) -> Option<Value> {
 
 /// Fold a field extraction instruction.
 fn fold_ext_field(unit: &mut UnitBuilder, inst: Inst) -> Option<Value> {
-    let dfg = unit.dfg();
-    let data = &dfg[inst];
+    let data = &unit[inst];
     let target = data.args()[0];
     let target_inst = unit.get_value_inst(target)?;
-    let target_data = &dfg[target_inst];
+    let target_data = &unit[target_inst];
     let offset = data.imms()[0];
     match target_data.opcode() {
         Opcode::ArrayUniform => Some(target_data.args()[0]),
@@ -291,9 +287,8 @@ fn fold_ext_field(unit: &mut UnitBuilder, inst: Inst) -> Option<Value> {
 
 /// Fold a mux instruction.
 fn fold_mux(unit: &mut UnitBuilder, inst: Inst) -> Option<Value> {
-    let dfg = unit.dfg();
-    let choices = dfg[inst].args()[0];
-    let sel = dfg[inst].args()[1];
+    let choices = unit[inst].args()[0];
+    let sel = unit[inst].args()[1];
     let const_sel = unit.get_const_int(sel)?.to_usize();
     Some(unit.ins().ext_field(choices, const_sel))
 }

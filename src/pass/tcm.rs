@@ -93,7 +93,7 @@ impl Pass for TemporalCodeMotion {
             }
             let mut merge = HashMap::<&InstData, Vec<Inst>>::new();
             for inst in tr.tail_insts() {
-                merge.entry(&unit.dfg()[inst]).or_default().push(inst);
+                merge.entry(&unit[inst]).or_default().push(inst);
             }
             let merge: Vec<_> = merge.into_iter().map(|(_, is)| is).collect();
             for insts in merge {
@@ -390,13 +390,13 @@ fn push_drive(
         }
 
         // Add the drive condition, if any.
-        if unit.dfg()[drive].opcode() == Opcode::DrvCond {
-            let arg = unit.dfg()[drive].args()[3];
+        if unit[drive].opcode() == Opcode::DrvCond {
+            let arg = unit[drive].args()[3];
             cond = unit.ins().and(cond, arg);
         }
 
         // Insert the new drive.
-        let args = unit.dfg()[drive].args();
+        let args = unit[drive].args();
         let signal = args[0];
         let value = args[1];
         let delay = args[2];
@@ -426,7 +426,7 @@ fn coalesce_drives(_ctx: &PassContext, block: Block, unit: &mut UnitBuilder) -> 
     for (delay, drives) in delay_groups {
         let runs: Vec<_> = drives
             .into_iter()
-            .group_by(|&inst| unit.dfg()[inst].args()[0])
+            .group_by(|&inst| unit[inst].args()[0])
             .into_iter()
             .map(|(target, drives)| (target, drives.collect::<Vec<_>>()))
             .collect();
@@ -445,14 +445,14 @@ fn coalesce_drives(_ctx: &PassContext, block: Block, unit: &mut UnitBuilder) -> 
             let first = drives.next().unwrap();
             unit.insert_before(first);
             let mut cond = drive_cond(unit, first);
-            let mut value = unit.dfg()[first].args()[1];
+            let mut value = unit[first].args()[1];
             unit.delete_inst(first);
 
             // Accumulate subsequent drive conditions and values, and remove.
             for drive in drives {
                 unit.insert_before(drive);
                 let c = drive_cond(unit, drive);
-                let v = unit.dfg()[drive].args()[1];
+                let v = unit[drive].args()[1];
                 if cond != c {
                     cond = unit.ins().or(cond, c);
                 }
@@ -478,8 +478,8 @@ fn coalesce_drives(_ctx: &PassContext, block: Block, unit: &mut UnitBuilder) -> 
 }
 
 fn drive_cond(unit: &mut UnitBuilder, inst: Inst) -> Value {
-    if unit.dfg()[inst].opcode() == Opcode::DrvCond {
-        unit.dfg()[inst].args()[3]
+    if unit[inst].opcode() == Opcode::DrvCond {
+        unit[inst].args()[3]
     } else {
         unit.ins().const_int(IntValue::all_ones(1))
     }
