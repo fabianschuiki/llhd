@@ -72,7 +72,7 @@ fn main() {
                 if u.is_entity() {
                     continue;
                 }
-                let trg = TemporalRegionGraph::new(u.dfg(), u.func_layout());
+                let trg = TemporalRegionGraph::new(&u);
                 println!("  {}:", u.name());
                 println!("    Blocks:");
                 for bb in u.blocks() {

@@ -83,7 +83,7 @@ impl Pass for DeadCodeElim {
 
         // Detect trivially sequential blocks. We use a temporal predecessor
         // table here to avoid treating wait instructions as branches.
-        let pt = PredecessorTable::new_temporal(unit.dfg(), unit.func_layout());
+        let pt = PredecessorTable::new_temporal(unit);
         let mut merge_blocks = Vec::new();
         let mut already_merged = HashMap::new();
         for bb in unit.blocks().filter(|&bb| bb != entry) {

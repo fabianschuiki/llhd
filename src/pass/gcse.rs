@@ -3,7 +3,7 @@
 //! Global Common Subexpression Elimination
 
 use crate::ir::prelude::*;
-use crate::ir::{ControlFlowGraph, DataFlowGraph, FunctionLayout, InstData, ValueData};
+use crate::ir::{InstData, ValueData};
 use crate::opt::prelude::*;
 use crate::pass::tcm::TemporalRegionGraph;
 use crate::table::TableKey;
@@ -24,15 +24,15 @@ impl Pass for GlobalCommonSubexprElim {
         info!("GCSE [{}]", unit.name());
 
         // Build the predecessor table and dominator tree.
-        let pred = PredecessorTable::new(unit.dfg(), unit.func_layout());
-        let dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &pred);
+        let pred = PredecessorTable::new(unit);
+        let dt = DominatorTree::new(unit, &pred);
 
         // Build the temporal predecessor table and dominator tree.
-        let temp_pt = PredecessorTable::new_temporal(unit.dfg(), unit.func_layout());
-        let temp_dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &temp_pt);
+        let temp_pt = PredecessorTable::new_temporal(unit);
+        let temp_dt = DominatorTree::new(unit, &temp_pt);
 
         // Compute the TRG to allow for `prb` instructions to be eliminated.
-        let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
+        let trg = TemporalRegionGraph::new(unit);
 
         // Collect instructions.
         let mut insts = vec![];
@@ -170,21 +170,20 @@ pub struct PredecessorTable {
     succ: HashMap<Block, HashSet<Block>>,
 }
 
-#[allow(deprecated)]
 impl PredecessorTable {
     /// Compute the predecessor table for a function or process.
-    pub fn new(dfg: &DataFlowGraph, layout: &FunctionLayout) -> Self {
+    pub fn new(unit: &Unit) -> Self {
         let mut pred = HashMap::new();
         let mut succ = HashMap::new();
-        for bb in layout.blocks() {
+        for bb in unit.blocks() {
             pred.insert(bb, HashSet::new());
         }
-        for bb in layout.blocks() {
-            let term = layout.terminator(bb);
-            for to_bb in dfg[term].blocks() {
+        for bb in unit.blocks() {
+            let term = unit.terminator(bb);
+            for to_bb in unit[term].blocks() {
                 pred.get_mut(&to_bb).unwrap().insert(bb);
             }
-            succ.insert(bb, dfg[term].blocks().iter().cloned().collect());
+            succ.insert(bb, unit[term].blocks().iter().cloned().collect());
         }
         Self { pred, succ }
     }
@@ -194,19 +193,19 @@ impl PredecessorTable {
     /// This is a special form of predecessor table which ignores edges in the
     /// CFG that cross a temporal instruction. As such all connected blocks in
     /// the table are guaranteed to execute within the same instant of time.
-    pub fn new_temporal(dfg: &DataFlowGraph, layout: &FunctionLayout) -> Self {
+    pub fn new_temporal(unit: &Unit) -> Self {
         let mut pred = HashMap::new();
         let mut succ = HashMap::new();
-        for bb in layout.blocks() {
+        for bb in unit.blocks() {
             pred.insert(bb, HashSet::new());
         }
-        for bb in layout.blocks() {
-            let term = layout.terminator(bb);
-            if !dfg[term].opcode().is_temporal() {
-                for to_bb in dfg[term].blocks() {
+        for bb in unit.blocks() {
+            let term = unit.terminator(bb);
+            if !unit[term].opcode().is_temporal() {
+                for to_bb in unit[term].blocks() {
                     pred.get_mut(&to_bb).unwrap().insert(bb);
                 }
-                succ.insert(bb, dfg[term].blocks().iter().cloned().collect());
+                succ.insert(bb, unit[term].blocks().iter().cloned().collect());
             } else {
                 succ.insert(bb, Default::default());
             }
@@ -263,30 +262,29 @@ pub struct DominatorTree {
     inv_post_order: Vec<u32>,
 }
 
-#[allow(deprecated)]
 impl DominatorTree {
     /// Compute the dominator tree of a function or process.
     ///
     /// This implementation is based on [1].
     ///
     /// [1]: https://www.cs.rice.edu/~keith/Embed/dom.pdf "Cooper, Keith D., Timothy J. Harvey, and Ken Kennedy. 'A simple, fast dominance algorithm.' Software Practice & Experience 4.1-10 (2001): 1-8."
-    pub fn new(cfg: &ControlFlowGraph, layout: &FunctionLayout, pred: &PredecessorTable) -> Self {
+    pub fn new(unit: &Unit, pred: &PredecessorTable) -> Self {
         let t0 = time::precise_time_ns();
-        let post_order = Self::compute_blocks_post_order(layout, pred);
+        let post_order = Self::compute_blocks_post_order(unit, pred);
         let length = post_order.len();
         // trace!("[DomTree] post-order {:?}", post_order);
 
         let undef = std::u32::MAX;
         let mut doms = vec![undef; length];
-        let mut inv_post_order = vec![undef; cfg.blocks.capacity()];
+        let mut inv_post_order = vec![undef; unit.blocks().count()];
         for (i, &bb) in post_order.iter().enumerate() {
             inv_post_order[bb.index()] = i as u32;
         }
         // trace!("[DomTree] inv-post-order {:?}", inv_post_order);
 
-        for root in Some(layout.entry())
+        for root in Some(unit.entry())
             .into_iter()
-            .chain(layout.blocks().filter(|&id| pred.pred_set(id).is_empty()))
+            .chain(unit.blocks().filter(|&id| pred.pred_set(id).is_empty()))
         {
             let poidx = inv_post_order[root.index()];
             doms[poidx as usize] = poidx; // root nodes
@@ -337,7 +335,7 @@ impl DominatorTree {
         }
         // trace!("[DomTree] converged {:?}", doms);
 
-        let mut doms_final = vec![Block::invalid(); cfg.blocks.capacity()];
+        let mut doms_final = vec![Block::invalid(); unit.blocks().count()];
         for bb in &post_order {
             doms_final[bb.index()] = post_order[doms[inv_post_order[bb.index()] as usize] as usize];
         }
@@ -345,7 +343,7 @@ impl DominatorTree {
 
         // Compatibility with old dominator tree.
         let mut dominated = HashMap::new();
-        for block in layout.blocks() {
+        for block in unit.blocks() {
             let mut s = HashSet::new();
             let mut bb = block;
             loop {
@@ -362,7 +360,7 @@ impl DominatorTree {
 
         // Invert the tree.
         let mut dominates: HashMap<Block, HashSet<Block>> =
-            layout.blocks().map(|bb| (bb, HashSet::new())).collect();
+            unit.blocks().map(|bb| (bb, HashSet::new())).collect();
         for (&bb, dom) in &dominated {
             for d in dom {
                 dominates.get_mut(d).unwrap().insert(bb);
@@ -385,15 +383,15 @@ impl DominatorTree {
         }
     }
 
-    fn compute_blocks_post_order(layout: &FunctionLayout, pred: &PredecessorTable) -> Vec<Block> {
+    fn compute_blocks_post_order(unit: &Unit, pred: &PredecessorTable) -> Vec<Block> {
         let mut order = Vec::with_capacity(pred.pred.len());
 
         let mut stack = Vec::with_capacity(8);
         let mut discovered = BitSet::with_capacity(pred.pred.len() as u32);
         let mut finished = BitSet::with_capacity(pred.pred.len() as u32);
 
-        stack.push(layout.entry());
-        stack.extend(layout.blocks().filter(|&id| pred.pred_set(id).is_empty()));
+        stack.push(unit.entry());
+        stack.extend(unit.blocks().filter(|&id| pred.pred_set(id).is_empty()));
 
         while let Some(&next) = stack.last() {
             if !discovered.add(next.index() as u32) {
@@ -461,23 +459,17 @@ impl DominatorTree {
     }
 
     /// Check if an instruction dominates a block.
-    pub fn inst_dominates_block(&self, layout: &FunctionLayout, inst: Inst, block: Block) -> bool {
-        match layout.inst_block(inst) {
+    pub fn inst_dominates_block(&self, unit: &Unit, inst: Inst, block: Block) -> bool {
+        match unit.inst_block(inst) {
             Some(bb) => self.block_dominates_block(bb, block),
             None => false,
         }
     }
 
     /// Check if a value dominates a block.
-    pub fn value_dominates_block(
-        &self,
-        dfg: &DataFlowGraph,
-        layout: &FunctionLayout,
-        value: Value,
-        block: Block,
-    ) -> bool {
-        match dfg[value] {
-            ValueData::Inst { inst, .. } => self.inst_dominates_block(layout, inst, block),
+    pub fn value_dominates_block(&self, unit: &Unit, value: Value, block: Block) -> bool {
+        match unit[value] {
+            ValueData::Inst { inst, .. } => self.inst_dominates_block(unit, inst, block),
             ValueData::Arg { .. } => true,
             _ => false,
         }

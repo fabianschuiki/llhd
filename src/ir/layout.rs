@@ -64,7 +64,7 @@ impl Layout for FunctionLayout {
 impl FunctionLayout {
     /// Append a BB to the end of the function.
     #[deprecated]
-    pub fn append_block(&mut self, bb: Block) {
+    fn append_block(&mut self, bb: Block) {
         self.bbs.add(
             bb,
             BlockNode {
@@ -86,7 +86,7 @@ impl FunctionLayout {
     ///
     /// This effectively makes `bb` the new entry block.
     #[deprecated]
-    pub fn prepend_block(&mut self, bb: Block) {
+    fn prepend_block(&mut self, bb: Block) {
         self.bbs.add(
             bb,
             BlockNode {
@@ -106,7 +106,7 @@ impl FunctionLayout {
 
     /// Insert a BB after another BB.
     #[deprecated]
-    pub fn insert_block_after(&mut self, bb: Block, after: Block) {
+    fn insert_block_after(&mut self, bb: Block, after: Block) {
         self.bbs.add(
             bb,
             BlockNode {
@@ -126,7 +126,7 @@ impl FunctionLayout {
 
     /// Insert a BB before another BB.
     #[deprecated]
-    pub fn insert_block_before(&mut self, bb: Block, before: Block) {
+    fn insert_block_before(&mut self, bb: Block, before: Block) {
         self.bbs.add(
             bb,
             BlockNode {
@@ -146,7 +146,7 @@ impl FunctionLayout {
 
     /// Remove a BB from the function.
     #[deprecated]
-    pub fn remove_block(&mut self, bb: Block) {
+    fn remove_block(&mut self, bb: Block) {
         let node = self.bbs.remove(bb).unwrap();
         if let Some(next) = node.next {
             self.bbs[next].prev = node.prev;
@@ -164,7 +164,7 @@ impl FunctionLayout {
 
     /// Swap the position of two BBs.
     #[deprecated]
-    pub fn swap_blocks(&mut self, bb0: Block, bb1: Block) {
+    fn swap_blocks(&mut self, bb0: Block, bb1: Block) {
         if bb0 == bb1 {
             return;
         }
@@ -217,31 +217,31 @@ impl FunctionLayout {
 
     /// Return an iterator over all BBs in layout order.
     #[deprecated]
-    pub fn blocks<'a>(&'a self) -> impl Iterator<Item = Block> + 'a {
+    fn blocks<'a>(&'a self) -> impl Iterator<Item = Block> + 'a {
         std::iter::successors(self.first_bb, move |&bb| self.next_block(bb))
     }
 
     /// Get the first BB in the layout. This is the entry block.
     #[deprecated]
-    pub fn first_block(&self) -> Option<Block> {
+    fn first_block(&self) -> Option<Block> {
         self.first_bb
     }
 
     /// Get the last BB in the layout.
     #[deprecated]
-    pub fn last_block(&self) -> Option<Block> {
+    fn last_block(&self) -> Option<Block> {
         self.last_bb
     }
 
     /// Get the BB preceding `bb` in the layout.
     #[deprecated]
-    pub fn prev_block(&self, bb: Block) -> Option<Block> {
+    fn prev_block(&self, bb: Block) -> Option<Block> {
         self.bbs[bb].prev
     }
 
     /// Get the BB following `bb` in the layout.
     #[deprecated]
-    pub fn next_block(&self, bb: Block) -> Option<Block> {
+    fn next_block(&self, bb: Block) -> Option<Block> {
         self.bbs[bb].next
     }
 
@@ -249,7 +249,7 @@ impl FunctionLayout {
     ///
     /// The fallible alternative is `first_block(bb)`.
     #[deprecated]
-    pub fn entry(&self) -> Block {
+    fn entry(&self) -> Block {
         self.first_block().expect("entry block is required")
     }
 }

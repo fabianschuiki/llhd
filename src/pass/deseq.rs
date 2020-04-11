@@ -41,8 +41,7 @@ impl Pass for Desequentialization {
 fn deseq_process(ctx: &PassContext, unit: &mut UnitBuilder) -> Option<UnitData> {
     info!("Deseq [{}]", unit.name());
     let dfg = unit.dfg();
-    let layout = unit.func_layout();
-    let trg = TemporalRegionGraph::new(dfg, layout);
+    let trg = TemporalRegionGraph::new(unit);
 
     // Identify the relevant temporal regions.
     if trg.regions().count() != 2 {

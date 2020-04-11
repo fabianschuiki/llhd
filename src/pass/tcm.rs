@@ -5,7 +5,7 @@
 use crate::ir::prelude::*;
 use crate::opt::prelude::*;
 use crate::{
-    ir::{DataFlowGraph, FunctionLayout, InstData},
+    ir::InstData,
     pass::gcse::{DominatorTree, PredecessorTable},
     value::IntValue,
 };
@@ -33,12 +33,12 @@ impl Pass for TemporalCodeMotion {
         let mut modified = false;
 
         // Build the temporal region graph.
-        let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
+        let trg = TemporalRegionGraph::new(unit);
 
         // Hoist `prb` instructions which directly operate on input signals to
         // the head block of their region.
-        let temp_pt = PredecessorTable::new_temporal(unit.dfg(), unit.func_layout());
-        let temp_dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &temp_pt);
+        let temp_pt = PredecessorTable::new_temporal(unit);
+        let temp_dt = DominatorTree::new(unit, &temp_pt);
         for tr in &trg.regions {
             if tr.head_blocks.len() != 1 {
                 trace!("Skipping {} for prb move (multiple head blocks)", tr.id);
@@ -85,7 +85,7 @@ impl Pass for TemporalCodeMotion {
         }
 
         // Fuse equivalent wait instructions.
-        let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
+        let trg = TemporalRegionGraph::new(unit);
         for tr in &trg.regions {
             if tr.tail_insts.len() <= 1 {
                 trace!("Skipping {} for wait merge (single wait inst)", tr.id);
@@ -146,8 +146,8 @@ impl Pass for TemporalCodeMotion {
 /// that drives have a dedicated block to be pushed down into ahead of the next
 /// temporal region.
 fn add_aux_blocks(_ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
-    let pt = PredecessorTable::new(unit.dfg(), unit.func_layout());
-    let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
+    let pt = PredecessorTable::new(unit);
+    let trg = TemporalRegionGraph::new(unit);
     let mut modified = false;
 
     // Make a list of head blocks. This will allow us to change the unit
@@ -197,8 +197,8 @@ fn push_drives(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
     let mut modified = false;
 
     // We need the dominator tree of the current CFG.
-    let pt = PredecessorTable::new(unit.dfg(), unit.func_layout());
-    let dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &pt);
+    let pt = PredecessorTable::new(unit);
+    let dt = DominatorTree::new(unit, &pt);
 
     // Build an alias table of all signals, which indicates which signals are
     // aliases (e.g. extf/exts) of another. As we encounter drives, keep track
@@ -238,7 +238,7 @@ fn push_drives(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
     }
 
     // Build the temporal region graph.
-    let trg = TemporalRegionGraph::new(unit.dfg(), unit.func_layout());
+    let trg = TemporalRegionGraph::new(unit);
 
     // Try to migrate drive instructions into the tails of their respective
     // temporal regions.
@@ -286,7 +286,6 @@ fn push_drive(
     dt: &DominatorTree,
     trg: &TemporalRegionGraph,
 ) -> bool {
-    let layout = unit.func_layout();
     let src_bb = unit.inst_block(drive).unwrap();
     let tr = trg[src_bb];
     let mut moves = Vec::new();
@@ -300,7 +299,7 @@ fn push_drive(
         // First check if all arguments of the drive instruction dominate the
         // destination block. If not, the move is not possible.
         for &arg in unit[drive].args() {
-            if !dt.value_dominates_block(unit.dfg(), layout, arg, dst_bb) {
+            if !dt.value_dominates_block(unit, arg, dst_bb) {
                 trace!(
                     "  Skipping {} ({} does not dominate {})",
                     drive.dump(&unit),
@@ -329,7 +328,7 @@ fn push_drive(
                 let term = unit.terminator(parent);
                 if unit[term].opcode() == Opcode::BrCond {
                     let cond_val = unit[term].args()[0];
-                    if !dt.value_dominates_block(unit.dfg(), layout, cond_val, dst_bb) {
+                    if !dt.value_dominates_block(unit, cond_val, dst_bb) {
                         trace!(
                             "  Skipping {} (branch cond {} does not dominate {})",
                             drive.dump(&unit),
@@ -495,23 +494,22 @@ pub struct TemporalRegionGraph {
     regions: Vec<TemporalRegionData>,
 }
 
-#[allow(deprecated)]
 impl TemporalRegionGraph {
     /// Compute the TRG of a process.
-    pub fn new(dfg: &DataFlowGraph, layout: &FunctionLayout) -> Self {
+    pub fn new(unit: &Unit) -> Self {
         // trace!("[TRG] Constructing TRG:");
 
         // Populate the worklist with the entry block, as well as any blocks
         // that are targeted by `wait` instructions.
         let mut todo = VecDeque::new();
         let mut seen = HashSet::new();
-        todo.push_back(layout.entry());
-        seen.insert(layout.entry());
-        // trace!("[TRG]   Root {:?} (entry)", layout.entry());
-        for bb in layout.blocks() {
-            let term = layout.terminator(bb);
-            if dfg[term].opcode().is_temporal() {
-                for &target in dfg[term].blocks() {
+        todo.push_back(unit.entry());
+        seen.insert(unit.entry());
+        // trace!("[TRG]   Root {:?} (entry)", unit.entry());
+        for bb in unit.blocks() {
+            let term = unit.terminator(bb);
+            if unit[term].opcode().is_temporal() {
+                for &target in unit[term].blocks() {
                     if seen.insert(target) {
                         // trace!("[TRG]   Root {:?} (wait target)", target);
                         todo.push_back(target);
@@ -536,13 +534,13 @@ impl TemporalRegionGraph {
         while let Some(bb) = todo.pop_front() {
             let tr = blocks[&bb];
             // trace!("[TRG]   Pushing {:?} ({})", bb, tr);
-            let term = layout.terminator(bb);
-            if dfg[term].opcode().is_temporal() {
+            let term = unit.terminator(bb);
+            if unit[term].opcode().is_temporal() {
                 breaks.push(term);
                 tail_blocks.insert(bb);
                 continue;
             }
-            for &target in dfg[term].blocks() {
+            for &target in unit[term].blocks() {
                 if seen.insert(target) {
                     todo.push_back(target);
                     // trace!("[TRG]     Assigning {:?} <- {:?}", target, tr);
@@ -575,10 +573,10 @@ impl TemporalRegionGraph {
             .collect();
 
         // Mark the entry block.
-        regions[blocks[&layout.entry()].0].entry = true;
+        regions[blocks[&unit.entry()].0].entry = true;
 
         // Build the predecessor table.
-        let pt = PredecessorTable::new(dfg, layout);
+        let pt = PredecessorTable::new(&unit);
 
         // Note the blocks in each region and build the head/tail information.
         for (&bb, &id) in &blocks {
@@ -614,13 +612,13 @@ impl TemporalRegionGraph {
             // Note the head instructions.
             for pred in pt.pred(bb) {
                 if blocks[&pred] != id {
-                    reg.head_insts.insert(layout.terminator(pred));
+                    reg.head_insts.insert(unit.terminator(pred));
                 }
             }
 
             // Note the tail instructions.
-            let term = layout.terminator(bb);
-            if dfg[term].blocks().iter().any(|bb| blocks[bb] != id) {
+            let term = unit.terminator(bb);
+            if unit[term].blocks().iter().any(|bb| blocks[bb] != id) {
                 reg.tail_insts.insert(term);
             }
         }
