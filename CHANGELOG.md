@@ -6,16 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
-- Add `UnitData` struct
-- Add `Unit` and `UnitBuilder` structs
+- Add `UnitData` struct.
+- Add `Unit` and `UnitBuilder` structs.
 
 ### Changed
 - Fold `ControlFlowGraph` and `DataFlowGraph` into `Unit` and `UnitBuilder`.
 - Change `dump()` functions to take a `&Unit` instead of DFG/CFG.
 
 ### Removed
-- Remove `Function`, `Process`, and `Entity` structs
-- Remove `Unit` and `UnitBuilder` traits
+- Remove `Function`, `Process`, and `Entity` structs.
+- Remove `Unit` and `UnitBuilder` traits.
+- Remove `Layout` trait.
+- Remove `InstLayout` struct.
 
 ## 0.12.0 - 2020-04-09
 ### Added
