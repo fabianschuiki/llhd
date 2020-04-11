@@ -4,8 +4,8 @@
 
 use crate::{
     ir::{
-        prelude::*, BlockData, ControlFlowGraph, DataFlowGraph, ExtUnit, ExtUnitData,
-        FunctionInsertPos, FunctionLayout, InstBuilder, InstData, UnitId, ValueData,
+        layout::BlockNode, prelude::*, BlockData, ControlFlowGraph, DataFlowGraph, ExtUnit,
+        ExtUnitData, FunctionInsertPos, FunctionLayout, InstBuilder, InstData, UnitId, ValueData,
     },
     table::TableKey,
     verifier::Verifier,
@@ -445,6 +445,48 @@ impl<'a> Unit<'a> {
     }
 }
 
+/// Basic block layout.
+///
+/// The following functions are used to query the basic block layout.
+impl<'a> Unit<'a> {
+    /// Return an iterator over all BBs in layout order.
+    pub fn blocks(self) -> impl Iterator<Item = Block> + 'a {
+        let layout = &self.data.layout;
+        std::iter::successors(layout.first_bb, move |&bb| self.next_block(bb))
+    }
+
+    /// Get the first BB in the layout. This is the entry block.
+    pub fn first_block(self) -> Option<Block> {
+        let layout = &self.data.layout;
+        layout.first_bb
+    }
+
+    /// Get the last BB in the layout.
+    pub fn last_block(self) -> Option<Block> {
+        let layout = &self.data.layout;
+        layout.last_bb
+    }
+
+    /// Get the BB preceding `bb` in the layout.
+    pub fn prev_block(self, bb: Block) -> Option<Block> {
+        let layout = &self.data.layout;
+        layout.bbs[bb].prev
+    }
+
+    /// Get the BB following `bb` in the layout.
+    pub fn next_block(self, bb: Block) -> Option<Block> {
+        let layout = &self.data.layout;
+        layout.bbs[bb].next
+    }
+
+    /// Get the entry block in the layout.
+    ///
+    /// The fallible alternative is `first_block(bb)`.
+    pub fn entry(self) -> Block {
+        self.first_block().expect("entry block is required")
+    }
+}
+
 impl std::fmt::Display for Unit<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
@@ -567,8 +609,11 @@ impl<'a> UnitBuilder<'a> {
         bb
     }
 
-    /// Remove a BB.
-    pub fn remove_block(&mut self, bb: Block) {
+    /// Delete a block.
+    ///
+    /// Removes the block, and all its instructions, from the layout and control
+    /// flow graph, deletes it. The `Block` is no longer valid afterwards.
+    pub fn delete_block(&mut self, bb: Block) {
         let insts: Vec<_> = self.data.layout.insts(bb).collect();
         self.data.dfg.remove_block_use(bb);
         self.data.layout.remove_block(bb);
@@ -773,6 +818,164 @@ impl<'a> UnitBuilder<'a> {
     /// Annotates the byte offset of an instruction in the input file.
     pub fn set_location_hint(&mut self, inst: Inst, loc: usize) {
         self.dfg_mut().set_location_hint(inst, loc)
+    }
+}
+
+/// Basic block layout.
+///
+/// The following functions are used to modify the basic block layout.
+impl<'a> UnitBuilder<'a> {
+    /// Append a BB to the end of the function.
+    pub fn append_block(&mut self, bb: Block) {
+        let layout = &mut self.data.layout;
+        layout.bbs.add(
+            bb,
+            BlockNode {
+                prev: layout.last_bb,
+                next: None,
+                layout: Default::default(),
+            },
+        );
+        if let Some(prev) = layout.last_bb {
+            layout.bbs[prev].next = Some(bb);
+        }
+        if layout.first_bb.is_none() {
+            layout.first_bb = Some(bb);
+        }
+        layout.last_bb = Some(bb);
+    }
+
+    /// Prepend a BB to the beginning of a function.
+    ///
+    /// This effectively makes `bb` the new entry block.
+    pub fn prepend_block(&mut self, bb: Block) {
+        let layout = &mut self.data.layout;
+        layout.bbs.add(
+            bb,
+            BlockNode {
+                prev: None,
+                next: layout.first_bb,
+                layout: Default::default(),
+            },
+        );
+        if let Some(next) = layout.first_bb {
+            layout.bbs[next].prev = Some(bb);
+        }
+        if layout.last_bb.is_none() {
+            layout.last_bb = Some(bb);
+        }
+        layout.first_bb = Some(bb);
+    }
+
+    /// Insert a BB after another BB.
+    pub fn insert_block_after(&mut self, bb: Block, after: Block) {
+        let layout = &mut self.data.layout;
+        layout.bbs.add(
+            bb,
+            BlockNode {
+                prev: Some(after),
+                next: layout.bbs[after].next,
+                layout: Default::default(),
+            },
+        );
+        if let Some(next) = layout.bbs[after].next {
+            layout.bbs[next].prev = Some(bb);
+        }
+        layout.bbs[after].next = Some(bb);
+        if layout.last_bb == Some(after) {
+            layout.last_bb = Some(bb);
+        }
+    }
+
+    /// Insert a BB before another BB.
+    pub fn insert_block_before(&mut self, bb: Block, before: Block) {
+        let layout = &mut self.data.layout;
+        layout.bbs.add(
+            bb,
+            BlockNode {
+                prev: layout.bbs[before].prev,
+                next: Some(before),
+                layout: Default::default(),
+            },
+        );
+        if let Some(prev) = layout.bbs[before].prev {
+            layout.bbs[prev].next = Some(bb);
+        }
+        layout.bbs[before].prev = Some(bb);
+        if layout.first_bb == Some(before) {
+            layout.first_bb = Some(bb);
+        }
+    }
+
+    /// Remove a BB from the function.
+    pub fn remove_block(&mut self, bb: Block) {
+        let layout = &mut self.data.layout;
+        let node = layout.bbs.remove(bb).unwrap();
+        if let Some(next) = node.next {
+            layout.bbs[next].prev = node.prev;
+        }
+        if let Some(prev) = node.prev {
+            layout.bbs[prev].next = node.next;
+        }
+        if layout.first_bb == Some(bb) {
+            layout.first_bb = node.next;
+        }
+        if layout.last_bb == Some(bb) {
+            layout.last_bb = node.prev;
+        }
+    }
+
+    /// Swap the position of two BBs.
+    pub fn swap_blocks(&mut self, bb0: Block, bb1: Block) {
+        let layout = &mut self.data.layout;
+        if bb0 == bb1 {
+            return;
+        }
+
+        let mut bb0_next = layout.bbs[bb0].next;
+        let mut bb0_prev = layout.bbs[bb0].prev;
+        let mut bb1_next = layout.bbs[bb1].next;
+        let mut bb1_prev = layout.bbs[bb1].prev;
+        if bb0_next == Some(bb1) {
+            bb0_next = Some(bb0);
+        }
+        if bb0_prev == Some(bb1) {
+            bb0_prev = Some(bb0);
+        }
+        if bb1_next == Some(bb0) {
+            bb1_next = Some(bb1);
+        }
+        if bb1_prev == Some(bb0) {
+            bb1_prev = Some(bb1);
+        }
+        layout.bbs[bb0].next = bb1_next;
+        layout.bbs[bb0].prev = bb1_prev;
+        layout.bbs[bb1].next = bb0_next;
+        layout.bbs[bb1].prev = bb0_prev;
+
+        if let Some(next) = bb0_next {
+            layout.bbs[next].prev = Some(bb1);
+        }
+        if let Some(prev) = bb0_prev {
+            layout.bbs[prev].next = Some(bb1);
+        }
+        if let Some(next) = bb1_next {
+            layout.bbs[next].prev = Some(bb0);
+        }
+        if let Some(prev) = bb1_prev {
+            layout.bbs[prev].next = Some(bb0);
+        }
+
+        if layout.first_bb == Some(bb0) {
+            layout.first_bb = Some(bb1);
+        } else if layout.first_bb == Some(bb1) {
+            layout.first_bb = Some(bb0);
+        }
+        if layout.last_bb == Some(bb0) {
+            layout.last_bb = Some(bb1);
+        } else if layout.last_bb == Some(bb1) {
+            layout.last_bb = Some(bb0);
+        }
     }
 }
 

@@ -23,18 +23,18 @@ pub struct FunctionLayout {
     /// A linked list of BBs in layout order.
     pub(crate) bbs: SecondaryTable<Block, BlockNode>,
     /// The first BB in the layout.
-    first_bb: Option<Block>,
+    pub(super) first_bb: Option<Block>,
     /// The last BB in the layout.
-    last_bb: Option<Block>,
+    pub(super) last_bb: Option<Block>,
     /// Lookup table to find the BB that contains an instruction.
-    inst_map: HashMap<Inst, Block>,
+    pub(super) inst_map: HashMap<Inst, Block>,
 }
 
 /// A node in the layout's double-linked list of BBs.
 #[derive(Default, Serialize, Deserialize)]
 pub(crate) struct BlockNode {
-    prev: Option<Block>,
-    next: Option<Block>,
+    pub(super) prev: Option<Block>,
+    pub(super) next: Option<Block>,
     pub(crate) layout: InstLayout,
 }
 

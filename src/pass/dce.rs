@@ -121,7 +121,7 @@ impl Pass for DeadCodeElim {
             }
             unit.func_layout_mut().remove_inst(term);
             unit.replace_block_use(block, into);
-            unit.remove_block(block);
+            unit.delete_block(block);
         }
 
         modified
@@ -231,7 +231,7 @@ fn prune_blocks(builder: &mut UnitBuilder) -> bool {
     for bb in unreachable {
         debug!("Prune unreachable block {}", bb.dump(&builder));
         modified |= true;
-        builder.remove_block(bb);
+        builder.delete_block(bb);
     }
 
     modified
