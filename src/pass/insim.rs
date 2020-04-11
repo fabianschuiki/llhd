@@ -24,7 +24,7 @@ impl Pass for InstSimplification {
                         let delay = unit[inst].args()[2];
                         unit.ins().drv(signal, value, delay);
                     }
-                    unit.remove_inst(inst);
+                    unit.delete_inst(inst);
                 }
             }
             _ => (),

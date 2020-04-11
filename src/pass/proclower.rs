@@ -38,7 +38,7 @@ fn lower_unit(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
         name: process.name,
         sig: process.sig,
     };
-    UnitBuilder::new_anonymous(&mut entity).remove_inst(term);
+    UnitBuilder::new_anonymous(&mut entity).delete_inst(term);
     *unit.data() = entity;
 
     true

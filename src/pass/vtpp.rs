@@ -98,10 +98,10 @@ impl Pass for VarToPhiPromotion {
         for (var_inst, store_insts) in vars {
             for store_inst in store_insts {
                 debug!("Removing {}", store_inst.dump(&unit));
-                unit.remove_inst(store_inst);
+                unit.delete_inst(store_inst);
             }
             debug!("Removing {}", var_inst.dump(&unit));
-            unit.remove_inst(var_inst);
+            unit.delete_inst(var_inst);
             modified |= true;
         }
 

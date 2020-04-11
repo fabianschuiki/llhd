@@ -52,7 +52,7 @@ impl Pass for DeadCodeElim {
             );
             unit.insert_before(inst);
             unit.ins().br(target);
-            unit.remove_inst(inst);
+            unit.delete_inst(inst);
             modified |= true;
         }
 

@@ -123,7 +123,7 @@ impl Pass for TemporalCodeMotion {
                 unit.func_layout_mut().remove_inst(insts[0]);
                 unit.func_layout_mut().append_inst(insts[0], unified_bb);
                 for &inst in &insts[1..] {
-                    unit.remove_inst(inst);
+                    unit.delete_inst(inst);
                 }
                 modified = true;
             }
@@ -412,7 +412,7 @@ fn push_drive(
     }
 
     // Remove the old drive instruction.
-    unit.remove_inst(drive);
+    unit.delete_inst(drive);
 
     true
 }
@@ -454,7 +454,7 @@ fn coalesce_drives(_ctx: &PassContext, block: Block, unit: &mut UnitBuilder) -> 
             unit.insert_before(first);
             let mut cond = drive_cond(unit, first);
             let mut value = unit.dfg()[first].args()[1];
-            unit.remove_inst(first);
+            unit.delete_inst(first);
 
             // Accumulate subsequent drive conditions and values, and remove.
             for drive in drives {
@@ -468,7 +468,7 @@ fn coalesce_drives(_ctx: &PassContext, block: Block, unit: &mut UnitBuilder) -> 
                     let vs = unit.ins().array(vec![value, v]);
                     value = unit.ins().mux(vs, c);
                 }
-                unit.remove_inst(drive);
+                unit.delete_inst(drive);
             }
 
             // Build the final drive.

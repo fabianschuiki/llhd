@@ -487,6 +487,56 @@ impl<'a> Unit<'a> {
     }
 }
 
+/// Instruction layout.
+///
+/// The following functions are used to query the instruction layout within a
+/// block.
+impl<'a> Unit<'a> {
+    /// Get the BB which contains `inst`, or `None` if `inst` is not inserted.
+    pub fn inst_block(self, inst: Inst) -> Option<Block> {
+        self.data.layout.inst_map.get(&inst).cloned()
+    }
+
+    /// Return an iterator over all instructions in a block in layout order.
+    pub fn insts(self, bb: Block) -> impl Iterator<Item = Inst> + 'a {
+        self.data.layout.bbs[bb].layout.insts()
+    }
+
+    /// Return an iterator over all instructions in layout order.
+    pub fn all_insts(self) -> impl Iterator<Item = Inst> + 'a {
+        self.blocks().flat_map(move |bb| self.insts(bb))
+    }
+
+    /// Get the first instruction in the layout.
+    pub fn first_inst(self, bb: Block) -> Option<Inst> {
+        self.data.layout.bbs[bb].layout.first_inst()
+    }
+
+    /// Get the last instruction in the layout.
+    pub fn last_inst(self, bb: Block) -> Option<Inst> {
+        self.data.layout.bbs[bb].layout.last_inst()
+    }
+
+    /// Get the instruction preceding `inst` in the layout.
+    pub fn prev_inst(self, inst: Inst) -> Option<Inst> {
+        let bb = self.inst_block(inst).unwrap();
+        self.data.layout.bbs[bb].layout.prev_inst(inst)
+    }
+
+    /// Get the instruction following `inst` in the layout.
+    pub fn next_inst(self, inst: Inst) -> Option<Inst> {
+        let bb = self.inst_block(inst).unwrap();
+        self.data.layout.bbs[bb].layout.next_inst(inst)
+    }
+
+    /// Get the terminator instruction in the layout.
+    ///
+    /// The fallible alternative is `last_inst(bb)`.
+    pub fn terminator(self, bb: Block) -> Inst {
+        self.last_inst(bb).expect("block must have terminator")
+    }
+}
+
 impl std::fmt::Display for Unit<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
@@ -588,8 +638,11 @@ impl<'a> UnitBuilder<'a> {
         inst
     }
 
-    /// Remove an instruction.
-    pub fn remove_inst(&mut self, inst: Inst) {
+    /// Delete an instruction.
+    ///
+    /// Removes the instruction from the layout, data flwo graph, and control
+    /// flow graph, and deletes it. The `Inst` is no longer valid afterwards.
+    pub fn delete_inst(&mut self, inst: Inst) {
         self.data.dfg.remove_inst(inst);
         self.pos.remove_inst(inst, &self.data.layout);
         self.data.layout.remove_inst(inst);
@@ -694,7 +747,7 @@ impl<'a> UnitBuilder<'a> {
                 .cloned()
                 .flat_map(|arg| self.dfg().get_value_inst(arg))
                 .collect();
-            self.remove_inst(inst);
+            self.delete_inst(inst);
             for inst in inst_args {
                 self.prune_if_unused(inst);
             }
@@ -976,6 +1029,49 @@ impl<'a> UnitBuilder<'a> {
         } else if layout.last_bb == Some(bb1) {
             layout.last_bb = Some(bb0);
         }
+    }
+}
+
+/// Instruction layout.
+///
+/// The following functions are used to modify the instruction layout within a
+/// block.
+impl<'a> UnitBuilder<'a> {
+    /// Append an instruction to the end of a BB.
+    pub fn append_inst(&mut self, inst: Inst, bb: Block) {
+        self.data.layout.bbs[bb].layout.append_inst(inst);
+        self.data.layout.inst_map.insert(inst, bb);
+    }
+
+    /// Prepend an instruction to the beginning of a BB.
+    pub fn prepend_inst(&mut self, inst: Inst, bb: Block) {
+        self.data.layout.bbs[bb].layout.prepend_inst(inst);
+        self.data.layout.inst_map.insert(inst, bb);
+    }
+
+    /// Insert an instruction after another instruction.
+    pub fn insert_inst_after(&mut self, inst: Inst, after: Inst) {
+        let bb = self.inst_block(after).expect("`after` not inserted");
+        self.data.layout.bbs[bb]
+            .layout
+            .insert_inst_after(inst, after);
+        self.data.layout.inst_map.insert(inst, bb);
+    }
+
+    /// Insert an instruction before another instruction.
+    pub fn insert_inst_before(&mut self, inst: Inst, before: Inst) {
+        let bb = self.inst_block(before).expect("`before` not inserted");
+        self.data.layout.bbs[bb]
+            .layout
+            .insert_inst_before(inst, before);
+        self.data.layout.inst_map.insert(inst, bb);
+    }
+
+    /// Remove an instruction from the function.
+    pub fn remove_inst(&mut self, inst: Inst) {
+        let bb = self.inst_block(inst).expect("`inst` not inserted");
+        self.data.layout.bbs[bb].layout.remove_inst(inst);
+        self.data.layout.inst_map.remove(&inst);
     }
 }
 
