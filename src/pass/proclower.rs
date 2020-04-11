@@ -24,26 +24,8 @@ fn lower_unit(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
     if !unit.is_process() || !is_suitable(ctx, &unit) {
         return false;
     }
-    let data = UnitData::new(UnitKind::Process, unit.name().clone(), unit.sig().clone());
-    let process = std::mem::replace(unit.data(), data);
-
-    // Lower the process to an entity.
-    // TODO: This should be pretty easy now: Just change the `.kind` of the unit
-    // and drop the terminator -- done.
-    trace!("Lowering {} to an entity", process.name);
-    let p = Unit::new_anonymous(&process);
-    let term = p.terminator(p.entry());
-    let mut entity = UnitData {
-        kind: UnitKind::Entity,
-        dfg: process.dfg,
-        cfg: process.cfg,
-        layout: process.layout,
-        name: process.name,
-        sig: process.sig,
-    };
-    UnitBuilder::new_anonymous(&mut entity).delete_inst(term);
-    *unit.data() = entity;
-
+    unit.data().kind = UnitKind::Entity;
+    unit.delete_inst(unit.terminator(unit.entry()));
     true
 }
 

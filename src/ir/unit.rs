@@ -109,10 +109,10 @@ impl std::fmt::Display for UnitKind {
 pub struct UnitData {
     pub kind: UnitKind,
     pub name: UnitName,
-    pub sig: Signature,
-    pub dfg: DataFlowGraph,
-    pub cfg: ControlFlowGraph,
-    pub(crate) layout: FunctionLayout,
+    pub(super) sig: Signature,
+    pub(super) dfg: DataFlowGraph,
+    pub(super) cfg: ControlFlowGraph,
+    pub(super) layout: FunctionLayout,
 }
 
 impl UnitData {
