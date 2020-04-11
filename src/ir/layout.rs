@@ -29,13 +29,6 @@ pub(super) struct BlockNode {
     pub(super) layout: InstLayout,
 }
 
-impl FunctionLayout {
-    /// Create a new function layout.
-    pub fn new() -> Self {
-        Default::default()
-    }
-}
-
 /// Determines the order of instructions.
 #[derive(Default, Serialize, Deserialize)]
 pub(super) struct InstLayout {

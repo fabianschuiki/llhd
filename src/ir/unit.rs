@@ -131,9 +131,9 @@ impl UnitData {
             kind,
             name,
             sig,
-            dfg: DataFlowGraph::new(),
-            cfg: ControlFlowGraph::new(),
-            layout: FunctionLayout::new(),
+            dfg: Default::default(),
+            cfg: Default::default(),
+            layout: Default::default(),
         };
         if kind == UnitKind::Entity {
             UnitBuilder::new_anonymous(&mut data).block();
@@ -185,16 +185,6 @@ impl<'a> Unit<'a> {
     /// Get the DFG of the unit being built.
     pub fn dfg(self) -> &'a DataFlowGraph {
         &self.data.dfg
-    }
-
-    /// Get the CFG of the unit being built.
-    pub fn cfg(self) -> &'a ControlFlowGraph {
-        &self.data.cfg
-    }
-
-    /// Get the CFG of the unit being built.
-    pub fn try_cfg(self) -> Option<&'a ControlFlowGraph> {
-        Some(&self.data.cfg)
     }
 
     /// Get the unit's signature.
@@ -295,12 +285,12 @@ impl<'a> Unit<'a> {
 
     /// Return the name of a BB.
     pub fn get_block_name(self, bb: Block) -> Option<&'a str> {
-        self.cfg().get_name(bb)
+        self.data.cfg[bb].name.as_ref().map(AsRef::as_ref)
     }
 
     /// Return the anonymous name hint of a BB.
     pub fn get_anonymous_block_hint(self, bb: Block) -> Option<u32> {
-        self.cfg().get_anonymous_hint(bb)
+        self.data.cfg.anonymous_hints.get(&bb).cloned()
     }
 
     // ----- Data Flow Graph ---------------------------------------------------
@@ -685,7 +675,7 @@ impl<'a> UnitBuilder<'a> {
 
     // Create a new BB.
     pub fn block(&mut self) -> Block {
-        let bb = self.data.cfg.add_block();
+        let bb = self.data.cfg.blocks.add(BlockData { name: None });
         self.append_block(bb);
         bb
     }
@@ -693,7 +683,7 @@ impl<'a> UnitBuilder<'a> {
     /// Create a new named BB.
     pub fn named_block(&mut self, name: impl Into<String>) -> Block {
         let bb = self.block();
-        self.data.cfg.set_name(bb, name.into());
+        self.set_block_name(bb, name.into());
         bb
     }
 
@@ -705,7 +695,7 @@ impl<'a> UnitBuilder<'a> {
         let insts: Vec<_> = self.insts(bb).collect();
         self.data.dfg.remove_block_use(bb);
         self.remove_block(bb);
-        self.data.cfg.remove_block(bb);
+        self.data.cfg.blocks.remove(bb);
         for inst in insts {
             if self.data.dfg.has_result(inst) {
                 let value = self.data.dfg.inst_result(inst);
@@ -750,16 +740,6 @@ impl<'a> UnitBuilder<'a> {
         &mut self.data().dfg
     }
 
-    /// Get the mutable CFG of the unit being built.
-    pub fn cfg_mut(&mut self) -> &mut ControlFlowGraph {
-        &mut self.data().cfg
-    }
-
-    /// Get the mutable CFG of the unit being built.
-    pub fn try_cfg_mut(&mut self) -> Option<&mut ControlFlowGraph> {
-        Some(&mut self.data().cfg)
-    }
-
     /// Import an external unit for use within this unit.
     pub fn add_extern(&mut self, name: UnitName, sig: Signature) -> ExtUnit {
         self.dfg_mut().ext_units.add(ExtUnitData { sig, name })
@@ -791,22 +771,22 @@ impl<'a> UnitBuilder<'a> {
 
     /// Set the name of a BB.
     pub fn set_block_name(&mut self, bb: Block, name: String) {
-        self.cfg_mut().set_name(bb, name)
+        self.data.cfg[bb].name = Some(name);
     }
 
     /// Clear the name of a BB.
     pub fn clear_block_name(&mut self, bb: Block) -> Option<String> {
-        self.cfg_mut().clear_name(bb)
+        std::mem::replace(&mut self.data.cfg[bb].name, None)
     }
 
     /// Set the anonymous name hint of a BB.
     pub fn set_anonymous_block_hint(&mut self, bb: Block, hint: u32) {
-        self.cfg_mut().set_anonymous_hint(bb, hint)
+        self.data.cfg.anonymous_hints.insert(bb, hint);
     }
 
     /// Clear the anonymous name hint of a BB.
     pub fn clear_anonymous_block_hint(&mut self, bb: Block) -> Option<u32> {
-        self.cfg_mut().clear_anonymous_hint(bb)
+        self.data.cfg.anonymous_hints.remove(&bb)
     }
 
     // ----- Data Flow Graph ---------------------------------------------------
