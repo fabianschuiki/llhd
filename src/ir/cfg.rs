@@ -17,11 +17,11 @@ use std::collections::HashMap;
 /// This is the main container for BBs and control flow related information.
 /// Every `Function` and `Process` has an associated control flow graph.
 #[derive(Default, Serialize, Deserialize)]
-pub struct ControlFlowGraph {
+pub(super) struct ControlFlowGraph {
     /// The basic blocks in the graph.
-    pub(crate) blocks: PrimaryTable2<Block, BlockData>,
+    pub blocks: PrimaryTable2<Block, BlockData>,
     /// The anonymous name hints assigned to basic blocks.
-    pub(crate) anonymous_hints: HashMap<Block, u32>,
+    pub anonymous_hints: HashMap<Block, u32>,
 }
 
 impl_table_indexing!(ControlFlowGraph, blocks, Block, BlockData);

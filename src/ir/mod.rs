@@ -16,8 +16,8 @@ pub mod prelude;
 mod sig;
 mod unit;
 
-pub use self::cfg::*;
-pub use self::dfg::*;
+use self::cfg::*;
+use self::dfg::*;
 pub use self::inst::*;
 use self::layout::*;
 pub use self::module::*;

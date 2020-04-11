@@ -10,10 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `Unit` and `UnitBuilder` structs.
 
 ### Changed
-- Fold `ControlFlowGraph` and `DataFlowGraph` into `Unit` and `UnitBuilder`.
+- Fold `ControlFlowGraph`, `DataFlowGraph`, and `FunctionLayout` functions into `Unit` and `UnitBuilder`.
 - Change `dump()` functions to take a `&Unit` instead of DFG/CFG.
-- Make `FunctionLayout` and `InstLayout` struct private.
 - Make `sig`, `dfg`, `cfg`, and `layout` fields of `UnitData` private.
+- Make `FunctionLayout` and `InstLayout` structs private.
+- Make `ControlFlowGraph` and `DataFlowGraph` structs private.
 
 ### Removed
 - Remove `Function`, `Process`, and `Entity` structs.

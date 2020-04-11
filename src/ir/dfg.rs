@@ -18,27 +18,27 @@ use std::collections::{HashMap, HashSet};
 /// between them. Every `Function`, `Process`, and `Entity` has an associated
 /// data flow graph.
 #[derive(Default, Serialize, Deserialize)]
-pub struct DataFlowGraph {
+pub(super) struct DataFlowGraph {
     /// The instructions in the graph.
-    pub(crate) insts: PrimaryTable2<Inst, InstData>,
+    pub insts: PrimaryTable2<Inst, InstData>,
     /// The result values produced by instructions.
-    pub(crate) results: SecondaryTable<Inst, Value>,
+    pub results: SecondaryTable<Inst, Value>,
     /// The values in the graph.
-    pub(crate) values: PrimaryTable2<Value, ValueData>,
+    pub values: PrimaryTable2<Value, ValueData>,
     /// The argument values.
-    pub(crate) args: SecondaryTable<Arg, Value>,
+    pub args: SecondaryTable<Arg, Value>,
     /// The external units in the graph.
-    pub(crate) ext_units: PrimaryTable2<ExtUnit, ExtUnitData>,
+    pub ext_units: PrimaryTable2<ExtUnit, ExtUnitData>,
     /// The names assigned to values.
-    pub(crate) names: HashMap<Value, String>,
+    pub names: HashMap<Value, String>,
     /// The anonymous name hints assigned to values.
-    pub(crate) anonymous_hints: HashMap<Value, u32>,
+    pub anonymous_hints: HashMap<Value, u32>,
     /// The location hints assigned to instructions.
-    pub(crate) location_hints: HashMap<Inst, usize>,
+    pub location_hints: HashMap<Inst, usize>,
     /// The value use lookup table.
-    pub(crate) value_uses: HashMap<Value, HashSet<Inst>>,
+    pub value_uses: HashMap<Value, HashSet<Inst>>,
     /// The block use lookup table.
-    pub(crate) block_uses: HashMap<Block, HashSet<Inst>>,
+    pub block_uses: HashMap<Block, HashSet<Inst>>,
 }
 
 impl_table_indexing!(DataFlowGraph, insts, Inst, InstData);
