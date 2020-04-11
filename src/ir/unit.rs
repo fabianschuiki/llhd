@@ -616,16 +616,6 @@ impl<'a> UnitBuilder<'a> {
 
 /// Unfiltered.
 impl<'a> UnitBuilder<'a> {
-    /// Get the unit's mutable signature.
-    pub fn sig(&mut self) -> &mut Signature {
-        &mut self.data.sig
-    }
-
-    /// Get the unit's mutable name.
-    pub fn name(&mut self) -> &mut UnitName {
-        &mut self.data.name
-    }
-
     /// Return the unit being built.
     pub fn unit(&'a self) -> Unit<'a> {
         self.unit
