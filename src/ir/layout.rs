@@ -2,8 +2,6 @@
 
 //! Instruction and BB ordering.
 
-#![allow(deprecated)]
-
 use crate::{
     ir::{Block, Inst},
     table::SecondaryTable,
