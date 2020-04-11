@@ -23,11 +23,11 @@ impl Pass for DeadCodeElim {
         let mut insts = vec![];
         let mut trivial_branches = HashMap::new();
         let mut trivial_blocks = HashMap::new();
-        let entry = unit.func_layout().entry();
-        for bb in unit.func_layout().blocks() {
-            let term = unit.func_layout().terminator(bb);
+        let entry = unit.entry();
+        for bb in unit.blocks() {
+            let term = unit.terminator(bb);
             check_branch_trivial(unit, bb, term, &mut trivial_blocks, &mut trivial_branches);
-            for inst in unit.func_layout().insts(bb) {
+            for inst in unit.insts(bb) {
                 if inst != term {
                     insts.push(inst);
                 }
@@ -70,7 +70,7 @@ impl Pass for DeadCodeElim {
             unit.replace_block_use(from, to);
             // If this is the entry block, hoist the target up as the first block.
             if from == entry {
-                unit.func_layout_mut().swap_blocks(from, to);
+                unit.swap_blocks(from, to);
             }
             modified |= true;
         }
@@ -86,7 +86,7 @@ impl Pass for DeadCodeElim {
         let pt = PredecessorTable::new_temporal(unit.dfg(), unit.func_layout());
         let mut merge_blocks = Vec::new();
         let mut already_merged = HashMap::new();
-        for bb in unit.func_layout().blocks().filter(|&bb| bb != entry) {
+        for bb in unit.blocks().filter(|&bb| bb != entry) {
             let preds = pt.pred_set(bb);
             if preds.len() == 1 {
                 let pred = preds.iter().cloned().next().unwrap();
@@ -101,9 +101,9 @@ impl Pass for DeadCodeElim {
         // Concatenate trivially sequential blocks.
         for (block, into) in merge_blocks {
             debug!("Merge {} into {}", block.dump(&unit), into.dump(&unit));
-            let term = unit.func_layout().terminator(into);
-            while let Some(inst) = unit.func_layout().first_inst(block) {
-                unit.func_layout_mut().remove_inst(inst);
+            let term = unit.terminator(into);
+            while let Some(inst) = unit.first_inst(block) {
+                unit.remove_inst(inst);
                 // Do not migrate phi nodes, which at this point have only the
                 // `into` block as predecessor and can be trivially replaced.
                 if unit[inst].opcode() == Opcode::Phi {
@@ -116,10 +116,10 @@ impl Pass for DeadCodeElim {
                     let repl = unit[inst].args()[0];
                     unit.replace_use(phi, repl);
                 } else {
-                    unit.func_layout_mut().insert_inst_before(inst, term);
+                    unit.insert_inst_before(inst, term);
                 }
             }
-            unit.func_layout_mut().remove_inst(term);
+            unit.remove_inst(term);
             unit.replace_block_use(block, into);
             unit.delete_block(block);
         }
@@ -183,44 +183,39 @@ fn check_block_retargetable(
     trace!("Checking if trivial {}", block.dump(&unit));
 
     // Check that there are no phi nodes on the target block.
-    if unit
-        .func_layout()
-        .insts(block)
-        .any(|inst| unit[inst].opcode().is_phi())
-    {
+    if unit.insts(block).any(|inst| unit[inst].opcode().is_phi()) {
         triv_bb.insert(block, None);
         return None;
     }
 
     // If the block is not trivially empty, it is retargetable but cannot be
     // "jumped through".
-    let layout = unit.func_layout();
-    if layout.first_inst(block) != layout.last_inst(block) {
+    if unit.first_inst(block) != unit.last_inst(block) {
         triv_bb.insert(block, Some(block));
         return Some(block);
     }
 
     // Dig up the terminator instruction and potentially resolve the target to
     // its trivial successor.
-    let inst = unit.func_layout().terminator(block);
+    let inst = unit.terminator(block);
     let target = Some(check_branch_trivial(unit, block, inst, triv_bb, triv_br).unwrap_or(block));
     triv_bb.insert(block, target);
     target
 }
 
 /// Eliminate unreachable and trivial blocks in a function layout.
-fn prune_blocks(builder: &mut UnitBuilder) -> bool {
+fn prune_blocks(unit: &mut UnitBuilder) -> bool {
     let mut modified = false;
 
     // Find all blocks reachable from the entry point.
-    let first_bb = builder.func_layout().first_block().unwrap();
-    let mut unreachable: HashSet<Block> = builder.func_layout().blocks().collect();
+    let first_bb = unit.first_block().unwrap();
+    let mut unreachable: HashSet<Block> = unit.blocks().collect();
     let mut todo: Vec<Block> = Default::default();
     todo.push(first_bb);
     unreachable.remove(&first_bb);
     while let Some(block) = todo.pop() {
-        let term_inst = builder.func_layout().terminator(block);
-        for &bb in builder.dfg()[term_inst].blocks() {
+        let term_inst = unit.terminator(block);
+        for &bb in unit.dfg()[term_inst].blocks() {
             if unreachable.remove(&bb) {
                 todo.push(bb);
             }
@@ -229,9 +224,9 @@ fn prune_blocks(builder: &mut UnitBuilder) -> bool {
 
     // Remove all unreachable blocks.
     for bb in unreachable {
-        debug!("Prune unreachable block {}", bb.dump(&builder));
+        debug!("Prune unreachable block {}", bb.dump(&unit));
         modified |= true;
-        builder.delete_block(bb);
+        unit.delete_block(bb);
     }
 
     modified

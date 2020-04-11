@@ -2,10 +2,11 @@
 
 //! Control Flow Simplification
 
-use crate::ir::prelude::*;
-use crate::ir::{DataFlowGraph, FunctionLayout};
-use crate::opt::prelude::*;
-use crate::pass::gcse::{DominatorTree, PredecessorTable};
+use crate::{
+    ir::prelude::*,
+    opt::prelude::*,
+    pass::gcse::{DominatorTree, PredecessorTable},
+};
 use std::{
     collections::{HashMap, HashSet},
     ops::Index,
@@ -29,13 +30,13 @@ impl Pass for ControlFlowSimplification {
         // Build the predecessor table and dominator tree.
         let pt = PredecessorTable::new(unit.dfg(), unit.func_layout());
         let dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &pt);
-        let bn = BlockNumbering::new(unit.dfg(), unit.func_layout());
+        let bn = BlockNumbering::new(unit);
 
         // Collect the phi instructions. We do this by gathering the values a
         // phi node can produce, and noting which edges lead to this value, then
         // transitively do this for nested phi nodes.
         let mut phi_ways = vec![];
-        for block in unit.func_layout().blocks() {
+        for block in unit.blocks() {
             let imm_dom = match dt
                 .dominators(block)
                 .iter()
@@ -46,7 +47,7 @@ impl Pass for ControlFlowSimplification {
                 Some(bb) => bb,
                 None => continue,
             };
-            for inst in unit.func_layout().insts(block) {
+            for inst in unit.insts(block) {
                 if !unit.dfg()[inst].opcode().is_phi() {
                     continue;
                 }
@@ -71,8 +72,8 @@ impl Pass for ControlFlowSimplification {
         // Finally simplify phi nodes which produce the same value irrelevant of
         // the incoming edge.
         let mut elide_phis = vec![];
-        for block in unit.func_layout().blocks() {
-            for inst in unit.func_layout().insts(block) {
+        for block in unit.blocks() {
+            for inst in unit.insts(block) {
                 if !unit.dfg()[inst].opcode().is_phi() {
                     continue;
                 }
@@ -140,7 +141,7 @@ fn justify_edge(
 
     // Investigate the terminator of the `from` block to see under what
     // condition it transfers control to `to`.
-    let from_term = unit.func_layout().terminator(from);
+    let from_term = unit.terminator(from);
     let data = &unit.dfg()[from_term];
     let cond = match data.opcode() {
         // Unconditional branches and waits are trivial, since the transfer
@@ -261,12 +262,12 @@ pub struct BlockNumbering {
 
 impl BlockNumbering {
     /// Compute a block order and numbering.
-    pub fn new(dfg: &DataFlowGraph, layout: &FunctionLayout) -> Self {
+    pub fn new(unit: &Unit) -> Self {
         let mut numbers = HashMap::<Block, usize>::new();
         let mut order = vec![];
         let mut done = HashSet::<Block>::new();
         let mut pending = HashSet::<Block>::new();
-        let entry = layout.entry();
+        let entry = unit.entry();
         pending.insert(entry);
         numbers.insert(entry, 0);
 
@@ -274,17 +275,17 @@ impl BlockNumbering {
             pending.remove(&block);
             done.insert(block);
             order.push(block);
-            let term = layout.terminator(block);
-            if dfg[term].opcode().is_terminator() {
+            let term = unit.terminator(block);
+            if unit[term].opcode().is_terminator() {
                 pending.extend(
-                    dfg[term]
+                    unit[term]
                         .blocks()
                         .iter()
                         .cloned()
                         .filter(|bb| !done.contains(bb)),
                 );
                 let next_number = numbers[&block] + 1;
-                for bb in dfg[term].blocks().iter().cloned() {
+                for bb in unit[term].blocks().iter().cloned() {
                     numbers.entry(bb).or_insert(next_number);
                 }
             }

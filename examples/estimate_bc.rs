@@ -30,10 +30,9 @@ fn main() {
         let mut insts = vec![];
         let mut blocks = vec![];
 
-        let layout = unit.func_layout();
-        for b in layout.blocks() {
+        for b in unit.blocks() {
             blocks.push(b);
-            insts.extend(layout.insts(b));
+            insts.extend(unit.insts(b));
         }
 
         num_bytes += unit.name().to_string().len();

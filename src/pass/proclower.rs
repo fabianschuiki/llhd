@@ -28,8 +28,11 @@ fn lower_unit(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
     let process = std::mem::replace(unit.data(), data);
 
     // Lower the process to an entity.
+    // TODO: This should be pretty easy now: Just change the `.kind` of the unit
+    // and drop the terminator -- done.
     trace!("Lowering {} to an entity", process.name);
-    let term = process.layout.terminator(process.layout.entry());
+    let p = Unit::new_anonymous(&process);
+    let term = p.terminator(p.entry());
     let mut entity = UnitData {
         kind: UnitKind::Entity,
         dfg: process.dfg,
@@ -46,17 +49,15 @@ fn lower_unit(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
 
 /// Check if a process is suitable for lowering to an entity.
 fn is_suitable(_ctx: &PassContext, unit: &Unit) -> bool {
-    let layout = unit.func_layout();
-
     // Ensure that there is only one basic block.
-    if layout.blocks().count() != 1 {
+    if unit.blocks().count() != 1 {
         trace!("Skipping {} (not just one block)", unit.name());
         return false;
     }
-    let bb = layout.entry();
+    let bb = unit.entry();
 
     // Ensure that the terminator instruction is a wait/halt.
-    let term = layout.terminator(bb);
+    let term = unit.terminator(bb);
     match unit[term].opcode() {
         Opcode::Wait | Opcode::WaitTime | Opcode::Halt => (),
         op => {
@@ -66,7 +67,7 @@ fn is_suitable(_ctx: &PassContext, unit: &Unit) -> bool {
     }
 
     // Ensure that all other instructions are allowed in an entity.
-    for inst in layout.insts(bb) {
+    for inst in unit.insts(bb) {
         if inst == term {
             continue;
         }

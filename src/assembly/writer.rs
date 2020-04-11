@@ -69,12 +69,12 @@ impl<T: Write> Writer<T> {
             }
             write!(uw.writer.sink, ") {{\n")?;
         }
-        for block in data.func_layout().blocks() {
+        for block in data.blocks() {
             if data.kind() != UnitKind::Entity {
                 uw.write_block_name(block)?;
                 write!(uw.writer.sink, ":\n")?;
             }
-            for inst in data.func_layout().insts(block) {
+            for inst in data.insts(block) {
                 write!(uw.writer.sink, "    ")?;
                 uw.write_inst(inst)?;
                 write!(uw.writer.sink, "\n")?;

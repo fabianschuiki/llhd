@@ -40,7 +40,6 @@ impl Pass for TemporalCodeMotion {
         let temp_pt = PredecessorTable::new_temporal(unit.dfg(), unit.func_layout());
         let temp_dt = DominatorTree::new(unit.cfg(), unit.func_layout(), &temp_pt);
         for tr in &trg.regions {
-            let layout = unit.func_layout();
             if tr.head_blocks.len() != 1 {
                 trace!("Skipping {} for prb move (multiple head blocks)", tr.id);
                 continue;
@@ -48,7 +47,7 @@ impl Pass for TemporalCodeMotion {
             let head_bb = tr.head_blocks().next().unwrap();
             let mut hoist = vec![];
             for bb in tr.blocks() {
-                for inst in layout.insts(bb) {
+                for inst in unit.insts(bb) {
                     if unit[inst].opcode() == Opcode::Prb
                         && unit.get_value_inst(unit[inst].args()[0]).is_none()
                     {
@@ -59,7 +58,7 @@ impl Pass for TemporalCodeMotion {
                         // Only move when the move instruction would still
                         // dominate all its uses.
                         for &user_inst in unit.uses(unit.inst_result(inst)) {
-                            let user_bb = unit.func_layout().inst_block(user_inst).unwrap();
+                            let user_bb = unit.inst_block(user_inst).unwrap();
                             let dom = temp_dt.dominates(head_bb, user_bb);
                             dominates &= dom;
                         }
@@ -76,13 +75,11 @@ impl Pass for TemporalCodeMotion {
             }
             hoist.sort();
             for inst in hoist {
-                if unit.func_layout().inst_block(inst) == Some(head_bb) {
+                if unit.inst_block(inst) == Some(head_bb) {
                     continue;
                 }
                 debug!("Hoisting {} into {}", inst.dump(&unit), head_bb.dump(&unit));
-                let layout = unit.func_layout_mut();
-                layout.remove_inst(inst);
-                layout.prepend_inst(inst, head_bb);
+                unit.prepend_inst(inst, head_bb);
                 modified = true;
             }
         }
@@ -120,8 +117,8 @@ impl Pass for TemporalCodeMotion {
 
                 // Add one of the instructions to the unified block and delete
                 // the rest.
-                unit.func_layout_mut().remove_inst(insts[0]);
-                unit.func_layout_mut().append_inst(insts[0], unified_bb);
+                unit.remove_inst(insts[0]);
+                unit.append_inst(insts[0], unified_bb);
                 for &inst in &insts[1..] {
                     unit.delete_inst(inst);
                 }
@@ -155,11 +152,7 @@ fn add_aux_blocks(_ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
 
     // Make a list of head blocks. This will allow us to change the unit
     // underneath.
-    let head_bbs: Vec<_> = unit
-        .func_layout()
-        .blocks()
-        .filter(|&bb| trg.is_head(bb))
-        .collect();
+    let head_bbs: Vec<_> = unit.blocks().filter(|&bb| trg.is_head(bb)).collect();
 
     // Process each block separately.
     for bb in head_bbs {
@@ -172,7 +165,7 @@ fn add_aux_blocks(_ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
         for pred in pt.pred(bb) {
             let pred_tr = trg[pred];
             if pred_tr != tr {
-                let inst = unit.func_layout().terminator(pred);
+                let inst = unit.terminator(pred);
                 insts_by_region.entry(pred_tr).or_default().push(inst);
             }
         }
@@ -214,7 +207,7 @@ fn push_drives(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
     let mut drv_seq = HashMap::<Value, Vec<Inst>>::new();
     for &bb in dt.blocks_post_order().iter().rev() {
         trace!("Checking {} for aliases", bb.dump(&unit));
-        for inst in unit.func_layout().insts(bb) {
+        for inst in unit.insts(bb) {
             let data = &unit[inst];
             if let Opcode::Drv | Opcode::DrvCond = data.opcode() {
                 // Gather drive sequences to the same signal.
@@ -255,7 +248,7 @@ fn push_drives(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
         // the conditions are. Then do post-processing down below.
         for &drive in drives.iter().rev() {
             // Skip drives that are already in the right place.
-            let drive_bb = unit.func_layout().inst_block(drive).unwrap();
+            let drive_bb = unit.inst_block(drive).unwrap();
             if trg.is_tail(drive_bb) {
                 trace!("  Skipping {} (already in tail block)", drive.dump(&unit),);
                 continue;
@@ -279,7 +272,7 @@ fn push_drives(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
     }
 
     // Coalesce drives. We do this one aliasing group at a time.
-    for block in unit.func_layout().blocks().collect::<Vec<_>>() {
+    for block in unit.blocks().collect::<Vec<_>>() {
         modified |= coalesce_drives(ctx, block, unit);
     }
 
@@ -294,7 +287,7 @@ fn push_drive(
     trg: &TemporalRegionGraph,
 ) -> bool {
     let layout = unit.func_layout();
-    let src_bb = layout.inst_block(drive).unwrap();
+    let src_bb = unit.inst_block(drive).unwrap();
     let tr = trg[src_bb];
     let mut moves = Vec::new();
 
@@ -333,7 +326,7 @@ fn push_drive(
                 if src_finger == parent {
                     break;
                 }
-                let term = layout.terminator(parent);
+                let term = unit.terminator(parent);
                 if unit[term].opcode() == Opcode::BrCond {
                     let cond_val = unit[term].args()[0];
                     if !dt.value_dominates_block(unit.dfg(), layout, cond_val, dst_bb) {
@@ -422,7 +415,7 @@ fn coalesce_drives(_ctx: &PassContext, block: Block, unit: &mut UnitBuilder) -> 
 
     // Group the drives by delay.
     let mut delay_groups = HashMap::<Value, Vec<Inst>>::new();
-    for inst in unit.func_layout().insts(block) {
+    for inst in unit.insts(block) {
         if let Opcode::Drv | Opcode::DrvCond = unit[inst].opcode() {
             let delay = unit[inst].args()[2];
             delay_groups.entry(delay).or_default().push(inst);
@@ -502,6 +495,7 @@ pub struct TemporalRegionGraph {
     regions: Vec<TemporalRegionData>,
 }
 
+#[allow(deprecated)]
 impl TemporalRegionGraph {
     /// Compute the TRG of a process.
     pub fn new(dfg: &DataFlowGraph, layout: &FunctionLayout) -> Self {

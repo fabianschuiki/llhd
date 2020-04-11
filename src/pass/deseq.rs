@@ -105,8 +105,8 @@ fn deseq_process(ctx: &PassContext, unit: &mut UnitBuilder) -> Option<UnitData> 
     // Find the canonicalized drive conditions.
     let mut all_drives = HashSet::new();
     let mut conds = vec![];
-    for bb in layout.blocks() {
-        for inst in layout.insts(bb) {
+    for bb in unit.blocks() {
+        for inst in unit.insts(bb) {
             let data = &dfg[inst];
             if data.opcode() == Opcode::DrvCond {
                 trace!("Canonicalizing condition of {}", inst.dump(&unit));
@@ -246,7 +246,7 @@ fn canonicalize_inner(
                 return out;
             }
             Opcode::Prb => {
-                let bb = unit.func_layout().inst_block(inst).unwrap();
+                let bb = unit.inst_block(inst).unwrap();
                 return Dnf::single(Term::Signal(data.args()[0], trg[bb]), inv);
             }
             _ => (),
@@ -658,7 +658,7 @@ impl<'a, 'b> Migrator<'a, 'b> {
 
         // Migrate instructions.
         if let Some(inst) = self.src.get_value_inst(value) {
-            let bb = self.src.func_layout().inst_block(inst)?;
+            let bb = self.src.inst_block(inst)?;
             let tr = self.trg[bb];
 
             // Handle signal probes.

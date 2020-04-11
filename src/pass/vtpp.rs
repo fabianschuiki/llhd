@@ -25,13 +25,12 @@ impl Pass for VarToPhiPromotion {
         // Trace variable values within each basic block, and assign potential
         // values to each of the loads.
         let dfg = &unit;
-        let layout = unit.func_layout();
         let mut block_outs = HashMap::new();
         let mut value_table = HashMap::new();
         let mut vars = HashMap::new();
-        for block in layout.blocks() {
+        for block in unit.blocks() {
             let mut store_table = HashMap::new();
-            for inst in layout.insts(block) {
+            for inst in unit.insts(block) {
                 let data = &dfg[inst];
                 match data.opcode() {
                     Opcode::Var => {

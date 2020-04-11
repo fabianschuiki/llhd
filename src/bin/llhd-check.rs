@@ -75,7 +75,7 @@ fn main() {
                 let trg = TemporalRegionGraph::new(u.dfg(), u.func_layout());
                 println!("  {}:", u.name());
                 println!("    Blocks:");
-                for bb in u.func_layout().blocks() {
+                for bb in u.blocks() {
                     println!("      - {} = {}", bb.dump(&u), trg[bb]);
                 }
                 for (tr, data) in trg.regions() {

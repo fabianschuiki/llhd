@@ -36,8 +36,8 @@ impl Pass for GlobalCommonSubexprElim {
 
         // Collect instructions.
         let mut insts = vec![];
-        for bb in unit.func_layout().blocks() {
-            for inst in unit.func_layout().insts(bb) {
+        for bb in unit.blocks() {
+            for inst in unit.insts(bb) {
                 insts.push(inst);
             }
         }
@@ -64,8 +64,8 @@ impl Pass for GlobalCommonSubexprElim {
                 'inner: for &cv in aliases.iter() {
                     trace!("  Trying {}", cv.dump(&unit));
                     let cv_inst = unit.value_inst(cv);
-                    let inst_bb = unit.func_layout().inst_block(inst).unwrap();
-                    let cv_bb = unit.func_layout().inst_block(cv_inst).unwrap();
+                    let inst_bb = unit.inst_block(inst).unwrap();
+                    let cv_bb = unit.inst_block(cv_inst).unwrap();
 
                     // Make sure that we don't merge `prb` instructions in
                     // different temporal regions.
@@ -138,10 +138,9 @@ impl Pass for GlobalCommonSubexprElim {
                         inst.dump(&unit),
                         target_bb.dump(&unit)
                     );
-                    let fl = unit.func_layout_mut();
-                    let term = fl.terminator(target_bb);
-                    fl.remove_inst(inst);
-                    fl.insert_inst_before(inst, term);
+                    let term = unit.terminator(target_bb);
+                    unit.remove_inst(inst);
+                    unit.insert_inst_before(inst, term);
 
                     // Replace all uses of the recorded value with the inst.
                     debug!("Replace {} with {}", cv.dump(&unit), value.dump(&unit),);
@@ -171,6 +170,7 @@ pub struct PredecessorTable {
     succ: HashMap<Block, HashSet<Block>>,
 }
 
+#[allow(deprecated)]
 impl PredecessorTable {
     /// Compute the predecessor table for a function or process.
     pub fn new(dfg: &DataFlowGraph, layout: &FunctionLayout) -> Self {
@@ -263,6 +263,7 @@ pub struct DominatorTree {
     inv_post_order: Vec<u32>,
 }
 
+#[allow(deprecated)]
 impl DominatorTree {
     /// Compute the dominator tree of a function or process.
     ///

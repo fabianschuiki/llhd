@@ -60,16 +60,16 @@ impl Verifier {
 
     /// Verify the integrity of the BB and instruction layout.
     pub fn verify_function_layout(&mut self, unit: Unit, layout: &FunctionLayout, is_entity: bool) {
-        if layout.first_block().is_none() {
+        if unit.first_block().is_none() {
             self.errors.push(VerifierError {
                 unit: self.unit_name.clone(),
                 object: None,
                 message: format!("layout has no entry block"),
             });
         }
-        for bb in layout.blocks() {
+        for bb in unit.blocks() {
             // Check that the block has at least one instruction.
-            if layout.first_inst(bb).is_none() && !is_entity {
+            if unit.first_inst(bb).is_none() && !is_entity {
                 self.errors.push(VerifierError {
                     unit: self.unit_name.clone(),
                     object: Some(bb.to_string()),
@@ -77,12 +77,12 @@ impl Verifier {
                 })
             }
 
-            for inst in layout.insts(bb) {
+            for inst in unit.insts(bb) {
                 // Check that there are no terminator instructions in the middle
                 // of the block.
                 if !is_entity
                     && unit[inst].opcode().is_terminator()
-                    && Some(inst) != layout.last_inst(bb)
+                    && Some(inst) != unit.last_inst(bb)
                 {
                     self.errors.push(VerifierError {
                         unit: self.unit_name.clone(),
@@ -97,7 +97,7 @@ impl Verifier {
 
                 // Check that the last instruction in the block is a terminator.
                 if !is_entity
-                    && Some(inst) == layout.last_inst(bb)
+                    && Some(inst) == unit.last_inst(bb)
                     && !unit[inst].opcode().is_terminator()
                 {
                     self.errors.push(VerifierError {

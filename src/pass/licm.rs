@@ -27,7 +27,7 @@ impl Pass for LoopIndepCodeMotion {
         let mut block_numbers = HashMap::<Block, usize>::new();
         let mut work_done = HashSet::<Block>::new();
         let mut work_pending = HashSet::<Block>::new();
-        let entry = unit.func_layout().entry();
+        let entry = unit.entry();
         work_pending.insert(entry);
         block_numbers.insert(entry, 0);
 
@@ -37,12 +37,12 @@ impl Pass for LoopIndepCodeMotion {
             trace!("Working on {}", block.dump(&unit));
 
             // Process the instructions in this block.
-            for inst in unit.func_layout().insts(block).collect::<Vec<_>>() {
+            for inst in unit.insts(block).collect::<Vec<_>>() {
                 modified |= move_instruction(ctx, unit, block, inst, &dt, &block_numbers);
             }
 
             // Work on the successors of this block.
-            let term = unit.func_layout().terminator(block);
+            let term = unit.terminator(block);
             if unit.dfg()[term].opcode().is_terminator() {
                 work_pending.extend(
                     unit.dfg()[term]
@@ -94,21 +94,20 @@ fn move_instruction(
         .args()
         .iter()
         .flat_map(|&arg| unit.get_value_inst(arg))
-        .map(|inst| unit.func_layout().inst_block(inst).unwrap())
+        .map(|inst| unit.inst_block(inst).unwrap())
         .map(|block| dt.dominated_by(block))
         .collect();
 
     // If the instruction depends on nothing (e.g. constants), move them up into
     // the entry block.
     if doms.is_empty() {
-        let layout = unit.func_layout_mut();
-        let entry = layout.entry();
-        let entry_term = layout.terminator(entry);
-        if layout.inst_block(inst) == Some(entry) {
+        let entry = unit.entry();
+        let entry_term = unit.terminator(entry);
+        if unit.inst_block(inst) == Some(entry) {
             return false;
         }
-        layout.remove_inst(inst);
-        layout.insert_inst_before(inst, entry_term);
+        unit.remove_inst(inst);
+        unit.insert_inst_before(inst, entry_term);
         debug!("Move {} into {}", inst.dump(&unit), entry.dump(&unit));
         return true;
     }
@@ -142,9 +141,8 @@ fn move_instruction(
         return false;
     }
     debug!("Move {} into {}", inst.dump(&unit), best_bb.dump(&unit));
-    let layout = unit.func_layout_mut();
-    let term = layout.terminator(best_bb);
-    layout.remove_inst(inst);
-    layout.insert_inst_before(inst, term);
+    let term = unit.terminator(best_bb);
+    unit.remove_inst(inst);
+    unit.insert_inst_before(inst, term);
     true
 }

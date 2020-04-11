@@ -37,6 +37,8 @@ enum FunctionInsertPos {
 
 impl FunctionInsertPos {
     /// Insert an instruction and update the insertion postition.
+    // TODO: Move these into `Unit`.
+    #[allow(deprecated)]
     fn add_inst(&mut self, inst: Inst, layout: &mut FunctionLayout) {
         use FunctionInsertPos::*;
         match *self {
@@ -55,6 +57,8 @@ impl FunctionInsertPos {
     }
 
     /// Update the insertion position in response to removing an instruction.
+    // TODO: Move these into `Unit`.
+    #[allow(deprecated)]
     fn remove_inst(&mut self, inst: Inst, layout: &FunctionLayout) {
         use FunctionInsertPos::*;
         match *self {

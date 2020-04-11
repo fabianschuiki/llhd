@@ -26,7 +26,7 @@ pub trait Pass {
     /// Run this pass on an entire function or process.
     fn run_on_cfg(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
         let mut modified = false;
-        let insts: Vec<_> = unit.func_layout().all_insts().collect();
+        let insts: Vec<_> = unit.all_insts().collect();
         for inst in insts {
             modified |= Self::run_on_inst(ctx, inst, unit);
         }

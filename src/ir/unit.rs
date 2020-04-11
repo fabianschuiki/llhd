@@ -136,8 +136,7 @@ impl UnitData {
             layout: FunctionLayout::new(),
         };
         if kind == UnitKind::Entity {
-            let bb = data.cfg.add_block();
-            data.layout.append_block(bb);
+            UnitBuilder::new_anonymous(&mut data).block();
         }
         data.dfg.make_args_for_signature(&data.sig);
         data
@@ -546,9 +545,9 @@ impl std::fmt::Display for Unit<'_> {
             self.data.name,
             self.data.sig.dump(self)
         )?;
-        for bb in self.data.layout.blocks() {
+        for bb in self.blocks() {
             write!(f, "{}:\n", bb.dump(self))?;
-            for inst in self.data.layout.insts(bb) {
+            for inst in self.insts(bb) {
                 write!(f, "    {}\n", inst.dump(self))?;
             }
         }
@@ -579,7 +578,7 @@ impl<'a> UnitBuilder<'a> {
     /// Create a new builder for a unit.
     pub fn new(unit: UnitId, data: &'a mut UnitData) -> Self {
         let pos = match data.kind {
-            UnitKind::Entity => FunctionInsertPos::Append(data.layout.entry()),
+            UnitKind::Entity => FunctionInsertPos::Append(Unit::new(unit, data).entry()),
             _ => FunctionInsertPos::None,
         };
         Self {
@@ -645,13 +644,13 @@ impl<'a> UnitBuilder<'a> {
     pub fn delete_inst(&mut self, inst: Inst) {
         self.data.dfg.remove_inst(inst);
         self.pos.remove_inst(inst, &self.data.layout);
-        self.data.layout.remove_inst(inst);
+        self.remove_inst(inst);
     }
 
     // Create a new BB.
     pub fn block(&mut self) -> Block {
         let bb = self.data.cfg.add_block();
-        self.data.layout.append_block(bb);
+        self.append_block(bb);
         bb
     }
 
@@ -667,9 +666,9 @@ impl<'a> UnitBuilder<'a> {
     /// Removes the block, and all its instructions, from the layout and control
     /// flow graph, deletes it. The `Block` is no longer valid afterwards.
     pub fn delete_block(&mut self, bb: Block) {
-        let insts: Vec<_> = self.data.layout.insts(bb).collect();
+        let insts: Vec<_> = self.insts(bb).collect();
         self.data.dfg.remove_block_use(bb);
-        self.data.layout.remove_block(bb);
+        self.remove_block(bb);
         self.data.cfg.remove_block(bb);
         for inst in insts {
             if self.data.dfg.has_result(inst) {
@@ -682,12 +681,12 @@ impl<'a> UnitBuilder<'a> {
 
     /// Append all following instructions at the end of the unit.
     pub fn insert_at_end(&mut self) {
-        self.pos = FunctionInsertPos::Append(self.data.layout.entry());
+        self.pos = FunctionInsertPos::Append(self.entry());
     }
 
     /// Prepend all following instructions at the beginning of the unit.
     pub fn insert_at_beginning(&mut self) {
-        self.pos = FunctionInsertPos::Prepend(self.data.layout.entry());
+        self.pos = FunctionInsertPos::Prepend(self.entry());
     }
 
     /// Append all following instructions to the end of `bb`.
