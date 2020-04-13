@@ -226,7 +226,7 @@ fn main_inner() -> Result<(), String> {
         eprintln!("Structure Statistics:");
         eprintln!(
             "  Dominator Tree Construction: {:8.3} ms",
-            llhd::pass::gcse::DOMINATOR_TREE_TIME.load(Ordering::SeqCst) as f64 * 1.0e-6
+            llhd::analysis::DOMINATOR_TREE_TIME.load(Ordering::SeqCst) as f64 * 1.0e-6
         );
     }
 
