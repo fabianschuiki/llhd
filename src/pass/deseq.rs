@@ -140,7 +140,6 @@ fn deseq_process(ctx: &PassContext, unit: &mut UnitBuilder) -> Option<UnitData> 
     for (inst, bb, trigs) in triggers {
         migrated &= mig.migrate_drive(inst, bb, &trigs);
     }
-    mig.dst.ins().halt();
     // crate::pass::ConstFolding::run_on_entity(ctx, &mut builder);
     // crate::pass::DeadCodeElim::run_on_entity(ctx, &mut builder);
 

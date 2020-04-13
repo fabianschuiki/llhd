@@ -680,12 +680,15 @@ impl<'a> Deref for UnitBuilder<'a> {
 impl<'a> UnitBuilder<'a> {
     /// Create a new builder for a unit.
     pub fn new(unit: UnitId, data: &'a mut UnitData) -> Self {
-        let pos = match data.kind {
-            UnitKind::Entity => match Unit::new(unit, data).first_block() {
-                Some(bb) => InsertPos::Append(bb),
-                None => InsertPos::None,
-            },
-            _ => InsertPos::None,
+        let pos = {
+            let unit = Unit::new(unit, data);
+            match data.kind {
+                UnitKind::Entity => match unit.first_block() {
+                    Some(bb) => InsertPos::Before(unit.terminator(bb)),
+                    None => InsertPos::None,
+                },
+                _ => InsertPos::None,
+            }
         };
         Self {
             unit: Unit::new(unit, unsafe { &*(data as *const _) }),
