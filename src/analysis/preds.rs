@@ -20,11 +20,14 @@ impl PredecessorTable {
             pred.insert(bb, HashSet::new());
         }
         for bb in unit.blocks() {
-            let term = unit.terminator(bb);
-            for to_bb in unit[term].blocks() {
-                pred.get_mut(&to_bb).unwrap().insert(bb);
+            if let Some(term) = unit.last_inst(bb) {
+                for to_bb in unit[term].blocks() {
+                    pred.get_mut(&to_bb).unwrap().insert(bb);
+                }
+                succ.insert(bb, unit[term].blocks().iter().cloned().collect());
+            } else {
+                succ.insert(bb, Default::default());
             }
-            succ.insert(bb, unit[term].blocks().iter().cloned().collect());
         }
         Self { pred, succ }
     }
@@ -42,12 +45,15 @@ impl PredecessorTable {
             pred.insert(bb, HashSet::new());
         }
         for bb in unit.blocks() {
-            let term = unit.terminator(bb);
-            if !unit[term].opcode().is_temporal() {
-                for to_bb in unit[term].blocks() {
-                    pred.get_mut(&to_bb).unwrap().insert(bb);
+            if let Some(term) = unit.last_inst(bb) {
+                if !unit[term].opcode().is_temporal() {
+                    for to_bb in unit[term].blocks() {
+                        pred.get_mut(&to_bb).unwrap().insert(bb);
+                    }
+                    succ.insert(bb, unit[term].blocks().iter().cloned().collect());
+                } else {
+                    succ.insert(bb, Default::default());
                 }
-                succ.insert(bb, unit[term].blocks().iter().cloned().collect());
             } else {
                 succ.insert(bb, Default::default());
             }
