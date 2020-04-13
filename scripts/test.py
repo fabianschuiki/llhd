@@ -8,6 +8,7 @@ import subprocess
 import re
 import shlex
 from pathlib import Path
+from copy import copy
 
 cbold = "\x1b[1m"
 cpass = "\x1b[32m"
@@ -28,9 +29,77 @@ parser.add_argument("--tests", metavar="DIR", default=test_dir, help="Directory 
 parser.add_argument("-v", "--verbose", action="store_true", help="Print stdout/stderr of failing tests")
 parser.add_argument("-c", "--commands", action="store_true", help="Print commands used to execute tests")
 parser.add_argument("-n", "--no-build", action="store_true", help="Don't rebuild the project")
+parser.add_argument("--check", metavar="FILE", nargs=2, help="Check first file against directives in second file")
+parser.add_argument("--check-stdin", metavar="FILE", nargs=1, help="Check stdin against directives in file")
 parser.add_argument("TEST", nargs="*", help="Specific test cases to run; all if omitted")
 args = parser.parse_args()
 
+# A class to encapsulate the check directives in a file.
+class CheckFile:
+    regex_dir = re.compile(r'^;\s*(CHECK[^:]*):\s+(.+)$')
+
+    def __init__(self, checks, input):
+        # Collect the directives in the file.
+        self.dirs = list()
+        for line in checks.splitlines():
+            m = self.regex_dir.match(line)
+            if m:
+                self.dirs.append((m.group(1), m.group(2)))
+
+        # Split input into lines.
+        self.input = input.splitlines()
+
+    def execute(self):
+        self.failed = list()
+        self.state = iter(self.input)
+
+        # Execute the directives in order.
+        for d in self.dirs:
+            try:
+                self.state = self.execute_directive(d, copy(self.state))
+            except Exception as e:
+                self.failed.append((d, e.__str__(), next(copy(self.state)).strip()))
+
+        # Concatenate the failures into information messages.
+        info = ""
+        for f in self.failed:
+            info += "error: {}: {}\n  {}. Scanning from:\n  {}\n".format(f[0][0], f[0][1], f[1], f[2])
+
+        # Package a return value.
+        return (len(self.failed) == 0, info)
+
+    def execute_directive(self, directive, state):
+        dirname = directive[0].replace("CHECK-ERR", "CHECK")
+        if dirname == "CHECK":
+            for line in state:
+                line = line.split(";")[0].strip()
+                if line == directive[1]:
+                    return state
+            raise Exception("No matching line found")
+        else:
+            raise Exception("Unknown directive `{}`".format(directive[0]))
+
+
+# Handle the special case where we are just supposed to check a file.
+check = None
+if args.check:
+    with open(args.check[0]) as f:
+        content = f.read()
+    check = (args.check[1], content)
+if args.check_stdin:
+    content = sys.stdin.read()
+    check = (args.check_stdin, content)
+if check is not None:
+    with open(check[0]) as f:
+        checks = f.read()
+    passed, info = CheckFile(checks, check[1]).execute()
+    if passed:
+        sys.exit(0)
+    else:
+        sys.stdout.write(info)
+        sys.exit(1)
+
+# Establish some working directories.
 crate_dir = Path(os.path.realpath(args.crate))
 test_dir = Path(os.path.realpath(args.tests))
 
@@ -156,6 +225,13 @@ class TestCase(object):
             return
         else:
             self.failed = False
+
+        # Perform the file checks.
+        passed, info = CheckFile(self.content, self.stdout + self.stderr).execute()
+        if not passed:
+            self.failed = True
+            self.info += "File checks failed:\n\n"
+            self.info += info
 
 # Collect the tests.
 if args.TEST:

@@ -23,7 +23,7 @@ event:
     br %0
 }
 
-; CHECK:  proc %snitch.param1.always_ff.568.1 (i1$ %clk_i, i1$ %rst_i, i32$ %pc_d) -> (i32$ %pc_q) {
+; CHECK:  proc %always_ff (i1$ %clk_i, i1$ %rst_i, i32$ %pc_d) -> (i32$ %pc_q) {
 ; CHECK:  init:
 ; CHECK:      %clk_i1 = prb i1$ %clk_i
 ; CHECK:      %0 = const i1 0
