@@ -630,7 +630,10 @@ impl<'a> Unit<'a> {
     ///
     /// The fallible alternative is `last_inst(bb)`.
     pub fn terminator(self, bb: Block) -> Inst {
-        self.last_inst(bb).expect("block must have terminator")
+        match self.last_inst(bb) {
+            Some(term) => term,
+            None => panic!("block {} must have a terminator", bb.dump(&self)),
+        }
     }
 }
 
