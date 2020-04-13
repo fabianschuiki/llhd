@@ -3,7 +3,7 @@
 //! Global Common Subexpression Elimination
 
 use crate::{
-    analysis::TemporalRegionGraph,
+    analysis::{PredecessorTable, TemporalRegionGraph},
     ir::{prelude::*, InstData, ValueData},
     opt::prelude::*,
     table::TableKey,
@@ -164,87 +164,6 @@ impl Pass for GlobalCommonSubexprElim {
     }
 }
 
-/// A table of basic block predecessors.
-#[derive(Debug, Clone)]
-pub struct PredecessorTable {
-    pred: HashMap<Block, HashSet<Block>>,
-    succ: HashMap<Block, HashSet<Block>>,
-}
-
-impl PredecessorTable {
-    /// Compute the predecessor table for a function or process.
-    pub fn new(unit: &Unit) -> Self {
-        let mut pred = HashMap::new();
-        let mut succ = HashMap::new();
-        for bb in unit.blocks() {
-            pred.insert(bb, HashSet::new());
-        }
-        for bb in unit.blocks() {
-            let term = unit.terminator(bb);
-            for to_bb in unit[term].blocks() {
-                pred.get_mut(&to_bb).unwrap().insert(bb);
-            }
-            succ.insert(bb, unit[term].blocks().iter().cloned().collect());
-        }
-        Self { pred, succ }
-    }
-
-    /// Compute the temporal predecessor table for a process.
-    ///
-    /// This is a special form of predecessor table which ignores edges in the
-    /// CFG that cross a temporal instruction. As such all connected blocks in
-    /// the table are guaranteed to execute within the same instant of time.
-    pub fn new_temporal(unit: &Unit) -> Self {
-        let mut pred = HashMap::new();
-        let mut succ = HashMap::new();
-        for bb in unit.blocks() {
-            pred.insert(bb, HashSet::new());
-        }
-        for bb in unit.blocks() {
-            let term = unit.terminator(bb);
-            if !unit[term].opcode().is_temporal() {
-                for to_bb in unit[term].blocks() {
-                    pred.get_mut(&to_bb).unwrap().insert(bb);
-                }
-                succ.insert(bb, unit[term].blocks().iter().cloned().collect());
-            } else {
-                succ.insert(bb, Default::default());
-            }
-        }
-        Self { pred, succ }
-    }
-
-    /// Get the predecessors of a block.
-    pub fn pred_set(&self, bb: Block) -> &HashSet<Block> {
-        &self.pred[&bb]
-    }
-
-    /// Get the successors of a block.
-    pub fn succ_set(&self, bb: Block) -> &HashSet<Block> {
-        &self.succ[&bb]
-    }
-
-    /// Get the predecessors of a block.
-    pub fn pred(&self, bb: Block) -> impl Iterator<Item = Block> + Clone + '_ {
-        self.pred[&bb].iter().cloned()
-    }
-
-    /// Get the successors of a block.
-    pub fn succ(&self, bb: Block) -> impl Iterator<Item = Block> + Clone + '_ {
-        self.succ[&bb].iter().cloned()
-    }
-
-    /// Check if a block is the sole predecessor of another block.
-    pub fn is_sole_pred(&self, bb: Block, pred_of: Block) -> bool {
-        self.pred(pred_of).all(|x| x == bb)
-    }
-
-    /// Check if a block is the sole successor of another block.
-    pub fn is_sole_succ(&self, bb: Block, succ_of: Block) -> bool {
-        self.succ(succ_of).all(|x| x == bb)
-    }
-}
-
 /// A block dominator tree.
 ///
 /// Records for every block which other blocks in the CFG *have* to be traversed
@@ -385,11 +304,11 @@ impl DominatorTree {
     }
 
     fn compute_blocks_post_order(unit: &Unit, pred: &PredecessorTable) -> Vec<Block> {
-        let mut order = Vec::with_capacity(pred.pred.len());
+        let mut order = Vec::with_capacity(pred.all_pred_sets().len());
 
         let mut stack = Vec::with_capacity(8);
-        let mut discovered = BitSet::with_capacity(pred.pred.len() as u32);
-        let mut finished = BitSet::with_capacity(pred.pred.len() as u32);
+        let mut discovered = BitSet::with_capacity(pred.all_pred_sets().len() as u32);
+        let mut finished = BitSet::with_capacity(pred.all_pred_sets().len() as u32);
 
         stack.push(unit.entry());
         stack.extend(unit.blocks().filter(|&id| pred.pred_set(id).is_empty()));

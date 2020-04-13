@@ -2,9 +2,7 @@
 
 //! Dead Code Elimination
 
-use crate::ir::prelude::*;
-use crate::opt::prelude::*;
-use crate::pass::gcse::PredecessorTable;
+use crate::{analysis::PredecessorTable, ir::prelude::*, opt::prelude::*};
 use std::collections::{HashMap, HashSet};
 
 /// Dead Code Elimination

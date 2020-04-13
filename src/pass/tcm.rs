@@ -3,11 +3,11 @@
 //! Temporal Code Motion
 
 use crate::{
-    analysis::{TemporalRegion, TemporalRegionGraph},
+    analysis::{PredecessorTable, TemporalRegion, TemporalRegionGraph},
     ir::prelude::*,
     ir::InstData,
     opt::prelude::*,
-    pass::gcse::{DominatorTree, PredecessorTable},
+    pass::gcse::DominatorTree,
     value::IntValue,
 };
 use itertools::Itertools;

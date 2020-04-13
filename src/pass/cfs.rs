@@ -3,9 +3,7 @@
 //! Control Flow Simplification
 
 use crate::{
-    ir::prelude::*,
-    opt::prelude::*,
-    pass::gcse::{DominatorTree, PredecessorTable},
+    analysis::PredecessorTable, ir::prelude::*, opt::prelude::*, pass::gcse::DominatorTree,
 };
 use std::{
     collections::{HashMap, HashSet},

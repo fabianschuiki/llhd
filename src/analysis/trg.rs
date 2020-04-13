@@ -1,6 +1,6 @@
 // Copyright (c) 2017-2020 Fabian Schuiki
 
-use crate::{ir::prelude::*, pass::gcse::PredecessorTable};
+use crate::{analysis::PredecessorTable, ir::prelude::*};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     ops::Index,

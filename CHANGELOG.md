@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Make `sig`, `dfg`, `cfg`, and `layout` fields of `UnitData` private.
 - Make `FunctionLayout` and `InstLayout` structs private.
 - Make `ControlFlowGraph` and `DataFlowGraph` structs private.
-- Factor out `TemporalRegionGraph` into new `analysis` module.
+- Factor out `TemporalRegionGraph` and `PredecessorTable` into new `analysis` module.
 
 ### Removed
 - Remove `Function`, `Process`, and `Entity` structs.

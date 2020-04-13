@@ -2,9 +2,9 @@
 
 //! Loop Independent Code Motion
 
-use crate::ir::prelude::*;
-use crate::opt::prelude::*;
-use crate::pass::gcse::{DominatorTree, PredecessorTable};
+use crate::{
+    analysis::PredecessorTable, ir::prelude::*, opt::prelude::*, pass::gcse::DominatorTree,
+};
 use std::collections::{HashMap, HashSet};
 
 /// Loop Independent Code Motion
