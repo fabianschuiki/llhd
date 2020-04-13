@@ -1,5 +1,5 @@
 // auto-generated: "lalrpop 0.17.2"
-// sha256: f5a0d26883fd1421cf84b0c7c0af2e98f33677bf5d1f14a97c362259bb7616d
+// sha256: 8e97eedd8aa97cb6c8b0c2964e1e39f7b046e6c6e8f68aa5dd444c1a986f0b2
 use crate::assembly::reader as ast;
 use crate::{
     ir::prelude::*,
@@ -24621,8 +24621,6 @@ fn __action3<'input>(
                 }
             }
         }
-        module.link();
-        module.verify();
         module
     }
 }

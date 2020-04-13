@@ -17,8 +17,6 @@ pub Module: Module = <units: Unit*> Comment => {
             }
         }
     }
-    module.link();
-    module.verify();
     module
 };
 

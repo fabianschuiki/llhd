@@ -43,8 +43,21 @@ pub fn parse_time(input: impl AsRef<str>) -> Result<TimeValue, String> {
 /// Parse a module.
 ///
 /// Parses the `input` string into a module.
-pub fn parse_module(input: impl AsRef<str>) -> Result<crate::ir::Module, String> {
+pub fn parse_module(input: impl AsRef<str>) -> Result<Module, String> {
+    parse_module_unchecked(input).map(|mut module| {
+        module.link();
+        module.verify();
+        module
+    })
+}
+
+/// Parse a module without linking and verifying it.
+pub fn parse_module_unchecked(input: impl AsRef<str>) -> Result<Module, String> {
     reader::ModuleParser::new()
         .parse(input.as_ref())
+        .map(|m| {
+            debug!("Parsed module:\n{}", m.dump());
+            m
+        })
         .map_err(|e| format!("{}", e))
 }
