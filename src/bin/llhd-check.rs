@@ -5,9 +5,9 @@ extern crate clap;
 #[macro_use]
 extern crate log;
 
-use clap::Arg;
-use llhd::{assembly::parse_module, verifier::Verifier};
-use std::{fs::File, io::Read, result::Result};
+use anyhow::{anyhow, Context, Result};
+use clap::{Arg, ArgMatches};
+use llhd::{assembly::parse_module_unchecked, verifier::Verifier};
 
 fn main() {
     let matches = app_from_crate!()
@@ -37,12 +37,10 @@ fn main() {
         .get_matches();
 
     // Configure the logger.
-    let verbose = std::cmp::max(1, matches.occurrences_of("verbosity") as usize) - 1;
-    let quiet = !matches.is_present("verbosity");
+    let verbose = matches.occurrences_of("verbosity") as usize + 1;
     stderrlog::new()
         .module("llhd")
         .module("llhd_check")
-        .quiet(quiet)
         .verbosity(verbose)
         .init()
         .unwrap();
@@ -50,64 +48,11 @@ fn main() {
     let mut num_errors = 0;
     for path in matches.values_of("inputs").into_iter().flat_map(|x| x) {
         debug!("Parsing {}", path);
-        let module = match parse_and_verify(path) {
-            Ok(module) => module,
-            Err(msg) => {
-                println!("{}:", path);
-                println!("{}", msg);
+        match process_input(path, &matches) {
+            Ok(()) => (),
+            Err(e) => {
+                println!("{}: {:#}", path, e);
                 num_errors += 1;
-                continue;
-            }
-        };
-
-        // Dump the module to stdout if requested by the user.
-        if matches.is_present("dump") {
-            println!("{}", module.dump());
-        }
-
-        // Dump the temporal regions if requested by the user.
-        if matches.is_present("emit-trg") {
-            println!("Temporal Regions:");
-            for u in module.units() {
-                if u.is_entity() {
-                    continue;
-                }
-                let trg = u.trg();
-                println!("  {}:", u.name());
-                println!("    Blocks:");
-                for bb in u.blocks() {
-                    println!("      - {} = {}", bb.dump(&u), trg[bb]);
-                }
-                for tr in trg.regions() {
-                    println!("    {}:", tr.id);
-                    if tr.entry {
-                        println!("      **entry**");
-                    }
-                    println!(
-                        "      Head Blocks: {}",
-                        tr.head_blocks()
-                            .map(|bb| bb.dump(&u).to_string())
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    );
-                    println!("      Head Insts:");
-                    for inst in tr.head_insts() {
-                        println!("        - {}", inst.dump(&u));
-                    }
-                    println!("      Head tight: {}", tr.head_tight);
-                    println!(
-                        "      Tail Blocks: {}",
-                        tr.tail_blocks()
-                            .map(|bb| bb.dump(&u).to_string())
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    );
-                    println!("      Tail Insts:");
-                    for inst in tr.tail_insts() {
-                        println!("        - {}", inst.dump(&u));
-                    }
-                    println!("      Tail tight: {}", tr.tail_tight);
-                }
             }
         }
     }
@@ -115,17 +60,71 @@ fn main() {
     std::process::exit(num_errors);
 }
 
-fn parse_and_verify(path: &str) -> Result<llhd::ir::Module, String> {
-    let mut input = File::open(path).map_err(|e| format!("{}", e))?;
-    let mut contents = String::new();
-    input
-        .read_to_string(&mut contents)
-        .map_err(|e| format!("{}", e))?;
-    let module = parse_module(&contents).map_err(|e| format!("{}", e))?;
+fn process_input(path: &str, matches: &ArgMatches) -> Result<()> {
+    // Parse the input.
+    let input = std::fs::read_to_string(path).context("Reading file failed")?;
+    let module = parse_module_unchecked(&input)
+        .map_err(|msg| anyhow!(msg))
+        .context("Parsing failed")?;
+
+    // Dump the module to stdout if requested by the user.
+    if matches.is_present("dump") {
+        println!("{}:", path);
+        println!("{}", module.dump());
+    }
+
+    // Verify the module.
     let mut verifier = Verifier::new();
     verifier.verify_module(&module);
-    match verifier.finish() {
-        Ok(()) => Ok(module),
-        Err(errs) => Err(format!("{}", errs)),
+    verifier
+        .finish()
+        .map_err(|errs| anyhow!("Verification failed:\n{}", errs))?;
+
+    // Dump the temporal regions if requested by the user.
+    if matches.is_present("emit-trg") {
+        println!("Temporal Regions:");
+        for u in module.units() {
+            if u.is_entity() {
+                continue;
+            }
+            let trg = u.trg();
+            println!("  {}:", u.name());
+            println!("    Blocks:");
+            for bb in u.blocks() {
+                println!("      - {} = {}", bb.dump(&u), trg[bb]);
+            }
+            for tr in trg.regions() {
+                println!("    {}:", tr.id);
+                if tr.entry {
+                    println!("      **entry**");
+                }
+                println!(
+                    "      Head Blocks: {}",
+                    tr.head_blocks()
+                        .map(|bb| bb.dump(&u).to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
+                println!("      Head Insts:");
+                for inst in tr.head_insts() {
+                    println!("        - {}", inst.dump(&u));
+                }
+                println!("      Head tight: {}", tr.head_tight);
+                println!(
+                    "      Tail Blocks: {}",
+                    tr.tail_blocks()
+                        .map(|bb| bb.dump(&u).to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
+                println!("      Tail Insts:");
+                for inst in tr.tail_insts() {
+                    println!("        - {}", inst.dump(&u));
+                }
+                println!("      Tail tight: {}", tr.tail_tight);
+            }
+        }
     }
+
+    Ok(())
 }
