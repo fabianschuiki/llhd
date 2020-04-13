@@ -17,6 +17,8 @@ impl Pass for ProcessLowering {
         info!("ProcLower [{}]", unit.name());
         unit.data().kind = UnitKind::Entity;
         unit.delete_inst(unit.terminator(unit.entry()));
+        unit.insert_at_end();
+        unit.ins().halt();
         true
     }
 }

@@ -1191,7 +1191,7 @@ impl Opcode {
     /// Return a set of flags where this instruction is valid.
     pub fn valid_in(self) -> UnitFlags {
         match self {
-            Opcode::Halt => UnitFlags::PROCESS,
+            Opcode::Halt => UnitFlags::PROCESS | UnitFlags::ENTITY,
             Opcode::Wait => UnitFlags::PROCESS,
             Opcode::WaitTime => UnitFlags::PROCESS,
             Opcode::Ret => UnitFlags::FUNCTION,

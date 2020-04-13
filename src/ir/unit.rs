@@ -139,6 +139,8 @@ impl UnitData {
         let mut unit = UnitBuilder::new_anonymous(&mut data);
         if kind == UnitKind::Entity {
             unit.block();
+            unit.insert_at_end();
+            unit.ins().halt();
         }
         unit.make_args_for_signature(&unit.sig().clone());
         data
