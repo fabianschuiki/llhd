@@ -255,19 +255,60 @@ impl DominatorTree {
 
     /// Check if an instruction dominates another instruction.
     pub fn inst_dominates_inst(&self, unit: &Unit, parent: Inst, child: Inst) -> bool {
+        // Instructions dominate themselves.
         if parent == child {
             return true;
         }
+
+        // Get the blocks where the instructions reside in, or return false if
+        // any is not inserted.
         let parent_bb = unit.inst_block(parent);
         let child_bb = unit.inst_block(child);
         let (parent_bb, child_bb) = match (parent_bb, child_bb) {
             (Some(a), Some(b)) => (a, b),
             _ => return false,
         };
-        if parent_bb == child_bb {
-            return std::iter::successors(Some(child), move |&inst| unit.prev_inst(inst))
-                .any(|inst| inst == parent);
+
+        // Handle the special case of a `phi` child instruction.
+        let data = &unit[child];
+        if let (Opcode::Phi, Some(parent_result)) = (data.opcode(), unit.get_inst_result(parent)) {
+            for (&v, &bb) in data.args().iter().zip(data.blocks().iter()) {
+                if v == parent_result {
+                    return parent_bb == bb || self.inst_dominates_block(unit, parent, bb);
+                }
+            }
         }
+
+        // Handle the special case where both instructions are in the same
+        // block.
+        if parent_bb == child_bb {
+            // Check if parent dominates child by starting at both instructions
+            // and stepping backwards towards the head of the block. If parent
+            // finds child, the result is false. If child finds parent, the
+            // result is true. If parent finds start of block, result is true.
+            // If child finds start of block, result is false.
+            let mut pi = parent;
+            let mut ci = child;
+            loop {
+                if let Some(pci) = unit.prev_inst(ci) {
+                    if pci == parent {
+                        return true;
+                    }
+                    ci = pci;
+                } else {
+                    return false;
+                }
+                if let Some(ppi) = unit.prev_inst(pi) {
+                    if ppi == child {
+                        return false;
+                    }
+                    pi = ppi;
+                } else {
+                    return true;
+                }
+            }
+        }
+
         self.block_dominates_block(parent_bb, child_bb)
     }
 
@@ -292,14 +333,14 @@ impl DominatorTree {
     /// Check if an instruction dominates a value definition.
     pub fn inst_dominates_value(&self, unit: &Unit, parent: Inst, child: Value) -> bool {
         unit.get_value_inst(child)
-            .map(move |inst| self.inst_dominates_inst(unit, parent, inst))
+            .map(|inst| self.inst_dominates_inst(unit, parent, inst))
             .unwrap_or(false)
     }
 
     /// Check if a value definition dominates another value definition.
     pub fn value_dominates_value(&self, unit: &Unit, parent: Value, child: Value) -> bool {
         unit.get_value_inst(child)
-            .map(move |inst| self.value_dominates_inst(unit, parent, inst))
+            .map(|inst| self.value_dominates_inst(unit, parent, inst))
             .unwrap_or(false)
     }
 }
