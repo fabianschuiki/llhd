@@ -1,0 +1,37 @@
+; RUN: llhd-check %s
+; FAIL
+
+func @unit1 (i1 %x) void {
+entry:
+    br %x, %bbA, %bbB
+bbA:
+    %y = const i32 42
+    br %bbC
+bbB:
+    br %bbC
+bbC:
+    %z = not i32 %y
+    ret
+}
+; CHECK-ERR: - func @unit1: %y = const i32 42: does not dominate use in `%z = not i32 %y`
+
+proc @unit2 (i1$ %x) -> () {
+entry:
+    %xp = prb i1$ %x
+    br %xp, %bbA, %bbB
+bbA:
+    %y = const i32 42
+    br %bbC
+bbB:
+    br %bbC
+bbC:
+    %z = not i32 %y
+    halt
+}
+; CHECK-ERR: - proc @unit2: %y = const i32 42: does not dominate use in `%z = not i32 %y`
+
+entity @unit3 (i1$ %x) -> () {
+    %z = not i32 %y
+    %y = const i32 42
+}
+; CHECK-ERR: - entity @unit3: %y = const i32 42: does not dominate use in `%z = not i32 %y`

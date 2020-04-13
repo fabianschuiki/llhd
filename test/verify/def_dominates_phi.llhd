@@ -1,0 +1,33 @@
+; RUN: llhd-check %s
+
+func @unit1 (i1 %x) void {
+entry:
+    br %x, %bbA, %bbB
+bbA:
+    %a = const i32 42
+    br %bbC
+bbB:
+    %b = const i32 42
+    br %bbC
+bbC:
+    %y = phi i32 [%a, %bbA], [%b, %bbB]
+    ret
+}
+
+func @unit2 (i1 %x) void {
+entry:
+    br %x, %bbA0, %bbB0
+bbA0:
+    %a = const i32 42
+    br %bbA1
+bbA1:
+    br %bbC
+bbB0:
+    %b = const i32 42
+    br %bbB1
+bbB1:
+    br %bbC
+bbC:
+    %y = phi i32 [%a, %bbA1], [%b, %bbB1]
+    ret
+}
