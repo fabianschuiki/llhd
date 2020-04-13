@@ -20,9 +20,9 @@ proc %top.always_ff.227.0 (i1$ %0, i1$ %1, i32$ %2) -> (i32$ %3) {
 %event:
     %rst_n1 = prb i1$ %1
     %12 = not i1 %rst_n1
+    %epsilon = const time 0s 1e
     br %12, %if_false, %if_true
 %if_true:
-    %epsilon = const time 0s 1e
     %const_i32_0 = const i32 0
     drv i32$ %3, %const_i32_0, %epsilon
     wait %16 for %epsilon
