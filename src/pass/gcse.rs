@@ -2,11 +2,12 @@
 
 //! Global Common Subexpression Elimination
 
-use crate::ir::prelude::*;
-use crate::ir::{InstData, ValueData};
-use crate::opt::prelude::*;
-use crate::pass::tcm::TemporalRegionGraph;
-use crate::table::TableKey;
+use crate::{
+    analysis::TemporalRegionGraph,
+    ir::{prelude::*, InstData, ValueData},
+    opt::prelude::*,
+    table::TableKey,
+};
 use hibitset::BitSet;
 use std::{
     collections::{HashMap, HashSet},

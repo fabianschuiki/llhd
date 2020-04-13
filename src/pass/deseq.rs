@@ -3,9 +3,9 @@
 //! Desequentialization
 
 use crate::{
+    analysis::{TemporalRegion, TemporalRegionGraph},
     ir::{prelude::*, InstData},
     opt::prelude::*,
-    pass::tcm::{TemporalRegion, TemporalRegionGraph},
     value::IntValue,
 };
 use rayon::prelude::*;
@@ -49,7 +49,7 @@ fn deseq_process(ctx: &PassContext, unit: &mut UnitBuilder) -> Option<UnitData> 
     }
     let (tr0, tr1) = {
         let mut it = trg.regions();
-        (it.next().unwrap().0, it.next().unwrap().0)
+        (it.next().unwrap().id, it.next().unwrap().id)
     };
     if !trg[tr0].entry {
         trace!("Skipping (TR0 is not entry)");

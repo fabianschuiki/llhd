@@ -6,7 +6,7 @@ extern crate clap;
 extern crate log;
 
 use clap::Arg;
-use llhd::{assembly::parse_module, pass::tcm::TemporalRegionGraph, verifier::Verifier};
+use llhd::{analysis::TemporalRegionGraph, assembly::parse_module, verifier::Verifier};
 use std::{fs::File, io::Read, result::Result};
 
 fn main() {
@@ -78,35 +78,35 @@ fn main() {
                 for bb in u.blocks() {
                     println!("      - {} = {}", bb.dump(&u), trg[bb]);
                 }
-                for (tr, data) in trg.regions() {
-                    println!("    {}:", tr);
-                    if data.entry {
+                for tr in trg.regions() {
+                    println!("    {}:", tr.id);
+                    if tr.entry {
                         println!("      **entry**");
                     }
                     println!(
                         "      Head Blocks: {}",
-                        data.head_blocks()
+                        tr.head_blocks()
                             .map(|bb| bb.dump(&u).to_string())
                             .collect::<Vec<_>>()
                             .join(", ")
                     );
                     println!("      Head Insts:");
-                    for inst in data.head_insts() {
+                    for inst in tr.head_insts() {
                         println!("        - {}", inst.dump(&u));
                     }
-                    println!("      Head tight: {}", data.head_tight);
+                    println!("      Head tight: {}", tr.head_tight);
                     println!(
                         "      Tail Blocks: {}",
-                        data.tail_blocks()
+                        tr.tail_blocks()
                             .map(|bb| bb.dump(&u).to_string())
                             .collect::<Vec<_>>()
                             .join(", ")
                     );
                     println!("      Tail Insts:");
-                    for inst in data.tail_insts() {
+                    for inst in tr.tail_insts() {
                         println!("        - {}", inst.dump(&u));
                     }
-                    println!("      Tail tight: {}", data.tail_tight);
+                    println!("      Tail tight: {}", tr.tail_tight);
                 }
             }
         }

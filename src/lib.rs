@@ -12,6 +12,7 @@ extern crate serde;
 
 #[macro_use]
 pub mod assembly;
+pub mod analysis;
 pub mod ir;
 pub mod opt;
 pub mod pass;
