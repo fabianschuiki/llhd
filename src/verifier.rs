@@ -6,8 +6,10 @@
 //! checks that functions, processes, and entities are well-formed, basic blocks
 //! have terminators, and types line up.
 
-use crate::ir::*;
-use crate::ty::{array_ty, int_ty, pointer_ty, signal_ty, time_ty, void_ty, Type};
+use crate::{
+    ir::{prelude::*, InstData, UnitFlags, ValueData},
+    ty::{array_ty, int_ty, pointer_ty, signal_ty, time_ty, void_ty, Type},
+};
 use std::{
     fmt::Display,
     ops::{Deref, DerefMut},
@@ -54,6 +56,7 @@ impl Verifier {
             }
         }
 
+        let domtree = unit.domtree();
         if unit.first_block().is_none() {
             self.errors.push(VerifierError {
                 unit: self.unit_name.clone(),
@@ -63,7 +66,7 @@ impl Verifier {
         }
         for bb in unit.blocks() {
             // Check that the block has at least one instruction.
-            if unit.first_inst(bb).is_none() && !unit.is_entity() {
+            if unit.first_inst(bb).is_none() {
                 self.errors.push(VerifierError {
                     unit: self.unit_name.clone(),
                     object: Some(bb.to_string()),
@@ -74,26 +77,16 @@ impl Verifier {
             for inst in unit.insts(bb) {
                 // Check that there are no terminator instructions in the middle
                 // of the block.
-                if !unit.is_entity()
-                    && unit[inst].opcode().is_terminator()
-                    && Some(inst) != unit.last_inst(bb)
-                {
+                if unit[inst].opcode().is_terminator() && Some(inst) != unit.last_inst(bb) {
                     self.errors.push(VerifierError {
                         unit: self.unit_name.clone(),
                         object: Some(inst.dump(&unit).to_string()),
-                        message: format!(
-                            "terminator instruction `{}` must be at the end of block {}",
-                            inst.dump(&unit),
-                            bb
-                        ),
+                        message: format!("terminator must be at the end of block {}", bb),
                     });
                 }
 
                 // Check that the last instruction in the block is a terminator.
-                if !unit.is_entity()
-                    && Some(inst) == unit.last_inst(bb)
-                    && !unit[inst].opcode().is_terminator()
-                {
+                if Some(inst) == unit.last_inst(bb) && !unit[inst].opcode().is_terminator() {
                     self.errors.push(VerifierError {
                         unit: self.unit_name.clone(),
                         object: Some(bb.to_string()),
@@ -106,6 +99,19 @@ impl Verifier {
 
                 // Check the instruction itself.
                 self.verify_inst(inst, unit);
+
+                // Check that the instruction dominates all its uses.
+                if let Some(result) = unit.get_inst_result(inst) {
+                    for &u in unit.uses(result) {
+                        if !domtree.inst_dominates_inst(&unit, inst, u) {
+                            self.errors.push(VerifierError {
+                                unit: self.unit_name.clone(),
+                                object: Some(inst.dump(&unit).to_string()),
+                                message: format!("does not dominate use in `{}`", u.dump(&unit),),
+                            });
+                        }
+                    }
+                }
             }
         }
 
