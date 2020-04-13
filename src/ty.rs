@@ -2,11 +2,12 @@
 
 //! Types of values.
 
-pub use self::TypeKind::*;
-use crate::util::write_implode;
-use std;
+use itertools::Itertools;
 use std::sync::Arc;
 
+pub use self::TypeKind::*;
+
+/// An LLHD type.
 pub type Type = Arc<TypeKind>;
 
 /// The different kinds of types.
@@ -44,26 +45,14 @@ impl std::fmt::Display for TypeKind {
             PointerType(ref ty) => write!(f, "{}*", ty),
             SignalType(ref ty) => write!(f, "{}$", ty),
             ArrayType(l, ref ty) => write!(f, "[{} x {}]", l, ty),
-            StructType(ref tys) => {
-                write!(f, "{{")?;
-                write_implode(f, ", ", tys.iter())?;
-                write!(f, "}}")?;
-                Ok(())
-            }
-            FuncType(ref args, ref ret) => {
-                write!(f, "(")?;
-                write_implode(f, ", ", args.iter())?;
-                write!(f, ") {}", ret)?;
-                Ok(())
-            }
-            EntityType(ref ins, ref outs) => {
-                write!(f, "(")?;
-                write_implode(f, ", ", ins.iter())?;
-                write!(f, ";")?;
-                write_implode(f, ", ", outs.iter())?;
-                write!(f, ")")?;
-                Ok(())
-            }
+            StructType(ref tys) => write!(f, "{{{}}}", tys.iter().format(", ")),
+            FuncType(ref args, ref ret) => write!(f, "({}) {}", args.iter().format(", "), ret),
+            EntityType(ref ins, ref outs) => write!(
+                f,
+                "({}) -> ({})",
+                ins.iter().format(", "),
+                outs.iter().format(", ")
+            ),
         }
     }
 }

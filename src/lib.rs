@@ -18,7 +18,6 @@ pub mod opt;
 pub mod pass;
 pub mod table;
 pub mod ty;
-mod util;
 pub mod value;
 pub mod verifier;
 
