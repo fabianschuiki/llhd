@@ -1,6 +1,6 @@
 // Copyright (c) 2017-2020 Fabian Schuiki
 
-use crate::{analysis::PredecessorTable, ir::prelude::*};
+use crate::ir::prelude::*;
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     ops::Index,
@@ -98,7 +98,7 @@ impl TemporalRegionGraph {
         regions[blocks[&unit.entry()].0].entry = true;
 
         // Build the predecessor table.
-        let pt = PredecessorTable::new(&unit);
+        let pt = unit.predtbl();
 
         // Note the blocks in each region and build the head/tail information.
         for (&bb, &id) in &blocks {

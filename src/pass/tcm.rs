@@ -3,7 +3,7 @@
 //! Temporal Code Motion
 
 use crate::{
-    analysis::{DominatorTree, PredecessorTable, TemporalRegion, TemporalRegionGraph},
+    analysis::{DominatorTree, TemporalRegion, TemporalRegionGraph},
     ir::prelude::*,
     ir::InstData,
     opt::prelude::*,
@@ -30,12 +30,12 @@ impl Pass for TemporalCodeMotion {
         let mut modified = false;
 
         // Build the temporal region graph.
-        let trg = TemporalRegionGraph::new(unit);
+        let trg = unit.trg();
 
         // Hoist `prb` instructions which directly operate on input signals to
         // the head block of their region.
-        let temp_pt = PredecessorTable::new_temporal(unit);
-        let temp_dt = DominatorTree::new(unit, &temp_pt);
+        // TODO: Move this into the `ECM` pass.
+        let temp_dt = unit.temporal_domtree();
         for tr in trg.regions() {
             if tr.head_blocks.len() != 1 {
                 trace!("Skipping {} for prb move (multiple head blocks)", tr.id);
@@ -82,7 +82,7 @@ impl Pass for TemporalCodeMotion {
         }
 
         // Fuse equivalent wait instructions.
-        let trg = TemporalRegionGraph::new(unit);
+        let trg = unit.trg();
         for tr in trg.regions() {
             if tr.tail_insts.len() <= 1 {
                 trace!("Skipping {} for wait merge (single wait inst)", tr.id);
@@ -143,8 +143,8 @@ impl Pass for TemporalCodeMotion {
 /// that drives have a dedicated block to be pushed down into ahead of the next
 /// temporal region.
 fn add_aux_blocks(_ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
-    let pt = PredecessorTable::new(unit);
-    let trg = TemporalRegionGraph::new(unit);
+    let pt = unit.predtbl();
+    let trg = unit.trg();
     let mut modified = false;
 
     // Make a list of head blocks. This will allow us to change the unit
@@ -194,8 +194,8 @@ fn push_drives(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
     let mut modified = false;
 
     // We need the dominator tree of the current CFG.
-    let pt = PredecessorTable::new(unit);
-    let dt = DominatorTree::new(unit, &pt);
+    let pt = unit.predtbl();
+    let dt = unit.domtree_with_predtbl(&pt);
 
     // Build an alias table of all signals, which indicates which signals are
     // aliases (e.g. extf/exts) of another. As we encounter drives, keep track
@@ -235,7 +235,7 @@ fn push_drives(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
     }
 
     // Build the temporal region graph.
-    let trg = TemporalRegionGraph::new(unit);
+    let trg = unit.trg();
 
     // Try to migrate drive instructions into the tails of their respective
     // temporal regions.

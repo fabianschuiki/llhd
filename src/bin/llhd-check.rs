@@ -6,7 +6,7 @@ extern crate clap;
 extern crate log;
 
 use clap::Arg;
-use llhd::{analysis::TemporalRegionGraph, assembly::parse_module, verifier::Verifier};
+use llhd::{assembly::parse_module, verifier::Verifier};
 use std::{fs::File, io::Read, result::Result};
 
 fn main() {
@@ -72,7 +72,7 @@ fn main() {
                 if u.is_entity() {
                     continue;
                 }
-                let trg = TemporalRegionGraph::new(&u);
+                let trg = u.trg();
                 println!("  {}:", u.name());
                 println!("    Blocks:");
                 for bb in u.blocks() {

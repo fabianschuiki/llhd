@@ -2,11 +2,7 @@
 
 //! Control Flow Simplification
 
-use crate::{
-    analysis::{DominatorTree, PredecessorTable},
-    ir::prelude::*,
-    opt::prelude::*,
-};
+use crate::{analysis::PredecessorTable, ir::prelude::*, opt::prelude::*};
 use std::{
     collections::{HashMap, HashSet},
     ops::Index,
@@ -28,8 +24,8 @@ impl Pass for ControlFlowSimplification {
         let mut modified = false;
 
         // Build the predecessor table and dominator tree.
-        let pt = PredecessorTable::new(unit);
-        let dt = DominatorTree::new(unit, &pt);
+        let pt = unit.predtbl();
+        let dt = unit.domtree_with_predtbl(&pt);
         let bn = BlockNumbering::new(unit);
 
         // Collect the phi instructions. We do this by gathering the values a

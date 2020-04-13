@@ -2,11 +2,7 @@
 
 //! Loop Independent Code Motion
 
-use crate::{
-    analysis::{DominatorTree, PredecessorTable},
-    ir::prelude::*,
-    opt::prelude::*,
-};
+use crate::{analysis::DominatorTree, ir::prelude::*, opt::prelude::*};
 use std::collections::{HashMap, HashSet};
 
 /// Loop Independent Code Motion
@@ -21,8 +17,8 @@ impl Pass for LoopIndepCodeMotion {
         let mut modified = false;
 
         // Build the predecessor table and dominator tree.
-        let pred = PredecessorTable::new(unit);
-        let dt = DominatorTree::new(unit, &pred);
+        let pred = unit.predtbl();
+        let dt = unit.domtree_with_predtbl(&pred);
 
         // Create a work queue which allows us to process the blocks in control
         // flow order. Also number the blocks as we go.

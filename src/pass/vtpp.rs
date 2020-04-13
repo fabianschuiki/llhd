@@ -18,7 +18,7 @@ impl Pass for VarToPhiPromotion {
         let mut modified = false;
 
         // Build the predecessor table and dominator tree.
-        let pt = PredecessorTable::new(unit);
+        let pt = unit.predtbl();
 
         // Trace variable values within each basic block, and assign potential
         // values to each of the loads.

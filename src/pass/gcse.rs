@@ -3,7 +3,6 @@
 //! Global Common Subexpression Elimination
 
 use crate::{
-    analysis::{DominatorTree, PredecessorTable, TemporalRegionGraph},
     ir::{prelude::*, InstData},
     opt::prelude::*,
 };
@@ -20,15 +19,15 @@ impl Pass for GlobalCommonSubexprElim {
         info!("GCSE [{}]", unit.name());
 
         // Build the predecessor table and dominator tree.
-        let pred = PredecessorTable::new(unit);
-        let dt = DominatorTree::new(unit, &pred);
+        let pred = unit.predtbl();
+        let dt = unit.domtree_with_predtbl(&pred);
 
         // Build the temporal predecessor table and dominator tree.
-        let temp_pt = PredecessorTable::new_temporal(unit);
-        let temp_dt = DominatorTree::new(unit, &temp_pt);
+        let temp_pt = unit.temporal_predtbl();
+        let temp_dt = unit.domtree_with_predtbl(&temp_pt);
 
         // Compute the TRG to allow for `prb` instructions to be eliminated.
-        let trg = TemporalRegionGraph::new(unit);
+        let trg = unit.trg();
 
         // Collect instructions.
         let mut insts = vec![];
