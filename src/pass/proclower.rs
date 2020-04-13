@@ -3,7 +3,6 @@
 //! Process Lowering
 
 use crate::{ir::prelude::*, opt::prelude::*};
-use rayon::prelude::*;
 
 /// Process Lowering
 ///
@@ -11,22 +10,15 @@ use rayon::prelude::*;
 pub struct ProcessLowering;
 
 impl Pass for ProcessLowering {
-    fn run_on_module(ctx: &PassContext, module: &mut Module) -> bool {
-        info!("ProcLower");
-        module
-            .par_units_mut()
-            .map(|mut unit| lower_unit(ctx, &mut unit))
-            .reduce(|| false, |a, b| a || b)
+    fn run_on_cfg(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
+        if !unit.is_process() || !is_suitable(ctx, &unit) {
+            return false;
+        }
+        info!("ProcLower [{}]", unit.name());
+        unit.data().kind = UnitKind::Entity;
+        unit.delete_inst(unit.terminator(unit.entry()));
+        true
     }
-}
-
-fn lower_unit(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
-    if !unit.is_process() || !is_suitable(ctx, &unit) {
-        return false;
-    }
-    unit.data().kind = UnitKind::Entity;
-    unit.delete_inst(unit.terminator(unit.entry()));
-    true
 }
 
 /// Check if a process is suitable for lowering to an entity.

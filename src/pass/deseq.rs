@@ -8,7 +8,6 @@ use crate::{
     opt::prelude::*,
     value::IntValue,
 };
-use rayon::prelude::*;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 /// Desequentialization
@@ -18,23 +17,18 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 pub struct Desequentialization;
 
 impl Pass for Desequentialization {
-    fn run_on_module(ctx: &PassContext, module: &mut Module) -> bool {
-        module
-            .par_units_mut()
-            .map(|mut unit| {
-                if unit.kind() == UnitKind::Process {
-                    match deseq_process(ctx, &mut unit) {
-                        Some(entity) => {
-                            *unit.data() = entity;
-                            true
-                        }
-                        _ => false,
-                    }
-                } else {
-                    false
+    fn run_on_cfg(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
+        if unit.kind() == UnitKind::Process {
+            match deseq_process(ctx, unit) {
+                Some(entity) => {
+                    *unit.data() = entity;
+                    true
                 }
-            })
-            .reduce(|| false, |a, b| a || b)
+                _ => false,
+            }
+        } else {
+            false
+        }
     }
 }
 
