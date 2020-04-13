@@ -227,20 +227,80 @@ impl DominatorTree {
     }
 
     /// Check if an instruction dominates a block.
-    pub fn inst_dominates_block(&self, unit: &Unit, inst: Inst, block: Block) -> bool {
-        match unit.inst_block(inst) {
-            Some(bb) => self.block_dominates_block(bb, block),
+    pub fn inst_dominates_block(&self, unit: &Unit, parent: Inst, child: Block) -> bool {
+        match unit.inst_block(parent) {
+            Some(bb) => self.block_dominates_block(bb, child),
             None => false,
         }
     }
 
-    /// Check if a value dominates a block.
-    pub fn value_dominates_block(&self, unit: &Unit, value: Value, block: Block) -> bool {
-        match unit[value] {
-            ValueData::Inst { inst, .. } => self.inst_dominates_block(unit, inst, block),
+    /// Check if a value definition dominates a block.
+    pub fn value_dominates_block(&self, unit: &Unit, parent: Value, child: Block) -> bool {
+        match unit[parent] {
+            ValueData::Inst { inst, .. } => self.inst_dominates_block(unit, inst, child),
             ValueData::Arg { .. } => true,
             _ => false,
         }
+    }
+
+    /// Check if a block dominates an instruction.
+    ///
+    /// A block *does not* dominate instructions within itself.
+    pub fn block_dominates_inst(&self, unit: &Unit, parent: Block, child: Inst) -> bool {
+        match unit.inst_block(child) {
+            Some(bb) => self.block_dominates_block(parent, bb),
+            None => false,
+        }
+    }
+
+    /// Check if an instruction dominates another instruction.
+    pub fn inst_dominates_inst(&self, unit: &Unit, parent: Inst, child: Inst) -> bool {
+        if parent == child {
+            return true;
+        }
+        let parent_bb = unit.inst_block(parent);
+        let child_bb = unit.inst_block(child);
+        let (parent_bb, child_bb) = match (parent_bb, child_bb) {
+            (Some(a), Some(b)) => (a, b),
+            _ => return false,
+        };
+        if parent_bb == child_bb {
+            return std::iter::successors(Some(child), move |&inst| unit.prev_inst(inst))
+                .any(|inst| inst == parent);
+        }
+        self.block_dominates_block(parent_bb, child_bb)
+    }
+
+    /// Check if a value definition dominates an instruction.
+    pub fn value_dominates_inst(&self, unit: &Unit, parent: Value, child: Inst) -> bool {
+        match unit[parent] {
+            ValueData::Inst { inst, .. } => self.inst_dominates_inst(unit, inst, child),
+            ValueData::Arg { .. } => true,
+            _ => false,
+        }
+    }
+
+    /// Check if a block dominates a value definition.
+    ///
+    /// A block *does not* dominate values within itself.
+    pub fn block_dominates_value(&self, unit: &Unit, parent: Block, child: Value) -> bool {
+        unit.get_value_inst(child)
+            .map(move |inst| self.block_dominates_inst(unit, parent, inst))
+            .unwrap_or(false)
+    }
+
+    /// Check if an instruction dominates a value definition.
+    pub fn inst_dominates_value(&self, unit: &Unit, parent: Inst, child: Value) -> bool {
+        unit.get_value_inst(child)
+            .map(move |inst| self.inst_dominates_inst(unit, parent, inst))
+            .unwrap_or(false)
+    }
+
+    /// Check if a value definition dominates another value definition.
+    pub fn value_dominates_value(&self, unit: &Unit, parent: Value, child: Value) -> bool {
+        unit.get_value_inst(child)
+            .map(move |inst| self.value_dominates_inst(unit, parent, inst))
+            .unwrap_or(false)
     }
 }
 

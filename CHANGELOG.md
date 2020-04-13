@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `Unit` and `UnitBuilder` structs.
 - Add `analysis` module.
 - Add `trg()`, `predtbl()`, `domtree()`, and `domtree_with_predtbl()` to `Unit`.
+- Extend dominator tree queries to cover all block, instruction, and value combinations.
 
 ### Changed
 - Fold `ControlFlowGraph`, `DataFlowGraph`, and `FunctionLayout` functions into `Unit` and `UnitBuilder`.
