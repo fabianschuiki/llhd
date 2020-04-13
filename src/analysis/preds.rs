@@ -12,6 +12,7 @@ pub struct PredecessorTable {
 
 impl PredecessorTable {
     /// Compute the predecessor table for a function or process.
+    #[deprecated(since = "0.13.0", note = "use unit.predtbl() instead")]
     pub fn new(unit: &Unit) -> Self {
         let mut pred = HashMap::new();
         let mut succ = HashMap::new();
@@ -33,6 +34,7 @@ impl PredecessorTable {
     /// This is a special form of predecessor table which ignores edges in the
     /// CFG that cross a temporal instruction. As such all connected blocks in
     /// the table are guaranteed to execute within the same instant of time.
+    #[deprecated(since = "0.13.0", note = "use unit.temporal_predtbl() instead")]
     pub fn new_temporal(unit: &Unit) -> Self {
         let mut pred = HashMap::new();
         let mut succ = HashMap::new();

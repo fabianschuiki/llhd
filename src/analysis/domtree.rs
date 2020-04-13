@@ -35,6 +35,7 @@ impl DominatorTree {
     /// This implementation is based on [1].
     ///
     /// [1]: https://www.cs.rice.edu/~keith/Embed/dom.pdf "Cooper, Keith D., Timothy J. Harvey, and Ken Kennedy. 'A simple, fast dominance algorithm.' Software Practice & Experience 4.1-10 (2001): 1-8."
+    #[deprecated(since = "0.13.0", note = "use unit.domtree() instead")]
     pub fn new(unit: &Unit, pred: &PredecessorTable) -> Self {
         let t0 = time::precise_time_ns();
         let post_order = Self::compute_blocks_post_order(unit, pred);

@@ -17,6 +17,7 @@ pub struct TemporalRegionGraph {
 
 impl TemporalRegionGraph {
     /// Compute the TRG of a process.
+    #[deprecated(since = "0.13.0", note = "use unit.trg() instead")]
     pub fn new(unit: &Unit) -> Self {
         // trace!("[TRG] Constructing TRG:");
 

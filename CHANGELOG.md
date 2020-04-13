@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `UnitData` struct.
 - Add `Unit` and `UnitBuilder` structs.
 - Add `analysis` module.
+- Add `trg()`, `predtbl()`, `domtree()`, and `domtree_with_predtbl()` to `Unit`.
 
 ### Changed
 - Fold `ControlFlowGraph`, `DataFlowGraph`, and `FunctionLayout` functions into `Unit` and `UnitBuilder`.
@@ -17,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Make `FunctionLayout` and `InstLayout` structs private.
 - Make `ControlFlowGraph` and `DataFlowGraph` structs private.
 - Factor out `TemporalRegionGraph`, `PredecessorTable`, and `DominatorTree` into `analysis` module.
+
+### Deprecated
+- Deprecate calling `new` on `TemporalRegionGraph`, `PredecessorTable`, and `DominatorTree`, in favor of accessors on `Unit`.
 
 ### Removed
 - Remove `Function`, `Process`, and `Entity` structs.

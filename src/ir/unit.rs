@@ -3,6 +3,7 @@
 // #![deny(missing_docs)]
 
 use crate::{
+    analysis::{DominatorTree, PredecessorTable, TemporalRegionGraph},
     ir::{
         layout::BlockNode, prelude::*, BlockData, ControlFlowGraph, DataFlowGraph, ExtUnit,
         ExtUnitData, FunctionLayout, InstBuilder, InstData, UnitId, ValueData,
@@ -277,6 +278,44 @@ impl<'a> Unit<'a> {
     /// Return an iterator over the external units used by this unit.
     pub fn extern_units(self) -> impl Iterator<Item = (ExtUnit, &'a ExtUnitData)> + 'a {
         self.data.dfg.ext_units.iter()
+    }
+}
+
+/// # Analyses
+impl<'a> Unit<'a> {
+    /// Compute the unit's temporal region graph.
+    pub fn trg(self) -> TemporalRegionGraph {
+        #[allow(deprecated)]
+        TemporalRegionGraph::new(&self)
+    }
+
+    /// Compute the unit's block predecessor table.
+    pub fn predtbl(self) -> PredecessorTable {
+        #[allow(deprecated)]
+        PredecessorTable::new(&self)
+    }
+
+    /// Compute the unit's temporal block predecessor table.
+    pub fn temporal_predtbl(self) -> PredecessorTable {
+        #[allow(deprecated)]
+        PredecessorTable::new_temporal(&self)
+    }
+
+    /// Compute the unit's dominator tree.
+    pub fn domtree(self) -> DominatorTree {
+        self.domtree_with_predtbl(&self.predtbl())
+    }
+
+    /// Compute the unit's temporal dominator tree.
+    pub fn temporal_domtree(self) -> DominatorTree {
+        self.domtree_with_predtbl(&self.temporal_predtbl())
+    }
+
+    /// Compute the unit's dominator tree, if a predecessor table is already
+    /// available.
+    pub fn domtree_with_predtbl(self, pt: &PredecessorTable) -> DominatorTree {
+        #[allow(deprecated)]
+        DominatorTree::new(&self, pt)
     }
 }
 
