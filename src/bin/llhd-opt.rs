@@ -122,7 +122,7 @@ fn main_inner() -> Result<(), String> {
         passes.collect()
     } else {
         let mut v = vec![
-            "cf", "vtpp", "dce", "gcse", "licm", "tcm", "licm", "tcm", "gcse", "tcm", "cf", "licm",
+            "cf", "vtpp", "dce", "gcse", "ecm", "tcm", "ecm", "tcm", "gcse", "tcm", "cf", "ecm",
             "gcse", "insim", "dce", "cfs", "insim", "dce",
         ];
         if matches.is_present("lower") {
@@ -141,13 +141,13 @@ fn main_inner() -> Result<(), String> {
             "cf" => llhd::pass::ConstFolding::run_on_module(&ctx, &mut module),
             "cfs" => llhd::pass::ControlFlowSimplification::run_on_module(&ctx, &mut module),
             "dce" => llhd::pass::DeadCodeElim::run_on_module(&ctx, &mut module),
+            "deseq" => llhd::pass::Desequentialization::run_on_module(&ctx, &mut module),
+            "ecm" => llhd::pass::EarlyCodeMotion::run_on_module(&ctx, &mut module),
             "gcse" => llhd::pass::GlobalCommonSubexprElim::run_on_module(&ctx, &mut module),
             "insim" => llhd::pass::InstSimplification::run_on_module(&ctx, &mut module),
-            "licm" => llhd::pass::LoopIndepCodeMotion::run_on_module(&ctx, &mut module),
+            "proclower" => llhd::pass::ProcessLowering::run_on_module(&ctx, &mut module),
             "tcm" => llhd::pass::TemporalCodeMotion::run_on_module(&ctx, &mut module),
             "vtpp" => llhd::pass::VarToPhiPromotion::run_on_module(&ctx, &mut module),
-            "proclower" => llhd::pass::ProcessLowering::run_on_module(&ctx, &mut module),
-            "deseq" => llhd::pass::Desequentialization::run_on_module(&ctx, &mut module),
             "verify" => {
                 let mut verifier = Verifier::new();
                 verifier.verify_module(&module);
@@ -245,11 +245,9 @@ static HELP_VERBOSITY: &str = "Increase message verbosity
 This option can be specified multiple times to increase the level of verbosity \
 in the output:
 
--v      Only print errors
--vv     Also print warnings
--vvv    Also print info messages
--vvvv   Also print debug messages
--vvvvv  Also print detailed tracing messages
+-v    Print info messages
+-vv   Also print debug messages
+-vvv  Also print detailed tracing messages
 ";
 
 static HELP_PASSES: &str = "Exact order of passes to run
@@ -260,11 +258,12 @@ passes are as follows:
 cf          Constant folding
 cfs         Control Flow Simplification
 dce         Dead Code Elimination
+deseq       Desequentialization
+ecm         Early Code Motion
 gcse        Global Common Subexpression Elimination
 insim       Instruction Simplification
-licm        Loop-Invariant Code Motion
+proclower   Process Lowering
 tcm         Temporal Code Motion
 vtpp        Var-to-Phi Promotion
-proclower   Process Lowering
-deseq       Desequentialization
+verify      Verify the IR
 ";

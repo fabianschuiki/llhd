@@ -1,19 +1,19 @@
 // Copyright (c) 2017-2020 Fabian Schuiki
 
-//! Loop Independent Code Motion
+//! Early Code Motion
 
 use crate::{analysis::DominatorTree, ir::prelude::*, opt::prelude::*};
 use std::collections::{HashMap, HashSet};
 
-/// Loop Independent Code Motion
+/// Early Code Motion
 ///
 /// This moves all instructions as far upwards in the control flow graph as
 /// possible given the point of declaration of their arguments.
-pub struct LoopIndepCodeMotion;
+pub struct EarlyCodeMotion;
 
-impl Pass for LoopIndepCodeMotion {
+impl Pass for EarlyCodeMotion {
     fn run_on_cfg(ctx: &PassContext, unit: &mut UnitBuilder) -> bool {
-        info!("LICM [{}]", unit.name());
+        info!("ECM [{}]", unit.name());
         let mut modified = false;
 
         // Build the predecessor table and dominator tree.

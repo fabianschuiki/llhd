@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Make `FunctionLayout` and `InstLayout` structs private.
 - Make `ControlFlowGraph` and `DataFlowGraph` structs private.
 - Factor out `TemporalRegionGraph`, `PredecessorTable`, and `DominatorTree` into `analysis` module.
+- Rename `licm` pass to `ecm`.
 
 ### Deprecated
 - Deprecate calling `new` on `TemporalRegionGraph`, `PredecessorTable`, and `DominatorTree`, in favor of accessors on `Unit`.
