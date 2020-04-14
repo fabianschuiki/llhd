@@ -761,6 +761,9 @@ The `add`, `sub`, and `mul` instructions add, subtract, or multiply two values.
 The `udiv` and `sdiv` instructions divide the `%lhs` by the `%rhs`, interpreting the values as either unsigned or signed values, respectively.
 The `umod`, `smod`, and `srem` instructions compute the modulus and remainder of dividing the `%lhs` by `%rhs`. The semantics for signed numbers are as follows:
 
+    x = (x smod y) + round_towards_ninf(x / y) * y
+    x = (x srem y) + round_towards_zero(x / y) * y
+
 `%lhs` | `%rhs` | `smod` | `srem`
 ------ | ------ | ------ | ------
 9      | 5      | 4      | 4
