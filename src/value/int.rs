@@ -42,6 +42,11 @@ impl IntValue {
         }
     }
 
+    /// Create a new integer value from an `isize`.
+    pub fn from_isize(width: usize, value: isize) -> Self {
+        Self::from_signed(width, value.into())
+    }
+
     /// Create a new integer value from a signed `BigInt` value.
     pub fn from_signed(width: usize, value: BigInt) -> Self {
         let modulus = BigInt::one() << width;
@@ -65,7 +70,7 @@ impl IntValue {
         if (&self.value & &sign_mask).is_zero() {
             self.value.to_bigint().unwrap()
         } else {
-            (BigInt::one() << self.width) - self.value.to_bigint().unwrap()
+            self.value.to_bigint().unwrap() - (BigInt::one() << self.width)
         }
     }
 
@@ -220,7 +225,13 @@ impl IntValue {
 
     /// Compute `smod`.
     pub fn smod(&self, other: &Self) -> IntValue {
-        IntValue::from_signed(self.width, self.to_signed() % other.to_signed())
+        let a = self.to_signed();
+        let b = other.to_signed();
+        let mut r = &a % &b;
+        if !r.is_zero() && a.is_negative() != b.is_negative() {
+            r += b;
+        }
+        IntValue::from_signed(self.width, r)
     }
 
     /// Compute `srem`.
@@ -366,5 +377,82 @@ impl IntValue {
             Some(r) => r,
             None => panic!("{} is not a compare op", op),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sign() {
+        assert_eq!(IntValue::from_isize(8, 9), IntValue::from_usize(8, 9));
+        assert_eq!(IntValue::from_isize(8, -9), IntValue::from_usize(8, 247));
+        assert_eq!(IntValue::from_isize(8, 9).to_signed(), BigInt::from(9));
+        assert_eq!(IntValue::from_isize(8, -9).to_signed(), BigInt::from(-9));
+    }
+
+    #[test]
+    fn add() {
+        let a = IntValue::from_usize(8, 7);
+        let b = IntValue::from_usize(8, 2);
+        let an = a.neg();
+        let bn = b.neg();
+
+        assert_eq!(a.add(&b), IntValue::from_usize(8, 9));
+        assert_eq!(a.add(&bn), IntValue::from_usize(8, 5));
+        assert_eq!(an.add(&b), IntValue::from_isize(8, -5));
+        assert_eq!(an.add(&bn), IntValue::from_isize(8, -9));
+    }
+
+    #[test]
+    fn sub() {
+        let a = IntValue::from_usize(8, 7);
+        let b = IntValue::from_usize(8, 2);
+        let an = a.neg();
+        let bn = b.neg();
+
+        assert_eq!(a.sub(&b), IntValue::from_usize(8, 5));
+        assert_eq!(a.sub(&bn), IntValue::from_usize(8, 9));
+        assert_eq!(an.sub(&b), IntValue::from_isize(8, -9));
+        assert_eq!(an.sub(&bn), IntValue::from_isize(8, -5));
+    }
+
+    #[test]
+    fn smod() {
+        let a = IntValue::from_usize(8, 9);
+        let b = IntValue::from_usize(8, 5);
+        let c = IntValue::from_usize(8, 10);
+        let an = a.neg();
+        let bn = b.neg();
+        let cn = c.neg();
+
+        assert_eq!(a.smod(&b), IntValue::from_isize(8, 4));
+        assert_eq!(a.smod(&bn), IntValue::from_isize(8, -1));
+        assert_eq!(an.smod(&b), IntValue::from_isize(8, 1));
+        assert_eq!(an.smod(&bn), IntValue::from_isize(8, -4));
+        assert_eq!(c.smod(&b), IntValue::from_isize(8, 0));
+        assert_eq!(c.smod(&bn), IntValue::from_isize(8, 0));
+        assert_eq!(cn.smod(&b), IntValue::from_isize(8, 0));
+        assert_eq!(cn.smod(&bn), IntValue::from_isize(8, 0));
+    }
+
+    #[test]
+    fn srem() {
+        let a = IntValue::from_usize(8, 9);
+        let b = IntValue::from_usize(8, 5);
+        let c = IntValue::from_usize(8, 10);
+        let an = a.neg();
+        let bn = b.neg();
+        let cn = c.neg();
+
+        assert_eq!(a.srem(&b), IntValue::from_isize(8, 4));
+        assert_eq!(a.srem(&bn), IntValue::from_isize(8, 4));
+        assert_eq!(an.srem(&b), IntValue::from_isize(8, -4));
+        assert_eq!(an.srem(&bn), IntValue::from_isize(8, -4));
+        assert_eq!(c.srem(&b), IntValue::from_isize(8, 0));
+        assert_eq!(c.srem(&bn), IntValue::from_isize(8, 0));
+        assert_eq!(cn.srem(&b), IntValue::from_isize(8, 0));
+        assert_eq!(cn.srem(&bn), IntValue::from_isize(8, 0));
     }
 }
