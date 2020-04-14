@@ -36,7 +36,7 @@ args = parser.parse_args()
 
 # A class to encapsulate the check directives in a file.
 class CheckFile:
-    regex_dir = re.compile(r'^;\s*(CHECK[^:]*):\s+(.+)$')
+    regex_dir = re.compile(r'^\s*;\s*(CHECK[^:]*):\s+(.+)$')
 
     def __init__(self, checks, input):
         # Collect the directives in the file.
