@@ -1,0 +1,115 @@
+; RUN: llhd-opt %s -p cf
+
+func @unary_i8 () void {
+entry:
+    %a = const i8 1
+
+    %neg = neg i8 %a
+    ; CHECK: %neg = const i8 255
+
+    ret
+}
+
+func @binary_i8 () void {
+entry:
+    %a = const i8 7
+    %an = const i8 -7
+    %b = const i8 2
+    %bn = const i8 -2
+    %c = const i8 9
+    %cn = const i8 -9
+    %d = const i8 5
+    %dn = const i8 -5
+
+    %add1 = add i8 %a, %b
+    %add2 = add i8 %an, %b
+    %add3 = add i8 %a, %bn
+    %add4 = add i8 %an, %bn
+    ; CHECK: %add1 = const i8 9
+    ; CHECK: %add2 = const i8 251
+    ; CHECK: %add3 = const i8 5
+    ; CHECK: %add4 = const i8 247
+
+    %sub1 = sub i8 %a, %b
+    %sub2 = sub i8 %an, %b
+    %sub3 = sub i8 %a, %bn
+    %sub4 = sub i8 %an, %bn
+    ; CHECK: %sub1 = const i8 5
+    ; CHECK: %sub2 = const i8 247
+    ; CHECK: %sub3 = const i8 9
+    ; CHECK: %sub4 = const i8 251
+
+    %umul1 = umul i8 %a, %b
+    %umul2 = umul i8 %an, %b
+    %umul3 = umul i8 %a, %bn
+    %umul4 = umul i8 %an, %bn
+    ; CHECK: %umul1 = const i8 14
+    ; CHECK: %umul2 = const i8 242
+    ; CHECK: %umul3 = const i8 242
+    ; CHECK: %umul4 = const i8 14
+
+    %smul1 = smul i8 %a, %b
+    %smul2 = smul i8 %an, %b
+    %smul3 = smul i8 %a, %bn
+    %smul4 = smul i8 %an, %bn
+    ; CHECK: %smul1 = const i8 14
+    ; CHECK: %smul2 = const i8 242
+    ; CHECK: %smul3 = const i8 242
+    ; CHECK: %smul4 = const i8 14
+
+    %udiv1 = udiv i8 %a, %b
+    %udiv2 = udiv i8 %an, %b
+    %udiv3 = udiv i8 %a, %bn
+    %udiv4 = udiv i8 %an, %bn
+    ; CHECK: %udiv1 = const i8 3
+    ; CHECK: %udiv2 = const i8 124
+    ; CHECK: %udiv3 = const i8 0
+    ; CHECK: %udiv4 = const i8 0
+
+    %sdiv1 = sdiv i8 %a, %b
+    %sdiv2 = sdiv i8 %an, %b
+    %sdiv3 = sdiv i8 %a, %bn
+    %sdiv4 = sdiv i8 %an, %bn
+    ; CHECK: %sdiv1 = const i8 3
+    ; CHECK: %sdiv2 = const i8 253
+    ; CHECK: %sdiv3 = const i8 253
+    ; CHECK: %sdiv4 = const i8 3
+
+    %umod1 = umod i8 %c, %d
+    %umod2 = umod i8 %cn, %d
+    %umod3 = umod i8 %c, %dn
+    %umod4 = umod i8 %cn, %dn
+    ; CHECK: %umod1 = const i8 4
+    ; CHECK: %umod2 = const i8 2
+    ; CHECK: %umod3 = const i8 9
+    ; CHECK: %umod4 = const i8 247
+
+    %smod1 = smod i8 %c, %d
+    %smod2 = smod i8 %cn, %d
+    %smod3 = smod i8 %c, %dn
+    %smod4 = smod i8 %cn, %dn
+    ; CHECK: %smod1 = const i8 4
+    ; CHECK: %smod2 = const i8 1
+    ; CHECK: %smod3 = const i8 255
+    ; CHECK: %smod4 = const i8 252
+
+    %urem1 = urem i8 %c, %d
+    %urem2 = urem i8 %cn, %d
+    %urem3 = urem i8 %c, %dn
+    %urem4 = urem i8 %cn, %dn
+    ; CHECK: %urem1 = const i8 4
+    ; CHECK: %urem2 = const i8 2
+    ; CHECK: %urem3 = const i8 9
+    ; CHECK: %urem4 = const i8 247
+
+    %srem1 = srem i8 %c, %d
+    %srem2 = srem i8 %cn, %d
+    %srem3 = srem i8 %c, %dn
+    %srem4 = srem i8 %cn, %dn
+    ; CHECK: %srem1 = const i8 4
+    ; CHECK: %srem2 = const i8 252
+    ; CHECK: %srem3 = const i8 4
+    ; CHECK: %srem4 = const i8 252
+
+    ret
+}
