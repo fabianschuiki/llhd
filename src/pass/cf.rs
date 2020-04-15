@@ -184,12 +184,12 @@ fn fold_shift(unit: &mut UnitBuilder, inst: Inst, ty: &Type) -> Option<Value> {
         // Handle the case where the amount fully shifts out the base.
         if amount >= base_width {
             let offset = if left {
-                amount - base_width
+                hidden_width - amount
             } else {
-                hidden_width + base_width - amount
+                amount - base_width
             };
             let r = unit.ins().ext_slice(hidden, offset, base_width);
-            Some(fold_ext_slice(unit, unit.value_inst(r)).unwrap_or(r));
+            return Some(fold_ext_slice(unit, unit.value_inst(r)).unwrap_or(r));
         }
         // Handle the case where the result is a mixture of the base and the
         // hidden value.
