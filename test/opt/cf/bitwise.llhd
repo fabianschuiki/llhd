@@ -1,0 +1,42 @@
+; RUN: llhd-opt %s -p cf
+
+func @unary_i8 () void {
+entry:
+    %a = const i8 1
+
+    %not = not i8 %a
+    ; CHECK: %not = const i8 254
+
+    ret
+}
+
+
+func @binary_i8 () void {
+entry:
+    %a = const i8 15  ; 0b00001111
+    %b = const i8 240 ; 0b11110000
+    %c = const i8 60  ; 0b00111100
+
+    %and1 = and i8 %a, %b
+    %and2 = and i8 %a, %c
+    %and3 = and i8 %b, %c
+    ; CHECK: %and1 = const i8 0
+    ; CHECK: %and2 = const i8 12
+    ; CHECK: %and3 = const i8 48
+
+    %or1 = or i8 %a, %b
+    %or2 = or i8 %a, %c
+    %or3 = or i8 %b, %c
+    ; CHECK: %or1 = const i8 255
+    ; CHECK: %or2 = const i8 63
+    ; CHECK: %or3 = const i8 252
+
+    %xor1 = xor i8 %a, %b
+    %xor2 = xor i8 %a, %c
+    %xor3 = xor i8 %b, %c
+    ; CHECK: %xor1 = const i8 255
+    ; CHECK: %xor2 = const i8 51
+    ; CHECK: %xor3 = const i8 204
+
+    ret
+}
