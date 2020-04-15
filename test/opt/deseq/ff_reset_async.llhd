@@ -25,7 +25,20 @@ check:
     br %init
 }
 
-proc %ff_clkrise_rstasynclow2 (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
+; CHECK: entity %ff_clkrise_rstasynclow (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
+; CHECK:     %0 = const i32 65536
+; CHECK:     %D1 = prb i32$ %D
+; CHECK:     %1 = [i32 %0, %D1]
+; CHECK:     %RST2 = prb i1$ %RST
+; CHECK:     %2 = mux [2 x i32] %1, i1 %RST2
+; CHECK:     %3 = prb i1$ %CLK
+; CHECK:     %RST21 = const i1 0
+; CHECK:     %4 = mux [2 x i32] %1, i1 %RST21
+; CHECK:     %5 = prb i1$ %RST
+; CHECK:     reg i32$ %Q, [%2, rise %3], [%4, fall %5]
+; CHECK: }
+
+proc %ff_clkrise_rstasynchigh (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
 init:
     %CLK1 = prb i1$ %CLK
     %0 = const i1 0
@@ -46,3 +59,17 @@ check:
     drv i32$ %Q if %event_or, %6, %3
     br %init
 }
+
+; CHECK: entity %ff_clkrise_rstasynchigh (i1$ %CLK, i1$ %RST, i32$ %D) -> (i32$ %Q) {
+; CHECK:     %0 = const i32 65536
+; CHECK:     %D1 = prb i32$ %D
+; CHECK:     %1 = [i32 %0, %D1]
+; CHECK:     %RST2 = prb i1$ %RST
+; CHECK:     %2 = mux [2 x i32] %1, i1 %RST2
+; CHECK:     %3 = prb i1$ %CLK
+; CHECK:     %4 = prb i1$ %RST
+; CHECK:     %5 = not i1 %4
+; CHECK:     %RST21 = const i1 0
+; CHECK:     %6 = mux [2 x i32] %1, i1 %RST21
+; CHECK:     reg i32$ %Q, [%2, rise %3], [%6, high %5]
+; CHECK: }

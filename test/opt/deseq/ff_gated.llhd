@@ -18,6 +18,13 @@ check:
     br %init
 }
 
+; CHECK: entity %ff_clkrise_gated (i1$ %CLK, i32$ %D, i1$ %EN) -> (i32$ %Q) {
+; CHECK:     %0 = prb i1$ %EN
+; CHECK:     %D1 = prb i32$ %D
+; CHECK:     %1 = prb i1$ %CLK
+; CHECK:     reg i32$ %Q, [%D1, rise %1, if %0]
+; CHECK: }
+
 proc %ff_clkfall_invgated (i1$ %CLK, i32$ %D, i1$ %EN) -> (i32$ %Q) {
 init:
     %CLK1 = prb i1$ %CLK
@@ -37,6 +44,14 @@ check:
     br %init
 }
 
+; CHECK: entity %ff_clkfall_invgated (i1$ %CLK, i32$ %D, i1$ %EN) -> (i32$ %Q) {
+; CHECK:     %0 = prb i1$ %EN
+; CHECK:     %1 = not i1 %0
+; CHECK:     %D1 = prb i32$ %D
+; CHECK:     %2 = prb i1$ %CLK
+; CHECK:     reg i32$ %Q, [%D1, fall %2, if %1]
+; CHECK: }
+
 proc %ff_weird (i1$ %CLK, i32$ %D, i1$ %EN) -> (i32$ %Q) {
 init:
     %CLK1 = prb i1$ %CLK
@@ -55,3 +70,13 @@ check:
     drv i32$ %Q if %posedge, %D1, %3
     br %init
 }
+
+; CHECK: entity %ff_weird (i1$ %CLK, i32$ %D, i1$ %EN) -> (i32$ %Q) {
+; CHECK:     %0 = prb i1$ %EN
+; CHECK:     %D1 = prb i32$ %D
+; CHECK:     %1 = prb i1$ %CLK
+; CHECK:     %2 = prb i1$ %EN
+; CHECK:     %3 = not i1 %2
+; CHECK:     %4 = prb i1$ %CLK
+; CHECK:     reg i32$ %Q, [%D1, fall %1, if %0], [%D1, rise %4, if %3]
+; CHECK: }
