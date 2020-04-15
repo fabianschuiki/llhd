@@ -651,6 +651,9 @@ impl std::fmt::Display for Unit<'_> {
         for bb in self.blocks() {
             write!(f, "{}:\n", bb.dump(self))?;
             for inst in self.insts(bb) {
+                if self[inst].opcode().is_terminator() && self.is_entity() {
+                    continue;
+                }
                 write!(f, "    {}\n", inst.dump(self))?;
             }
         }

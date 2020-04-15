@@ -75,6 +75,9 @@ impl<T: Write> Writer<T> {
                 write!(uw.writer.sink, ":\n")?;
             }
             for inst in data.insts(block) {
+                if data[inst].opcode().is_terminator() && data.is_entity() {
+                    continue;
+                }
                 write!(uw.writer.sink, "    ")?;
                 uw.write_inst(inst)?;
                 write!(uw.writer.sink, "\n")?;
