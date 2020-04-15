@@ -4,6 +4,7 @@ func @shift () void {
 entry:
     %a = const i8 60  ; 0b00111100
     %b = const i8 195 ; 0b11000011
+    %c = const i10 195 ; 0b0011000011
 
     ; trivial cases
     %zero = const i8 0
@@ -16,12 +17,25 @@ entry:
 
     ; full shift-out
     %eight = const i8 8
-    %shl_full = shl i8 %a, i8 %b, i8 %eight
-    %shr_full = shr i8 %a, i8 %b, i8 %eight
-    %shl_full_use = add i8 %shl_full, %zero
-    %shr_full_use = add i8 %shr_full, %zero
-    ; CHECK: %shl_zero_use = const i8 195
-    ; CHECK: %shr_zero_use = const i8 195
+    %ten = const i8 10
+    %shl_full1 = shl i8 %a, i8 %b, i8 %eight
+    %shr_full1 = shr i8 %a, i8 %b, i8 %eight
+    %shl_full2 = shl i8 %a, i10 %c, i8 %eight
+    %shr_full2 = shr i8 %a, i10 %c, i8 %eight
+    %shl_full3 = shl i8 %a, i10 %c, i8 %ten
+    %shr_full3 = shr i8 %a, i10 %c, i8 %ten
+    %shl_full1_use = add i8 %shl_full1, %zero
+    %shr_full1_use = add i8 %shr_full1, %zero
+    %shl_full2_use = add i8 %shl_full2, %zero
+    %shr_full2_use = add i8 %shr_full2, %zero
+    %shl_full3_use = add i8 %shl_full3, %zero
+    %shr_full3_use = add i8 %shr_full3, %zero
+    ; CHECK: %shl_full1_use = const i8 195
+    ; CHECK: %shr_full1_use = const i8 195
+    ; CHECK: %shl_full2_use = const i8 48
+    ; CHECK: %shr_full2_use = const i8 195
+    ; CHECK: %shl_full3_use = const i8 195
+    ; CHECK: %shr_full3_use = const i8 48
 
     ; partial but constant shift
     %two = const i8 2
