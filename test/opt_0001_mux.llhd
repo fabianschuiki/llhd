@@ -1,3 +1,5 @@
+; RUN: llhd-opt %s
+
 ; Simplify mux instructions
 func @foo (i32 %a, i2 %b) i32 {
 entry:

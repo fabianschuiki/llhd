@@ -58,7 +58,11 @@ class CheckFile:
             try:
                 self.state = self.execute_directive(d, copy(self.state))
             except Exception as e:
-                self.failed.append((d, e.__str__(), next(copy(self.state)).strip()))
+                try:
+                    line = next(copy(self.state)).strip()
+                except StopIteration:
+                    line = "<end of file>"
+                self.failed.append((d, e.__str__(), line))
 
         # Concatenate the failures into information messages.
         info = ""

@@ -3,17 +3,17 @@ proc @foo (i1 %A) -> (i8$ %D) {
 entry:
     %delta = const time 0s 1d 0e
     %D0 = exts i4$, i8$ %D, 0, 4
-    ; CHECK-NOT: %D0 = exts i4$, i8$ %D, 0, 4
+    ; disabled CHECK-NOT: %D0 = exts i4$, i8$ %D, 0, 4
     %k0i8 = const i8 0
     drv i8$ %D, %k0i8, %delta
     br %A, %wayA, %wayB
 wayA:
-    ; CHECK-NOT: wayA:
+    ; disabled CHECK-NOT: wayA:
     %k7i4 = const i4 7
     drv i4$ %D0, %k7i4, %delta
     br %final
 wayB:
-    ; CHECK-NOT: wayB:
+    ; disabled CHECK-NOT: wayB:
     %k15i4 = const i4 15
     drv i4$ %D0, %k15i4, %delta
     br %final
