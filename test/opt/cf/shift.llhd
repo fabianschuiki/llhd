@@ -1,0 +1,43 @@
+; RUN: llhd-opt %s -p cf
+
+func @shift () void {
+entry:
+    %a = const i8 60  ; 0b00111100
+    %b = const i8 195 ; 0b11000011
+
+    ; trivial cases
+    %zero = const i8 0
+    %shl_zero = shl i8 %a, i8 %b, i8 %zero
+    %shr_zero = shr i8 %a, i8 %b, i8 %zero
+    %shl_zero_use = add i8 %shl_zero, %zero
+    %shr_zero_use = add i8 %shr_zero, %zero
+    ; CHECK: %shl_zero_use = const i8 60
+    ; CHECK: %shr_zero_use = const i8 60
+
+    ; full shift-out
+    %eight = const i8 8
+    %shl_full = shl i8 %a, i8 %b, i8 %eight
+    %shr_full = shr i8 %a, i8 %b, i8 %eight
+    %shl_full_use = add i8 %shl_full, %zero
+    %shr_full_use = add i8 %shr_full, %zero
+    ; CHECK: %shl_zero_use = const i8 195
+    ; CHECK: %shr_zero_use = const i8 195
+
+    ; partial but constant shift
+    %two = const i8 2
+    %four = const i8 4
+    %shl_part1 = shl i8 %a, i8 %b, i8 %two
+    %shr_part1 = shr i8 %a, i8 %b, i8 %two
+    %shl_part2 = shl i8 %a, i8 %b, i8 %four
+    %shr_part2 = shr i8 %a, i8 %b, i8 %four
+    %shl_part1_use = add i8 %shl_part1, %zero
+    %shr_part1_use = add i8 %shr_part1, %zero
+    %shl_part2_use = add i8 %shl_part2, %zero
+    %shr_part2_use = add i8 %shr_part2, %zero
+    ; CHECK: %shl_part1_use = const i8 243
+    ; CHECK: %shr_part1_use = const i8 207
+    ; CHECK: %shl_part2_use = const i8 204
+    ; CHECK: %shr_part2_use = const i8 51
+
+    ret
+}
