@@ -1,0 +1,15 @@
+; RUN: llhd-opt %s -p cf
+
+func @mux (i8 %a, i8 %b) void {
+entry:
+    %x = const i1 0
+    %y = const i1 1
+    %choices = [i8 %a, %b]
+
+    %mux1 = mux [2 x i8] %choices, i1 %x
+    %mux2 = mux [2 x i8] %choices, i1 %y
+    ; CHECK: %mux1 = extf i8, [2 x i8] %choices, 0
+    ; CHECK: %mux2 = extf i8, [2 x i8] %choices, 1
+
+    ret
+}
