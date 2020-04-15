@@ -1,0 +1,72 @@
+; RUN: llhd-opt %s -p cf
+
+func @exts_i8 () void {
+entry:
+    %a = const i8 60 ; 0b00111100
+
+    %ext1 = exts i4, i8 %a, 0, 4
+    %ext2 = exts i4, i8 %a, 2, 4
+    %ext3 = exts i4, i8 %a, 4, 4
+    ; CHECK: %ext1 = const i4 12
+    ; CHECK: %ext2 = const i4 15
+    ; CHECK: %ext3 = const i4 3
+
+    ret
+}
+
+func @extf_array () void {
+entry:
+    %v0 = const i8 42
+    %v1 = const i8 43
+    %v2 = const i8 44
+    %v3 = const i8 45
+    %a = [4 x i8 %v0]
+    %b = [i8 %v0, %v1, %v2, %v3]
+
+    %zero = const i8 0
+    %uniform1 = extf i8, [4 x i8] %a, 0
+    %uniform2 = extf i8, [4 x i8] %a, 1
+    %uniform3 = extf i8, [4 x i8] %a, 2
+    %uniform4 = extf i8, [4 x i8] %a, 3
+    %uniform1_use = add i8 %uniform1, %zero
+    %uniform2_use = add i8 %uniform2, %zero
+    %uniform3_use = add i8 %uniform3, %zero
+    %uniform4_use = add i8 %uniform4, %zero
+    ; CHECK: %uniform1_use = const i8 42
+    ; CHECK: %uniform2_use = const i8 42
+    ; CHECK: %uniform3_use = const i8 42
+    ; CHECK: %uniform4_use = const i8 42
+
+    %var1 = extf i8, [4 x i8] %b, 0
+    %var2 = extf i8, [4 x i8] %b, 1
+    %var3 = extf i8, [4 x i8] %b, 2
+    %var4 = extf i8, [4 x i8] %b, 3
+    %var1_use = add i8 %var1, %zero
+    %var2_use = add i8 %var2, %zero
+    %var3_use = add i8 %var3, %zero
+    %var4_use = add i8 %var4, %zero
+    ; CHECK: %var1_use = const i8 42
+    ; CHECK: %var2_use = const i8 43
+    ; CHECK: %var3_use = const i8 44
+    ; CHECK: %var4_use = const i8 45
+
+    ret
+}
+
+func @extf_struct () void {
+entry:
+    %v0 = const i8 42
+    %v1 = const i16 1337
+    %a = {i8 %v0, i16 %v1}
+
+    %zero8 = const i8 0
+    %zero16 = const i16 0
+    %ext1 = extf i8, {i8, i16} %a, 0
+    %ext2 = extf i16, {i8, i16} %a, 1
+    %ext1_use = add i8 %ext1, %zero8
+    %ext2_use = add i16 %ext2, %zero16
+    ; CHECK: %ext1_use = const i8 42
+    ; CHECK: %ext2_use = const i16 1337
+
+    ret
+}

@@ -1,0 +1,14 @@
+; RUN: llhd-opt %s -p cf
+
+func @inss_i8 () void {
+entry:
+    %a = const i8 0
+    %b = const i4 15
+
+    %ins1 = inss i8 %a, i4 %b, 0, 4
+    %ins2 = inss i8 %a, i4 %b, 2, 4
+    ; CHECK: %ins1 = const i8 15
+    ; CHECK: %ins2 = const i8 60
+
+    ret
+}
