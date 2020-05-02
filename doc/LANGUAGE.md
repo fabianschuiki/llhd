@@ -31,7 +31,7 @@ Designs in LLHD are represented by three different constructs (called "units"): 
 
 The language differentiates between how instructions are executed in a unit:
 
-- *Control-flow* units consist of basic blocks, where execution follows a clear control-flow path. This is equivalent to what one would find LLVM's IR.
+- *Control-flow* units consist of basic blocks, where execution follows a clear control-flow path. This is equivalent to what one would find in LLVM's IR.
 - *Data-flow* units consist only of an unordered set of instructions which form a data-flow graph. Execution of instructions is implied by the propagation of value changes through the graph.
 
 Furthermore it differentiates how time passes during the execution of a unit:
@@ -115,7 +115,7 @@ The following process computes the butterfly operation in an FFT combinatorially
 
 ### Entities
 
-Processes represent *data-flow* executing in a *timed* fashion and consist of a set of instructions. They are used to represent hierarchy in a design, as well as a data-flow description of how a circuit's output signals change in reaction to changing input signals.
+Entities represent *data-flow* executing in a *timed* fashion and consist of a set of instructions. They are used to represent hierarchy in a design, as well as a data-flow description of how a circuit's output signals change in reaction to changing input signals.
 
     entity <name> (<in_ty1> <in_arg1>, ...) -> (<out_ty1> <out_arg1>, ...) {
         <inst1>
@@ -193,7 +193,7 @@ The `time` type represents a simulation time value as a combination of a real ti
 
 ### Integer Type (`iN`)
 
-The `iN` type represents an integer value of `N` bits, where `N` can be any non-zero positive number. There is no sign associate with integer values. Rather, separate instructions are available to perform signed and unsigned operations, where applicable. Integer values may be constructed using the `const iN` instruction, for example:
+The `iN` type represents an integer value of `N` bits, where `N` can be any non-zero positive number. There is no sign associated with an integer values. Rather, separate instructions are available to perform signed and unsigned operations, where applicable. Integer values may be constructed using the `const iN` instruction, for example:
 
     %0 = const i1 1
     %1 = const i32 9001
@@ -348,7 +348,7 @@ The `const` instruction is used to introduce a constant value into the IR. The f
     %result = const time <time>
 
 - `int` is an integer literal such as `0b0101`, `0o1247`, `129`, or `0x14F3E`
-- `time` is a time literal such as `1s`, `1s 2d`, or `1s 2d 3e`, where the real component may carry an SI prefix such as `as`, `fs`, `ps`, `ns`, `us`, `ms`.
+- `time` is a time literal such as `1s`, `1s 2d`, or `1s 2d 3e`, where the real component may carry an SI suffix such as `as`, `fs`, `ps`, `ns`, `us`, `ms`.
 
 ##### Example
 
@@ -419,7 +419,7 @@ Struct values may be constructed in the following way:
     %result = {T1 %value1, ..., TN %valueN}
 
 - `T1` to `TN` are the types of each field in the struct.
-- `%value1` to `%valueN` is the value of each field in the struct.
+- `%value1` to `%valueN` are the values for each field in the struct.
 - `%result` is of type `{T1, ..., TN}`.
 
 ##### Example
@@ -757,7 +757,7 @@ The `neg` operation computes the two's complement of a value, effectively flippi
     %result = smod T %lhs, %rhs
     %result = srem T %lhs, %rhs
 
-The `add`, `sub`, and `mul` instructions add, subtract, or multiply two values.
+The `add` and `mul` instructions respectively add and multiply two values. The `sub` instruction subtract the `%rhs` from the `%lhs`.
 The `udiv` and `sdiv` instructions divide the `%lhs` by the `%rhs`, interpreting the values as either unsigned or signed values, respectively.
 The `umod`, `smod`, and `srem` instructions compute the modulus and remainder of dividing the `%lhs` by `%rhs`. The semantics for signed numbers are as follows:
 
@@ -784,7 +784,7 @@ The `umod`, `smod`, and `srem` instructions compute the modulus and remainder of
     %result = eq  T %lhs, %rhs
     %result = neq T %lhs, %rhs
 
-The `eq` and `neq` instruction checks for equality or inequality of two values.
+The `eq` and `neq` instructions check for equality or inequality of two values.
 
 - `T` can be any type.
 - `%lhs` and `%rhs` are the left- and right-hand side arguments of the comparison and must be of type `T`.
@@ -824,11 +824,11 @@ The relational operators are available in a signed (`s` prefix) and unsigned (`u
 
     %result = phi T [%v1, %bb1], ..., [%vN, %bbN]
 
-The `phi` instruction is used to implement the φ node in the SSA graph representing the function or process. It produces on of its arguments `%v1` to `%vN` as a result depending on which basic block control flow originated from upon entering the `phi` instruction's basic block.
+The `phi` instruction is used to implement the φ node in the SSA graph representing the function or process. It produces one of its arguments `%v1` to `%vN` as a result depending on which basic block control flow originated from upon entering the `phi` instruction's basic block.
 
 - `T` can be any type.
 - `%v1` to `%vN` must be of type `T`.
-- `%bb1` to `%bbN` must be a basic block label.
+- `%bb1` to `%bbN` must be basic block labels.
 - `%result` is of type `T`.
 - The instruction must provide a value for every predecessor of its containing basic block.
 
@@ -841,7 +841,7 @@ The `phi` instruction is used to implement the φ node in the SSA graph represen
 The `br` instruction transfers control flow to another basic block. In the unconditional case, control flow jumps to the `%target`. In the conditional case, `%cond` determines if control is transferred to `%target_if_0` (on 0) or `%target_if_1` (on 1).
 
 - `%cond` must be of type `i1`.
-- `%target`, `%target_if_0`, and `%target_if_1` must be a basic block label.
+- `%target`, `%target_if_0`, and `%target_if_1` must be basic block labels.
 - This is a terminator instruction.
 
 
@@ -1047,7 +1047,7 @@ An SR latch:
 
     del T$ %target, %source, %delay
 
-The `del` instruction delays a signal `%source` by a `%delay`, driving the delayed value on `%target`. It models a transport delay, meaning that all strictly monotonically increasing events on `%sig` will eventually be reproduced on `%result`.
+The `del` instruction delays a signal `%source` by a `%delay`, driving the delayed value on `%target`. It models a transport delay, meaning that all strictly monotonically increasing events on `%source` will eventually be reproduced on `%target`.
 
 - `T` is the type carried by the signal.
 - `%target` and `%source` must be of type `T$`.
