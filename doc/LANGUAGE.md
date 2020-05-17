@@ -925,7 +925,7 @@ would eventually translate to the following in LLHD:
 
 The `var` instruction allocates memory on the stack with the initial value `%init` and returns a pointer to that location.
 
-- `T` may be any type except a signal type `T$`.
+- `T` may be any type.
 - `%init` is the initial value of the memory location and must be of type `T`.
 - `%result` is of type `T*`.
 
@@ -961,7 +961,7 @@ The `st` instruction stores a `%value` to the memory location `%ptr`.
 
 The `sig` instruction creates a signal in an entity with the initial value `%init` and returns that signal.
 
-- `T` may be any type except a pointer type `T*` or a signal type `T$`.
+- `T` may be any type.
 - `%init` is the initial value of the signal and must be of type `T`.
 - `%result` is of type `T$`.
 
