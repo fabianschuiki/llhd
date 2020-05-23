@@ -347,11 +347,8 @@ The `const` instruction is used to introduce a constant value into the IR. The f
 
     %result = const time <time>
     %result = const iN <int>
-    %result = const iN$ <int>
     %result = const nN <enum>
-    %result = const nN$ <enum>
     %result = const lN <logic>
-    %result = const lN$ <logic>
 
 - `time` is a time literal such as `1s`, `1s 2d`, or `1s 2d 3e`, where the real component may carry an SI suffix such as `as`, `fs`, `ps`, `ns`, `us`, `ms`, `s`.
 - `int` is an integer literal such as `0b0101`, `0o1247`, `129`, or `0x14F3E`
@@ -367,23 +364,17 @@ A constant time with value 1s+3d+7e may be constructed as follows:
 A constant 32 bit integer with value 42 may be constructed as follows:
 
     %0 = const i32 42
-    %1 = const i32$ 42
     ; type(%0) = i32
-    ; type(%1) = i32$
 
 A constant integer ranging from `0` to `99` with value 13 may be constructed as follows:
 
     %0 = const n100 13
-    %1 = const n100$ 13
     ; type(%0) = n100
-    ; type(%1) = n100$
 
 A constant value for 4 logic wires may be constructed as follows (note: here, the _lowest_ indexed wire is a logic `Z` and the _highest_ indexed wire is a logic `L`):
 
     %0 = const l4 "L0LZ"
-    %1 = const l4$ "L0LZ"
     ; type(%0) = l4
-    ; type(%1) = l4$
 
 #### Value Renaming (`alias`)
 
