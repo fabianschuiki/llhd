@@ -352,7 +352,7 @@ The `const` instruction is used to introduce a constant value into the IR. The f
 
 - `time` is a time literal such as `1s`, `1s 2d`, or `1s 2d 3e`, where the real component may carry an SI suffix such as `as`, `fs`, `ps`, `ns`, `us`, `ms`, `s`.
 - `int` is an integer literal such as `0b0101`, `0o1247`, `129`, or `0x14F3E`
-- `enum` is a decimal integer literal which ranges from `0` to `N-1`
+- `enum` is an integer literal similar to `int` but which ranges from `0` to `N-1`
 - `logic` is a string of `N` logic value characters (one of `U`, `X`, `0`, `1`, `Z`, `W`, `L`, `H`, `-`)
 
 ##### Example
