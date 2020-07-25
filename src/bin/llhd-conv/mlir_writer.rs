@@ -41,30 +41,6 @@ impl std::fmt::Display for MLIRUnitKind {
     }
 }
 
-// struct MLIRTypeKind(TypeKind);
-
-// impl std::fmt::Display for MLIRTypeKind {
-//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-//         match self.0 {
-//             TypeKind::VoidType => write!(f, "()"),
-//             TypeKind::TimeType => write!(f, "!llhd.time"),
-//             TypeKind::IntType(l) => write!(f, "i{}", l),
-//             TypeKind::EnumType(l) => write!(f, "n{}", l),
-//             TypeKind::PointerType(ref ty) => write!(f, "{}*", MLIRTypeKind(**ty)),
-//             TypeKind::SignalType(ref ty) => write!(f, "!llhd.sig<{}>", ty),
-//             TypeKind::ArrayType(l, ref ty) => write!(f, "vector<{}x{}>", l, ty),
-//             TypeKind::StructType(ref tys) => write!(f, "tuple<{}>", tys.iter().format(", ")),
-//             TypeKind::FuncType(ref args, ref ret) => write!(f, "({}) {}", args.iter().format(", "), ret),
-//             TypeKind::EntityType(ref ins, ref outs) => write!(
-//                 f,
-//                 "({}) -> ({})",
-//                 ins.iter().format(", "),
-//                 outs.iter().format(", ")
-//             ),
-//         }
-//     }
-// }
-
 struct MLIRType<'a>(&'a Type);
 
 impl std::fmt::Display for MLIRType<'_> {
@@ -76,7 +52,7 @@ impl std::fmt::Display for MLIRType<'_> {
             TypeKind::EnumType(l) => write!(f, "n{}", l),
             TypeKind::PointerType(ref ty) => write!(f, "!llhd.ptr<{}>", MLIRType(ty)),
             TypeKind::SignalType(ref ty) => write!(f, "!llhd.sig<{}>", MLIRType(ty)),
-            TypeKind::ArrayType(l, ref ty) => write!(f, "vector<{}x{}>", l, MLIRType(ty)),
+            TypeKind::ArrayType(l, ref ty) => write!(f, "!llhd.array<{}x{}>", l, MLIRType(ty)),
             TypeKind::StructType(ref tys) => write!(f, "tuple<{}>", tys.iter().map(|t| MLIRType(t)).format(", ")),
             TypeKind::FuncType(ref args, ref ret) => write!(f, "({}) -> {}", args.iter().map(|t| MLIRType(t)).format(", "), ret),
             TypeKind::EntityType(ref ins, ref outs) => write!(
@@ -97,11 +73,11 @@ impl std::fmt::Display for MLIROpcode {
             f,
             "{}",
             match self.0 {
-                Opcode::ConstInt => "constant",
+                Opcode::ConstInt => "llhd.const",
                 Opcode::ConstTime => "llhd.const",
                 Opcode::Alias => "alias",
-                Opcode::ArrayUniform => "llhd.univec",
-                Opcode::Array => "llhd.vec",
+                Opcode::ArrayUniform => "llhd.array_uniform",
+                Opcode::Array => "llhd.array",
                 Opcode::Struct => "llhd.tuple",
                 Opcode::Not => "llhd.not",
                 Opcode::Neg => "llhd.neg",
@@ -113,13 +89,13 @@ impl std::fmt::Display for MLIROpcode {
                 Opcode::Smul => "muli",
                 Opcode::Sdiv => "divi_signed",
                 Opcode::Smod => "llhd.smod",
-                Opcode::Srem => "rem_signed",
+                Opcode::Srem => "remi_signed",
                 Opcode::Umul => "muli",
                 Opcode::Udiv => "divi_unsigned",
                 Opcode::Umod => "remi_unsigned",
                 Opcode::Urem => "remi_unsigend",
-                Opcode::Eq => "eq",
-                Opcode::Neq => "ne",
+                Opcode::Eq => "llhd.eq",
+                Opcode::Neq => "llhd.neq",
                 Opcode::Slt => "slt",
                 Opcode::Sgt => "sgt",
                 Opcode::Sle => "sle",
@@ -130,12 +106,12 @@ impl std::fmt::Display for MLIROpcode {
                 Opcode::Uge => "uge",
                 Opcode::Shl => "llhd.shl",
                 Opcode::Shr => "llhd.shr",
-                Opcode::Mux => "llhd.dextf",
+                Opcode::Mux => "llhd.dyn_extract_element",
                 Opcode::Reg => "llhd.reg",
-                Opcode::InsField => "llhd.insf",
-                Opcode::InsSlice => "llhd.inss",
-                Opcode::ExtField => "llhd.extf",
-                Opcode::ExtSlice => "llhd.exts",
+                Opcode::InsField => "llhd.insert_element",
+                Opcode::InsSlice => "llhd.insert_slice",
+                Opcode::ExtField => "llhd.extract_element",
+                Opcode::ExtSlice => "llhd.extract_slice",
                 Opcode::Con => "con",
                 Opcode::Del => "del",
                 Opcode::Call => "call",
@@ -272,9 +248,9 @@ impl<T: Write> Writer<T> {
                                         write!(uw.writer.sink, "    ")?;
                                         uw.write_value_name(uw.unit.inst_result(shft_user))?;
                                         if let Opcode::ExtSlice = data[shft_user].opcode() {
-                                            write!(uw.writer.sink, " = llhd.dexts ")?;
+                                            write!(uw.writer.sink, " = llhd.dyn_extract_slice ")?;
                                         } else {
-                                            write!(uw.writer.sink, " = llhd.dextf ")?;
+                                            write!(uw.writer.sink, " = llhd.dyn_extract_element ")?;
                                         }
                                         uw.write_value_use(base, false)?;
                                         write!(uw.writer.sink, ", ")?;
@@ -484,13 +460,12 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                 // write!(self.writer.sink, "[{} x ", data.imms()[0])?;
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 self.write_value_use(data.args()[0], false)?;
-                write!(self.writer.sink, " : {} -> vector<{}x{}>",
-                    MLIRType(&unit.value_type(data.args()[0])),
+                write!(self.writer.sink, " : !llhd.array<{}x{}>",
                     data.imms()[0],
                     MLIRType(&unit.value_type(data.args()[0])))?;
              }
              Opcode::Array => {
-                 write!(self.writer.sink, "llhd.vec ")?;
+                 write!(self.writer.sink, "llhd.array ")?;
                  let mut first = true;
                  for &arg in data.args() {
                      if !first {
@@ -499,7 +474,7 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                      self.write_value_use(arg, false)?;
                      first = false;
                  }
-                 write!(self.writer.sink, " : vector<{}x{}>", 
+                 write!(self.writer.sink, " : !llhd.array<{}x{}>",
                      data.args().len(), 
                      MLIRType(&unit.value_type(data.args()[0])))?;
              }
@@ -546,6 +521,8 @@ impl<'a, T: Write> UnitWriter<'a, T> {
             | Opcode::Var
             | Opcode::Ld
             | Opcode::St
+            | Opcode::Eq
+            | Opcode::Neq
             | Opcode::RetValue => {
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 let mut first = true;
@@ -558,9 +535,7 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                 }
                 write!(self.writer.sink, " : {}", MLIRType(&unit.value_type(data.args()[0])))?;
             }
-            Opcode::Eq
-            | Opcode::Neq
-            | Opcode::Slt
+            Opcode::Slt
             | Opcode::Sgt
             | Opcode::Sle
             | Opcode::Sge
