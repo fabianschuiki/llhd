@@ -2,10 +2,10 @@
 
 //! Emitting LLHD IR assembly.
 
-use num::{BigInt, One, BigRational, cast::FromPrimitive};
+use itertools::Itertools;
 use llhd::ir::{prelude::*, UnitKind};
 use llhd::{Type, TypeKind};
-use itertools::Itertools;
+use num::{cast::FromPrimitive, BigInt, BigRational, One};
 use std::{
     collections::{HashMap, HashSet},
     io::{Result, Write},
@@ -53,8 +53,15 @@ impl std::fmt::Display for MLIRType<'_> {
             TypeKind::PointerType(ref ty) => write!(f, "!llhd.ptr<{}>", MLIRType(ty)),
             TypeKind::SignalType(ref ty) => write!(f, "!llhd.sig<{}>", MLIRType(ty)),
             TypeKind::ArrayType(l, ref ty) => write!(f, "!llhd.array<{}x{}>", l, MLIRType(ty)),
-            TypeKind::StructType(ref tys) => write!(f, "tuple<{}>", tys.iter().map(|t| MLIRType(t)).format(", ")),
-            TypeKind::FuncType(ref args, ref ret) => write!(f, "({}) -> {}", args.iter().map(|t| MLIRType(t)).format(", "), ret),
+            TypeKind::StructType(ref tys) => {
+                write!(f, "tuple<{}>", tys.iter().map(|t| MLIRType(t)).format(", "))
+            }
+            TypeKind::FuncType(ref args, ref ret) => write!(
+                f,
+                "({}) -> {}",
+                args.iter().map(|t| MLIRType(t)).format(", "),
+                ret
+            ),
             TypeKind::EntityType(ref ins, ref outs) => write!(
                 f,
                 "({}) -> ({})",
@@ -96,14 +103,14 @@ impl std::fmt::Display for MLIROpcode {
                 Opcode::Urem => "remi_unsigend",
                 Opcode::Eq => "llhd.eq",
                 Opcode::Neq => "llhd.neq",
-                Opcode::Slt => "slt",
-                Opcode::Sgt => "sgt",
-                Opcode::Sle => "sle",
-                Opcode::Sge => "sge",
-                Opcode::Ult => "ult",
-                Opcode::Ugt => "ugt",
-                Opcode::Ule => "ule",
-                Opcode::Uge => "uge",
+                Opcode::Slt => "cmpi \"slt\",",
+                Opcode::Sgt => "cmpi \"sgt\",",
+                Opcode::Sle => "cmpi \"sle\",",
+                Opcode::Sge => "cmpi \"sge\",",
+                Opcode::Ult => "cmpi \"ult\",",
+                Opcode::Ugt => "cmpi \"ugt\",",
+                Opcode::Ule => "cmpi \"ule\",",
+                Opcode::Uge => "cmpi \"uge\",",
                 Opcode::Shl => "llhd.shl",
                 Opcode::Shr => "llhd.shr",
                 Opcode::Mux => "llhd.dyn_extract_element",
@@ -166,7 +173,12 @@ impl<T: Write> Writer<T> {
     /// Emit assembly for a unit.
     pub fn write_unit(&mut self, data: Unit) -> Result<()> {
         let mut uw = UnitWriter::new(self, data);
-        write!(uw.writer.sink, "{} {}(", MLIRUnitKind(data.kind()), MLIRUnitName(data.name()))?;
+        write!(
+            uw.writer.sink,
+            "{} {}(",
+            MLIRUnitKind(data.kind()),
+            MLIRUnitName(data.name())
+        )?;
         let mut comma = false;
         for arg in data.sig().inputs() {
             if comma {
@@ -177,7 +189,11 @@ impl<T: Write> Writer<T> {
             write!(uw.writer.sink, ": {}", MLIRType(&data.sig().arg_type(arg)))?;
         }
         if data.kind() == UnitKind::Function {
-            write!(uw.writer.sink, ") {} {{\n", MLIRType(&data.sig().return_type()))?;
+            write!(
+                uw.writer.sink,
+                ") {} {{\n",
+                MLIRType(&data.sig().return_type())
+            )?;
         } else {
             write!(uw.writer.sink, ") -> (")?;
             let mut comma = false;
@@ -192,7 +208,6 @@ impl<T: Write> Writer<T> {
             write!(uw.writer.sink, ") {{\n")?;
         }
 
-
         let mut block_args = HashMap::<Block, Vec<Value>>::new();
         let mut terminator_args = HashMap::<(Block, Block), Vec<Value>>::new();
         if data.kind() != UnitKind::Entity {
@@ -200,16 +215,25 @@ impl<T: Write> Writer<T> {
                 for inst in data.insts(block) {
                     if let Opcode::Phi = data[inst].opcode() {
                         block_args.entry(block).or_insert(Vec::new());
-                        block_args.get_mut(&block).unwrap().push(uw.unit.inst_result(inst));
-                        for (&arg, &source_block) in data[inst].args().iter().zip(data[inst].blocks().iter()) {
-                            terminator_args.entry((source_block, block)).or_insert(Vec::new());
-                            terminator_args.get_mut(&(source_block, block)).unwrap().push(arg);
-                        } 
+                        block_args
+                            .get_mut(&block)
+                            .unwrap()
+                            .push(uw.unit.inst_result(inst));
+                        for (&arg, &source_block) in
+                            data[inst].args().iter().zip(data[inst].blocks().iter())
+                        {
+                            terminator_args
+                                .entry((source_block, block))
+                                .or_insert(Vec::new());
+                            terminator_args
+                                .get_mut(&(source_block, block))
+                                .unwrap()
+                                .push(arg);
+                        }
                     }
                 }
             }
         }
-
 
         if data.kind() != UnitKind::Entity {
             if let Some(block) = data.first_block() {
@@ -243,7 +267,9 @@ impl<T: Write> Writer<T> {
                             let amt = data[user_inst].args()[2];
                             let base = data[user_inst].args()[0];
                             for &shft_user in uw.unit.uses(uw.unit.inst_result(user_inst)) {
-                                if let Opcode::ExtSlice | Opcode::ExtField = data[shft_user].opcode() {
+                                if let Opcode::ExtSlice | Opcode::ExtField =
+                                    data[shft_user].opcode()
+                                {
                                     if data[shft_user].imms()[0] == 0 {
                                         write!(uw.writer.sink, "    ")?;
                                         uw.write_value_name(uw.unit.inst_result(shft_user))?;
@@ -255,10 +281,13 @@ impl<T: Write> Writer<T> {
                                         uw.write_value_use(base, false)?;
                                         write!(uw.writer.sink, ", ")?;
                                         uw.write_value_use(amt, false)?;
-                                        write!(uw.writer.sink, " : ({}, {}) -> {}\n",
+                                        write!(
+                                            uw.writer.sink,
+                                            " : ({}, {}) -> {}\n",
                                             MLIRType(&uw.unit.value_type(base)),
                                             MLIRType(&uw.unit.value_type(amt)),
-                                            MLIRType(&uw.unit.inst_type(shft_user)))?;
+                                            MLIRType(&uw.unit.inst_type(shft_user))
+                                        )?;
                                     }
                                 }
                                 deleted.insert(shft_user);
@@ -342,7 +371,11 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                 }
                 first = false;
                 self.write_value_name(*arg)?;
-                write!(self.writer.sink, ": {}", MLIRType(&self.unit.value_type(*arg)))?;
+                write!(
+                    self.writer.sink,
+                    ": {}",
+                    MLIRType(&self.unit.value_type(*arg))
+                )?;
             }
             if block_args.len() > 0 {
                 write!(self.writer.sink, ")")?;
@@ -365,7 +398,11 @@ impl<'a, T: Write> UnitWriter<'a, T> {
             }
             first = false;
             self.write_value_name(*arg)?;
-            write!(self.writer.sink, ": {}", MLIRType(&self.unit.value_type(*arg)))?;
+            write!(
+                self.writer.sink,
+                ": {}",
+                MLIRType(&self.unit.value_type(*arg))
+            )?;
         }
         if block_args.len() > 0 {
             write!(self.writer.sink, ")")?;
@@ -375,8 +412,71 @@ impl<'a, T: Write> UnitWriter<'a, T> {
     }
 
     /// Emit the name of a BB to be used as label in an instruction.
-    pub fn write_block_value(&mut self, block: Block, terminator_args: &Vec<Value>) -> Result<()> {
-        return self.write_block_name(block, terminator_args);
+    pub fn write_block_value(&mut self, block: Block, block_args: &Vec<Value>) -> Result<()> {
+        // If we have already picked a name for the value, use that.
+        if let Some(name) = self.block_names.get(&block) {
+            write!(self.writer.sink, "^{}", name)?;
+            if block_args.len() > 0 {
+                let mut first = true;
+                write!(self.writer.sink, "(")?;
+                for arg in block_args {
+                    if !first {
+                        write!(self.writer.sink, ", ")?;
+                    }
+                    first = false;
+                    self.write_value_name(*arg)?;
+                }
+                write!(self.writer.sink, " : ")?;
+                first = true;
+                for arg in block_args {
+                    if !first {
+                        write!(self.writer.sink, ", ")?;
+                    }
+                    first = false;
+                    write!(
+                        self.writer.sink,
+                        "{}",
+                        MLIRType(&self.unit.value_type(*arg))
+                    )?;
+                }
+                write!(self.writer.sink, ")")?;
+            }
+            return Ok(());
+        }
+
+        // Check if the block has an explicit name set, or if we should just
+        // generate a temporary name.
+        let name = self.uniquify_name(self.unit.get_block_name(block));
+
+        // Emit the name and associate it with the block for later reuse.
+        write!(self.writer.sink, "^{}", name)?;
+        if block_args.len() > 0 {
+            let mut first = true;
+            write!(self.writer.sink, "(")?;
+            for arg in block_args {
+                if !first {
+                    write!(self.writer.sink, ", ")?;
+                }
+                first = false;
+                self.write_value_name(*arg)?;
+            }
+            write!(self.writer.sink, " : ")?;
+            first = true;
+            for arg in block_args {
+                if !first {
+                    write!(self.writer.sink, ", ")?;
+                }
+                first = false;
+                write!(
+                    self.writer.sink,
+                    "{}",
+                    MLIRType(&self.unit.value_type(*arg))
+                )?;
+            }
+            write!(self.writer.sink, ")")?;
+        }
+        self.block_names.insert(block, name);
+        Ok(())
     }
 
     /// Uniquify a value or block name.
@@ -414,13 +514,17 @@ impl<'a, T: Write> UnitWriter<'a, T> {
         self.write_value_name(value)
     }
 
-
     /// Emit an instruction.
-    pub fn write_inst(&mut self, curr_block: Block, inst: Inst, terminator_args: &HashMap<(Block, Block), Vec<Value>>) -> Result<()> {
+    pub fn write_inst(
+        &mut self,
+        curr_block: Block,
+        inst: Inst,
+        terminator_args: &HashMap<(Block, Block), Vec<Value>>,
+    ) -> Result<()> {
         let def = Vec::new();
         let unit = self.unit;
 
-        fn get_canonicalized_time(time : &BigRational) -> (BigRational, String) {
+        fn get_canonicalized_time(time: &BigRational) -> (BigRational, String) {
             let mut t = time.clone();
             let si_units = vec!["ys", "zs", "as", "fs", "ps", "ns", "us", "ms", "s"];
             for &prefix in si_units.iter().rev() {
@@ -428,7 +532,7 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     return (t, prefix.to_string());
                 }
                 t = t * BigRational::from_i64(1000).unwrap();
-            } 
+            }
             unreachable!("too small time amount");
         }
 
@@ -445,39 +549,43 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                 data.get_const_int().unwrap().value,
                 MLIRType(&unit.value_type(unit.inst_result(inst)))
             )?,
-            Opcode::ConstTime => 
-                write!(
-                    self.writer.sink,
-                    "{} #llhd.time<{}{}, {}d, {}e> : {}",
-                    MLIROpcode(data.opcode()),
-                    get_canonicalized_time(&data.get_const_time().unwrap().time).0,
-                    get_canonicalized_time(&data.get_const_time().unwrap().time).1,
-                    data.get_const_time().unwrap().delta,
-                    data.get_const_time().unwrap().epsilon,
-                    MLIRType(&unit.value_type(unit.inst_result(inst)))
-                )?,
+            Opcode::ConstTime => write!(
+                self.writer.sink,
+                "{} #llhd.time<{}{}, {}d, {}e> : {}",
+                MLIROpcode(data.opcode()),
+                get_canonicalized_time(&data.get_const_time().unwrap().time).0,
+                get_canonicalized_time(&data.get_const_time().unwrap().time).1,
+                data.get_const_time().unwrap().delta,
+                data.get_const_time().unwrap().epsilon,
+                MLIRType(&unit.value_type(unit.inst_result(inst)))
+            )?,
             Opcode::ArrayUniform => {
-                // write!(self.writer.sink, "[{} x ", data.imms()[0])?;
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 self.write_value_use(data.args()[0], false)?;
-                write!(self.writer.sink, " : !llhd.array<{}x{}>",
+                write!(
+                    self.writer.sink,
+                    " : !llhd.array<{}x{}>",
                     data.imms()[0],
-                    MLIRType(&unit.value_type(data.args()[0])))?;
-             }
-             Opcode::Array => {
-                 write!(self.writer.sink, "llhd.array ")?;
-                 let mut first = true;
-                 for &arg in data.args() {
-                     if !first {
-                         write!(self.writer.sink, ", ")?;
-                     }
-                     self.write_value_use(arg, false)?;
-                     first = false;
-                 }
-                 write!(self.writer.sink, " : !llhd.array<{}x{}>",
-                     data.args().len(), 
-                     MLIRType(&unit.value_type(data.args()[0])))?;
-             }
+                    MLIRType(&unit.value_type(data.args()[0]))
+                )?;
+            }
+            Opcode::Array => {
+                write!(self.writer.sink, "llhd.array ")?;
+                let mut first = true;
+                for &arg in data.args() {
+                    if !first {
+                        write!(self.writer.sink, ", ")?;
+                    }
+                    self.write_value_use(arg, false)?;
+                    first = false;
+                }
+                write!(
+                    self.writer.sink,
+                    " : !llhd.array<{}x{}>",
+                    data.args().len(),
+                    MLIRType(&unit.value_type(data.args()[0]))
+                )?;
+            }
             Opcode::Struct => {
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 let mut first = true;
@@ -515,14 +623,22 @@ impl<'a, T: Write> UnitWriter<'a, T> {
             | Opcode::Udiv
             | Opcode::Umod
             | Opcode::Urem
-            | Opcode::Con //TODO
-            | Opcode::Del //TODO
+            | Opcode::Con
+            | Opcode::Del
             | Opcode::Prb
             | Opcode::Var
             | Opcode::Ld
             | Opcode::St
             | Opcode::Eq
             | Opcode::Neq
+            | Opcode::Slt
+            | Opcode::Sgt
+            | Opcode::Sle
+            | Opcode::Sge
+            | Opcode::Ult
+            | Opcode::Ugt
+            | Opcode::Ule
+            | Opcode::Uge
             | Opcode::RetValue => {
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 let mut first = true;
@@ -533,30 +649,20 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     self.write_value_use(arg, false)?;
                     first = false;
                 }
-                write!(self.writer.sink, " : {}", MLIRType(&unit.value_type(data.args()[0])))?;
-            }
-            Opcode::Slt
-            | Opcode::Sgt
-            | Opcode::Sle
-            | Opcode::Sge
-            | Opcode::Ult
-            | Opcode::Ugt
-            | Opcode::Ule
-            | Opcode::Uge => {
-                write!(self.writer.sink, "cmpi \"{}\", ", MLIROpcode(data.opcode()))?;
-                let mut first = true;
-                for &arg in data.args() {
-                    if !first {
-                        write!(self.writer.sink, ", ")?;
-                    }
-                    self.write_value_use(arg, false)?;
-                    first = false;
-                }
-                write!(self.writer.sink, " : {}", MLIRType(&unit.value_type(data.args()[0])))?;
+                write!(
+                    self.writer.sink,
+                    " : {}",
+                    MLIRType(&unit.value_type(data.args()[0]))
+                )?;
             }
             Opcode::Sig => {
                 let sig_name = &self.uniquify_name(Some("sig"));
-                write!(self.writer.sink, "{} \"{}\" ", MLIROpcode(data.opcode()), sig_name)?;
+                write!(
+                    self.writer.sink,
+                    "{} \"{}\" ",
+                    MLIROpcode(data.opcode()),
+                    sig_name
+                )?;
                 let mut first = true;
                 for &arg in data.args() {
                     if !first {
@@ -565,7 +671,11 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     self.write_value_use(arg, false)?;
                     first = false;
                 }
-                write!(self.writer.sink, " : {}", MLIRType(&unit.value_type(data.args()[0])))?;
+                write!(
+                    self.writer.sink,
+                    " : {}",
+                    MLIRType(&unit.value_type(data.args()[0]))
+                )?;
             }
             Opcode::Drv => {
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
@@ -575,7 +685,11 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                 self.write_value_use(args[1], false)?;
                 write!(self.writer.sink, " after ")?;
                 self.write_value_use(args[2], false)?;
-                write!(self.writer.sink, " : {}", MLIRType(&unit.value_type(data.args()[0])))?;
+                write!(
+                    self.writer.sink,
+                    " : {}",
+                    MLIRType(&unit.value_type(data.args()[0]))
+                )?;
             }
             Opcode::DrvCond => {
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
@@ -587,7 +701,11 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                 self.write_value_use(args[2], false)?;
                 write!(self.writer.sink, " if ")?;
                 self.write_value_use(args[3], false)?;
-                write!(self.writer.sink, " : {}", MLIRType(&unit.value_type(data.args()[0])))?;
+                write!(
+                    self.writer.sink,
+                    " : {}",
+                    MLIRType(&unit.value_type(data.args()[0]))
+                )?;
             }
             Opcode::Shl | Opcode::Shr => {
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
@@ -599,24 +717,28 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     comma = true;
                     self.write_value_use(arg, false)?;
                 }
-                write!(self.writer.sink, " : ({}, {}, {}) -> {}",
+                write!(
+                    self.writer.sink,
+                    " : ({}, {}, {}) -> {}",
                     MLIRType(&unit.value_type(data.args()[0])),
                     MLIRType(&unit.value_type(data.args()[1])),
                     MLIRType(&unit.value_type(data.args()[2])),
-                    MLIRType(&unit.value_type(unit.inst_result(inst))))?;
+                    MLIRType(&unit.value_type(unit.inst_result(inst)))
+                )?;
             }
             Opcode::Mux => {
-                write!(self.writer.sink, "{} ",
-                    MLIROpcode(data.opcode()))?;
+                write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 self.write_value_use(data.args()[0], false)?;
                 write!(self.writer.sink, ", ")?;
                 self.write_value_use(data.args()[1], false)?;
-                write!(self.writer.sink, " : ({}, {}) -> {}",
+                write!(
+                    self.writer.sink,
+                    " : ({}, {}) -> {}",
                     MLIRType(&unit.value_type(data.args()[0])),
                     MLIRType(&unit.value_type(data.args()[1])),
-                    MLIRType(&unit.inst_type(inst)))?;
+                    MLIRType(&unit.inst_type(inst))
+                )?;
             }
-            //TODO
             Opcode::Reg => {
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 self.write_value_use(data.args()[0], false)?;
@@ -630,9 +752,17 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                         write!(self.writer.sink, ", if ")?;
                         self.write_value_use(gate, false)?;
                     }
-                    write!(self.writer.sink, " : {})", MLIRType(&unit.value_type(t.data)))?;
+                    write!(
+                        self.writer.sink,
+                        " : {})",
+                        MLIRType(&unit.value_type(t.data))
+                    )?;
                 }
-                write!(self.writer.sink, " : {}", MLIRType(&unit.value_type(data.args()[0])))?;
+                write!(
+                    self.writer.sink,
+                    " : {}",
+                    MLIRType(&unit.value_type(data.args()[0]))
+                )?;
             }
             Opcode::InsField | Opcode::InsSlice => {
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
@@ -644,20 +774,24 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     self.write_value_use(arg, false)?;
                     first = false;
                 }
-                write!(self.writer.sink, ", {} : {}, {}", 
-                    data.imms()[0],
-                    MLIRType(&unit.value_type(data.args()[0])),
-                    MLIRType(&unit.value_type(data.args()[1])))?;
-            }
-            Opcode::ExtField | Opcode::ExtSlice => {
                 write!(
                     self.writer.sink,
-                    "{} ",
-                    MLIROpcode(data.opcode())
+                    ", {} : {}, {}",
+                    data.imms()[0],
+                    MLIRType(&unit.value_type(data.args()[0])),
+                    MLIRType(&unit.value_type(data.args()[1]))
                 )?;
+            }
+            Opcode::ExtField | Opcode::ExtSlice => {
+                write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 self.write_value_use(data.args()[0], false)?;
                 write!(self.writer.sink, ", {}", data.imms()[0])?;
-                write!(self.writer.sink, " : {} -> {}", MLIRType(&unit.value_type(data.args()[0])), MLIRType(&unit.inst_type(inst)))?;
+                write!(
+                    self.writer.sink,
+                    " : {} -> {}",
+                    MLIRType(&unit.value_type(data.args()[0])),
+                    MLIRType(&unit.inst_type(inst))
+                )?;
             }
             Opcode::Call => {
                 write!(
@@ -685,12 +819,15 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                 }
                 let ty = unit.value_type(unit.inst_result(inst));
                 let void_ty = llhd::void_ty();
-                write!(self.writer.sink, ") -> {}",
+                write!(
+                    self.writer.sink,
+                    ") -> {}",
                     if unit.has_result(inst) {
                         MLIRType(&ty)
                     } else {
                         MLIRType(&void_ty)
-                    })?;
+                    }
+                )?;
             }
             Opcode::Inst => {
                 let inst_name = &self.uniquify_name(Some("inst"));
@@ -738,40 +875,29 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                 }
                 write!(self.writer.sink, ")")?;
             }
-            Opcode::Halt | Opcode::Ret => write!(self.writer.sink, "{}", MLIROpcode(data.opcode()))?,
-            Opcode::Phi => {
-                // write!(
-                //     self.writer.sink,
-                //     "{} {} ",
-                //     data.opcode(),
-                //     unit.value_type(unit.inst_result(inst))
-                // )?;
-                // let mut comma = false;
-                // for (&arg, &block) in data.args().iter().zip(data.blocks().iter()) {
-                //     if comma {
-                //         write!(self.writer.sink, ", ")?;
-                //     }
-                //     comma = true;
-                //     write!(self.writer.sink, "[")?;
-                //     self.write_value_use(arg, false)?;
-                //     write!(self.writer.sink, ", ")?;
-                //     self.write_block_value(curr_block, block)?;
-                //     write!(self.writer.sink, "]")?;
-                // }
+            Opcode::Halt | Opcode::Ret => {
+                write!(self.writer.sink, "{}", MLIROpcode(data.opcode()))?
             }
+            Opcode::Phi => {}
             Opcode::Br => {
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
-                let term_args = terminator_args.get(&(curr_block, data.blocks()[0])).unwrap_or(&&def);
+                let term_args = terminator_args
+                    .get(&(curr_block, data.blocks()[0]))
+                    .unwrap_or(&&def);
                 self.write_block_value(data.blocks()[0], term_args)?;
             }
             Opcode::BrCond => {
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 self.write_value_use(data.args()[0], false)?;
                 write!(self.writer.sink, ", ")?;
-                let term_args = terminator_args.get(&(curr_block, data.blocks()[1])).unwrap_or(&&def);
+                let term_args = terminator_args
+                    .get(&(curr_block, data.blocks()[1]))
+                    .unwrap_or(&&def);
                 self.write_block_value(data.blocks()[1], term_args)?;
                 write!(self.writer.sink, ", ")?;
-                let term_args = terminator_args.get(&(curr_block, data.blocks()[0])).unwrap_or(&&def);
+                let term_args = terminator_args
+                    .get(&(curr_block, data.blocks()[0]))
+                    .unwrap_or(&&def);
                 self.write_block_value(data.blocks()[0], term_args)?;
             }
             Opcode::Wait => {
@@ -797,7 +923,9 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     }
                     write!(self.writer.sink, "), ")?;
                 }
-                let term_args = terminator_args.get(&(curr_block, data.blocks()[0])).unwrap_or(&&def);
+                let term_args = terminator_args
+                    .get(&(curr_block, data.blocks()[0]))
+                    .unwrap_or(&&def);
                 self.write_block_value(data.blocks()[0], term_args)?;
             }
             Opcode::WaitTime => {
@@ -826,7 +954,9 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     }
                     write!(self.writer.sink, "), ")?;
                 }
-                let term_args = terminator_args.get(&(curr_block, data.blocks()[0])).unwrap_or(&&def);
+                let term_args = terminator_args
+                    .get(&(curr_block, data.blocks()[0]))
+                    .unwrap_or(&&def);
                 self.write_block_value(data.blocks()[0], term_args)?;
             }
         }
