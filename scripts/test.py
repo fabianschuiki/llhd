@@ -9,6 +9,7 @@ import re
 import shlex
 from pathlib import Path
 from copy import copy
+import itertools
 
 cbold = "\x1b[1m"
 cpass = "\x1b[32m"
@@ -37,6 +38,7 @@ args = parser.parse_args()
 # A class to encapsulate the check directives in a file.
 class CheckFile:
     regex_dir = re.compile(r'^\s*;\s*(CHECK[^:]*):\s+(.+)$')
+    ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
 
     def __init__(self, checks, input):
         # Collect the directives in the file.
@@ -77,6 +79,7 @@ class CheckFile:
         if dirname == "CHECK":
             for line in state:
                 line = line.split(";")[0].strip()
+                line = self.ansi_escape.sub("", line)
                 if line == directive[1]:
                     return state
             raise Exception("No matching line found")
@@ -116,23 +119,20 @@ try:
             cmd = ["cargo", "build", "--bins"]
             if args.release:
                 cmd += ["--release"]
-            subprocess.run(
+            subprocess.check_call(
                 cmd,
                 stdin=subprocess.DEVNULL,
                 cwd=crate_dir.__str__(),
-                check=True,
             )
 
         # Extract build directory
         # cargo metadata --format-version 1 | sed -n 's/.*"target_directory":"\([^"]*\)".*/\1/p'
-        metadata = subprocess.run(
+        metadata = subprocess.check_output(
             ["cargo", "metadata", "--format-version", "1"],
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
             cwd=crate_dir.__str__(),
-            check=True,
             universal_newlines=True,
-        ).stdout
+        )
         prefix = re.search(r'"target_directory":"([^"]*)"', metadata).group(1)
         if args.debug:
             prefix += "/debug"
@@ -151,13 +151,14 @@ if args.verbose:
 
 # A class to encapsulate the execution and checking of a single test.
 class TestCase(object):
-    regex_ignore = re.compile(r'^;\s*IGNORE\b', flags=re.MULTILINE)
-    regex_fail   = re.compile(r'^;\s*FAIL\b', flags=re.MULTILINE)
-    regex_run    = re.compile(r'^;\s*RUN:\s+(.+)$', flags=re.MULTILINE)
+    regex_ignore = re.compile(r'^\s*;\s*IGNORE\b', flags=re.MULTILINE)
+    regex_fail   = re.compile(r'^\s*;\s*FAIL\b', flags=re.MULTILINE)
+    regex_run    = re.compile(r'^\s*;\s*RUN:\s+(.+)$', flags=re.MULTILINE)
 
     def __init__(self, name, path):
         self.name = name
-        self.path = path
+        self.path = Path(path)
+        self.dir = self.path.parent
 
         # Load the contents of the test file.
         with open(path.__str__()) as f:
@@ -176,18 +177,30 @@ class TestCase(object):
         else:
             self.run = "llhd-check %s"
 
-        # Process the run command.
-        self.cmd = shlex.split(self.run)
-        if self.cmd[0].startswith("llhd-"):
-            self.cmd[0] = "{}{}".format(prefix, self.cmd[0])
-        self.cmd = [path if x == "%s" else x for x in self.cmd]
-
         # Execution results.
         self.timeout = False
         self.failed = False
         self.info = ""
         self.stdout = ""
         self.stderr = ""
+
+        # Process the run command.
+        self.cmd = shlex.split(self.run)
+        if self.cmd[0].startswith("llhd-"):
+            self.cmd[0] = "{}{}".format(prefix, self.cmd[0])
+        self.cmd = [path if x == "%s" else x for x in self.cmd]
+        cmd = list()
+        for x in self.cmd:
+            if "*" in x.__str__():
+                self.info += "Arg: `{}` is a glob pattern\n".format(x)
+                cmd += self.dir.glob(x)
+            elif (self.dir/x).exists():
+                self.info += "Arg: `{}` is a path\n".format(x)
+                cmd.append(self.dir/x)
+            else:
+                self.info += "Arg: `{}` is a plain argument\n".format(x)
+                cmd.append(x)
+        self.cmd = list([x.__str__() for x in cmd])
 
     def launch(self):
         if self.ignore:
@@ -212,7 +225,7 @@ class TestCase(object):
         try:
             self.stdout, self.stderr = self.proc.communicate(timeout=10)
         except subprocess.TimeoutExpired as e:
-            proc.kill()
+            self.proc.kill()
             self.stdout, self.stderr = self.proc.communicate()
             self.timeout = True
             self.failed = True
@@ -241,41 +254,48 @@ class TestCase(object):
 if args.TEST:
     tests = [TestCase(p, Path(os.path.realpath(p))) for p in args.TEST]
 else:
-    tests = [TestCase(p.relative_to(test_dir), p) for p in sorted(test_dir.glob("**/*.llhd"))]
+    suffices = ["llhd"]
+    third_party = test_dir/"third-party"
+    globs = [[p for p in test_dir.glob("**/*."+suffix) if third_party not in p.parents] for suffix in suffices]
+    tests = [TestCase(p.relative_to(test_dir), p) for p in sorted(itertools.chain(*globs))]
 sys.stdout.write("running {} tests\n".format(len(tests)))
 
-# Execute the tests.
-for test in tests:
-    test.launch()
+# Assemble the test arrays.
+num_parallel = 16
+heads = tests + [None]*num_parallel
+tails = [None]*num_parallel + tests
 
-# Output test results.
+# Execute the tests and output test results.
 ignored = list()
 failed = list()
-for test in tests:
-    sys.stdout.write("test {} ...".format(test.name))
-    sys.stdout.flush()
-    test.finish()
-    if test.ignore:
-        ignored.append(test)
-        sys.stdout.write(" ignored\n")
-        continue
-    if test.timeout:
-        sys.stdout.write(" timeout,")
-    if test.failed:
-        failed.append(test)
-        sys.stdout.write(" {}FAILED{}\n".format(cbold+cfail, creset))
-        if args.verbose:
-            sys.stdout.write("\n=== INFO ===\n")
-            sys.stdout.write(test.info)
-            sys.stdout.write("\n=== STDERR ===\n")
-            sys.stdout.write(test.stderr)
-            sys.stdout.write("\n=== STDOUT ===\n")
-            sys.stdout.write(test.stdout)
-            sys.stdout.write("\n")
-    else:
-        sys.stdout.write(" {}passed{}\n".format(cpass, creset))
-    if args.commands:
-        sys.stdout.write("# {}\n".format(" ".join([x.__str__() for x in test.cmd])))
+for head, tail in zip(heads, tails):
+    if head:
+        head.launch()
+    if tail:
+        sys.stdout.write("test {} ...".format(tail.name))
+        sys.stdout.flush()
+        tail.finish()
+        if tail.ignore:
+            ignored.append(tail)
+            sys.stdout.write(" ignored\n")
+            continue
+        if tail.timeout:
+            sys.stdout.write(" timeout,")
+        if tail.failed:
+            failed.append(tail)
+            sys.stdout.write(" {}FAILED{}\n".format(cbold+cfail, creset))
+            if args.verbose:
+                sys.stdout.write("\n=== INFO ===\n")
+                sys.stdout.write(tail.info)
+                sys.stdout.write("\n=== STDERR ===\n")
+                sys.stdout.write(tail.stderr)
+                sys.stdout.write("\n=== STDOUT ===\n")
+                sys.stdout.write(tail.stdout)
+                sys.stdout.write("\n")
+        else:
+            sys.stdout.write(" {}passed{}\n".format(cpass, creset))
+        if args.commands:
+            sys.stdout.write("# {}\n".format(" ".join([x.__str__() for x in tail.cmd])))
 
 # Output summary.
 sys.stdout.write("\n")
