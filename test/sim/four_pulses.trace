@@ -1,0 +1,28 @@
+0ps 0d 0e
+5000ps 0d 0e
+  four_pulses/out = 0x0
+10000ps 0d 0e
+15000ps 0d 0e
+  four_pulses/out = 0x1
+20000ps 0d 0e
+25000ps 0d 0e
+  four_pulses/out = 0x0
+30000ps 0d 0e
+35000ps 0d 0e
+  four_pulses/out = 0x1
+40000ps 0d 0e
+45000ps 0d 0e
+  four_pulses/out = 0x0
+50000ps 0d 0e
+55000ps 0d 0e
+  four_pulses/out = 0x1987
+60000ps 0d 0e
+65000ps 0d 0e
+  four_pulses/out = 0x0
+70000ps 0d 0e
+75000ps 0d 0e
+  four_pulses/out = 0x1
+80000ps 0d 0e
+85000ps 0d 0e
+  four_pulses/out = 0x0
+90000ps 0d 0e

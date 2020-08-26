@@ -1,0 +1,38 @@
+; RUN: llhd-sim %s
+; This design generates four clock pulses.
+
+proc @four_pulses () -> (i1$ %out) {
+entry:
+	%zero = const i1 0
+	%one = const i1 1
+	%five_ns = const time 5ns
+	%ten_ns = const time 10ns
+	drv i1$ %out, %zero, %five_ns
+	wait %pulse0 for %ten_ns
+pulse0:
+	drv i1$ %out, %one, %five_ns
+	wait %pulse1 for %ten_ns
+pulse1:
+	drv i1$ %out, %zero, %five_ns
+	wait %pulse2 for %ten_ns
+pulse2:
+	drv i1$ %out, %one, %five_ns
+	wait %pulse3 for %ten_ns
+pulse3:
+	drv i1$ %out, %zero, %five_ns
+	wait %pulse4 for %ten_ns
+pulse4:
+	drv i1$ %out, %one, %five_ns
+	wait %pulse5 for %ten_ns
+pulse5:
+	drv i1$ %out, %zero, %five_ns
+	wait %pulse6 for %ten_ns
+pulse6:
+	drv i1$ %out, %one, %five_ns
+	wait %pulse7 for %ten_ns
+pulse7:
+	drv i1$ %out, %zero, %five_ns
+	wait %pulse8 for %ten_ns
+pulse8:
+	halt
+}
