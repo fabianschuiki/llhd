@@ -18,8 +18,8 @@ use std::{
 };
 
 mod liberty;
-pub mod verilog;
 mod mlir_writer;
+pub mod verilog;
 
 fn main() -> Result<()> {
     // Parse the command line arguments.
@@ -181,7 +181,7 @@ enum Format {
     Firrtl,
     Edif,
     Liberty,
-    MLIR,
+    Mlir,
 }
 
 impl FromStr for Format {
@@ -195,7 +195,7 @@ impl FromStr for Format {
             "fir" => Ok(Format::Firrtl),
             "edif" => Ok(Format::Edif),
             "lib" => Ok(Format::Liberty),
-            "mlir" => Ok(Format::MLIR),
+            "mlir" => Ok(Format::Mlir),
             _ => Err(()),
         }
     }
@@ -211,7 +211,7 @@ impl std::fmt::Display for Format {
             Format::Firrtl => write!(f, "FIRRTL"),
             Format::Edif => write!(f, "EDIF netlist"),
             Format::Liberty => write!(f, "LIB file"),
-            Format::MLIR => write!(f, "MLIR assembly"),
+            Format::Mlir => write!(f, "MLIR assembly"),
         }
     }
 }
@@ -244,8 +244,10 @@ fn write_output(module: &llhd::ir::Module, output: &mut impl Write, format: Form
             crate::verilog::write(output, module)?;
             Ok(())
         }
-        Format::MLIR => {
-            mlir_writer::Writer::new(output).write_module(module).unwrap();
+        Format::Mlir => {
+            mlir_writer::Writer::new(output)
+                .write_module(module)
+                .unwrap();
             Ok(())
         }
         f => bail!("{} outputs not supported", f),
