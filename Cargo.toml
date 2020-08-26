@@ -8,6 +8,7 @@ description = "A Low Level Hardware Description that acts as a foundation for bu
 repository = "https://github.com/fabianschuiki/llhd"
 readme = "README.md"
 license = "Apache-2.0 OR MIT"
+homepage = "http://llhd.io/"
 
 [badges]
 travis-ci = { repository = "fabianschuiki/llhd", branch = "master" }
