@@ -10,10 +10,10 @@ use num::{bigint::ToBigInt, BigInt, BigUint, One, Signed, ToPrimitive, Zero};
 use std::fmt::{Debug, Display};
 
 /// A point in time.
-pub type Time = llhd::ConstTime;
+pub type Time = llhd::value::TimeValue;
 
 /// A point in time.
-pub type TimeValue = llhd::ConstTime;
+pub type TimeValue = llhd::value::TimeValue;
 
 /// A value.
 #[derive(Clone, PartialEq, Eq)]

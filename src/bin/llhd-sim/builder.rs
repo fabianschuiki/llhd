@@ -10,6 +10,7 @@ use crate::{
     value::{ArrayValue, IntValue, StructValue, TimeValue, Value},
 };
 use anyhow::{anyhow, Result};
+use num::bigint::ToBigInt;
 use std::{collections::HashMap, sync::Mutex};
 
 struct Builder<'ll> {
@@ -33,7 +34,7 @@ impl<'ll> Builder<'ll> {
     }
 
     /// Build the root unit for a simulation.
-    fn build_root(&mut self, mod_unit: llhd::ir::ModUnit, unit: &impl llhd::ir::Unit) {
+    fn build_root(&mut self, unit: llhd::ir::Unit<'ll>) {
         let sig = unit.sig();
 
         // Allocate the input and output signals for the top-level module.
@@ -49,7 +50,7 @@ impl<'ll> Builder<'ll> {
 
         // Instantiate the top-level module.
         self.push_scope(unit.name().to_string());
-        self.instantiate(mod_unit, unit, inputs, outputs);
+        self.instantiate(unit, inputs, outputs);
     }
 
     /// Allocate a new signal in the simulation and return a reference to it.
@@ -73,13 +74,11 @@ impl<'ll> Builder<'ll> {
     /// the simulation structure for all subunits as necessary.
     pub fn instantiate(
         &mut self,
-        mod_unit: llhd::ir::ModUnit,
-        unit: &impl llhd::ir::Unit,
+        unit: llhd::ir::Unit<'ll>,
         inputs: Vec<SignalRef>,
         outputs: Vec<SignalRef>,
     ) {
         debug!("Instantiating {}", unit.name());
-        let dfg = unit.dfg();
 
         // Create signal probes for the input and output arguments of the unit.
         let input_iter = unit.sig().inputs().zip(inputs.iter());
@@ -87,8 +86,8 @@ impl<'ll> Builder<'ll> {
         let args_iter = input_iter.chain(output_iter);
         let mut values: HashMap<llhd::ir::Value, ValueSlot> = args_iter
             .map(|(arg, &sig)| {
-                let v = dfg.arg_value(arg);
-                if let Some(name) = dfg.get_name(v) {
+                let v = unit.arg_value(arg);
+                if let Some(name) = unit.get_name(v) {
                     self.alloc_signal_probe(sig, name.to_string());
                 }
                 (v, ValueSlot::Signal(sig))
@@ -100,78 +99,74 @@ impl<'ll> Builder<'ll> {
         signals.extend(outputs);
 
         // Gather the process-/entity-specific information.
-        let kind = if let Some(prok) = self.module.get_process(mod_unit) {
+        let kind = if unit.is_process() {
             // Allocate signals.
-            for block in unit.func_layout().blocks() {
-                for inst in unit.func_layout().insts(block) {
-                    if dfg[inst].opcode() == llhd::ir::Opcode::Sig {
-                        let value = dfg.inst_result(inst);
-                        let init = self.const_value(dfg, dfg[inst].args()[0]);
-                        let sig = self.alloc_signal(dfg.value_type(value), init);
+            for block in unit.blocks() {
+                for inst in unit.insts(block) {
+                    if unit[inst].opcode() == llhd::ir::Opcode::Sig {
+                        let value = unit.inst_result(inst);
+                        let init = self.const_value(unit, unit[inst].args()[0]);
+                        let sig = self.alloc_signal(unit.value_type(value), init);
                         signals.push(sig); // entity is re-evaluated when this signal changes
-                        if let Some(name) = dfg.get_name(value) {
+                        if let Some(name) = unit.get_name(value) {
                             self.alloc_signal_probe(sig, name.to_string());
                         }
                         values.insert(value, ValueSlot::Signal(sig));
                     }
                     // Hotfix for const insts in moore output not dominating their uses
-                    else if dfg[inst].opcode() == llhd::ir::Opcode::ConstInt
-                        || dfg[inst].opcode() == llhd::ir::Opcode::ConstTime
+                    else if unit[inst].opcode() == llhd::ir::Opcode::ConstInt
+                        || unit[inst].opcode() == llhd::ir::Opcode::ConstTime
                     {
-                        let value = dfg.inst_result(inst);
-                        values.insert(value, ValueSlot::Const(self.const_value(dfg, value)));
+                        let value = unit.inst_result(inst);
+                        values.insert(value, ValueSlot::Const(self.const_value(unit, value)));
                     }
                 }
             }
 
             InstanceKind::Process {
-                prok,
-                next_block: unit.func_layout().first_block(),
+                prok: unit,
+                next_block: unit.first_block(),
             }
-        } else if let Some(entity) = self.module.get_entity(mod_unit) {
+        } else if unit.is_entity() {
             // Allocate signals and instantiate subunits.
-            for inst in unit.inst_layout().insts() {
-                if dfg[inst].opcode() == llhd::ir::Opcode::Sig {
-                    let value = dfg.inst_result(inst);
-                    let init = self.const_value(dfg, dfg[inst].args()[0]);
-                    let sig = self.alloc_signal(dfg.value_type(value), init);
+            for inst in unit.all_insts() {
+                if unit[inst].opcode() == llhd::ir::Opcode::Sig {
+                    let value = unit.inst_result(inst);
+                    let init = self.const_value(unit, unit[inst].args()[0]);
+                    let sig = self.alloc_signal(unit.value_type(value), init);
                     signals.push(sig); // entity is re-evaluated when this signal changes
-                    if let Some(name) = dfg.get_name(value) {
+                    if let Some(name) = unit.get_name(value) {
                         self.alloc_signal_probe(sig, name.to_string());
                     }
                     values.insert(value, ValueSlot::Signal(sig));
-                } else if dfg[inst].opcode() == llhd::ir::Opcode::Inst {
-                    let ext_unit = dfg[inst].get_ext_unit().unwrap();
-                    let name = &dfg[ext_unit].name;
-                    let mod_subunit = match self.module.lookup_ext_unit(ext_unit, mod_unit) {
-                        Some(s) => s,
-                        None => panic!("external unit {} not linked", name),
+                } else if unit[inst].opcode() == llhd::ir::Opcode::Inst {
+                    let ext_unit = unit[inst].get_ext_unit().unwrap();
+                    let name = &unit[ext_unit].name;
+                    let mod_subunit = match self.module.lookup_ext_unit(ext_unit, unit.id()) {
+                        Some(llhd::ir::LinkedUnit::Def(s)) => s,
+                        _ => panic!("external unit {} not linked", name),
                     };
                     self.push_scope(name.to_string());
                     let resolve_signal = |v| match values[v] {
                         ValueSlot::Signal(sig) => sig,
                         _ => panic!("value does not resolve to a signal"),
                     };
-                    let inputs = dfg[inst].input_args().iter().map(&resolve_signal).collect();
-                    let outputs = dfg[inst]
+                    let inputs = unit[inst]
+                        .input_args()
+                        .iter()
+                        .map(&resolve_signal)
+                        .collect();
+                    let outputs = unit[inst]
                         .output_args()
                         .iter()
                         .map(&resolve_signal)
                         .collect();
-                    match self.module[mod_subunit] {
-                        llhd::ir::ModUnitData::Process(ref p) => {
-                            self.instantiate(mod_subunit, p, inputs, outputs)
-                        }
-                        llhd::ir::ModUnitData::Entity(ref e) => {
-                            self.instantiate(mod_subunit, e, inputs, outputs)
-                        }
-                        _ => unreachable!(),
-                    };
+                    self.instantiate(self.module.unit(mod_subunit), inputs, outputs);
                     self.pop_scope();
                 }
             }
 
-            InstanceKind::Entity { entity }
+            InstanceKind::Entity { entity: unit }
         } else {
             unreachable!()
         };
@@ -224,38 +219,45 @@ impl<'ll> Builder<'ll> {
     /// Map an LLHD value to a constant value.
     ///
     /// This is useful for initializing the value of variables and signals.
-    fn const_value(&self, dfg: &llhd::ir::DataFlowGraph, value: llhd::ir::Value) -> Value {
+    fn const_value(&self, unit: llhd::ir::Unit, value: llhd::ir::Value) -> Value {
         use llhd::ir::Opcode;
-        let ty = dfg.value_type(value);
-        let inst = dfg.value_inst(value);
-        let data = &dfg[inst];
+        let ty = unit.value_type(value);
+        let inst = unit.value_inst(value);
+        let data = &unit[inst];
         match data.opcode() {
-            Opcode::ConstInt => {
-                IntValue::from_signed(ty.unwrap_int(), data.get_const_int().unwrap().clone()).into()
-            }
+            Opcode::ConstInt => IntValue::from_signed(
+                ty.unwrap_int(),
+                data.get_const_int()
+                    .unwrap()
+                    .value
+                    .to_bigint()
+                    .unwrap()
+                    .clone(),
+            )
+            .into(),
             Opcode::ConstTime => data.get_const_time().unwrap().clone().into(),
             Opcode::ArrayUniform => {
-                ArrayValue::new_uniform(data.imms()[0], self.const_value(dfg, data.args()[0]))
+                ArrayValue::new_uniform(data.imms()[0], self.const_value(unit, data.args()[0]))
                     .into()
             }
             Opcode::Array => ArrayValue::new(
                 data.args()
                     .iter()
-                    .map(|&arg| self.const_value(dfg, arg))
+                    .map(|&arg| self.const_value(unit, arg))
                     .collect(),
             )
             .into(),
             Opcode::Struct => StructValue::new(
                 data.args()
                     .iter()
-                    .map(|&arg| self.const_value(dfg, arg))
+                    .map(|&arg| self.const_value(unit, arg))
                     .collect(),
             )
             .into(),
             _ => panic!(
                 "{} cannot be turned into a constant ({})",
                 data.opcode(),
-                inst.dump(dfg)
+                inst.dump(&unit)
             ),
         }
     }
@@ -269,20 +271,16 @@ pub fn build(module: &llhd::ir::Module) -> Result<State> {
     // simulation's root unit.
     let root = match module
         .units()
-        .filter(|&unit| module.is_process(unit) || module.is_entity(unit))
+        .filter(|&unit| unit.is_process() || unit.is_entity())
         .last()
     {
         Some(r) => r,
         None => Err(anyhow!("no process or entity found that can be simulated"))?,
     };
-    info!("Found simulation root: {}", module.unit_name(root));
+    info!("Found simulation root: {}", root.name());
 
     // Build the simulation for this root module.
-    match module[root] {
-        llhd::ir::ModUnitData::Process(ref p) => builder.build_root(root, p),
-        llhd::ir::ModUnitData::Entity(ref e) => builder.build_root(root, e),
-        _ => unreachable!(),
-    };
+    builder.build_root(root);
 
     // Build the simulation state.
     Ok(builder.finish())

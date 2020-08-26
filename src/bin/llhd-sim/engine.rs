@@ -15,7 +15,7 @@ use crate::{
     value::{ArrayValue, IntValue, StructValue, TimeValue, Value},
 };
 use llhd::ir::{Opcode, Unit};
-use num::{BigInt, BigUint, One, ToPrimitive};
+use num::{bigint::ToBigInt, BigInt, BigUint, One, ToPrimitive};
 use rayon::prelude::*;
 use std::{
     borrow::BorrowMut,
@@ -217,7 +217,7 @@ impl<'ts, 'tm> Engine<'ts, 'tm> {
     fn step_process(
         &self,
         instance: &mut Instance,
-        unit: &impl llhd::ir::Unit,
+        unit: llhd::ir::Unit,
         block: Option<llhd::ir::Block>,
     ) -> Vec<Event> {
         debug!("Step process {}", unit.name());
@@ -225,13 +225,13 @@ impl<'ts, 'tm> Engine<'ts, 'tm> {
         let mut next_block = block;
         while let Some(block) = next_block {
             next_block = None;
-            for inst in unit.func_layout().insts(block) {
+            for inst in unit.insts(block) {
                 let action =
                     self.execute_instruction(inst, unit, &instance.values, &self.state.signals);
                 match action {
                     Action::None => (),
                     Action::Value(vs) => {
-                        let v = unit.dfg().inst_result(inst);
+                        let v = unit.inst_result(inst);
                         trace!("{} = {}", v, vs);
                         instance.set_value(v, vs)
                     }
@@ -243,8 +243,8 @@ impl<'ts, 'tm> Engine<'ts, 'tm> {
                             .map(|var| match instance.value(var) {
                                 ValueSlot::Variable(ref k) => k.clone(),
                                 x => panic!(
-                                    "variable targeted by store action has value \
-                                     {:?} instead of Variable(...)",
+                                    "variable targeted by store action has value {:?} instead of \
+                                     Variable(...)",
                                     x
                                 ),
                             })
@@ -289,12 +289,11 @@ impl<'ts, 'tm> Engine<'ts, 'tm> {
     fn step_entity(
         &self,
         instance: &mut Instance,
-        unit: &impl llhd::ir::Unit,
+        unit: llhd::ir::Unit,
         changed_signals: &HashSet<SignalRef>,
         first: bool,
     ) -> Vec<Event> {
         debug!("Step entity {}", unit.name());
-        let dfg = unit.dfg();
         let mut events = Vec::new();
 
         // First collect the probe instructions that react to the changed
@@ -303,7 +302,7 @@ impl<'ts, 'tm> Engine<'ts, 'tm> {
         let mut dirty = VecDeque::new();
         let mut dirty_set = HashSet::new();
         if first {
-            for inst in unit.inst_layout().insts() {
+            for inst in unit.all_insts() {
                 dirty.push_back(inst);
                 dirty_set.insert(inst);
             }
@@ -315,12 +314,12 @@ impl<'ts, 'tm> Engine<'ts, 'tm> {
             {
                 let value = instance.signal_values[&sig];
                 trace!("  Triggering {} ({})", self.state.probes[&sig][0], value);
-                for (inst, _) in dfg.uses(value) {
-                    match dfg[inst].opcode() {
+                for &inst in unit.uses(value) {
+                    match unit[inst].opcode() {
                         Opcode::Drv | Opcode::Inst | Opcode::Sig => continue,
                         _ => (),
                     }
-                    trace!("    -> {}", inst.dump(dfg));
+                    trace!("    -> {}", inst.dump(&unit));
                     if !dirty_set.contains(&inst) {
                         dirty.push_back(inst);
                         dirty_set.insert(inst);
@@ -339,7 +338,7 @@ impl<'ts, 'tm> Engine<'ts, 'tm> {
             match action {
                 Action::None => (),
                 Action::Value(new) => {
-                    let v = dfg.inst_result(inst);
+                    let v = unit.inst_result(inst);
                     trace!("%{} = {}", v, new);
                     let changed = instance
                         .values
@@ -354,9 +353,9 @@ impl<'ts, 'tm> Engine<'ts, 'tm> {
                         .unwrap_or(true);
                     instance.set_value(v, new);
                     if changed {
-                        for (inst, _) in dfg.uses(v) {
+                        for &inst in unit.uses(v) {
                             if !dirty_set.contains(&inst) {
-                                // trace!("  -> triggering {}", inst.dump(dfg));
+                                // trace!("  -> triggering {}", inst.dump(unit));
                                 dirty.push_back(inst);
                                 dirty_set.insert(inst);
                             }
@@ -382,13 +381,12 @@ impl<'ts, 'tm> Engine<'ts, 'tm> {
     fn execute_instruction(
         &self,
         inst: llhd::ir::Inst,
-        unit: &impl llhd::ir::Unit,
+        unit: llhd::ir::Unit,
         values: &HashMap<llhd::ir::Value, ValueSlot>,
         signals: &[Signal],
     ) -> Action {
         InstContext {
             unit,
-            dfg: unit.dfg(),
             values,
             signals,
             time: &self.state.time,
@@ -397,35 +395,37 @@ impl<'ts, 'tm> Engine<'ts, 'tm> {
     }
 }
 
-struct InstContext<'a, U> {
-    unit: &'a U,
-    dfg: &'a llhd::ir::DataFlowGraph,
+struct InstContext<'a> {
+    unit: llhd::ir::Unit<'a>,
     values: &'a HashMap<llhd::ir::Value, ValueSlot>,
     signals: &'a [Signal],
     time: &'a TimeValue,
 }
 
-impl<'a, U> InstContext<'a, U>
-where
-    U: llhd::ir::Unit,
-{
+impl<'a> InstContext<'a> {
     /// Execute a single instruction. Returns an action to be taken in response
     /// to the instruction.
     fn exec(&self, inst: llhd::ir::Inst) -> Action {
         use llhd::ir::Opcode;
-        let dfg = self.unit.dfg();
-        let data = &dfg[inst];
-        let ty = dfg.inst_type(inst);
+        let data = &self.unit[inst];
+        let ty = self.unit.inst_type(inst);
         match data.opcode() {
             Opcode::Inst | Opcode::Sig => (),
-            _ => trace!("{}", inst.dump(dfg)),
+            _ => trace!("{}", inst.dump(&self.unit)),
         }
 
         match data.opcode() {
             // Constants
             Opcode::ConstInt => {
-                let v =
-                    IntValue::from_signed(ty.unwrap_int(), data.get_const_int().unwrap().clone());
+                let v = IntValue::from_signed(
+                    ty.unwrap_int(),
+                    data.get_const_int()
+                        .unwrap()
+                        .value
+                        .to_bigint()
+                        .unwrap()
+                        .clone(),
+                );
                 Action::Value(ValueSlot::Const(v.into()))
             }
             Opcode::ConstTime => {
@@ -613,7 +613,7 @@ where
             // Insert and extract fields and slices
             Opcode::InsField | Opcode::InsSlice => {
                 let target = self.resolve_value_pointer(data.args()[0]);
-                let target_ty = dfg.value_type(data.args()[0]);
+                let target_ty = self.unit.value_type(data.args()[0]);
                 let value = self.resolve_value(data.args()[1]);
                 let ptr = self.exec_insext(data.opcode(), &target_ty, &target, data.imms());
                 let mut results = [self.resolve_value(data.args()[0])];
@@ -629,7 +629,7 @@ where
                 } else {
                     self.resolve_value_pointer(data.args()[0])
                 };
-                let target_ty = dfg.value_type(data.args()[0]);
+                let target_ty = self.unit.value_type(data.args()[0]);
                 let ptr = self.exec_insext(data.opcode(), &target_ty, &target, data.imms());
                 if ty.is_pointer() {
                     Action::Value(ValueSlot::VariablePointer(ptr))
@@ -755,7 +755,7 @@ where
     ///
     /// Returns the length of arrays or integers, or 0 for structs.
     fn pointer_width(&self, id: llhd::ir::Value) -> usize {
-        let ty = self.dfg.value_type(id);
+        let ty = self.unit.value_type(id);
         let ty = match &*ty {
             llhd::PointerType(ty) => ty,
             llhd::SignalType(ty) => ty,

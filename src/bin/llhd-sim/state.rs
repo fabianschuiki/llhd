@@ -533,11 +533,11 @@ impl fmt::Display for ValueSelect {
 /// An instantiation.
 pub enum InstanceKind<'ll> {
     Process {
-        prok: &'ll llhd::ir::Process,
+        prok: llhd::ir::Unit<'ll>,
         next_block: Option<llhd::ir::Block>,
     },
     Entity {
-        entity: &'ll llhd::ir::Entity,
+        entity: llhd::ir::Unit<'ll>,
     },
 }
 
