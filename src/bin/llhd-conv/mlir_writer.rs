@@ -656,7 +656,11 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                 )?;
             }
             Opcode::Sig => {
-                let sig_name = &self.uniquify_name(Some("sig"));
+                let sig_name = if let Some(name) = self.value_names.get(&unit.inst_result(inst)) {
+                    name.to_owned()
+                } else {
+                    self.uniquify_name(Some("sig"))
+                };
                 write!(
                     self.writer.sink,
                     "{} \"{}\" ",
