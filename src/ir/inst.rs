@@ -4,6 +4,7 @@
 //!
 //! This module implements the various instructions of the intermediate
 //! representation.
+#![deny(missing_docs)]
 
 use crate::{
     ir::{Block, ExtUnit, Inst, Unit, UnitBuilder, Value},
@@ -62,6 +63,10 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         }
     }
 
+    /// Construct the given value for int type.
+    ///
+    /// This is a convenience function that creates the appropriate instruction
+    /// sequence to generate the given value for int type.
     pub fn const_int(&mut self, value: impl Into<IntValue>) -> Value {
         let value = value.into();
         let ty = value.ty();
@@ -73,6 +78,10 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         self.inst_result(inst)
     }
 
+    /// Construct the given value for time type.
+    ///
+    /// This is a convenience function that creates the appropriate instruction
+    /// sequence to generate the given value for int type.
     pub fn const_time(&mut self, value: impl Into<TimeValue>) -> Value {
         let value = value.into();
         let ty = value.ty();
@@ -84,12 +93,16 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         self.inst_result(inst)
     }
 
+    /// This function createes `alias` instruction which is used to assign
+    /// a new name to a value.
     pub fn alias(&mut self, x: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_unary(Opcode::Alias, ty, x);
         self.inst_result(inst)
     }
 
+    /// This function creates array instruction which creates array
+    /// of a given size with all elements of given value.
     pub fn array_uniform(&mut self, imm: usize, x: Value) -> Value {
         let ty = array_ty(imm, self.value_type(x));
         let inst = self.build(
@@ -103,6 +116,8 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         self.inst_result(inst)
     }
 
+    /// This function creates array instruction which creates array
+    /// from a vector of Values.
     pub fn array(&mut self, args: Vec<Value>) -> Value {
         assert!(!args.is_empty());
         let ty = array_ty(args.len(), self.value_type(args[0]));
@@ -133,6 +148,8 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         self.inst_result(inst)
     }
 
+    /// This function creates not instruction which creates inverse of a
+    /// given Value.
     pub fn not(&mut self, x: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_unary(Opcode::Not, ty, x);
