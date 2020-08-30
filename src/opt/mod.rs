@@ -9,6 +9,8 @@ mod pass;
 
 pub use pass::*;
 
+/// Contains common types that can be glob-imported (`*`) for convenience
+/// from pass module.
 pub mod prelude {
     pub use super::pass::*;
 }
