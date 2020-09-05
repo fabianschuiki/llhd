@@ -459,7 +459,7 @@ The `insert` instruction may be used to change the value of fields of structs, e
 - `index` is the index of the field, element, or bit to be modified. An unsigned integer.
 - `start` is the index of the first element or bit to be modified. An unsigned integer.
 - `length` is the number of elements or bits after `start` to be modified. An unsigned integer.
-- `value` is the value to be assigned o the selected field, elements, or bits. Its type must correspond to a single field, element, or bit in case of the `insert element` variant, or an array or integer of length `length` in case of the `insert slice` variant. A value.
+- `value` is the value to be assigned to the selected field, elements, or bits. Its type must correspond to a single field, element, or bit in case of the `insert element` variant, or an array or integer of length `length` in case of the `insert slice` variant. A value.
 
 Note that `index`, `start`, and `length` must be integer constants. You cannot pass dynamically calculated integers for these fields.
 
