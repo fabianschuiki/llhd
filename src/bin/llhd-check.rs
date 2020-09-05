@@ -10,14 +10,12 @@ use clap::{Arg, ArgMatches};
 use llhd::{assembly::parse_module_unchecked, verifier::Verifier};
 
 fn main() {
+    // Configure the logger.
+    pretty_env_logger::init_custom_env("LLHD_LOG");
+
+    // Parse the command line arguments.
     let matches = app_from_crate!()
         .about("A tool to verify the internal consistency of LLHD assembly.")
-        .arg(
-            Arg::with_name("verbosity")
-                .short("v")
-                .multiple(true)
-                .help("Increase message verbosity"),
-        )
         .arg(
             Arg::with_name("inputs")
                 .multiple(true)
@@ -35,15 +33,6 @@ fn main() {
                 .help("Analyze and emit the temporal regions"),
         )
         .get_matches();
-
-    // Configure the logger.
-    let verbose = matches.occurrences_of("verbosity") as usize + 1;
-    stderrlog::new()
-        .module("llhd")
-        .module("llhd_check")
-        .verbosity(verbose)
-        .init()
-        .unwrap();
 
     let mut num_errors = 0;
     for path in matches.values_of("inputs").into_iter().flat_map(|x| x) {

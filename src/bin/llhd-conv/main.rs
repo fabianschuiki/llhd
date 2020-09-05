@@ -5,10 +5,12 @@
 #![deny(missing_docs)]
 
 #[macro_use]
+extern crate clap;
+#[macro_use]
 extern crate log;
 
 use anyhow::{anyhow, bail, Context, Result};
-use clap::{App, Arg};
+use clap::Arg;
 use llhd::ir::Module;
 use std::{
     fs::File,
@@ -22,11 +24,12 @@ mod mlir_writer;
 pub mod verilog;
 
 fn main() -> Result<()> {
+    // Configure the logger.
+    pretty_env_logger::init_custom_env("LLHD_LOG");
+
     // Parse the command line arguments.
-    let matches = App::new("llhd-conv")
-        .author(clap::crate_authors!())
-        .version(clap::crate_version!())
-        .long_about("A tool to convert between LLHD and various other formats.")
+    let matches = app_from_crate!()
+        .about("A tool to convert between LLHD and various other formats.")
         .arg(
             Arg::with_name("input")
                 .short("i")
@@ -59,11 +62,6 @@ fn main() -> Result<()> {
                 .help("Dump the intermediate LLHD"),
         )
         .get_matches();
-
-    // Initialize logging.
-    env_logger::Builder::from_default_env()
-        .format_timestamp(None)
-        .init();
 
     // Setup the input reader.
     let input_path = matches.value_of("input").map(Path::new);

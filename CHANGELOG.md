@@ -8,9 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add `llhd-sim` tool (merged in from https://github.com/fabianschuiki/llhd-sim)
 - Add MLIR output to `llhd-conv`
+- Add `pretty_env_logger` dependency
 
 ### Fixed
 - Fix implementation of `IntValue::smod`.
+
+### Removed
+- Remove `stderrlog` and `env_logger` dependencies
 
 ## 0.13.0 - 2020-04-13
 ### Added
