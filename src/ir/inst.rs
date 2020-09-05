@@ -4,6 +4,7 @@
 //!
 //! This module implements the various instructions of the intermediate
 //! representation.
+// #![deny(missing_docs)]
 
 use crate::{
     ir::{Block, ExtUnit, Inst, Unit, UnitBuilder, Value},
@@ -116,7 +117,7 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
     }
 
     /// This function creates array instruction which creates array
-    /// from a vector of Values.
+    /// from a vector of similar type of Values.
     pub fn array(&mut self, args: Vec<Value>) -> Value {
         assert!(!args.is_empty());
         let ty = array_ty(args.len(), self.value_type(args[0]));
@@ -130,6 +131,8 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         self.inst_result(inst)
     }
 
+    /// This function creates struct instruction which creates struct
+    /// from a vector of different types of Values.
     pub fn strukt(&mut self, args: Vec<Value>) -> Value {
         let ty = struct_ty(
             args.iter()
@@ -155,152 +158,206 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         self.inst_result(inst)
     }
 
+    /// This function creates neg instruction which computes two's compliment
+    /// of the given Value.
     pub fn neg(&mut self, x: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_unary(Opcode::Neg, ty, x);
         self.inst_result(inst)
     }
 
+    /// This function creates add instruction which adds the two
+    /// given Value's.
     pub fn add(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Add, ty, x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates sub instruction which substracts the two
+    /// given Value's.
     pub fn sub(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Sub, ty, x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates and instruction which computes bitwise AND
+    /// of the given two Value's.
     pub fn and(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::And, ty, x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates or instruction which computes bitwise OR
+    /// of the given two Value's.
     pub fn or(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Or, ty, x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates xor instruction which computes bitwise XOR
+    /// of the given two Value's.
     pub fn xor(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Xor, ty, x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates smul instruction which computes signed binary
+    /// multiplication of the given two Value's.
     pub fn smul(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Smul, ty, x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates sdiv instruction which computes signed binary
+    /// division of a given Value with the other
     pub fn sdiv(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Sdiv, ty, x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates smod instruction which computes signed binary
+    /// modulus of a given Value when divided with the other
     pub fn smod(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Smod, ty, x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates srem instruction which computes signed binary
+    /// reminder of the given Value when divided with the other
     pub fn srem(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Srem, ty, x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates smul instruction which computes unsigned binary
+    /// multiplication of the given two Value's.
     pub fn umul(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Umul, ty, x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates sdiv instruction which computes unsigned binary
+    /// division of a given Value with the other
     pub fn udiv(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Udiv, ty, x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates smod instruction which computes unsigned binary
+    /// modulus of a given Value when divided with the other
     pub fn umod(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Umod, ty, x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates srem instruction which computes unsigned binary
+    /// reminder of the given Value when divided with the other
     pub fn urem(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_binary(Opcode::Urem, ty, x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates eq instruction which checks for equality
+    /// of the given Value's
     pub fn eq(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Eq, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates neq instruction which checks for unequality
+    /// of the given Value's
     pub fn neq(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Neq, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates slt instruction which checks if a given Value,
+    /// as signed, is less than the other
     pub fn slt(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Slt, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates sgt instruction which checks if a given Value,
+    /// as signed, is greater than the other
     pub fn sgt(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Sgt, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates sle instruction which checks if a given Value,
+    /// as signed, is less than or equal to the other
     pub fn sle(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Sle, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates sge instruction which checks if a given Value,
+    /// as signed, is greater than or equal to the other
     pub fn sge(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Sge, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates ult instruction which checks if a given Value,
+    /// as unsigned, is less than the other
     pub fn ult(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Ult, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates ugt instruction which checks if a given Value,
+    /// as unsigned, is greater than the other
     pub fn ugt(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Ugt, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates ule instruction which checks if a given Value,
+    /// as unsigned, is less than or equal to the other
     pub fn ule(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Ule, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates uge instruction which checks if a given Value,
+    /// as unsigned, is greater than or equal the other
     pub fn uge(&mut self, x: Value, y: Value) -> Value {
         let inst = self.build_binary(Opcode::Uge, int_ty(1), x, y);
         self.inst_result(inst)
     }
 
+    /// This function creates shl instruction which shifts a given Value
+    /// to the left by the given amount from a hidden Value
     pub fn shl(&mut self, x: Value, y: Value, z: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_ternary(Opcode::Shl, ty, x, y, z);
         self.inst_result(inst)
     }
 
+    /// This function creates shr instruction which shifts a given Value
+    /// to the right by the given amount from a hidden Value
     pub fn shr(&mut self, x: Value, y: Value, z: Value) -> Value {
         let ty = self.value_type(x);
         let inst = self.build_ternary(Opcode::Shr, ty, x, y, z);
         self.inst_result(inst)
     }
 
+    /// This function creates mux instruction which chooses a Value from a
+    /// given array of Values based on a given selector Value
     pub fn mux(&mut self, x: Value, y: Value) -> Value {
         let ty = self.value_type(x);
         assert!(ty.is_array(), "argument to `mux` must be of array type");
@@ -309,6 +366,8 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         self.inst_result(inst)
     }
 
+    /// This function creates reg instruction which provides a storage element
+    /// which drives its output onto a signal
     pub fn reg(&mut self, x: Value, data: Vec<RegTrigger>) -> Inst {
         let mut args = vec![x];
         let mut modes = vec![];
@@ -327,6 +386,8 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         )
     }
 
+    /// This function creates insf instruction which inserts a field or element or bit
+    /// in a given array or struct or integer, respectively, at an index
     pub fn ins_field(&mut self, x: Value, y: Value, imm: usize) -> Value {
         let ty = self.value_type(x);
         let inst = self.build(
@@ -340,6 +401,8 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         self.inst_result(inst)
     }
 
+    /// This function creates inss instruction which inserts a slice of array elements or
+    /// integer bits in a given array or integer, respectively, in a range of indexes
     pub fn ins_slice(&mut self, x: Value, y: Value, imm0: usize, imm1: usize) -> Value {
         let ty = self.value_type(x);
         let inst = self.build(
@@ -353,6 +416,8 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         self.inst_result(inst)
     }
 
+    /// This function creates extf instruction which extracts a field or element or bit
+    /// from a given array or struct or integer, respectively, at an index
     pub fn ext_field(&mut self, x: Value, imm: usize) -> Value {
         let ty = with_unpacked_sigptr(self.value_type(x), |ty| {
             if ty.is_struct() {
@@ -376,6 +441,8 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         self.inst_result(inst)
     }
 
+    /// This function creates exts instruction which extracts a slice of array elements or
+    /// integer bits from a given array or integer, respectively, in a range of indexes
     pub fn ext_slice(&mut self, x: Value, imm0: usize, imm1: usize) -> Value {
         let ty = with_unpacked_sigptr(self.value_type(x), |ty| {
             if ty.is_array() {
