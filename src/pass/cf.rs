@@ -51,8 +51,11 @@ pub fn run_on_inst(unit: &mut UnitBuilder, inst: Inst) -> bool {
         assert_eq!(
             ty,
             new_ty,
-            "types before (lhs) and after (rhs) folding must match (before: {})",
+            "types before (lhs) and after (rhs) folding must match (before: {}, after: {})",
             inst.dump(&unit),
+            unit.get_value_inst(replacement)
+                .map(|v| v.dump(&unit).to_string())
+                .unwrap_or_else(|| replacement.dump(&unit).to_string())
         );
         if let Some(name) = unit.get_name(value).map(String::from) {
             unit.set_name(replacement, name);
@@ -174,12 +177,24 @@ fn fold_shift(unit: &mut UnitBuilder, inst: Inst, ty: &Type) -> Option<Value> {
         return Some(base);
     }
 
-    // Handle the case where the shfit amount is constant.
+    // Don't bother trying to optimize shifted signals and pointers.
+    if unit.value_type(base).is_signal() || unit.value_type(base).is_pointer() {
+        return None;
+    }
+
+    // Handle the case where the shift amount is constant.
     if let Some(amount) = const_amount {
         let amount = amount.to_usize();
         let base_width = unit.value_type(base).len();
         let hidden_width = unit.value_type(hidden).len();
         let amount = min(amount, hidden_width);
+        trace!(
+            "Fold const shift `{}` (amount: {}, base_width: {}, hidden_width: {})",
+            inst.dump(&unit),
+            amount,
+            base_width,
+            hidden_width
+        );
 
         // Handle the case where the amount fully shifts out the base.
         if amount >= base_width {
@@ -188,6 +203,7 @@ fn fold_shift(unit: &mut UnitBuilder, inst: Inst, ty: &Type) -> Option<Value> {
             } else {
                 amount - base_width
             };
+            trace!("  Base fully shifted out; hidden offset {}", offset);
             let r = unit.ins().ext_slice(hidden, offset, base_width);
             return Some(fold_ext_slice(unit, unit.value_inst(r)).unwrap_or(r));
         }

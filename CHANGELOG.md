@@ -5,12 +5,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+
+## 0.14.1 - 2020-09-05
+### Fixed
+- Fix faulty constant folding on signal/pointer shifts (#138)
+
+## 0.14.0 - 2020-09-05
 ### Added
 - Add `llhd-sim` tool (merged in from https://github.com/fabianschuiki/llhd-sim)
 - Add MLIR output to `llhd-conv`
+- Add `pretty_env_logger` dependency
 
 ### Fixed
 - Fix implementation of `IntValue::smod`.
+
+### Removed
+- Remove `stderrlog` and `env_logger` dependencies
 
 ## 0.13.0 - 2020-04-13
 ### Added

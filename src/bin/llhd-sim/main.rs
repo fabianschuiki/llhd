@@ -5,11 +5,13 @@
 #![deny(missing_docs)]
 
 #[macro_use]
+extern crate clap;
+#[macro_use]
 extern crate log;
 
 use crate::tracer::Tracer;
 use anyhow::{anyhow, Context, Result};
-use clap::{App, Arg};
+use clap::Arg;
 use std::{fs::File, io::prelude::*};
 
 mod builder;
@@ -19,17 +21,12 @@ pub mod tracer;
 pub mod value;
 
 fn main() -> Result<()> {
+    // Configure the logger.
+    pretty_env_logger::init_custom_env("LLHD_LOG");
+
     // Parse the command line arguments.
-    let matches = App::new("llhd-sim")
-        .version(clap::crate_version!())
-        .author(clap::crate_authors!())
-        .about(clap::crate_description!())
-        .arg(
-            Arg::with_name("verbosity")
-                .short("v")
-                .multiple(true)
-                .help("Increase message verbosity"),
-        )
+    let matches = app_from_crate!()
+        .about("A reference interpreter for LLHD assembly.")
         .arg(
             Arg::with_name("sequential")
                 .short("s")
@@ -56,13 +53,6 @@ fn main() -> Result<()> {
                 .help("Terminate after a fixed number of steps"),
         )
         .get_matches();
-
-    // Configure the logger.
-    stderrlog::new()
-        .quiet(!matches.is_present("verbosity"))
-        .verbosity(matches.occurrences_of("verbosity") as usize)
-        .init()
-        .unwrap();
 
     // Load the input file.
     let module = {
