@@ -1,0 +1,15 @@
+; RUN: llhd-opt %s -p cf
+
+entity @foo ([2 x i1]$ %a, [2 x i1]$ %b) -> () {
+    %0 = const i32 0
+    %1 = const i32 1
+    %2 = shr [2 x i1]$ %a, [2 x i1]$ %b, i32 %0
+    %3 = shr [2 x i1]$ %a, [2 x i1]$ %b, i32 %1
+    %4 = extf i1$, [2 x i1]$ %2, 0
+    %5 = extf i1$, [2 x i1]$ %3, 0
+    inst @bar (i1$ %4) -> ()
+    inst @bar (i1$ %5) -> ()
+}
+
+entity @bar (i1$ %x) -> () {
+}
