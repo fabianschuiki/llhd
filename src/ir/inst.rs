@@ -1081,7 +1081,6 @@ impl Default for InstData {
     }
 }
 
-/// A typesafe bitmask flag generator
 bitflags! {
     /// A set of flags identifying a unit.
     #[derive(Default, Serialize, Deserialize)]
