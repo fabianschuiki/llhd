@@ -4,7 +4,6 @@
 //!
 //! This module implements the various instructions of the intermediate
 //! representation.
-#![warn(missing_docs)]
 
 use crate::{
     ir::{Block, ExtUnit, Inst, Unit, UnitBuilder, Value},

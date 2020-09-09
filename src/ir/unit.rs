@@ -1,7 +1,5 @@
 // Copyright (c) 2017-2020 Fabian Schuiki
 
-// #![deny(missing_docs)]
-
 use crate::{
     analysis::{DominatorTree, PredecessorTable, TemporalRegionGraph},
     ir::{
