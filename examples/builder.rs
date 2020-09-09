@@ -14,7 +14,7 @@ fn build_function(name: UnitName) -> UnitData {
     let mut sig = Signature::new();
     let arg1 = sig.add_input(llhd::int_ty(32));
     let arg2 = sig.add_input(llhd::int_ty(32));
-    sig.set_return_type(llhd::void_ty());
+    sig.set_return_type(llhd::int_ty(32));
     let mut func = UnitData::new(UnitKind::Function, name, sig);
     {
         let mut builder = UnitBuilder::new_anonymous(&mut func);
@@ -48,7 +48,7 @@ fn build_function(name: UnitName) -> UnitData {
 fn build_process(name: UnitName) -> UnitData {
     let mut sig = Signature::new();
     let clk = sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
-    let inp = sig.add_input(llhd::signal_ty(llhd::int_ty(32)));
+    let inp = sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
     let oup = sig.add_output(llhd::signal_ty(llhd::int_ty(32)));
     let mut prok = UnitData::new(UnitKind::Process, name, sig);
     {
@@ -71,13 +71,13 @@ fn build_entity(name: UnitName) -> UnitData {
     let mut sig = Signature::new();
     let _clk = sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
     let _rst = sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
-    let inp = sig.add_input(llhd::signal_ty(llhd::int_ty(32)));
+    let inp = sig.add_input(llhd::signal_ty(llhd::int_ty(1)));
     let _oup = sig.add_output(llhd::signal_ty(llhd::int_ty(32)));
     let mut ent = UnitData::new(UnitKind::Entity, name, sig);
     {
         let mut builder = UnitBuilder::new_anonymous(&mut ent);
-        let v1 = builder.ins().const_int((32, 42));
-        let v2 = builder.ins().const_int((32, 2));
+        let v1 = builder.ins().const_int((1, 0));
+        let v2 = builder.ins().const_int((1, 1));
         let v3 = builder.ins().add(v1, v2);
         let inp = builder.unit().arg_value(inp);
         builder.ins().add(v3, inp);
