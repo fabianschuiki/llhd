@@ -478,7 +478,7 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
         self.build(data, void_ty())
     }
 
-    /// Creates sig instruction to instantiates a proces or entity
+    /// Creates sig instruction to allocate a signal
     pub fn sig(&mut self, x: Value) -> Value {
         let ty = self.value_type(x);
         let ty = if ty.is_signal() { ty } else { signal_ty(ty) };
