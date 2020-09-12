@@ -27,17 +27,17 @@ pub enum UnitName {
 }
 
 impl UnitName {
-    // Create a new anonymous unit name.
+    /// Create a new anonymous unit name.
     pub fn anonymous(id: u32) -> Self {
         UnitName::Anonymous(id)
     }
 
-    // Create a new local unit name.
+    /// Create a new local unit name.
     pub fn local(name: impl Into<String>) -> Self {
         UnitName::Local(name.into())
     }
 
-    // Create a new global unit name.
+    /// Create a new global unit name.
     pub fn global(name: impl Into<String>) -> Self {
         UnitName::Global(name.into())
     }
@@ -104,6 +104,7 @@ impl std::fmt::Display for UnitKind {
 }
 
 /// A function, process, or entity.
+#[allow(missing_docs)]
 #[derive(Serialize, Deserialize)]
 pub struct UnitData {
     pub kind: UnitKind,
@@ -775,7 +776,7 @@ impl<'a> UnitBuilder<'a> {
         self.remove_inst(inst);
     }
 
-    // Create a new BB.
+    /// Create a new BB.
     pub fn block(&mut self) -> Block {
         let bb = self.data.cfg.blocks.add(BlockData { name: None });
         self.append_block(bb);

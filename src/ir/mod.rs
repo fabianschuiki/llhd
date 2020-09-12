@@ -4,6 +4,7 @@
 //!
 //! This module implements the intermediate representation around which the rest
 //! of the framework is built.
+#![deny(missing_docs)]
 
 use crate::{impl_table_key, ty::Type};
 
@@ -70,6 +71,7 @@ impl Block {
 }
 
 /// Internal table storage for values.
+#[allow(missing_docs)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ValueData {
     /// The invalid value placeholder.
@@ -127,6 +129,7 @@ impl Default for ExtUnitData {
 }
 
 /// Any one of the table keys in this module.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AnyObject {
     Inst(Inst),
