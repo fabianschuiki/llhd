@@ -1084,9 +1084,13 @@ bitflags! {
     /// A set of flags identifying a unit.
     #[derive(Default, Serialize, Deserialize)]
     pub struct UnitFlags: u8 {
+        /// UnitFlag for a FUNCTION
         const FUNCTION = 0b001;
+        /// UnitFlag for a PROCESS
         const PROCESS = 0b010;
+        /// UnitFlag for a ENTITY
         const ENTITY = 0b100;
+        /// UnitFlag for ALL
         const ALL = 0b111;
     }
 }
@@ -1135,6 +1139,7 @@ pub struct RegTrigger {
 ///
 /// This enum represents the actual instruction, whereas `InstData` covers the
 /// format and arguments of the instruction.
+#[allow(missing_docs)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Opcode {
     ConstInt,
