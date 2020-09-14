@@ -658,6 +658,7 @@ impl<'a> InstContext<'a> {
             Opcode::Inst => Action::None,
 
             // Halt trivially suspends the process indefinitely.
+            Opcode::Halt if self.unit.is_entity() => Action::None,
             Opcode::Halt => Action::Suspend(None, InstanceState::Done),
 
             // TODO(fschuiki): Implement the rest or explicitly report errors
