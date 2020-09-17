@@ -19,19 +19,20 @@ fn main() {
             %cmp = eq i32 %7, %7
             br %cmp, %entry, %next
         %next:
+            %a = exts i9, i32 %7, 4, 9
             %b = neg i9 %a
-            %a = exts i32 %7, 4, 9
             %r = call i32 @bar (i32 %8, i9 %b)
             %many = [32 x i9 %b]
-            %some = exts [32 x i9] %many, 2, 9
-            %one = extf [9 x i9] %some, 3
+            %some = exts [9 x i9], [32 x i9] %many, 2, 9
+            %one = extf i9, [9 x i9] %some, 3
             neg i9 %one
             ret i32 %3
         }
 
         entity @magic (i32$ %data, i1$ %clk) -> (i32$ %out) {
-            %0 = reg i32 %asdf0, %4 rise %cmp
-            con i32$ %out, %0
+            %datap = prb i32$ %data
+            %cmp = const i1 0
+            reg i32$ %out, [%datap, rise %cmp]
         }
     "};
     println!("Dump:");

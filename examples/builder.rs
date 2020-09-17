@@ -80,6 +80,7 @@ fn build_entity(name: UnitName) -> UnitData {
         let v2 = builder.ins().const_int((1, 1));
         let v3 = builder.ins().add(v1, v2);
         let inp = builder.unit().arg_value(inp);
+        let inp = builder.ins().prb(inp);
         builder.ins().add(v3, inp);
     }
     Unit::new_anonymous(&ent).verify();
