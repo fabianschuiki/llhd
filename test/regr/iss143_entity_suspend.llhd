@@ -1,0 +1,46 @@
+; RUN: llhd-sim %s
+
+proc %Inverter.param1.always_comb.103.1 (i1$ %A) -> (i1$ %Z) {
+body:
+    %A.prb = prb i1$ %A
+    %0 = const i1 0
+    %1 = neq i1 %A.prb, %0
+    %2 = not i1 %1
+    %3 = const time 0s 1d
+    drv i1$ %Z, %2, %3
+    wait %body, %A
+}
+
+entity @Inverter.param1 (i1$ %A) -> (i1$ %Z) {
+    inst %Inverter.param1.always_comb.103.1 (i1$ %A) -> (i1$ %Z)
+}
+
+proc %Inverter_tb.initial.75.0 () -> (i1$ %in) {
+0:
+    %1 = const i1 0
+    %2 = const time 0s 1d
+    drv i1$ %in, %1, %2
+    %3 = const i1 1
+    %4 = const time 4ns
+    wait %pulse0 for %4
+pulse0:
+    drv i1$ %in, %3, %4
+    wait %pulse1 for %4
+pulse1:
+    drv i1$ %in, %1, %4
+    wait %pulse2 for %4
+pulse2:
+    drv i1$ %in, %3, %4
+    wait %pulse3 for %4
+pulse3:
+    drv i1$ %in, %1, %4
+    halt
+}
+
+entity @Inverter_tb () -> () {
+    %0 = const i1 0
+    %in = sig i1 %0
+    %out = sig i1 %0
+    inst @Inverter.param1 (i1$ %in) -> (i1$ %out)
+    inst %Inverter_tb.initial.75.0 () -> (i1$ %in)
+}
