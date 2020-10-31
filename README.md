@@ -4,6 +4,7 @@
 [![Released API docs](https://docs.rs/llhd/badge.svg)](https://docs.rs/llhd)
 [![Crates.io](https://img.shields.io/crates/v/llhd.svg)](https://crates.io/crates/llhd)
 ![Crates.io](https://img.shields.io/crates/l/llhd)
+[![dependency status](https://deps.rs/repo/github/fabianschuiki/llhd/status.svg)](https://deps.rs/repo/github/fabianschuiki/llhd)
 
 The *Low Level Hardware Description language* is an intermediate representation for digital circuit descriptions, together with an accompanying simulator and SystemVerilog/VHDL compiler.
 
