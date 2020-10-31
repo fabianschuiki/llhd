@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Changed
 - Update dependencies `indoc`, `num`, `regex`, `lalrpop-util`, `time`
+- Increase minimum rustc version to 1.45
 
 ## 0.14.2 - 2020-09-17
 ### Fixed
