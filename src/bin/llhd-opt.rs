@@ -12,6 +12,7 @@ use std::{
     io::{BufWriter, Read},
     result::Result,
     sync::atomic::Ordering,
+    time::Instant,
 };
 
 fn main() {
@@ -85,10 +86,10 @@ fn main_inner() -> Result<(), String> {
 
     // Prepare the time tracking.
     let mut times = vec![];
-    let tinit = time::precise_time_ns();
+    let tinit = Instant::now();
 
     // Read the input.
-    let t0 = time::precise_time_ns();
+    let t0 = Instant::now();
     let mut module = {
         let path = matches.value_of("input").unwrap();
         let mut input = File::open(path).map_err(|e| format!("{}", e))?;
@@ -102,7 +103,7 @@ fn main_inner() -> Result<(), String> {
         verifier.finish().map_err(|errs| format!("{}", errs))?;
         module
     };
-    let t1 = time::precise_time_ns();
+    let t1 = Instant::now();
     times.push(("parse".to_owned(), t1 - t0));
 
     // Determine the optimization passes to be run.
@@ -124,7 +125,7 @@ fn main_inner() -> Result<(), String> {
     let ctx = PassContext;
     for &pass in &passes {
         trace!("Running pass {}", pass);
-        let t0 = time::precise_time_ns();
+        let t0 = Instant::now();
         let _changes = match pass {
             "cf" => llhd::pass::ConstFolding::run_on_module(&ctx, &mut module),
             "cfs" => llhd::pass::ControlFlowSimplification::run_on_module(&ctx, &mut module),
@@ -150,12 +151,12 @@ fn main_inner() -> Result<(), String> {
                 continue;
             }
         };
-        let t1 = time::precise_time_ns();
+        let t1 = Instant::now();
         times.push((pass.to_owned(), t1 - t0));
     }
 
     // Verify modified module.
-    let t0 = time::precise_time_ns();
+    let t0 = Instant::now();
     let mut failed = false;
     let mut verifier = Verifier::new();
     verifier.verify_module(&module);
@@ -184,11 +185,11 @@ fn main_inner() -> Result<(), String> {
             failed = true;
         }
     }
-    let t1 = time::precise_time_ns();
+    let t1 = Instant::now();
     times.push(("verify".to_owned(), t1 - t0));
 
     // Write the output.
-    let t0 = time::precise_time_ns();
+    let t0 = Instant::now();
     if let Some(path) = matches.value_of("output") {
         let output = File::create(path).map_err(|e| format!("{}", e))?;
         let output = BufWriter::with_capacity(1 << 20, output);
@@ -196,19 +197,19 @@ fn main_inner() -> Result<(), String> {
     } else {
         llhd::assembly::write_module(std::io::stdout().lock(), &module);
     }
-    let t1 = time::precise_time_ns();
+    let t1 = Instant::now();
     times.push(("output".to_owned(), t1 - t0));
 
     // Final time stat.
-    let tfinal = time::precise_time_ns();
+    let tfinal = Instant::now();
     times.push(("total".to_owned(), tfinal - tinit));
 
     // Print execution time statistics if requested by the user.
     if matches.is_present("time-passes") {
         eprintln!("Execution Time Statistics:");
-        for (mut name, ns) in times {
+        for (mut name, duration) in times {
             name.push(':');
-            eprintln!("  {:10}  {:8.3} ms", name, ns as f64 * 1.0e-6);
+            eprintln!("  {:10}  {:8.3} ms", name, duration.as_secs_f64() / 1.0e-3);
         }
         eprintln!("");
         eprintln!("Structure Statistics:");

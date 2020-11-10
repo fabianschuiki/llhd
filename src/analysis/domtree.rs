@@ -9,6 +9,7 @@ use hibitset::BitSet;
 use std::{
     collections::{HashMap, HashSet},
     sync::atomic::{AtomicU64, Ordering},
+    time::Instant,
 };
 
 /// A block dominator tree.
@@ -37,7 +38,7 @@ impl DominatorTree {
     /// [1]: https://www.cs.rice.edu/~keith/Embed/dom.pdf "Cooper, Keith D., Timothy J. Harvey, and Ken Kennedy. 'A simple, fast dominance algorithm.' Software Practice & Experience 4.1-10 (2001): 1-8."
     #[deprecated(since = "0.13.0", note = "use unit.domtree() instead")]
     pub fn new(unit: &Unit, pred: &PredecessorTable) -> Self {
-        let t0 = time::precise_time_ns();
+        let t0 = Instant::now();
         let post_order = Self::compute_blocks_post_order(unit, pred);
         let length = post_order.len();
         // trace!("[DomTree] post-order {:?}", post_order);
@@ -135,8 +136,8 @@ impl DominatorTree {
             }
         }
 
-        let t1 = time::precise_time_ns();
-        DOMINATOR_TREE_TIME.fetch_add(t1 - t0, Ordering::Relaxed);
+        let t1 = Instant::now();
+        DOMINATOR_TREE_TIME.fetch_add((t1 - t0).as_nanos() as u64, Ordering::Relaxed);
         // trace!(
         //     "Dominator Tree constructed in {} ms",
         //     (t1 - t0) as f64 * 1.0e-6
