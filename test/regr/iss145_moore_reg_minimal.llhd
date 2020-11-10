@@ -1,0 +1,16 @@
+; RUN: llhd-opt %s -p tcm
+
+proc %foo (i1$ %clk, i1$ %d) -> () {
+bb0:
+    br %bb1
+bb1:
+    %d.prb = prb i1$ %d
+    br %bb0
+}
+; CHECK:      proc %foo (i1$ %clk, i1$ %d) -> () {
+; CHECK-NEXT: bb0:
+; CHECK-NEXT:     %d.prb = prb i1$ %d
+; CHECK-NEXT:     br %bb1
+; CHECK-NEXT: bb1:
+; CHECK-NEXT:     br %bb0
+; CHECK-NEXT: }

@@ -1,0 +1,29 @@
+; RUN: llhd-opt %s -l
+
+proc %bar (i1$ %clk, i1$ %d) -> (i1$ %q) {
+init:
+    %clk.prb = prb i1$ %clk
+    wait %check, %clk
+check:
+    %clk.prb1 = prb i1$ %clk
+    %0 = const i1 0
+    %1 = eq i1 %clk.prb, %0
+    %2 = neq i1 %clk.prb1, %0
+    %posedge = and i1 %1, %2
+    br %posedge, %init, %event
+event:
+    %3 = const time 0s 1d
+    %d.prb = prb i1$ %d
+    drv i1$ %q, %d.prb, %3
+    br %init
+}
+
+; CHECK:      entity %bar (i1$ %clk, i1$ %d) -> (i1$ %q) {
+; CHECK-NEXT:     %d.prb = prb i1$ %d
+; CHECK-NEXT:     %0 = prb i1$ %clk
+; CHECK-NEXT:     reg i1$ %q, [%d.prb, rise %0]
+; CHECK-NEXT: }
+
+entity @foo (i1$ %clk, i1$ %d) -> (i1$ %q) {
+    inst %bar (i1$ %clk, i1$ %d) -> (i1$ %q)
+}

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove dependency `time`
 - Increase minimum rustc version to 1.45
 
+### Fixed
+- Fix TCM duplicating instructions rather than moving them (#145)
+
 ## 0.14.2 - 2020-09-17
 ### Fixed
 - Fix entity simulation panic caused by `halt` instruction (#143)
