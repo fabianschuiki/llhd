@@ -176,7 +176,7 @@ Type            | Description
 `T*`            | Pointer to a value of type `T`.
 `T$`            | Signal of a value of type `T`.
 `[N x T]`       | Array containing `N` elements of type `T`.
-`{T1,T1,...}`   | Structured data containing fields of types `T0`, `T1`, etc.
+`{T0,T1,...}`   | Structured data containing fields of types `T0`, `T1`, etc.
 
 Note that arbitrary combinations of signal types `T$` and pointer types `T*` are allowed. These should help support higher level HDLs advanced features and map to defined simulation behaviours. Not all such combinations are expected to describe synthesizable circuits.
 
