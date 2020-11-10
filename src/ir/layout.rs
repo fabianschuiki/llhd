@@ -47,6 +47,27 @@ struct InstNode {
     next: Option<Inst>,
 }
 
+impl FunctionLayout {
+    /// Add a mapping from an instruction to the block that contains it.
+    pub(super) fn map_inst(&mut self, inst: Inst, bb: Block) {
+        match self.inst_map.insert(inst, bb) {
+            Some(old_bb) => panic!(
+                "inst {} already inserted in {}, now being inserted into {}",
+                inst, old_bb, bb
+            ),
+            None => (),
+        }
+    }
+
+    /// Remove a mapping from an instruction to the block that contains it.
+    pub(super) fn unmap_inst(&mut self, inst: Inst) {
+        match self.inst_map.remove(&inst) {
+            Some(_) => (),
+            None => panic!("inst {} was not inserted"),
+        }
+    }
+}
+
 impl InstLayout {
     /// Append an instruction to the end of the function.
     pub fn append_inst(&mut self, inst: Inst) {
