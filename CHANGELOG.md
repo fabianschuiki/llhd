@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix TCM duplicating instructions rather than moving them (#145)
+- Fix `delete_block` not removing instruction-to-block mapping (#146)
 
 ## 0.14.2 - 2020-09-17
 ### Fixed

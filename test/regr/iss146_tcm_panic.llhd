@@ -1,0 +1,26 @@
+; RUN: llhd-opt %s -p dce tcm
+
+proc %foo (i1$ %0) -> () {
+bb0:
+    br %bb1
+bb1:
+    wait %bb2
+bb2:
+    %1 = prb i1$ %0
+    br %1, %bb1, %bb3
+bb3:
+    %2 = const i32 0
+    br %bb1
+}
+
+; CHECK:       proc %foo (i1$ %0) -> () {
+; CHECK-NEXT:  bb1:
+; CHECK-NEXT:      wait %bb2
+; CHECK-NEXT:  bb2:
+; CHECK-NEXT:      %1 = prb i1$ %0
+; CHECK-NEXT:      br %1, %aux, %bb3
+; CHECK-NEXT:  bb3:
+; CHECK-NEXT:      br %aux
+; CHECK-NEXT:  aux:
+; CHECK-NEXT:      br %bb1
+; CHECK-NEXT:  }

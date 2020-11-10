@@ -805,6 +805,7 @@ impl<'a> UnitBuilder<'a> {
                 self.replace_use(value, Value::invalid());
             }
             self.remove_inst_dfg(inst);
+            self.data.layout.unmap_inst(inst);
         }
     }
 
