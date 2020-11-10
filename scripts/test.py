@@ -83,6 +83,16 @@ class CheckFile:
                 if line == directive[1]:
                     return state
             raise Exception("No matching line found")
+        elif dirname == "CHECK-NEXT":
+            try:
+                line = next(state)
+                line = line.split(";")[0].strip()
+                line = self.ansi_escape.sub("", line)
+                if line == directive[1]:
+                    return state
+            finally:
+                pass
+            raise Exception("Next line does not match")
         else:
             raise Exception("Unknown directive `{}`".format(directive[0]))
 
