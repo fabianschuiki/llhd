@@ -22,6 +22,8 @@ Example | Regex                | Description
 `%foo`  | `%[a-zA-Z0-9_\.\\]+` | Local name visible only within module, function, process, or entity.
 `%42`   | `%[0-9]+`            | Anonymous local name.
 
+Note that basic block names are local names introduced without an explicit leading `%` but are otherwise referred to as other local names (with the leading `%`).
+
 Names are UTF-8 encoded. Arbitrary code points beyond letters and numbers may be represented as sequences of `\xx` bytes, where `xx` is the lower- or uppercase hexadecimal representation of the byte. E.g. the local name `foo$bar` is encoded as `%foo\24bar`.
 
 
@@ -150,9 +152,9 @@ External units allow an LLHD module to refer to functions, processes, and entiti
 
 ### Basic Blocks
 
-A basic block has a name and consists of a sequence of instructions. The last instruction must be a terminator; all other instructions must *not* be a terminator. This ensures that no control flow transfer occurs within a basic block, but rather control enters at the top and leaves at the bottom. A basic block may not be empty. Functions and processes contain at least one basic block.
+A basic block has a name and consists of a sequence of instructions. The `<bb_name>` name introduced is a local name that must match `[a-zA-Z0-9_\.\\]+` without an explicit leading `%`. The created basic block is referred to by the `phi`, `br` and `wait` instructions using the full `%<bb_name>` form of the label. The last instruction in a basic block must be a terminator; all other instructions must *not* be a terminator. This ensures that no control flow transfer occurs within a basic block, but rather control enters at the top and leaves at the bottom. A basic block may not be empty. Functions and processes contain at least one basic block.
 
-    %<bb_name>:
+    <bb_name>:
         <inst1>
         ...
         <instN>
