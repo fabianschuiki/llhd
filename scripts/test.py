@@ -18,7 +18,7 @@ cfail = "\x1b[31m"
 creset = "\x1b[0m"
 
 crate_dir = os.path.dirname(__file__) + "/.."
-test_dir = crate_dir + "/test"
+test_dir = crate_dir + "/tests"
 
 # Parse arguments.
 parser = argparse.ArgumentParser(description="Execute all regression tests.")
