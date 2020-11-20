@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add `mlir::writer` module
 
+### Fixed
+- Remove `%` from basic block names in `Block` formatting
+
 ## 0.14.3 - 2020-11-10
 ### Changed
 - Update dependencies `indoc`, `num`, `regex`, `lalrpop-util`

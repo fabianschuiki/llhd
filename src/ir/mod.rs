@@ -210,13 +210,13 @@ pub struct BlockDumper<'a>(Block, Unit<'a>);
 impl std::fmt::Display for BlockDumper<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.0.is_invalid() {
-            write!(f, "%<invalid>")
+            write!(f, "<invalid>")
         } else if let Some(name) = self.1.get_block_name(self.0) {
-            write!(f, "%{}", name)
+            write!(f, "{}", name)
         } else if let Some(index) = self.1.get_anonymous_block_hint(self.0) {
-            write!(f, "%{}", index)
+            write!(f, "{}", index)
         } else {
-            write!(f, "%{}", self.0)
+            write!(f, "{}", self.0)
         }
     }
 }
