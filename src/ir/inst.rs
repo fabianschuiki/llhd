@@ -454,15 +454,18 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
     }
 
     /// Creates call instruction to transfer control to a function and yield its return value
-    pub fn call(&mut self, unit: ExtUnit, args: Vec<Value>) -> Inst {
+    pub fn call(&mut self, unit: ExtUnit, args: Vec<Value>) -> Value {
         let ty = self.builder.extern_sig(unit).return_type();
-        let data = InstData::Call {
-            opcode: Opcode::Call,
-            unit,
-            ins: args.len() as u16,
-            args,
-        };
-        self.build(data, ty)
+        let inst = self.build(
+            InstData::Call {
+                opcode: Opcode::Call,
+                unit,
+                ins: args.len() as u16,
+                args,
+            },
+            ty,
+        );
+        self.inst_result(inst)
     }
 
     /// Creates inst instruction to instantiates a proces or entity within the current one
@@ -656,11 +659,9 @@ impl<'a, 'b> InstBuilder<'a, 'b> {
 impl<'a, 'b> InstBuilder<'a, 'b> {
     /// Convenience forward to `UnitBuilder`.
     pub(crate) fn build(&mut self, data: InstData, ty: Type) -> Inst {
-        let has_result = !ty.is_void();
         let inst = self.builder.build_inst(data, ty);
         if let Some(name) = self.name.take() {
-            if has_result {
-                let value = self.inst_result(inst);
+            if let Some(value) = self.builder.get_inst_result(inst) {
                 self.builder.set_name(value, name);
             }
         }

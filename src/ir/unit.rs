@@ -962,8 +962,9 @@ impl<'a> UnitBuilder<'a> {
 
     /// Add an instruction.
     fn add_inst_dfg(&mut self, data: InstData, ty: Type) -> Inst {
+        let has_result = data.opcode() == Opcode::Call || !ty.is_void();
         let inst = self.data.dfg.insts.add(data);
-        if !ty.is_void() {
+        if has_result {
             let result = self.add_value(ValueData::Inst { ty, inst });
             self.data.dfg.results.add(inst, result);
         }
