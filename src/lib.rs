@@ -14,6 +14,7 @@ extern crate serde;
 pub mod assembly;
 pub mod analysis;
 pub mod ir;
+pub mod mlir;
 pub mod opt;
 pub mod pass;
 pub mod table;

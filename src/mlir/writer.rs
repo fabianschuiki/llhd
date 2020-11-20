@@ -2,9 +2,11 @@
 
 //! Emitting LLHD IR assembly.
 
+use crate::{
+    ir::{prelude::*, UnitKind},
+    Type, TypeKind,
+};
 use itertools::Itertools;
-use llhd::ir::{prelude::*, UnitKind};
-use llhd::{Type, TypeKind};
 use num::{cast::FromPrimitive, BigInt, BigRational, One};
 use std::{
     collections::{HashMap, HashSet},
@@ -822,7 +824,7 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     write!(self.writer.sink, "{}", MLIRType(&unit.value_type(arg)))?;
                 }
                 let ty = unit.value_type(unit.inst_result(inst));
-                let void_ty = llhd::void_ty();
+                let void_ty = crate::void_ty();
                 write!(
                     self.writer.sink,
                     ") -> {}",
