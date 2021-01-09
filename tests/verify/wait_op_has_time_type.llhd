@@ -1,0 +1,10 @@
+; RUN: llhd-check %s
+; FAIL
+
+proc @foo () -> () {
+bb0:
+    %0 = const i32 1
+    wait %bb1 for %0
+bb1:
+    halt
+}
