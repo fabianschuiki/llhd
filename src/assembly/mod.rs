@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Fabian Schuiki
+// Copyright (c) 2017-2021 Fabian Schuiki
 
 //! Facilities to emit a module as human-readable assembly, or to parse such
 //! assembly back into a module.
