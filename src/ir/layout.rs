@@ -63,7 +63,7 @@ impl FunctionLayout {
     pub(super) fn unmap_inst(&mut self, inst: Inst) {
         match self.inst_map.remove(&inst) {
             Some(_) => (),
-            None => panic!("inst {} was not inserted"),
+            None => panic!("inst {} was not inserted", inst),
         }
     }
 }
