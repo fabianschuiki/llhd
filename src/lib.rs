@@ -1,3 +1,4 @@
+#![deny(missing_docs)]
 // Copyright (c) 2017-2021 Fabian Schuiki
 
 //! The Low Level Hardware Description language. This library provides tools to
