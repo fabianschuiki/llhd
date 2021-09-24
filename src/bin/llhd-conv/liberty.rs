@@ -250,10 +250,10 @@ pub fn parse(p: &mut impl Iterator<Item = Token>, with: &mut impl Visitor) {
                         parse(p, with);
                         with.visit_group_end();
                     }
-                    _ => panic!("syntax error: expected \";\" or \"{\""),
+                    _ => panic!("{}", r#"syntax error: expected ";" or "{""#),
                 }
             }
-            _ => panic!("syntax error: expected \":\" or \"(\""),
+            _ => panic!(r#"syntax error: expected ":" or "(""#),
         }
     }
 }
