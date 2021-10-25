@@ -54,9 +54,16 @@ impl std::fmt::Display for MLIRType<'_> {
             TypeKind::EnumType(l) => write!(f, "n{}", l),
             TypeKind::PointerType(ref ty) => write!(f, "!llhd.ptr<{}>", MLIRType(ty)),
             TypeKind::SignalType(ref ty) => write!(f, "!llhd.sig<{}>", MLIRType(ty)),
-            TypeKind::ArrayType(l, ref ty) => write!(f, "!llhd.array<{}x{}>", l, MLIRType(ty)),
+            TypeKind::ArrayType(l, ref ty) => write!(f, "!hw.array<{}x{}>", l, MLIRType(ty)),
             TypeKind::StructType(ref tys) => {
-                write!(f, "tuple<{}>", tys.iter().map(|t| MLIRType(t)).format(", "))
+                write!(
+                    f,
+                    "!hw.struct<{}>",
+                    tys.iter()
+                        .enumerate()
+                        .map(|(i, t)| format!("{}: {}", i, MLIRType(t)))
+                        .format(", ")
+                )
             }
             TypeKind::FuncType(ref args, ref ret) => write!(
                 f,
@@ -82,47 +89,41 @@ impl std::fmt::Display for MLIROpcode {
             f,
             "{}",
             match self.0 {
-                Opcode::ConstInt => "llhd.const",
-                Opcode::ConstTime => "llhd.const",
-                Opcode::Alias => "alias",
-                Opcode::ArrayUniform => "llhd.array_uniform",
-                Opcode::Array => "llhd.array",
-                Opcode::Struct => "llhd.tuple",
-                Opcode::Not => "llhd.not",
-                Opcode::Neg => "llhd.neg",
-                Opcode::Add => "addi",
-                Opcode::Sub => "subi",
-                Opcode::And => "llhd.and",
-                Opcode::Or => "llhd.or",
-                Opcode::Xor => "llhd.xor",
-                Opcode::Smul => "muli",
-                Opcode::Sdiv => "divi_signed",
-                Opcode::Smod => "llhd.smod",
-                Opcode::Srem => "remi_signed",
-                Opcode::Umul => "muli",
-                Opcode::Udiv => "divi_unsigned",
-                Opcode::Umod => "remi_unsigned",
-                Opcode::Urem => "remi_unsigend",
-                Opcode::Eq => "llhd.eq",
-                Opcode::Neq => "llhd.neq",
-                Opcode::Slt => "cmpi \"slt\",",
-                Opcode::Sgt => "cmpi \"sgt\",",
-                Opcode::Sle => "cmpi \"sle\",",
-                Opcode::Sge => "cmpi \"sge\",",
-                Opcode::Ult => "cmpi \"ult\",",
-                Opcode::Ugt => "cmpi \"ugt\",",
-                Opcode::Ule => "cmpi \"ule\",",
-                Opcode::Uge => "cmpi \"uge\",",
+                Opcode::ConstInt => "hw.constant",
+                Opcode::ConstTime => "llhd.constant_time",
+                Opcode::ArrayUniform => "hw.array_create",
+                Opcode::Array => "hw.array_create",
+                Opcode::Struct => "hw.struct_create",
+                Opcode::Not => "comb.xor",
+                Opcode::Neg => "comb.mul",
+                Opcode::Add => "comb.add",
+                Opcode::Sub => "comb.sub",
+                Opcode::And => "comb.and",
+                Opcode::Or => "comb.or",
+                Opcode::Xor => "comb.xor",
+                Opcode::Smul => "comb.mul",
+                Opcode::Sdiv => "comb.divs",
+                Opcode::Smod => "comb.mods",
+                Opcode::Srem => "comb.mods", // TODO: currently only one operation for modulo/reminder in CIRCT, semantics might not match
+                Opcode::Umul => "comb.mul",
+                Opcode::Udiv => "comb.divu",
+                Opcode::Umod => "comb.modu",
+                Opcode::Urem => "comb.modu", // TODO: currently only one operation for modulo/reminder in CIRCT, semantics might not match
+                Opcode::Eq => "comb.icmp \"eq\"",
+                Opcode::Neq => "comb.icmp \"ne\"",
+                Opcode::Slt => "comb.icmp \"slt\"",
+                Opcode::Sgt => "comb.icmp \"sgt\"",
+                Opcode::Sle => "comb.icmp \"sle\"",
+                Opcode::Sge => "comb.icmp \"sge\"",
+                Opcode::Ult => "comb.icmp \"ult\"",
+                Opcode::Ugt => "comb.icmp \"ugt\"",
+                Opcode::Ule => "comb.icmp \"ule\"",
+                Opcode::Uge => "comb.icmp \"uge\"",
                 Opcode::Shl => "llhd.shl",
                 Opcode::Shr => "llhd.shr",
-                Opcode::Mux => "llhd.dyn_extract_element",
+                Opcode::Mux => "hw.array_get",
                 Opcode::Reg => "llhd.reg",
-                Opcode::InsField => "llhd.insert_element",
-                Opcode::InsSlice => "llhd.insert_slice",
-                Opcode::ExtField => "llhd.extract_element",
-                Opcode::ExtSlice => "llhd.extract_slice",
-                Opcode::Con => "con",
-                Opcode::Del => "del",
+                Opcode::Con => "llhd.con",
                 Opcode::Call => "call",
                 Opcode::Inst => "llhd.inst",
                 Opcode::Sig => "llhd.sig",
@@ -133,16 +134,47 @@ impl std::fmt::Display for MLIROpcode {
                 Opcode::Ld => "llhd.load",
                 Opcode::St => "llhd.store",
                 Opcode::Halt => "llhd.halt",
-                Opcode::Ret => "ret",
-                Opcode::RetValue => "ret",
-                Opcode::Phi => "phi",
+                Opcode::Ret => "return",
+                Opcode::RetValue => "return",
                 Opcode::Br => "br",
                 Opcode::BrCond => "cond_br",
                 Opcode::Wait => "llhd.wait",
                 Opcode::WaitTime => "llhd.wait",
+                _ => panic!("No single corresponding op in CIRCT!"),
             }
         )
     }
+}
+
+fn get_type_bit_width(ty: &Type) -> usize {
+    if ty.is_int() {
+        return ty.unwrap_int();
+    }
+    if ty.is_array() {
+        let (size, t) = ty.unwrap_array();
+        return size * get_type_bit_width(t);
+    }
+    if ty.is_struct() {
+        return ty
+            .unwrap_struct()
+            .iter()
+            .map(|t| get_type_bit_width(t))
+            .sum();
+    }
+    panic!("Unsupported type!");
+}
+
+fn create_index_type(ty: &Type) -> Type {
+    let width = if ty.is_array() {
+        ty.unwrap_array().0
+    } else if ty.is_int() {
+        ty.unwrap_int()
+    } else if ty.is_signal() {
+        return create_index_type(ty.unwrap_signal());
+    } else {
+        panic!("Unsupported type ({})!", ty);
+    };
+    crate::int_ty(64 - (width - 1).leading_zeros() as usize)
 }
 
 impl<T: Write> Writer<T> {
@@ -259,6 +291,8 @@ impl<T: Write> Writer<T> {
                 if data[inst].opcode() == Opcode::Phi {
                     continue;
                 }
+
+                // llhd.sig operations are not allowed in processes
                 if data.kind() == UnitKind::Process && data[inst].opcode() == Opcode::Sig {
                     let sig_val = uw.unit.inst_result(inst);
                     for &user_inst in uw.unit.uses(sig_val) {
@@ -273,23 +307,56 @@ impl<T: Write> Writer<T> {
                                     data[shft_user].opcode()
                                 {
                                     if data[shft_user].imms()[0] == 0 {
-                                        write!(uw.writer.sink, "    ")?;
-                                        uw.write_value_name(uw.unit.inst_result(shft_user))?;
                                         if let Opcode::ExtSlice = data[shft_user].opcode() {
-                                            write!(uw.writer.sink, " = llhd.dyn_extract_slice ")?;
+                                            let basetype = &uw.unit.value_type(base);
+                                            let amtoriginal = &uw.value_name_as_string(amt);
+                                            let amtname = uw.write_result_value(true)?;
+                                            let amttype = &uw.unit.value_type(amt);
+                                            uw.write_comb_extract(
+                                                amtoriginal,
+                                                &MLIRType(amttype),
+                                                0,
+                                                &MLIRType(&create_index_type(basetype)),
+                                            )?;
+                                            write!(uw.writer.sink, "    ")?;
+                                            uw.write_value_name(uw.unit.inst_result(shft_user))?;
+                                            let mut keyword = "at";
+                                            if uw.unit.value_type(base).unwrap_signal().is_array() {
+                                                write!(uw.writer.sink, " = llhd.sig.array_slice ")?;
+                                            } else {
+                                                // signal of integer
+                                                write!(uw.writer.sink, " = llhd.sig.extract ")?;
+                                                keyword = "from";
+                                            }
+                                            uw.write_value_use(base, false)?;
+                                            write!(uw.writer.sink, " {} %{}", keyword, amtname)?;
+                                            write!(
+                                                uw.writer.sink,
+                                                " : ({}) -> {}\n",
+                                                MLIRType(&uw.unit.value_type(base)),
+                                                MLIRType(&uw.unit.inst_type(shft_user))
+                                            )?;
                                         } else {
-                                            write!(uw.writer.sink, " = llhd.dyn_extract_element ")?;
+                                            let amtname = uw.write_result_value(true)?;
+                                            write!(uw.writer.sink, " = comb.extract ")?;
+                                            uw.write_value_use(amt, false)?;
+                                            write!(
+                                                uw.writer.sink,
+                                                " from 0 : ({}) -> {}\n",
+                                                &uw.unit.value_type(amt),
+                                                create_index_type(&uw.unit.value_type(base))
+                                            )?;
+                                            write!(uw.writer.sink, "    ")?;
+                                            uw.write_value_name(uw.unit.inst_result(shft_user))?;
+                                            write!(uw.writer.sink, " = llhd.sig.array_get ")?;
+                                            uw.write_value_use(base, false)?;
+                                            write!(uw.writer.sink, "[%{}]", amtname)?;
+                                            write!(
+                                                uw.writer.sink,
+                                                " : {}\n",
+                                                MLIRType(&uw.unit.value_type(base))
+                                            )?;
                                         }
-                                        uw.write_value_use(base, false)?;
-                                        write!(uw.writer.sink, ", ")?;
-                                        uw.write_value_use(amt, false)?;
-                                        write!(
-                                            uw.writer.sink,
-                                            " : ({}, {}) -> {}\n",
-                                            MLIRType(&uw.unit.value_type(base)),
-                                            MLIRType(&uw.unit.value_type(amt)),
-                                            MLIRType(&uw.unit.inst_type(shft_user))
-                                        )?;
                                     }
                                 }
                                 deleted.insert(shft_user);
@@ -302,6 +369,7 @@ impl<T: Write> Writer<T> {
                 if deleted.contains(&inst) {
                     continue;
                 }
+
                 write!(uw.writer.sink, "    ")?;
                 uw.write_inst(block, inst, &terminator_args)?;
                 write!(uw.writer.sink, "\n")?;
@@ -340,6 +408,23 @@ impl<'a, T: Write> UnitWriter<'a, T> {
             names: Default::default(),
             tmp_index: 0,
         }
+    }
+
+    /// Emit the name of a value.
+    pub fn value_name_as_string(&mut self, value: Value) -> String {
+        // If we have already picked a name for the value, use that.
+        if let Some(name) = self.value_names.get(&value) {
+            return format!("%{}", name);
+        }
+
+        // Check if the value has an explicit name set, or if we should just
+        // generate a temporary name.
+        let name = self.uniquify_name(self.unit.get_name(value));
+
+        // Emit the name and associate it with the value for later reuse.
+        let result = format!("%{}", name);
+        self.value_names.insert(value, name);
+        result
     }
 
     /// Emit the name of a value.
@@ -538,41 +623,54 @@ impl<'a, T: Write> UnitWriter<'a, T> {
             unreachable!("too small time amount");
         }
 
-        if unit.has_result(inst) {
-            self.write_value_name(unit.inst_result(inst))?;
-            write!(self.writer.sink, " = ")?;
-        }
         let data = &unit[inst];
         match data.opcode() {
-            Opcode::ConstInt => write!(
-                self.writer.sink,
-                "{} {} : {}",
-                MLIROpcode(data.opcode()),
-                data.get_const_int().unwrap().value,
-                MLIRType(&unit.value_type(unit.inst_result(inst)))
-            )?,
-            Opcode::ConstTime => write!(
-                self.writer.sink,
-                "{} #llhd.time<{}{}, {}d, {}e> : {}",
-                MLIROpcode(data.opcode()),
-                get_canonicalized_time(&data.get_const_time().unwrap().time).0,
-                get_canonicalized_time(&data.get_const_time().unwrap().time).1,
-                data.get_const_time().unwrap().delta,
-                data.get_const_time().unwrap().epsilon,
-                MLIRType(&unit.value_type(unit.inst_result(inst)))
-            )?,
-            Opcode::ArrayUniform => {
-                write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
-                self.write_value_use(data.args()[0], false)?;
+            Opcode::ConstInt => {
+                self.write_value_name(unit.inst_result(inst))?;
+                write!(self.writer.sink, " = ")?;
                 write!(
                     self.writer.sink,
-                    " : !llhd.array<{}x{}>",
-                    data.imms()[0],
+                    "{} {} : {}",
+                    MLIROpcode(data.opcode()),
+                    data.get_const_int().unwrap().value,
+                    MLIRType(&unit.value_type(unit.inst_result(inst)))
+                )?
+            }
+            Opcode::ConstTime => {
+                self.write_value_name(unit.inst_result(inst))?;
+                write!(self.writer.sink, " = ")?;
+                write!(
+                    self.writer.sink,
+                    "{} #llhd.time<{}{}, {}d, {}e>",
+                    MLIROpcode(data.opcode()),
+                    get_canonicalized_time(&data.get_const_time().unwrap().time).0,
+                    get_canonicalized_time(&data.get_const_time().unwrap().time).1,
+                    data.get_const_time().unwrap().delta,
+                    data.get_const_time().unwrap().epsilon
+                )?
+            }
+            Opcode::ArrayUniform => {
+                self.write_value_name(unit.inst_result(inst))?;
+                write!(self.writer.sink, " = ")?;
+                write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
+                let mut first = true;
+                for _ in 0..data.imms()[0] {
+                    if !first {
+                        write!(self.writer.sink, ", ")?;
+                    }
+                    self.write_value_use(data.args()[0], false)?;
+                    first = false;
+                }
+                write!(
+                    self.writer.sink,
+                    " : {}",
                     MLIRType(&unit.value_type(data.args()[0]))
                 )?;
             }
             Opcode::Array => {
-                write!(self.writer.sink, "llhd.array ")?;
+                self.write_value_name(unit.inst_result(inst))?;
+                write!(self.writer.sink, " = ")?;
+                write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 let mut first = true;
                 for &arg in data.args() {
                     if !first {
@@ -583,35 +681,40 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                 }
                 write!(
                     self.writer.sink,
-                    " : !llhd.array<{}x{}>",
-                    data.args().len(),
+                    " : {}",
                     MLIRType(&unit.value_type(data.args()[0]))
                 )?;
             }
             Opcode::Struct => {
+                self.write_value_name(unit.inst_result(inst))?;
+                write!(self.writer.sink, " = ")?;
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 let mut first = true;
-                for &arg in data.args() {
+                for (i, &arg) in data.args().iter().enumerate() {
                     if !first {
                         write!(self.writer.sink, ", ")?;
                     }
                     first = false;
+                    write!(self.writer.sink, "{}: ", i)?;
                     self.write_value_use(arg, false)?;
                 }
-                write!(self.writer.sink, " : tuple<")?;
+                write!(self.writer.sink, " : !hw.struct<")?;
                 first = true;
-                for &arg in data.args() {
+                for (i, &arg) in data.args().iter().enumerate() {
                     if !first {
                         write!(self.writer.sink, ", ")?;
                     }
-                    write!(self.writer.sink, "{}", MLIRType(&unit.value_type(arg)))?;
+                    write!(
+                        self.writer.sink,
+                        "{}: {}",
+                        i,
+                        MLIRType(&unit.value_type(arg))
+                    )?;
                     first = false;
                 }
                 write!(self.writer.sink, ">")?;
             }
             Opcode::Alias
-            | Opcode::Not
-            | Opcode::Neg
             | Opcode::Add
             | Opcode::Sub
             | Opcode::And
@@ -631,8 +734,6 @@ impl<'a, T: Write> UnitWriter<'a, T> {
             | Opcode::Var
             | Opcode::Ld
             | Opcode::St
-            | Opcode::Eq
-            | Opcode::Neq
             | Opcode::Slt
             | Opcode::Sgt
             | Opcode::Sle
@@ -642,6 +743,10 @@ impl<'a, T: Write> UnitWriter<'a, T> {
             | Opcode::Ule
             | Opcode::Uge
             | Opcode::RetValue => {
+                if unit.has_result(inst) {
+                    self.write_value_name(unit.inst_result(inst))?;
+                    write!(self.writer.sink, " = ")?;
+                }
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 let mut first = true;
                 for &arg in data.args() {
@@ -657,7 +762,105 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     MLIRType(&unit.value_type(data.args()[0]))
                 )?;
             }
+            Opcode::Not => {
+                let allsetname = self.write_result_value(false)?;
+                write!(
+                    self.writer.sink,
+                    " = hw.constant -1 : {}\n",
+                    MLIRType(&unit.value_type(data.args()[0]))
+                )?;
+                write!(self.writer.sink, "    ")?;
+                self.write_value_name(unit.inst_result(inst))?;
+                write!(self.writer.sink, " = ")?;
+                write!(
+                    self.writer.sink,
+                    "{} %{}, ",
+                    MLIROpcode(data.opcode()),
+                    allsetname
+                )?;
+                self.write_value_use(data.args()[0], false)?;
+                write!(
+                    self.writer.sink,
+                    " : {}",
+                    MLIRType(&unit.value_type(data.args()[0]))
+                )?;
+            }
+            Opcode::Neg => {
+                let allsetname = self.write_result_value(false)?;
+                write!(
+                    self.writer.sink,
+                    " = hw.constant -1 : {}\n",
+                    MLIRType(&unit.value_type(data.args()[0]))
+                )?;
+                write!(self.writer.sink, "    ")?;
+                self.write_value_name(unit.inst_result(inst))?;
+                write!(self.writer.sink, " = ")?;
+                write!(
+                    self.writer.sink,
+                    "{} %{}, ",
+                    MLIROpcode(data.opcode()),
+                    allsetname
+                )?;
+                self.write_value_use(data.args()[0], false)?;
+                write!(
+                    self.writer.sink,
+                    " : {}",
+                    MLIRType(&unit.value_type(data.args()[0]))
+                )?;
+            }
+            Opcode::Eq | Opcode::Neq => {
+                if unit.value_type(data.args()[0]).is_int() {
+                    self.write_value_name(unit.inst_result(inst))?;
+                    write!(self.writer.sink, " = ")?;
+                    write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
+                    self.write_value_use(data.args()[0], false)?;
+                    write!(self.writer.sink, ", ")?;
+                    self.write_value_use(data.args()[1], false)?;
+                    write!(
+                        self.writer.sink,
+                        " : {}",
+                        MLIRType(&unit.value_type(data.args()[0]))
+                    )?;
+                } else {
+                    let inttype =
+                        crate::int_ty(get_type_bit_width(&unit.value_type(data.args()[0])));
+                    let inttype = MLIRType(&inttype);
+                    let castname1 = self.uniquify_name(Some("cast"));
+                    write!(self.writer.sink, "%{} = hw.bitcast ", castname1)?;
+                    self.write_value_use(data.args()[0], false)?;
+                    write!(
+                        self.writer.sink,
+                        ": ({}) -> {}\n",
+                        MLIRType(&unit.value_type(data.args()[0])),
+                        inttype
+                    )?;
+                    write!(self.writer.sink, "    ")?;
+                    let castname2 = self.uniquify_name(Some("cast"));
+                    write!(self.writer.sink, "%{} = hw.bitcast ", castname2)?;
+                    self.write_value_use(data.args()[1], false)?;
+                    write!(
+                        self.writer.sink,
+                        ": ({}) -> {}\n",
+                        MLIRType(&unit.value_type(data.args()[1])),
+                        inttype
+                    )?;
+                    write!(self.writer.sink, "    ")?;
+
+                    self.write_value_name(unit.inst_result(inst))?;
+                    write!(self.writer.sink, " = ")?;
+                    write!(
+                        self.writer.sink,
+                        "{} %{}, %{} : {}",
+                        MLIROpcode(data.opcode()),
+                        castname1,
+                        castname2,
+                        inttype
+                    )?;
+                }
+            }
             Opcode::Sig => {
+                self.write_value_name(unit.inst_result(inst))?;
+                write!(self.writer.sink, " = ")?;
                 let sig_name = if let Some(name) = self.value_names.get(&unit.inst_result(inst)) {
                     name.to_owned()
                 } else {
@@ -714,6 +917,8 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                 )?;
             }
             Opcode::Shl | Opcode::Shr => {
+                self.write_value_name(unit.inst_result(inst))?;
+                write!(self.writer.sink, " = ")?;
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 let mut comma = false;
                 for &arg in data.args() {
@@ -733,16 +938,17 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                 )?;
             }
             Opcode::Mux => {
+                self.write_value_name(unit.inst_result(inst))?;
+                write!(self.writer.sink, " = ")?;
                 write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
                 self.write_value_use(data.args()[0], false)?;
-                write!(self.writer.sink, ", ")?;
+                write!(self.writer.sink, "[")?;
                 self.write_value_use(data.args()[1], false)?;
+                write!(self.writer.sink, "]")?;
                 write!(
                     self.writer.sink,
-                    " : ({}, {}) -> {}",
-                    MLIRType(&unit.value_type(data.args()[0])),
-                    MLIRType(&unit.value_type(data.args()[1])),
-                    MLIRType(&unit.inst_type(inst))
+                    " : {}",
+                    MLIRType(&unit.value_type(data.args()[0]))
                 )?;
             }
             Opcode::Reg => {
@@ -770,36 +976,307 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     MLIRType(&unit.value_type(data.args()[0]))
                 )?;
             }
-            Opcode::InsField | Opcode::InsSlice => {
-                write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
-                let mut first = true;
-                for &arg in data.args().iter() {
-                    if !first {
-                        write!(self.writer.sink, ", ")?;
+            Opcode::InsField => {
+                let resty = &unit.inst_type(inst);
+
+                if resty.is_struct() {
+                    self.write_value_name(unit.inst_result(inst))?;
+                    write!(self.writer.sink, " = hw.struct_inject ")?;
+                    self.write_value_use(data.args()[0], false)?;
+                    write!(self.writer.sink, "[\"{}\"], ", data.imms()[0])?;
+                    self.write_value_use(data.args()[1], false)?;
+                    write!(
+                        self.writer.sink,
+                        " : {}",
+                        MLIRType(&unit.value_type(data.args()[0]))
+                    )?;
+                } else {
+                    // array
+                    let indexty = &create_index_type(&unit.value_type(data.args()[0]));
+                    let inputname = &self.value_name_as_string(data.args()[0]);
+
+                    let argty = &unit.value_type(data.args()[0]);
+                    let slicety = &unit.value_type(data.args()[1]);
+                    let prety = &crate::array_ty(data.imms()[0], argty.unwrap_array().1.clone());
+                    let postty = &crate::array_ty(
+                        argty.unwrap_array().0 - (data.imms()[0] + 1),
+                        argty.unwrap_array().1.to_owned(),
+                    );
+
+                    let mut concat_args: Vec<String> = vec![];
+                    let mut concat_types: Vec<MLIRType> = vec![];
+
+                    if get_type_bit_width(postty) > 0 {
+                        let indexname = self.write_result_value(false)?;
+                        write!(
+                            self.writer.sink,
+                            " = hw.constant {} : {}\n",
+                            data.imms()[0] + 1,
+                            MLIRType(&indexty)
+                        )?;
+                        let postslice = self.write_result_value(true)?;
+                        write!(
+                            self.writer.sink,
+                            " = hw.array_slice {} at %{} : ({}) -> {}\n",
+                            inputname,
+                            indexname,
+                            MLIRType(argty),
+                            MLIRType(postty)
+                        )?;
+                        concat_args.push(postslice.to_string());
+                        concat_types.push(MLIRType(postty));
                     }
-                    self.write_value_use(arg, false)?;
-                    first = false;
+
+                    let elementname = self.write_result_value(get_type_bit_width(postty) > 0)?;
+                    write!(
+                        self.writer.sink,
+                        " = hw.array_create {} : {}\n",
+                        data.args()[1],
+                        MLIRType(slicety)
+                    )?;
+                    concat_args.push(elementname.to_string());
+                    concat_types.push(MLIRType(slicety));
+
+                    if get_type_bit_width(prety) > 0 {
+                        let zeroname = self.write_result_value(true)?;
+                        write!(
+                            self.writer.sink,
+                            " = hw.constant 0 : {}\n",
+                            MLIRType(&indexty)
+                        )?;
+                        let preslice = self.write_result_value(true)?;
+                        write!(
+                            self.writer.sink,
+                            " = hw.array_slice {} at %{} : ({}) -> {}\n",
+                            inputname,
+                            zeroname,
+                            MLIRType(argty),
+                            MLIRType(prety)
+                        )?;
+                        concat_args.push(preslice.to_string());
+                        concat_types.push(MLIRType(prety));
+                    }
+
+                    write!(self.writer.sink, "    ")?;
+                    self.write_value_name(unit.inst_result(inst))?;
+                    self.write_concat("hw.array_concat", &concat_args, &concat_types)?;
                 }
-                write!(
-                    self.writer.sink,
-                    ", {} : {}, {}",
-                    data.imms()[0],
-                    MLIRType(&unit.value_type(data.args()[0])),
-                    MLIRType(&unit.value_type(data.args()[1]))
-                )?;
             }
-            Opcode::ExtField | Opcode::ExtSlice => {
-                write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
+            Opcode::InsSlice => {
+                let slicety = &unit.value_type(data.args()[1]);
+                let slicesize = if slicety.is_int() {
+                    slicety.unwrap_int()
+                } else {
+                    slicety.unwrap_array().0
+                };
+
+                if slicety.is_int() {
+                    let argty = &unit.value_type(data.args()[0]);
+                    let prety = &crate::int_ty(data.imms()[0]);
+                    let postty = &crate::int_ty(argty.unwrap_int() - (data.imms()[0] + slicesize));
+                    let inputname = self.value_name_as_string(data.args()[0]);
+
+                    let mut concat_args: Vec<String> = vec![];
+                    let mut concat_types: Vec<MLIRType> = vec![];
+
+                    if get_type_bit_width(postty) > 0 {
+                        let postslice = self.write_result_value(false)?;
+                        self.write_comb_extract(
+                            &inputname,
+                            &MLIRType(argty),
+                            data.imms()[0] + slicesize,
+                            &MLIRType(postty),
+                        )?;
+                        concat_args.push(postslice.to_string());
+                        concat_types.push(MLIRType(&postty));
+                    }
+
+                    concat_args.push(self.value_name_as_string(data.args()[1])[1..].to_string());
+                    concat_types.push(MLIRType(slicety));
+
+                    if get_type_bit_width(prety) > 0 {
+                        let preslice = self.write_result_value(get_type_bit_width(postty) > 0)?;
+                        self.write_comb_extract(&inputname, &MLIRType(argty), 0, &MLIRType(prety))?;
+                        concat_args.push(preslice.to_string());
+                        concat_types.push(MLIRType(&prety));
+                    }
+
+                    if concat_args.len() > 1 {
+                        write!(self.writer.sink, "    ")?;
+                    }
+                    self.write_value_name(unit.inst_result(inst))?;
+                    self.write_concat("comb.concat", &concat_args, &concat_types)?;
+                } else {
+                    // array
+                    let indexty = &create_index_type(&unit.value_type(data.args()[0]));
+                    let argty = &unit.value_type(data.args()[0]);
+                    let prety = &crate::array_ty(data.imms()[0], argty.unwrap_array().1.clone());
+                    let postty = &crate::array_ty(
+                        argty.unwrap_array().0 - (data.imms()[0] + slicesize),
+                        argty.unwrap_array().1.to_owned(),
+                    );
+
+                    let mut concat_args: Vec<String> = vec![];
+                    let mut concat_types: Vec<MLIRType> = vec![];
+
+                    if get_type_bit_width(postty) > 0 {
+                        let indexname = self.write_result_value(false)?;
+                        write!(
+                            self.writer.sink,
+                            " = hw.constant {} : {}\n",
+                            data.imms()[0] + slicesize,
+                            indexty
+                        )?;
+                        let postslice = self.write_result_value(true)?;
+                        write!(self.writer.sink, " = hw.array_slice ")?;
+                        self.write_value_use(data.args()[0], false)?;
+                        write!(
+                            self.writer.sink,
+                            " at %{} : ({}) -> {}\n",
+                            indexname,
+                            MLIRType(argty),
+                            MLIRType(postty)
+                        )?;
+                        concat_args.push(postslice.to_string());
+                        concat_types.push(MLIRType(postty));
+                    }
+
+                    concat_args.push(self.value_name_as_string(data.args()[1])[1..].to_string());
+                    concat_types.push(MLIRType(slicety));
+
+                    if get_type_bit_width(prety) > 0 {
+                        let zeroname = self.write_result_value(get_type_bit_width(postty) > 0)?;
+                        write!(self.writer.sink, " = hw.constant 0 : {}\n", indexty)?;
+                        let preslice = self.write_result_value(true)?;
+                        write!(self.writer.sink, " = hw.array_slice ")?;
+                        self.write_value_use(data.args()[0], false)?;
+                        write!(
+                            self.writer.sink,
+                            " at %{} : ({}) -> {}\n",
+                            zeroname,
+                            MLIRType(argty),
+                            MLIRType(prety)
+                        )?;
+                        concat_args.push(preslice.to_string());
+                        concat_types.push(MLIRType(prety));
+                    }
+
+                    if concat_args.len() > 1 {
+                        write!(self.writer.sink, "    ")?;
+                    }
+                    self.write_value_name(unit.inst_result(inst))?;
+                    self.write_concat("hw.array_concat", &concat_args, &concat_types)?;
+                }
+            }
+            Opcode::ExtField => {
+                let arg_type = &unit.value_type(data.args()[0]);
+
+                let indexname = self.uniquify_name(Some("index"));
+                let opcode;
+                let mut index = format!("%{}", indexname);
+                if arg_type.is_array() {
+                    let indexty = &create_index_type(&unit.value_type(data.args()[0]));
+                    opcode = "hw.array_get";
+                    write!(
+                        self.writer.sink,
+                        "%{} = hw.constant {} : {}\n",
+                        indexname,
+                        data.imms()[0],
+                        indexty
+                    )?;
+                    write!(self.writer.sink, "    ")?;
+                } else if arg_type.is_struct() {
+                    opcode = "hw.struct_extract";
+                    index = format!("\"{}\"", data.imms()[0]);
+                } else {
+                    // signal
+                    let sig_type = arg_type.unwrap_signal();
+                    if sig_type.is_array() {
+                        let indexty = &create_index_type(&unit.value_type(data.args()[0]));
+                        opcode = "llhd.sig.array_get";
+                        write!(
+                            self.writer.sink,
+                            "%{} = hw.constant {} : {}\n",
+                            indexname,
+                            data.imms()[0],
+                            indexty
+                        )?;
+                        write!(self.writer.sink, "    ")?;
+                    } else {
+                        // struct
+                        opcode = "llhd.sig.struct_extract";
+                        index = format!("\"{}\"", data.imms()[0]);
+                    }
+                }
+                self.write_value_name(unit.inst_result(inst))?;
+                write!(self.writer.sink, " = ")?;
+                write!(self.writer.sink, "{} ", opcode)?;
                 self.write_value_use(data.args()[0], false)?;
-                write!(self.writer.sink, ", {}", data.imms()[0])?;
-                write!(
-                    self.writer.sink,
-                    " : {} -> {}",
-                    MLIRType(&unit.value_type(data.args()[0])),
-                    MLIRType(&unit.inst_type(inst))
-                )?;
+                write!(self.writer.sink, "[{}] : {}", index, MLIRType(arg_type))?;
+            }
+            Opcode::ExtSlice => {
+                let arg_type = &unit.value_type(data.args()[0]);
+                let result_type = &unit.inst_type(inst);
+                let result_type = MLIRType(result_type);
+                let indexty = &create_index_type(&unit.value_type(data.args()[0]));
+
+                if arg_type.is_int() {
+                    self.write_value_name(unit.inst_result(inst))?;
+                    write!(self.writer.sink, " = ")?;
+                    write!(self.writer.sink, "comb.extract ")?;
+                    self.write_value_use(data.args()[0], false)?;
+                    write!(
+                        self.writer.sink,
+                        " from {} : ({}) -> {}",
+                        data.imms()[0],
+                        MLIRType(arg_type),
+                        result_type
+                    )?;
+                } else {
+                    let opcode;
+                    let keywrd;
+                    if arg_type.is_array() {
+                        opcode = "hw.array_slice";
+                        keywrd = "at";
+                    } else {
+                        // signal
+                        let sig_type = arg_type.unwrap_signal();
+                        if sig_type.is_int() {
+                            opcode = "llhd.sig.extract";
+                            keywrd = "from";
+                        } else {
+                            // array
+                            opcode = "llhd.sig.array_slice";
+                            keywrd = "at";
+                        }
+                    }
+                    let indexname = self.write_result_value(false)?;
+                    write!(
+                        self.writer.sink,
+                        " = hw.constant {} : {}\n",
+                        data.imms()[0],
+                        indexty
+                    )?;
+                    write!(self.writer.sink, "    ")?;
+                    self.write_value_name(unit.inst_result(inst))?;
+                    write!(self.writer.sink, " = ")?;
+                    write!(self.writer.sink, "{} ", opcode)?;
+                    self.write_value_use(data.args()[0], false)?;
+                    write!(
+                        self.writer.sink,
+                        " {} %{} : ({}) -> {}",
+                        keywrd,
+                        indexname,
+                        MLIRType(arg_type),
+                        result_type
+                    )?;
+                }
             }
             Opcode::Call => {
+                if unit.has_result(inst) {
+                    self.write_value_name(unit.inst_result(inst))?;
+                    write!(self.writer.sink, " = ")?;
+                }
                 write!(
                     self.writer.sink,
                     "{} {}(",
@@ -965,6 +1442,47 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     .unwrap_or(&&def);
                 self.write_block_value(data.blocks()[0], term_args)?;
             }
+        }
+        Ok(())
+    }
+
+    fn write_result_value(&mut self, indent: bool) -> Result<Rc<String>> {
+        let name = self.uniquify_name(None);
+        if indent {
+            write!(self.writer.sink, "    ")?;
+        }
+        write!(self.writer.sink, "%{}", name)?;
+        Ok(name)
+    }
+
+    fn write_comb_extract(
+        &mut self,
+        input: &String,
+        input_type: &MLIRType,
+        low_bit: usize,
+        result_type: &MLIRType,
+    ) -> Result<()> {
+        write!(
+            self.writer.sink,
+            " = comb.extract {} from {} : ({}) -> {}\n",
+            input, low_bit, input_type, result_type
+        )
+    }
+
+    fn write_concat(
+        &mut self,
+        opname: &str,
+        inputs: &Vec<String>,
+        input_types: &Vec<MLIRType>,
+    ) -> Result<()> {
+        write!(self.writer.sink, " = {} ", opname)?;
+        write!(self.writer.sink, "%{}", inputs[0])?;
+        for input in inputs[1..].iter() {
+            write!(self.writer.sink, ", %{}", input)?;
+        }
+        write!(self.writer.sink, " : {}", input_types[0])?;
+        for ty in input_types[1..].iter() {
+            write!(self.writer.sink, ", {}", ty)?;
         }
         Ok(())
     }
