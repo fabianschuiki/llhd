@@ -61,7 +61,8 @@ impl std::fmt::Display for MLIRType<'_> {
                     "!hw.struct<{}>",
                     tys.iter()
                         .enumerate()
-                        .map(|(i, t)| format!("{}: {}", i, MLIRType(t)))
+                        // In CIRCT a struct field name cannot start with a number.
+                        .map(|(i, t)| format!("f{}: {}", i, MLIRType(t)))
                         .format(", ")
                 )
             }
@@ -688,17 +689,16 @@ impl<'a, T: Write> UnitWriter<'a, T> {
             Opcode::Struct => {
                 self.write_value_name(unit.inst_result(inst))?;
                 write!(self.writer.sink, " = ")?;
-                write!(self.writer.sink, "{} ", MLIROpcode(data.opcode()))?;
+                write!(self.writer.sink, "{} (", MLIROpcode(data.opcode()))?;
                 let mut first = true;
-                for (i, &arg) in data.args().iter().enumerate() {
+                for &arg in data.args().iter() {
                     if !first {
                         write!(self.writer.sink, ", ")?;
                     }
                     first = false;
-                    write!(self.writer.sink, "{}: ", i)?;
                     self.write_value_use(arg, false)?;
                 }
-                write!(self.writer.sink, " : !hw.struct<")?;
+                write!(self.writer.sink, ") : !hw.struct<")?;
                 first = true;
                 for (i, &arg) in data.args().iter().enumerate() {
                     if !first {
@@ -706,7 +706,7 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     }
                     write!(
                         self.writer.sink,
-                        "{}: {}",
+                        "f{}: {}",
                         i,
                         MLIRType(&unit.value_type(arg))
                     )?;
@@ -1187,7 +1187,7 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     write!(self.writer.sink, "    ")?;
                 } else if arg_type.is_struct() {
                     opcode = "hw.struct_extract";
-                    index = format!("\"{}\"", data.imms()[0]);
+                    index = format!("\"f{}\"", data.imms()[0]);
                 } else {
                     // signal
                     let sig_type = arg_type.unwrap_signal();
@@ -1205,7 +1205,7 @@ impl<'a, T: Write> UnitWriter<'a, T> {
                     } else {
                         // struct
                         opcode = "llhd.sig.struct_extract";
-                        index = format!("\"{}\"", data.imms()[0]);
+                        index = format!("\"f{}\"", data.imms()[0]);
                     }
                 }
                 self.write_value_name(unit.inst_result(inst))?;
