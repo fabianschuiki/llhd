@@ -322,7 +322,7 @@ Instruction                 | Flags   | Description
 `phi`                       | F P     | Reconvergence node
 `br`                        | F P T   | Branch to a different block
 `call`                      | F P E   | Call a function
-`ret`                       | F P T   | Return from a function
+`ret`                       | F T     | Return from a function
 `wait`                      | P T     | Suspend execution
 `halt`                      | P T     | Terminate execution
 **Memory**                  |         |
