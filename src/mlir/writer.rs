@@ -137,8 +137,8 @@ impl std::fmt::Display for MLIROpcode {
                 Opcode::Halt => "llhd.halt",
                 Opcode::Ret => "return",
                 Opcode::RetValue => "return",
-                Opcode::Br => "br",
-                Opcode::BrCond => "cond_br",
+                Opcode::Br => "cf.br",
+                Opcode::BrCond => "cf.cond_br",
                 Opcode::Wait => "llhd.wait",
                 Opcode::WaitTime => "llhd.wait",
                 _ => panic!("No single corresponding op in CIRCT!"),
@@ -273,7 +273,7 @@ impl<T: Write> Writer<T> {
         if data.kind() != UnitKind::Entity {
             if let Some(block) = data.first_block() {
                 write!(uw.writer.sink, "    ")?;
-                write!(uw.writer.sink, "br ")?;
+                write!(uw.writer.sink, "cf.br ")?;
                 uw.write_block_name(block, block_args.get(&block).unwrap_or(&Vec::new()))?;
                 write!(uw.writer.sink, "\n")?;
             }
