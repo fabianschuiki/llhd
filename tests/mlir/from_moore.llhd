@@ -1,0 +1,13 @@
+; RUN: llhd-conv %s -i %s --output-format mlir
+
+proc %foo.initial.15.0 () -> (i32$ %x) {
+0:
+    %1 = const i32 42
+    %2 = const time 0s 1e
+    drv i32$ %x, %1, %2
+    halt
+}
+
+entity @foo () -> (i32$ %x) {
+    inst %foo.initial.15.0 () -> (i32$ %x)
+}
