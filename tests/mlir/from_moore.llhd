@@ -1,4 +1,4 @@
-; RUN: llhd-conv %s -i %s --output-format mlir
+; RUN: llhd-conv -i %s --output-format mlir
 
 proc %foo.initial.15.0 () -> (i32$ %x) {
 0:
